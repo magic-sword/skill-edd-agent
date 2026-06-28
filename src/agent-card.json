@@ -1,0 +1,12 @@
+{
+  "name": "evaluation_driven_development_agent",
+  "url": "http://localhost:8001",
+  "description": "Google ADK 2.0を利用した、自立的にスキルを開発・統合するA2Aプロトコル互換のエージェントの土台",
+  "version": "0.1.0",
+  "protocolVersion": "0.3.0",
+  "capabilities": {},
+  "skills": [],
+  "defaultInputModes": ["text/plain"],
+  "defaultOutputModes": ["text/plain"],
+  "supportsAuthenticatedExtendedCard": false
+}

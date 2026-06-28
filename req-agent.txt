@@ -1,0 +1,52 @@
+自立的評評価駆動開発エージェントの要件
+
+
+Google ADKを最大限に活用し、自立的にスキルやサブエージェントを学習し続ける、自立的評価駆動開発エージェントを構築してAgent Registryへ公開したいです。
+このエージェントを構築するスキルやワークフローは、参考資料の通り評価駆動で開発されなければいけません
+(参考PDF資料)Agent Skills_Day_3.pdf
+以後、資料が参考となる見出しを[]で表現します
+
+1つのエージェントは、A2Aプロトコルに従ったファイル構成で、Agent Registryへ登録できる形式で構築されます
+
+
+1つのスキルは、以下のファイル構成になっています
+[Skill Anatomy & Progressive Disclosure]
+SKILL.md
+├scripts/
+├references/
+├assets/
+…その他のサブフォルダやファイル
+
+
+スキルは、厳格な権限階層を経て、段階的に習得されなければいけません
+[Token budget: isolation is a trap]
+1 Read-Only:
+2 Draft-Only: 
+3 Action-Allowed:
+
+スキルは、その権限階層に応じて5つのテストパターンで評価されます
+[The Evaluation Toolkit]
+• Eval-as-Unit-Test
+• Golden Dataset
+• LLM-as-Judge
+• dversarial /Red-Team
+• Canary / Shadow Mode
+
+スキルのトリガーは4つのチェックに合格し、業界基準の90%トリガー精度を達成する必要があります
+[The trigger is the first gate]
+• Testable specificity:
+• Clarity:
+• Execution fidelity:
+• Rephrasing stability
+
+エージェントの実行結果のテストは、その入力出力だけでなく、軌跡についてもテストされる必要があります
+(恐らく、adk eval　が活用できます)
+[Output quality and tool trajectory]
+
+
+スキルの自立的な作成と改善は、メタスキルとそれを管理するワークフローを構築したエージェントによって実現します
+[6. On Meta-Skills and Self-Improving Skills]
+1. Authoring.
+2. Assisted authoring from traces.
+3. Improvement.
+4. Library evolution.

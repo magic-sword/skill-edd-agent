@@ -1,0 +1,13 @@
+{
+  "name": "Agents CLI & ADK 2.0 Dev Container",
+  "dockerComposeFile": [
+    "docker-compose.yml"
+  ],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/dhoeric/features/google-cloud-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "postCreateCommand": "if [ -f requirements.txt ]; then uv pip install --system -r requirements.txt; elif [ -f pyproject.toml ]; then uv pip install --system -e .; fi && uvx google-agents-cli setup --skip-auth"
+}

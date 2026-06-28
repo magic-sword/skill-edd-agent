@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+*.pdf
+implementation_plan.md
+task.md
+walkthrough.md

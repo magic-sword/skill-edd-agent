@@ -1,0 +1,22 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # 複数プロジェクト実行時の衝突を避けるため、COMPOSE_PROJECT_NAMEを使用してユニークなコンテナ名を設定します
+    container_name: ${COMPOSE_PROJECT_NAME:-google-agents}-app
+    volumes:
+      # 親ディレクトリ（プロジェクトのルート）をコンテナ内の /workspace にマウントします
+      - ..:/workspace:cached
+      # ホスト側のGeminiグローバルルール設定ディレクトリをコンテナ内にマウントして共有します
+      - ~/.gemini/config:/home/vscode/.gemini/config
+      # ホスト側のグローバルルールファイル自体も直接コンテナ内にマウントして共有します
+      - ~/.gemini/GEMINI.md:/home/vscode/.gemini/GEMINI.md
+    environment:
+      # ホスト側の環境変数（APIキーなど）を自動的に引き継ぎます
+      - GEMINI_API_KEY
+      - GCP_PROJECT_ID
+      - GCP_REGION
+
+    # Antigravity IDEでアタッチできるように、コンテナをバックグラウンドで起動し続けます
+    command: sleep infinity
