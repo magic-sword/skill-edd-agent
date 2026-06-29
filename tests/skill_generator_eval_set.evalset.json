@@ -1,0 +1,34 @@
+{
+  "eval_set_id": "skill_generator_eval_set",
+  "name": "Skill Generator Eval Set",
+  "eval_cases": [
+    {
+      "eval_id": "generate_reverse_skill",
+      "conversation": [
+        {
+          "invocation_id": "inv1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "src/skills/reverse-tool ディレクトリに、入力された文字列を逆順にする reverse-tool スキルを生成してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "指定された要件に従って、'reverse-tool' スキルを 'src/skills/reverse-tool' ディレクトリに生成しました。SKILL.md、scripts/reverse_text.py、および tests/reverse_text_eval_set.evalset.json が正常に生成され、テスト検証も成功しました。"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    }
+  ]
+}
