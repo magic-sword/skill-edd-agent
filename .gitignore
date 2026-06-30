@@ -4,6 +4,7 @@ __pycache__/
 *.pyd
 .DS_Store
 *.pdf
+.adk
 implementation_plan.md
 task.md
 walkthrough.md
