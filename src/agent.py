@@ -20,6 +20,11 @@ skill_generator_skill = load_skill_from_dir(
     current_dir / "skills" / "skill-generator"
 )
 
+# 「skill-manager」スキルをロードします。
+skill_manager_skill = load_skill_from_dir(
+    current_dir / "skills" / "skill-manager"
+)
+
 # Google ADK 2.0 に準拠したエージェントを定義します。
 # 読み込んだスキルと、それを動作させるためのローカル実行環境（EnvironmentToolset）を登録します。
 root_agent = Agent(
@@ -28,6 +33,7 @@ root_agent = Agent(
     instruction=(
         "あなたは自立的評価駆動開発エージェントです。\n"
         "ユーザーから新しいスキルやアセットの生成、あるいは機能開発の指示を受けた場合、自身に登録されている `skill-generator` スキルを活用して、自律的に新しいスキルを生成してください。\n"
+        "また、生成されたスキルのTierや権限ポリシーは、登録されている `skill-manager` スキルを使用して管理してください。\n"
         "\n"
         "スキル生成を行う手順：\n"
         "1. ローカル環境のシェル経由（`EnvironmentToolset`）で、`src/skills/skill-generator/scripts/generate_skill.py` を実行します。\n"
@@ -41,7 +47,7 @@ root_agent = Agent(
     tools=[
         # スキルをロードするためのツールセット
         skill_toolset.SkillToolset(
-            skills=[skill_generator_skill],
+            skills=[skill_generator_skill, skill_manager_skill],
             code_executor=UnsafeLocalCodeExecutor()
         ),
         # スクリプトをローカルシェル経由で実行するためのツールセット

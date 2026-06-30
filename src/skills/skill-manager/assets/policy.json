@@ -1,0 +1,34 @@
+{
+  "tiers": {
+    "1": {
+      "name": "Read-Only",
+      "allowed_tools": [
+        "read_file",
+        "list_dir",
+        "view_file",
+        "load_skill",
+        "load_skill_resource",
+        "list_skills"
+      ]
+    },
+    "2": {
+      "name": "Draft-Only",
+      "allowed_tools": [
+        "read_file",
+        "list_dir",
+        "view_file",
+        "load_skill",
+        "load_skill_resource",
+        "list_skills",
+        "write_file",
+        "edit_file"
+      ]
+    },
+    "3": {
+      "name": "Action-Allowed",
+      "allowed_tools": [
+        "*"
+      ]
+    }
+  }
+}
