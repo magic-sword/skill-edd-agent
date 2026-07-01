@@ -1,20 +1,39 @@
-
 {
-  "eval_set_id": "eval-unit-tester-v1",
-  "name": "eval-unit-tester skill evaluation set",
+  "eval_set_id": "eval_unit_tester_eval_set",
+  "name": "eval-unit-tester evaluation set",
+  "description": "eval-unit-tester skill unit tests",
   "eval_cases": [
     {
-      "eval_id": "test_case_1",
+      "eval_id": "gen_cases_001",
       "conversation": [
         {
-          "invocation_id": "test_invocation_1",
-          "user_content": "スキルeval-unit-testerをテストします。評価セットは /path/to/some/eval_set.evalset.json を使います。",
-          "final_response": "スキルeval-unit-testerの評価を実行し、結果に基づいてTierを更新します。"
+          "invocation_id": "inv_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "スキル 'text-formatter' の仕様書から単体テストケースを生成してください"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "🎉 テストケースファイルを正常に生成し保存しました: /workspace/src/skills/text-formatter/tests/text_formatter_eval_set.evalset.json\n🎉 評価設定ファイルを正常に生成し保存しました: /workspace/src/skills/text-formatter/tests/test_config.json"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
         }
       ],
       "session_input": {
-        "skill_name": "sample-skill-for-test",
-        "eval_set_path": "/workspace/src/skills/sample-skill-for-test/tests/sample_skill_for_test_eval_set.evalset.json"
+        "app_name": "src",
+        "user_id": "test_user",
+        "state": {}
       }
     }
   ]
