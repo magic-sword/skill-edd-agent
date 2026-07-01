@@ -3,28 +3,58 @@
     "skill-generator": {
       "tier": 3,
       "last_tested": "2026-06-30T08:30:00Z",
-      "file_hashes": {}
+      "file_hashes": {
+        "SKILL.md": "fa29dccb70e024f29c0205234f679c2654715368fbca7d00963d2a043ece6c45",
+        "assets/system_instruction.txt": "b619a676000a339fb2c6aa96d80e44b9be44acb0231add794249653054d93984",
+        "scripts/generate_skill.py": "d6591ed79cc0277dfd619dbe8b912a99c688464e1f72a26de4eceac762736dc5"
+      }
     },
     "skill-manager": {
       "tier": 3,
       "last_tested": "2026-06-30T08:30:00Z",
-      "file_hashes": {},
+      "file_hashes": {
+        "SKILL.md": "95c0e52817e04e37ea0e2943e6d42403ff933ea86e0e84f911ff16f741cca755",
+        "assets/policy.json": "17fcf37b4b67f4746e76752b8802d0a52e482ffcb3b613225181d606696d124e",
+        "scripts/manage_skills.py": "d562b4347736235560a5b5ac6539f561b7e8f5cfd0a6dc3ef50261cc90080fda",
+        "scripts/security.py": "7d3b7f7a57ea30fe8cc455c566e0a87050d2ace8611ceac3a8938d0e0d9aecdb",
+        "tests/trigger_eval_report.json": "23c810de6fc65046fedc11be7169ead4c0c66d5d1c468f1fd44ade4f9e8b9c31"
+      },
       "trigger_eval_status": "PASSED",
       "trigger_eval_accuracy": 0.95,
       "last_eval_date": "2026-07-01T02:16:48.011996Z"
     },
-    "test-skill": {
-      "tier": 2,
-      "last_tested": "2026-06-30T09:01:39.843888Z",
-      "file_hashes": {}
-    },
     "trigger-evaluator": {
       "tier": 1,
       "last_tested": "2026-07-01T02:20:13.066535Z",
-      "file_hashes": {},
+      "file_hashes": {
+        "SKILL.md": "54138e0c9a902d04c4ef5bdf453f8da894f04a58f6926f6c08ad701fe262430b",
+        "assets/eval_criteria.json": "4cb42eae5c3752be96b6f9c85f2a81c978dbdc917bd2cbc168791984b65c9a62",
+        "assets/static_eval_prompt.txt": "89d4fe738bc1ef497cbf1542d2e656c4b30e7672ecdac345948828af707bd09e",
+        "assets/test_case_gen_prompt.txt": "573edb3ca5224c5282fb93726596c95e8a486b8a56b91be43ca9a4de16415c65",
+        "scripts/evaluate_trigger.py": "6b6b125ac6dda2aceb92b637dcd0a9339857f175a459e4eddd013c09dbe0f6b1",
+        "scripts/run_eval_helper.py": "7025c9cc8edb1c84d2b3e5f05353284c9ee7e333d274a9732a67ee0c48ff038c",
+        "tests/trigger_eval_report.json": "379e886c20220d916af11b6d5732a2d88dc269c696ebb2a7210deea2ce096e83"
+      },
       "trigger_eval_status": "PASSED",
       "trigger_eval_accuracy": 1.0,
       "last_eval_date": "2026-07-01T03:52:55.111856Z"
+    },
+    "eval-unit-tester": {
+      "tier": 1,
+      "last_tested": null,
+      "file_hashes": {
+        "SKILL.md": "3acc00a03aacd9c185c6cecd15c52fa0eb88df2e92553993767b8b16dd8ec010",
+        "scripts/eval_unit_tester.py": "3e8db45170acd5f90b5acdf4f86ce2d67eb82d74781ed3b63956739bfba364b3",
+        "tests/eval_unit_tester_eval_set.evalset.json": "5e7726b8377accb8dffacce10f478366ec13f44d728f1d6a6d214c8be91ab152"
+      }
+    },
+    "test-executor": {
+      "tier": 1,
+      "last_tested": null,
+      "file_hashes": {
+        "SKILL.md": "b3e101ec0b907cc4c0b7f7cf17d969ee7e2666195579758724971626c18867f7",
+        "scripts/execute_test.py": "c4be0f26121e16b02ecda978cd643e28207d511a772627ad17a1cbeb0084af00"
+      }
     }
   }
 }

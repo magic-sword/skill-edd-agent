@@ -1,0 +1,21 @@
+
+{
+  "eval_set_id": "eval-unit-tester-v1",
+  "name": "eval-unit-tester skill evaluation set",
+  "eval_cases": [
+    {
+      "eval_id": "test_case_1",
+      "conversation": [
+        {
+          "invocation_id": "test_invocation_1",
+          "user_content": "スキルeval-unit-testerをテストします。評価セットは /path/to/some/eval_set.evalset.json を使います。",
+          "final_response": "スキルeval-unit-testerの評価を実行し、結果に基づいてTierを更新します。"
+        }
+      ],
+      "session_input": {
+        "skill_name": "sample-skill-for-test",
+        "eval_set_path": "/workspace/src/skills/sample-skill-for-test/tests/sample_skill_for_test_eval_set.evalset.json"
+      }
+    }
+  ]
+}

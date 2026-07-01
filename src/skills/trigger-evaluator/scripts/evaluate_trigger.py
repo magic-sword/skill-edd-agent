@@ -9,17 +9,11 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WORKSPACE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", ".."))
 sys.path.append(WORKSPACE_ROOT)
 
-import google
-import google.auth
-google.auth = google.auth
-
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
 
 # パスの定義
-# /workspace/src/skills/trigger-evaluator/scripts -> /workspace/src/skills_registry.json
-REGISTRY_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", "skills_registry.json"))
 SKILLS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
 # Gemini API の初期化
@@ -63,10 +57,6 @@ def static_evaluate_skill_md(skill_name, skill_md_content):
     )
 
     try:
-        class StaticScore(BaseModel):
-            specificity: int
-            clarity: int
-
         response = genai_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
@@ -93,7 +83,7 @@ def static_evaluate_skill_md(skill_name, skill_md_content):
         return {"specificity": 0, "clarity": 0, "passed": False, "error": str(e)}
 
 def generate_trigger_test_cases(skill_name, skill_md_content):
-    """第2ゲート前半: トリガー評価用のテストケース自動生成"""
+    """第2ゲート: トリガー評価用のテストケース自動生成"""
     print(f"[第2ゲート] スキル '{skill_name}' のトリガー評価用テストケースを生成中...\n")
     
     test_gen_prompt_path = os.path.join(SCRIPT_DIR, "..", "assets", "test_case_gen_prompt.txt")
@@ -106,10 +96,6 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
     )
 
     try:
-        class PromptSet(BaseModel):
-            positive_prompts: list[dict]
-            negative_prompts: list[dict]
-
         response = genai_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
@@ -183,138 +169,47 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
             }
         }
 
-        eval_set_filepath = f"tests/{skill_name}_trigger_eval.evalset.json"
-        config_filepath = f"tests/{skill_name}_trigger_eval.evalset.config.json"
+        # 保存先は対象スキルの tests/ ディレクトリ
+        skill_tests_dir = os.path.join(SKILLS_DIR, skill_name, "tests")
+        os.makedirs(skill_tests_dir, exist_ok=True)
+        
+        eval_set_filepath = os.path.join(skill_tests_dir, f"{skill_name}_trigger_eval.evalset.json")
+        config_filepath = os.path.join(skill_tests_dir, f"{skill_name}_trigger_eval.evalset.config.json")
         
         save_json_file(eval_set_filepath, eval_set_data)
         save_json_file(config_filepath, config_data)
         
-        print(f"  - テストケースを '{eval_set_filepath}' に保存しました。\n")
+        print(f"  - テストケースを '{eval_set_filepath}' に保存しました。")
+        print(f"  - 評価設定を '{config_filepath}' に保存しました。\n")
         return eval_set_filepath
     except Exception as e:
         print(f"  => テストケース生成中にエラーが発生しました: {e}\n")
         return None
 
-def run_agent_evaluation(skill_name, eval_set_filepath):
-    """第2ゲート後半: adk eval CLI を別プロセス(env -i)で起動して、合格・不合格数から精度を算出"""
-    print(f"[第2ゲート] スキル '{skill_name}' の動的評価を実行中...\n")
-
-    try:
-        import subprocess
-        import re
-        
-        config_filepath = f"tests/{skill_name}_trigger_eval.evalset.config.json"
-        
-        # メモリ共有やインポートロックを完全に防ぐため、env -i でOSレベルのプロセス分離を行う
-        cmd = [
-            "env", "-i",
-            "HOME=/home/vscode",
-            "LANG=C.UTF-8",
-            "PATH=/workspace/.venv/bin:/usr/local/bin:/usr/bin:/bin",
-            f"GEMINI_API_KEY={os.environ.get('GEMINI_API_KEY', '')}",
-            "ADK_EVAL_MODE=1",  # 評価モード(EnvironmentToolsetの無効化)
-            "/workspace/.venv/bin/adk",
-            "eval", "/workspace/src", eval_set_filepath,
-            "--config_file_path", config_filepath
-        ]
-        
-        print("  - サブプロセス評価を実行中 (タイムアウト制限: 180秒)...")
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=180  # 3分の強制タイムアウト
-            )
-        except subprocess.TimeoutExpired as te:
-            raise RuntimeError("評価実行中にタイムアウトが発生しました。デッドロックまたは無限ループの可能性があります。") from te
-            
-        output = result.stdout
-        err_output = result.stderr
-        
-        print(f"--- CLI出力 ---\n{output}\n----------------")
-        if err_output:
-            print(f"--- エラー出力 ---\n{err_output}\n----------------")
-
-        passed_match = re.search(r"Tests\s+passed:\s*(\d+)", output)
-        failed_match = re.search(r"Tests\s+failed:\s*(\d+)", output)
-        
-        if not passed_match or not failed_match:
-            raise RuntimeError(f"CLI出力からテスト結果数を抽出できませんでした。CLI出力:\n{output}\n[標準エラー出力]:\n{err_output}")
-            
-        passed_cases = int(passed_match.group(1))
-        failed_cases = int(failed_match.group(1))
-        total_cases = passed_cases + failed_cases
-        
-        accuracy = passed_cases / total_cases if total_cases > 0 else 0.0
-        print(f"  - 評価結果: {passed_cases}/{total_cases} ケース合格 (精度: {accuracy:.2%})")
-
-        details = []
-        for i in range(passed_cases):
-            details.append({"eval_id": f"case_{i}", "passed": True})
-        for i in range(failed_cases):
-            details.append({"eval_id": f"failed_case_{i}", "passed": False})
-
-        if accuracy >= 0.90:
-            print("  => 動的評価: 合格 (精度 >= 90%)\n")
-            return {"accuracy": accuracy, "passed": True, "details": details}
-        else:
-            print("  => 動的評価: 不合格 (精度 < 90%)\n")
-            return {"accuracy": accuracy, "passed": False, "details": details}
-            
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        print(f"  => 動的評価中にエラーが発生しました: {e}\n")
-        return {"accuracy": 0.0, "passed": False, "error": str(e), "details": []}
-
-def update_registry_and_report(skill_name, static_eval_result, dynamic_eval_result, overall_status):
-    """中央レジストリと詳細レポートを更新します。"""
-    print("評価結果を保存中...\n")
-
-    registry = load_json_file(REGISTRY_PATH, default_value={"skills": {}})
-    
-    if "skills" not in registry:
-        registry["skills"] = {}
-        
+def save_report(skill_name, static_eval_result, generated_cases_file):
+    """詳細レポートを保存します。"""
     now_str = datetime.now().isoformat() + "Z"
     
-    if skill_name not in registry["skills"]:
-        registry["skills"][skill_name] = {
-            "tier": 1,
-            "last_tested": now_str,
-            "file_hashes": {}
-        }
-    
-    registry["skills"][skill_name]["trigger_eval_status"] = "PASSED" if overall_status else "FAILED"
-    registry["skills"][skill_name]["trigger_eval_accuracy"] = dynamic_eval_result.get("accuracy", 0.0)
-    registry["skills"][skill_name]["last_eval_date"] = now_str
-    
-    save_json_file(REGISTRY_PATH, registry)
-    print(f"  - 中央レジストリ '{REGISTRY_PATH}' を更新しました。")
-
-    # 詳細レポートの保存
     report_filepath = os.path.join(SKILLS_DIR, skill_name, "tests", "trigger_eval_report.json")
     report_data = {
         "skill_name": skill_name,
         "static_evaluation": static_eval_result,
-        "dynamic_evaluation": dynamic_eval_result,
-        "overall_status": "PASSED" if overall_status else "FAILED",
+        "generated_cases_file": generated_cases_file,
+        "status": "PASSED" if static_eval_result.get("passed") else "FAILED",
         "evaluation_date": now_str
     }
     save_json_file(report_filepath, report_data)
     print(f"  - 詳細レポートを '{report_filepath}' に保存しました。\n")
 
 def main():
-    parser = argparse.ArgumentParser(description="指定されたスキルのトリガー定義の品質と精度を評価します。")
-    parser.add_argument("--skill_name", required=True, help="評価対象のスキル名（例: my-awesome-skill）")
+    parser = argparse.ArgumentParser(description="指定されたスキルのトリガー定義の品質チェックとテスト生成を行います。")
+    parser.add_argument("--skill_name", required=True, help="評価対象のスキル名")
     args = parser.parse_args()
 
     skill_name = args.skill_name
     skill_md_filepath = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
     
-    print(f"スキル '{skill_name}' のトリガー評価を開始します。\n")
+    print(f"スキル '{skill_name}' のトリガーアセット生成を開始します。\n")
 
     try:
         skill_md_content = load_file_content(skill_md_filepath)
@@ -325,28 +220,21 @@ def main():
     # 第1ゲート: 静的評価
     static_eval_result = static_evaluate_skill_md(skill_name, skill_md_content)
     if not static_eval_result["passed"]:
-        print(f"スキル '{skill_name}' のトリガー評価は不合格でした (静的評価ゲートで失敗)。")
-        update_registry_and_report(skill_name, static_eval_result, {"accuracy": 0.0, "passed": False, "details": []}, False)
-        sys.exit(0)
+        print(f"❌ スキル '{skill_name}' のトリガー静的評価は不合格でした。")
+        save_report(skill_name, static_eval_result, None)
+        sys.exit(1) # 静的チェックで失敗したためエラーコードで終了
 
-    # 第2ゲート前半: テストケース生成
+    # 第2ゲート: テストケース生成
     eval_set_filepath = generate_trigger_test_cases(skill_name, skill_md_content)
     if not eval_set_filepath:
-        print(f"スキル '{skill_name}' のトリガー評価は不合格でした (テストケース生成で失敗)。")
-        update_registry_and_report(skill_name, static_eval_result, {"accuracy": 0.0, "passed": False, "details": []}, False)
-        sys.exit(0)
+        print(f"❌ スキル '{skill_name}' のテストケース生成に失敗しました。")
+        sys.exit(1)
 
-    # 第2ゲート後半: 動的評価
-    dynamic_eval_result = run_agent_evaluation(skill_name, eval_set_filepath)
-    if not dynamic_eval_result["passed"]:
-        print(f"スキル '{skill_name}' のトリガー評価は不合格でした (動的評価ゲートで失敗)。")
-        update_registry_and_report(skill_name, static_eval_result, dynamic_eval_result, False)
-        sys.exit(0)
-
-    # 全体合格
-    print(f"スキル '{skill_name}' のトリガー評価は合格しました！")
-    update_registry_and_report(skill_name, static_eval_result, dynamic_eval_result, True)
-    print("評価プロセスが正常に完了しました。")
+    # 全体合格とレポート保存
+    print(f"🎉 スキル '{skill_name}' のトリガー評価用テストアセットを正常に生成しました！")
+    save_report(skill_name, static_eval_result, eval_set_filepath)
+    print("アセット生成プロセスが正常に完了しました。")
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
