@@ -1,0 +1,19 @@
+以下のスキルのSKILL.mdコンテンツを読み込み、特にトリガー条件のセクションに注目して、その「具体性（Specificity）」と「明確性（Clarity）」を5点満点で評価してください。
+
+評価基準は以下のJSONで示されています。
+
+```json
+{eval_criteria}
+```
+
+評価結果は、以下のJSON形式で出力してください。
+
+```json
+{
+  "specificity": [1-5の整数],
+  "clarity": [1-5の整数]
+}
+```
+
+--- SKILL.mdコンテンツ ---
+{skill_md_content}

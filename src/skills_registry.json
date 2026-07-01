@@ -8,12 +8,23 @@
     "skill-manager": {
       "tier": 3,
       "last_tested": "2026-06-30T08:30:00Z",
-      "file_hashes": {}
+      "file_hashes": {},
+      "trigger_eval_status": "PASSED",
+      "trigger_eval_accuracy": 0.95,
+      "last_eval_date": "2026-07-01T02:16:48.011996Z"
     },
     "test-skill": {
       "tier": 2,
       "last_tested": "2026-06-30T09:01:39.843888Z",
       "file_hashes": {}
+    },
+    "trigger-evaluator": {
+      "tier": 1,
+      "last_tested": "2026-07-01T02:20:13.066535Z",
+      "file_hashes": {},
+      "trigger_eval_status": "PASSED",
+      "trigger_eval_accuracy": 1.0,
+      "last_eval_date": "2026-07-01T03:52:55.111856Z"
     }
   }
 }

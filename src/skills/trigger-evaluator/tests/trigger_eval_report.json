@@ -1,0 +1,96 @@
+{
+  "skill_name": "trigger-evaluator",
+  "static_evaluation": {
+    "specificity": 4,
+    "clarity": 5,
+    "passed": true
+  },
+  "dynamic_evaluation": {
+    "accuracy": 1.0,
+    "passed": true,
+    "details": [
+      {
+        "eval_id": "case_0",
+        "passed": true
+      },
+      {
+        "eval_id": "case_1",
+        "passed": true
+      },
+      {
+        "eval_id": "case_2",
+        "passed": true
+      },
+      {
+        "eval_id": "case_3",
+        "passed": true
+      },
+      {
+        "eval_id": "case_4",
+        "passed": true
+      },
+      {
+        "eval_id": "case_5",
+        "passed": true
+      },
+      {
+        "eval_id": "case_6",
+        "passed": true
+      },
+      {
+        "eval_id": "case_7",
+        "passed": true
+      },
+      {
+        "eval_id": "case_8",
+        "passed": true
+      },
+      {
+        "eval_id": "case_9",
+        "passed": true
+      },
+      {
+        "eval_id": "case_10",
+        "passed": true
+      },
+      {
+        "eval_id": "case_11",
+        "passed": true
+      },
+      {
+        "eval_id": "case_12",
+        "passed": true
+      },
+      {
+        "eval_id": "case_13",
+        "passed": true
+      },
+      {
+        "eval_id": "case_14",
+        "passed": true
+      },
+      {
+        "eval_id": "case_15",
+        "passed": true
+      },
+      {
+        "eval_id": "case_16",
+        "passed": true
+      },
+      {
+        "eval_id": "case_17",
+        "passed": true
+      },
+      {
+        "eval_id": "case_18",
+        "passed": true
+      },
+      {
+        "eval_id": "case_19",
+        "passed": true
+      }
+    ]
+  },
+  "overall_status": "PASSED",
+  "evaluation_date": "2026-07-01T03:52:55.111856Z"
+}
