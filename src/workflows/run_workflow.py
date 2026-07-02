@@ -14,6 +14,9 @@ from google.adk.runners import Runner
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
 from google.genai import types
+import time
+from google.adk.events import Event, EventActions
+
 
 def parse_dependencies_from_skill_md(workflow_name: str) -> list[str]:
     """
@@ -163,17 +166,23 @@ async def main():
     
     session_id = str(uuid.uuid4())
     
-    # 起動前にセッションを作成し、共有セッション状態 (Session State) を初期化
+    # 初期状態を設定したセッション状態の辞書
+    initial_state = {
+        "skill_name": skill_name,
+        "prompt": prompt,
+        "registry_path": "/workspace/src/skills_registry.json",
+        "status": "running",
+        "message": "Workflow is running."
+    }
+
+    # 起動前にセッションを作成し、初期状態をセット
     session = await session_service.create_session(
         user_id="workflow_user",
         session_id=session_id,
-        app_name=f"{workflow_name}_runner"
+        app_name=f"{workflow_name}_runner",
+        state=initial_state
     )
-    session.state["temp:skill_name"] = skill_name
-    session.state["temp:prompt"] = prompt
-    session.state["temp:registry_path"] = "/workspace/src/skills_registry.json"
-    session.state["temp:status"] = "success"
-    session.state["temp:message"] = "Workflow successfully completed."
+
     
     status = "success"
     message = "Workflow successfully completed."
@@ -197,17 +206,19 @@ async def main():
                 session_id=session_id,
                 new_message=user_message,
             ):
-                # ログの出力があれば表示
+                author = event.author or "Agent"
                 if event.content and event.content.parts:
                     for part in event.content.parts:
                         if part.text:
-                            print(part.text)
+                            print(f"[{author}]: {part.text}")
+                        if part.function_call:
+                            print(f"[{author} ツール呼び出し]: {part.function_call.name}({part.function_call.args})")
                             
             # 完了後、セッション状態から最終結果を取得
             final_session = await session_service.get_session(user_id="workflow_user", session_id=session_id)
-            if final_session and "temp:status" in final_session.state:
-                status = final_session.state["temp:status"]
-                message = final_session.state.get("temp:message", message)
+            if final_session and "status" in final_session.state:
+                status = final_session.state["status"]
+                message = final_session.state.get("message", message)
         except Exception as e:
             status = "failed"
             message = str(e)

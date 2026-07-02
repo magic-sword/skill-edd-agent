@@ -124,10 +124,10 @@ description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管�
 
 ### 共有セッション状態 (Session State) のインターフェース
 * **入力値の読み込み**:
-  * `temp:skill_name`: 対象スキルの名前 (例: `my-skill`)
-  * `temp:registry_path` (任意): レジストリファイルのパス (デフォルト: `/workspace/src/skills_registry.json`)
+  * `skill_name`: 対象スキルの名前 (例: `my-skill`)
+  * `registry_path` (任意): レジストリファイルのパス (デフォルト: `/workspace/src/skills_registry.json`)
 * **出力値の書き込み**:
-  * `temp:reg_out_json_path`: 登録結果の出力JSONファイルパスを格納します。
+  * `reg_out_json_path`: 登録結果の出力JSONファイルパスを格納します。
 
 ### 呼び出し時のパラメータ
 * `command`: `"set-tier"`

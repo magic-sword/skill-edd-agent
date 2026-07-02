@@ -2,83 +2,62 @@ import argparse
 import os
 import sys
 import json
+from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
 
+
+# インポートキャッシュの不整合対策
+sys.modules.pop('google', None)
+sys.modules.pop('google.adk', None)
 
 def generate_test_cases(skill_name: str):
     skill_dir = os.path.join("/workspace/src/skills", skill_name)
     skill_md_path = os.path.join(skill_dir, "SKILL.md")
     
     if not os.path.exists(skill_md_path):
-        raise FileNotFoundError(f"エラー: スキル仕様書 {skill_md_path} が見つかりません。")
+        raise FileNotFoundError(f"Error: Skill specification {skill_md_path} not found.")
         
     print(f"Loading skill specification from {skill_md_path}")
     with open(skill_md_path, "r", encoding="utf-8") as f:
         skill_content = f.read()
         
-    # Gemini API クライアントの初期化
+    # Initialize Gemini API Client
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError("エラー: GEMINI_API_KEY 環境変数が設定されていません。")
+        raise ValueError("Error: GEMINI_API_KEY environment variable is not set.")
         
     client = genai.Client(api_key=api_key)
     
-    prompt = f"""
-あなたはGoogle ADK (Antigravity) 2.0のテストアセット生成のスペシャリストです。
-提供された以下のスキルの仕様書（SKILL.md）を読み、このスキルの動作を確認するための代表的なテストケース（単体テスト）を 4件〜6件 生成してください。
-
-【対象スキルの仕様書】
-{skill_content}
-
-【JSONスキーマの要件】
-生成するJSONは、以下の構造に完全に適合していなければなりません。
-```json
-{{
-  "eval_set_id": "{skill_name.replace('-', '_')}_eval_set",
-  "name": "{skill_name} evaluation set",
-  "description": "{skill_name} skill unit tests",
-  "eval_cases": [
-    {{
-      "eval_id": "テストケースの一意なID (例: to_upper_001)",
-      "conversation": [
-        {{
-          "invocation_id": "一意の呼び出しID (例: inv_1)",
-          "user_content": {{
-            "role": "user",
-            "parts": [
-              {{
-                "text": "ユーザーの入力プロンプト"
-              }}
-            ]
-          }},
-          "final_response": {{
-            "role": "model",
-            "parts": [
-              {{
-                "text": "期待されるモデルの最終出力テキスト（golden answer）"
-              }}
-            ]
-          }},
-          "intermediate_data": {{
-            "tool_uses": [],
-            "intermediate_responses": []
-          }}
-        }}
-      ],
-      "session_input": {{
-        "app_name": "src",
-        "user_id": "test_user",
-        "state": {{}}
-      }}
-    }}
-  ]
-}}
-```
-
-※ intermediate_data.tool_uses や intermediate_data.intermediate_responses は空のリスト [] にしてください。
-* 期待される最終出力（final_response.parts[0].text）は、仕様書に合致する正確なものである必要があります。
-"""
+    # Load templates and prompt assets
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    assets_dir = os.path.join(script_dir, "..", "assets")
+    
+    prompt_tmpl_path = os.path.join(assets_dir, "test_case_gen_prompt.txt")
+    json_tmpl_path = os.path.join(assets_dir, "evalset_template.json")
+    
+    if not os.path.exists(prompt_tmpl_path) or not os.path.exists(json_tmpl_path):
+        raise FileNotFoundError("Error: Template files not found in assets.")
+        
+    with open(prompt_tmpl_path, "r", encoding="utf-8") as f:
+        prompt_template = f.read()
+        
+    with open(json_tmpl_path, "r", encoding="utf-8") as f:
+        json_template = f.read()
+        
+    # json_template 自体に含まれるプレースホルダーを置換
+    json_template = json_template.replace(
+        "{skill_name_underscore}", skill_name.replace('-', '_')
+    ).replace(
+        "{skill_name}", skill_name
+    )
+    
+    # プロンプトの組み立て
+    prompt = prompt_template.replace(
+        "{skill_content}", skill_content
+    ).replace(
+        "{json_template}", json_template
+    )
 
     print("Generating unit test cases using Gemini API...")
     
@@ -86,104 +65,64 @@ def generate_test_cases(skill_name: str):
         model='gemini-2.5-flash',
         contents=prompt,
         config=types.GenerateContentConfig(
-            response_mime_type="application/json"
+            response_mime_type="application/json",
+            temperature=0.2
         )
     )
     
-    test_cases_json = json.loads(response.text)
-    
-    # 保存先ディレクトリの作成保証
+    # 応答をパース
+    try:
+        test_case_data = json.loads(response.text)
+    except Exception as e:
+        print(f"Error parsing Gemini response: {e}")
+        print(response.text)
+        raise e
+        
+    # テストファイルを保存
     tests_dir = os.path.join(skill_dir, "tests")
     os.makedirs(tests_dir, exist_ok=True)
     
-    # テストファイルの保存
     eval_set_filename = f"{skill_name.replace('-', '_')}_eval_set.evalset.json"
     eval_set_path = os.path.join(tests_dir, eval_set_filename)
     
     with open(eval_set_path, "w", encoding="utf-8") as f:
-        json.dump(test_cases_json, f, indent=2, ensure_ascii=False)
+        json.dump(test_case_data, f, indent=2, ensure_ascii=False)
         
-    print(f"🎉 テストケースファイルを正常に生成し保存しました: {eval_set_path}")
+    print(f"Successfully generated and saved test cases: {eval_set_path}")
     
-    # test_config.json の作成 (ツール軌跡の無視、応答テキスト一致のみを検証する設定)
+    # テスト構成ファイルを保存
     config_path = os.path.join(tests_dir, "test_config.json")
     config_data = {
-        "criteria": {
-            "tool_trajectory_avg_score": 0.0,
-            "response_match_score": 0.8
-        }
+        "eval_set_path": eval_set_path,
+        "threshold_accuracy": 1.0
     }
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config_data, f, indent=2, ensure_ascii=False)
         
-    print(f"🎉 評価設定ファイルを正常に生成し保存しました: {config_path}")
+    print(f"Successfully generated and saved test config: {config_path}")
+
 
 def generate_unit_tests(tool_context: ToolContext) -> str:
-    """
-    指定されたスキル（temp:skill_name）に対する単体テストケースを自動生成し、
-    結果を temp:eval_set_path に保存します。
-    """
-    skill_name = tool_context.state.get("temp:skill_name")
+    skill_name = tool_context.state.get("skill_name")
     if not skill_name:
-        raise ValueError("セッション状態に 'temp:skill_name' が設定されていません。")
+        raise ValueError("Error: 'skill_name' is not set in session state.")
         
-    from google import genai
     generate_test_cases(skill_name)
     
-    skill_underscores = skill_name.replace("-", "_")
-    eval_set_path = os.path.abspath(f"/workspace/src/skills/{skill_name}/tests/{skill_underscores}_eval_set.evalset.json")
+    # 結果パスをセッション状態に保存
+    skill_dir = os.path.join("/workspace/src/skills", skill_name)
+    eval_set_filename = f"{skill_name.replace('-', '_')}_eval_set.evalset.json"
+    eval_set_path = os.path.join(skill_dir, "tests", eval_set_filename)
     
-    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/03_ut_gen_out.json"
-    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
-    with open(output_json_path, "w", encoding="utf-8") as f:
-        json.dump({
-            "status": "success",
-            "message": "Successfully generated unit test cases.",
-            "eval_set_path": eval_set_path
-        }, f, indent=2, ensure_ascii=False)
-        
-    tool_context.state["temp:eval_set_path"] = eval_set_path
-    
-    return f"Success: Generated unit tests at '{eval_set_path}'."
+    tool_context.state["eval_set_path"] = eval_set_path
+    return f"Success: Unit tests generated at {eval_set_path}"
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate unit test cases for a skill using Gemini API.")
-    parser.add_argument("--skill_name", required=True, help="The name of the skill to generate test cases for.")
-    parser.add_argument("--output_json", help="Path to output JSON file")
+    parser = argparse.ArgumentParser(description="Unit Test Case Generator")
+    parser.add_argument("--skill_name", type=str, required=True)
     args = parser.parse_args()
-    
-    skill_name = args.skill_name
-    status = "success"
-    message = "Successfully generated unit test cases."
-    eval_set_path = ""
-    
-    try:
-        generate_test_cases(skill_name)
-        eval_set_filename = f"{skill_name.replace('-', '_')}_eval_set.evalset.json"
-        eval_set_path = os.path.abspath(os.path.join("/workspace/src/skills", skill_name, "tests", eval_set_filename))
-    except Exception as e:
-        status = "failed"
-        message = str(e)
-        print(f"Error: {e}", file=sys.stderr)
-        
-    if args.output_json:
-        try:
-            out_dir = os.path.dirname(os.path.abspath(args.output_json))
-            if out_dir:
-                os.makedirs(out_dir, exist_ok=True)
-            with open(args.output_json, "w", encoding="utf-8") as f:
-                json.dump({
-                    "status": status,
-                    "message": message,
-                    "skill_name": skill_name,
-                    "eval_set_path": eval_set_path
-                }, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error writing output_json: {e}", file=sys.stderr)
-            
-    if status == "failed":
-        sys.exit(1)
+    generate_test_cases(args.skill_name)
 
 if __name__ == "__main__":
     main()

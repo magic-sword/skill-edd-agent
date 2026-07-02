@@ -31,32 +31,29 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     test_name = skill_name.replace("-", "_") + "_eval_set.evalset.json"
     
     # 開発者エージェントのインストラクション構成
-    instruction = (
-        f"あなたは Google ADK 2.0 に準拠したスキルを自律開発する、極めて優秀なコーディングエージェント（SkillDeveloperAgent）です。\n"
-        f"ユーザーから提示された要件を満たす高品質なスキルアセットを、指定された出力ディレクトリ内に生成してください。\n"
-        f"\n"
-        f"【開発対象スキルの情報】\n"
-        f"- スキル名: {skill_name}\n"
-        f"- 出力ディレクトリ: {output_dir}\n"
-        f"\n"
-        f"【開発ルール（ToolContext ＆ 共有セッション状態によるデータ共有）】\n"
-        f"1. ToolContext の利用と状態の読み書き:\n"
-        f"   - スキルの実装コードには、ADK エージェントからインプロセスで呼び出されるための関数を必ず定義してください。\n"
-        f"   - その関数は、引数の最後に `tool_context: ToolContext` (from google.adk.tools import ToolContext) を受け取るようにしてください。\n"
-        f"   - 関数内では、必要な入力パラメータを `tool_context.state`（共有セッション状態）から取得し（例: `tool_context.state.get('temp:skill_name')` ）、処理結果を `tool_context.state` に書き戻す設計にしてください（例: `tool_context.state['temp:result'] = value` ）。\n"
-        f"   - スキル内の関数定義（引数や戻り値の型ヒント、docstring）は、LLM がツール仕様を自動解析できるよう、明確かつ詳細に記述してください。\n"
-        f"2. SKILL.md でのインプロセスツール仕様の定義:\n"
-        f"   - `SKILL.md` には、具体的なスクリプトパスや引数ファイルによる呼び出しではなく、Python の関数ツールとして呼び出す際の関数名やパラメータ、および ToolContext を介した状態の読み書き仕様を明記してください。\n"
-        f"\n"
-        f"【作成すべきファイル構成】\n"
-        f"1. `SKILL.md`: スキルの仕様・トリガー条件書。以下のフロントマターを先頭に必ず含むこと（日本語で詳細を記述してください）：\n"
-        f"   ---\n"
-        f"   name: {skill_name}\n"
-        f"   description: スキルの短い説明（日本語）\n"
-        f"   ---\n"
-        f"   ※ 'AIエージェント向け使用方法 (FunctionTool)' というセクションを末尾に作り、`FunctionTool` として実行する際の関数名や ToolContext を介した共有状態のキーの定義例を必ず含めてください。\n"
-        f"2. `scripts/{script_name}`: 実際に動くPythonプログラム。ToolContext を受け取り、セッション状態を読み書きするインプロセス関数定義（および、従来の CLI 実行用に `--input_json` と `--output_json` パラメータを受け取る main 処理も備えた互換コード）を記述してください。\n"
-        f"3. `tests/{test_name}`: 評価用データセット（JSON形式）。eval_set_id, name, eval_cases（eval_id, conversation [invocation_id, user_content, final_response], session_input）を含むこと。"
+    instruction_template = r"""あなたは Google ADK 2.0 に準拠したスキルを開発する、優秀なコーディングエージェント（SkillDeveloperAgent）です。
+
+【開発対象スキルの情報】
+- スキル名: {skill_name}
+- 出力ディレクトリ: {output_dir}
+
+出力ディレクトリ内には、すでにスキルのひな形ファイル（SKILL.md および scripts/{script_name}）が生成されています。
+
+あなたのタスクは以下の通りです：
+1. `scripts/{script_name}` を読み込み、`process_message` 関数内の `[TODO]` 部分に、ユーザーからの要件を満たすビジネスロジックを実装してください。
+2. ひな形ファイルの構成やインターフェース（ToolContext 読み書き、CLI引数処理、標準出力へのJSONダンプ等）は、ADK仕様に準拠するようあらかじめ構築されています。この既存の構造や関数定義は絶対に破壊せず、ロジック部分のみを追加・修正してください。
+3. `tests/{test_name}` に、このスキルの動作検証（要件に合わせた変換など）を行うための評価用データセット（JSON形式）を新規作成して配置してください。eval_set_id, name, eval_cases（eval_id, conversation [invocation_id, user_content, final_response], session_input）を含む形式で記述してください。
+4. 開発が完了したら、実際に `scripts/{script_name}` を CLI ツールとして実行し（例: `python3 scripts/{script_name} --input_json '{"user_message": "値"}'`）、期待する結果が正しく標準出力（stdout）に出力されるかテスト・動作検証を行ってください。
+"""
+
+    instruction = instruction_template.replace(
+        "{skill_name}", skill_name
+    ).replace(
+        "{output_dir}", output_dir
+    ).replace(
+        "{script_name}", script_name
+    ).replace(
+        "{test_name}", test_name
     )
     
     # エージェント定義
@@ -76,6 +73,26 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(os.path.join(output_dir, "scripts"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "tests"), exist_ok=True)
+
+    # テンプレートファイルをコピー・展開
+    generator_dir = os.path.dirname(os.path.abspath(__file__))
+    templates_dir = os.path.join(generator_dir, "..", "assets")
+    
+    skill_md_tmpl_path = os.path.join(templates_dir, "SKILL.md.template")
+    skill_script_tmpl_path = os.path.join(templates_dir, "skill_script.py.template")
+    
+    if os.path.exists(skill_md_tmpl_path):
+        with open(skill_md_tmpl_path, "r", encoding="utf-8") as f:
+            tmpl_content = f.read()
+        content = tmpl_content.replace("{skill_name}", skill_name).replace("{skill_description}", prompt).replace("{script_name}", script_name)
+        with open(os.path.join(output_dir, "SKILL.md"), "w", encoding="utf-8") as f:
+            f.write(content)
+            
+    if os.path.exists(skill_script_tmpl_path):
+        with open(skill_script_tmpl_path, "r", encoding="utf-8") as f:
+            tmpl_content = f.read()
+        with open(os.path.join(output_dir, "scripts", script_name), "w", encoding="utf-8") as f:
+            f.write(tmpl_content)
     
     session_service = InMemorySessionService()
     artifact_service = InMemoryArtifactService()
@@ -109,14 +126,14 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
 
 async def generate_skill_code(tool_context: ToolContext) -> str:
     """
-    指定された要件（temp:prompt）に基づき、SkillDeveloperAgent を起動して
+    指定された要件（prompt）に基づき、SkillDeveloperAgent を起動して
     新規スキルを自律生成します。
     """
-    skill_name = tool_context.state.get("temp:skill_name")
-    prompt = tool_context.state.get("temp:prompt")
+    skill_name = tool_context.state.get("skill_name")
+    prompt = tool_context.state.get("prompt")
     
     if not skill_name or not prompt:
-        raise ValueError("セッション状態に 'temp:skill_name' または 'temp:prompt' が設定されていません。")
+        raise ValueError("セッション状態に 'skill_name' または 'prompt' が設定されていません。")
         
     output_dir = os.path.abspath(f"/workspace/src/skills/{skill_name}")
     model = "gemini-2.5-flash"
@@ -144,7 +161,7 @@ async def generate_skill_code(tool_context: ToolContext) -> str:
             "output_dir": output_dir
         }, f, indent=2, ensure_ascii=False)
         
-    tool_context.state["temp:skill_dir"] = output_dir
+    tool_context.state["skill_dir"] = output_dir
     
     return f"Success: Generated skill '{skill_name}' at '{output_dir}'."
 

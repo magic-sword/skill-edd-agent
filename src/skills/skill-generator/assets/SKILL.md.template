@@ -1,0 +1,41 @@
+---
+name: {skill_name}
+description: {skill_description}
+---
+
+# {skill_name}
+
+{skill_description}
+
+## トリガー条件
+
+- ユーザーがこのスキルの実行を求めた場合。
+
+## スキルの動作
+
+1. `user_message` から入力を受け取ります。
+2. 処理を行い、結果を `result_message` に格納します。
+
+## AIエージェント向け使用方法
+
+このスキルは `run_skill_script` ツールを使用して実行します。
+`stdout` から結果の JSON を直接取得して読み取ってください。
+
+### パラメータ
+
+- `file_path`: `scripts/{script_name}`
+- `args`: JSON引数として以下を渡してください。
+  - `input_json`: `{"user_message": "入力テキスト"}`
+  - `output_json`: 結果を一時保存するファイルパス
+
+### 実行例
+
+```
+run_skill_script(
+    file_path="scripts/{script_name}",
+    args={
+        "input_json": "{\"user_message\": \"hello world\"}",
+        "output_json": "/workspace/src/.workflow_tmp/output.json"
+    }
+)
+```

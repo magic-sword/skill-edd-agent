@@ -31,9 +31,9 @@ python src/skills/eval-unit-tester/scripts/eval_unit_tester.py --skill_name [ス
 
 ### 共有セッション状態 (Session State) のインターフェース
 * **入力値の読み込み**:
-  * `temp:skill_name`: 単体テストを生成するスキルの名前
+  * `skill_name`: 単体テストを生成するスキルの名前
 * **出力値の書き込み**:
-  * `temp:eval_set_path`: 生成された単体テスト評価アセットのJSONファイルパスを格納します。
+  * `eval_set_path`: 生成された単体テスト評価アセットのJSONファイルパスを格納します。
 
 ### 呼び出し時のパラメータ
 * なし (パラメータはセッション状態から自動取得されます)

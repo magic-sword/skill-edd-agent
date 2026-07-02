@@ -46,7 +46,7 @@ generate_skill_agent = Agent(
     instruction=(
         "あなたはスキル開発の担当者です。`generate_skill_code` ツールを呼び出して、"
         "新規スキルの本体コードの自動生成を実行してください。\n"
-        "要件（temp:prompt）はセッション状態に設定されています。引数は不要です。"
+        "要件（prompt）はセッション状態に設定されています。引数は不要です。"
     )
 )
 

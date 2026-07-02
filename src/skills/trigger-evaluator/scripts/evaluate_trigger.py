@@ -205,12 +205,12 @@ def save_report(skill_name, static_eval_result, generated_cases_file):
 
 def generate_trigger_tests(tool_context: ToolContext) -> str:
     """
-    指定されたスキル（temp:skill_name）に対するトリガーテストケースを自動生成し、
-    結果を temp:trig_eval_set_path に保存します。
+    指定されたスキル（skill_name）に対するトリガーテストケースを自動生成し、
+    結果を trig_eval_set_path に保存します。
     """
-    skill_name = tool_context.state.get("temp:skill_name")
+    skill_name = tool_context.state.get("skill_name")
     if not skill_name:
-        raise ValueError("セッション状態に 'temp:skill_name' が設定されていません。")
+        raise ValueError("セッション状態に 'skill_name' が設定されていません。")
         
     skill_md_filepath = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
     if not os.path.exists(skill_md_filepath):
@@ -237,7 +237,7 @@ def generate_trigger_tests(tool_context: ToolContext) -> str:
             "eval_set_path": eval_set_filepath
         }, f, indent=2, ensure_ascii=False)
         
-    tool_context.state["temp:trig_eval_set_path"] = eval_set_filepath
+    tool_context.state["trig_eval_set_path"] = eval_set_filepath
     
     return f"Success: Generated trigger tests at '{eval_set_filepath}'."
 

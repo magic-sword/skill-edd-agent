@@ -36,9 +36,9 @@ python src/skills/trigger-evaluator/scripts/evaluate_trigger.py --skill_name [�
 
 ### 共有セッション状態 (Session State) のインターフェース
 * **入力値の読み込み**:
-  * `temp:skill_name`: トリガーテストを生成するスキルの名前
+  * `skill_name`: トリガーテストを生成するスキルの名前
 * **出力値の書き込み**:
-  * `temp:trig_eval_set_path`: 生成されたトリガーテスト評価アセットのJSONファイルパスを格納します。
+  * `trig_eval_set_path`: 生成されたトリガーテスト評価アセットのJSONファイルパスを格納します。
 
 ### 呼び出し時のパラメータ
 * なし (パラメータはセッション状態から自動取得されます)

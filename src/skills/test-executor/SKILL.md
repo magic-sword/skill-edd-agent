@@ -42,9 +42,9 @@ description: 指定されたスキルのADK evalテストセットを実行し�
 
 ### 共有セッション状態 (Session State) のインターフェース
 * **入力値の読み込み**:
-  * `temp:skill_name`: テスト対象のスキル名
-  * `temp:eval_set_path` (eval_mode=1 の場合): 単体テスト評価アセットのパス
-  * `temp:trig_eval_set_path` (eval_mode=0 の場合): トリガー精度テスト評価アセットのパス
+  * `skill_name`: テスト対象のスキル名
+  * `eval_set_path` (eval_mode=1 の場合): 単体テスト評価アセットのパス
+  * `trig_eval_set_path` (eval_mode=0 の場合): トリガー精度テスト評価アセットのパス
 * **出力値の書き込み**:
   * なし (テスト不合格時は例外がスローされ、ワークフローが自動で停止します)
 

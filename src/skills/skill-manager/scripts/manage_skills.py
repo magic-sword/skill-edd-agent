@@ -118,11 +118,11 @@ def set_skill_tier(command: str, tier: int, tool_context: ToolContext) -> str:
       command: 'set-tier' を指定
       tier: 設定するTier値 (0, 1, 2, 3)
     """
-    skill_name = tool_context.state.get("temp:skill_name")
-    registry_path = tool_context.state.get("temp:registry_path")
+    skill_name = tool_context.state.get("skill_name")
+    registry_path = tool_context.state.get("registry_path")
     
     if not skill_name:
-        raise ValueError("セッション状態に 'temp:skill_name' が設定されていません。")
+        raise ValueError("セッション状態に 'skill_name' が設定されていません。")
         
     if registry_path:
         registry_path = os.path.abspath(registry_path)
@@ -146,7 +146,7 @@ def set_skill_tier(command: str, tier: int, tool_context: ToolContext) -> str:
             "skill_name": skill_name
         }, f, indent=2, ensure_ascii=False)
         
-    tool_context.state["temp:reg_out_json_path"] = output_json_path
+    tool_context.state["reg_out_json_path"] = output_json_path
     
     return f"Success: Set tier of '{skill_name}' to {tier}."
 

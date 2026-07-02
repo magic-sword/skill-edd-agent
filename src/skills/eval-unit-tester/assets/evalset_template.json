@@ -1,0 +1,42 @@
+{
+  "eval_set_id": "{skill_name_underscore}_eval_set",
+  "name": "{skill_name} evaluation set",
+  "description": "{skill_name} skill unit tests",
+  "eval_cases": [
+    {
+      "eval_id": "{skill_name_underscore}_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_1",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "ユーザーの入力プロンプト（例: 『Hello』を大文字に変換し、結果のテキストのみを出力してください。）"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "期待されるモデルの最終出力テキスト（例: HELLO。余計な解説や説明文は絶対に含めず、結果そのものだけにしてください）"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "src",
+        "user_id": "test_user",
+        "state": {
+          "INPUT_KEY": "入力値"
+        }
+      }
+    }
+  ]
+}

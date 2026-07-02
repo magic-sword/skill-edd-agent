@@ -203,17 +203,17 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
       eval_mode: 1 (単体テスト評価用) または 0 (トリガー評価用)
       threshold_accuracy: 合格に必要な精度の閾値（0.0〜1.0）
     """
-    skill_name = tool_context.state.get("temp:skill_name")
+    skill_name = tool_context.state.get("skill_name")
     
     if eval_mode == 1:
-        eval_set_path = tool_context.state.get("temp:eval_set_path")
+        eval_set_path = tool_context.state.get("eval_set_path")
         step_name = "04_ut_exec"
     else:
-        eval_set_path = tool_context.state.get("temp:trig_eval_set_path")
+        eval_set_path = tool_context.state.get("trig_eval_set_path")
         step_name = "06_trig_exec"
         
     if not skill_name or not eval_set_path:
-        raise ValueError("セッション状態に 'temp:skill_name' または 'temp:eval_set_path' / 'temp:trig_eval_set_path' が設定されていません。")
+        raise ValueError("セッション状態に 'skill_name' または 'eval_set_path' / 'trig_eval_set_path' が設定されていません。")
         
     python_bin = sys.executable or "python3"
     script_path = os.path.abspath(__file__)
