@@ -16,6 +16,8 @@ from google.adk.runners import Runner
 from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.genai import types
+from google.adk.tools import ToolContext
+
 
 # インポートキャッシュの不整合対策
 sys.modules.pop('google', None)
@@ -101,6 +103,48 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
                     if part.function_call:
                         fc = part.function_call
                         print(f"[{author} ツール実行]: {fc.name}({fc.args})")
+
+async def generate_skill_code(tool_context: ToolContext) -> str:
+    """
+    指定された要件（temp:prompt）に基づき、SkillDeveloperAgent を起動して
+    新規スキルを自律生成します。
+    """
+    skill_name = tool_context.state.get("temp:skill_name")
+    prompt = tool_context.state.get("temp:prompt")
+    
+    if not skill_name or not prompt:
+        raise ValueError("セッション状態に 'temp:skill_name' または 'temp:prompt' が設定されていません。")
+        
+    output_dir = os.path.abspath(f"/workspace/src/skills/{skill_name}")
+    model = "gemini-2.5-flash"
+    max_turns = 15
+    
+    # 開発者エージェントを実行
+    await run_skill_developer_agent(
+        output_dir=output_dir,
+        prompt=prompt,
+        model=model,
+        max_turns=max_turns
+    )
+    
+    # スキル仕様書（SKILL.md）が作成されたことを確認
+    skill_md_path = os.path.join(output_dir, "SKILL.md")
+    if not os.path.exists(skill_md_path):
+        raise ValueError(f"Skill specification 'SKILL.md' was not generated at {skill_md_path}.")
+        
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/02_gen_out.json"
+    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "status": "success",
+            "message": "Successfully generated skill.",
+            "output_dir": output_dir
+        }, f, indent=2, ensure_ascii=False)
+        
+    tool_context.state["temp:skill_dir"] = output_dir
+    
+    return f"Success: Generated skill '{skill_name}' at '{output_dir}'."
+
 
 def main():
     parser = argparse.ArgumentParser(description="ADKサブエージェントを用いたスキルの自律的生成と検証")

@@ -2,8 +2,9 @@ import argparse
 import os
 import sys
 import json
-from google import genai
 from google.genai import types
+from google.adk.tools import ToolContext
+
 
 def generate_test_cases(skill_name: str):
     skill_dir = os.path.join("/workspace/src/skills", skill_name)
@@ -116,6 +117,35 @@ def generate_test_cases(skill_name: str):
         json.dump(config_data, f, indent=2, ensure_ascii=False)
         
     print(f"🎉 評価設定ファイルを正常に生成し保存しました: {config_path}")
+
+def generate_unit_tests(tool_context: ToolContext) -> str:
+    """
+    指定されたスキル（temp:skill_name）に対する単体テストケースを自動生成し、
+    結果を temp:eval_set_path に保存します。
+    """
+    skill_name = tool_context.state.get("temp:skill_name")
+    if not skill_name:
+        raise ValueError("セッション状態に 'temp:skill_name' が設定されていません。")
+        
+    from google import genai
+    generate_test_cases(skill_name)
+    
+    skill_underscores = skill_name.replace("-", "_")
+    eval_set_path = os.path.abspath(f"/workspace/src/skills/{skill_name}/tests/{skill_underscores}_eval_set.evalset.json")
+    
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/03_ut_gen_out.json"
+    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "status": "success",
+            "message": "Successfully generated unit test cases.",
+            "eval_set_path": eval_set_path
+        }, f, indent=2, ensure_ascii=False)
+        
+    tool_context.state["temp:eval_set_path"] = eval_set_path
+    
+    return f"Success: Generated unit tests at '{eval_set_path}'."
+
 
 def main():
     parser = argparse.ArgumentParser(description="Generate unit test cases for a skill using Gemini API.")

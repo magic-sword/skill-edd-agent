@@ -3,6 +3,8 @@ import json
 import os
 import sys
 from datetime import datetime
+from google.adk.tools import ToolContext
+
 
 # プロジェクトルートをsys.pathに追加
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -200,6 +202,45 @@ def save_report(skill_name, static_eval_result, generated_cases_file):
     }
     save_json_file(report_filepath, report_data)
     print(f"  - 詳細レポートを '{report_filepath}' に保存しました。\n")
+
+def generate_trigger_tests(tool_context: ToolContext) -> str:
+    """
+    指定されたスキル（temp:skill_name）に対するトリガーテストケースを自動生成し、
+    結果を temp:trig_eval_set_path に保存します。
+    """
+    skill_name = tool_context.state.get("temp:skill_name")
+    if not skill_name:
+        raise ValueError("セッション状態に 'temp:skill_name' が設定されていません。")
+        
+    skill_md_filepath = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
+    if not os.path.exists(skill_md_filepath):
+         raise FileNotFoundError(f"対象スキル '{skill_name}' のSKILL.mdファイルが見つかりません: {skill_md_filepath}")
+         
+    skill_md_content = load_file_content(skill_md_filepath)
+    
+    static_eval_result = static_evaluate_skill_md(skill_name, skill_md_content)
+    if not static_eval_result["passed"]:
+        raise ValueError(f"トリガー静的評価不合格 (Specificity: {static_eval_result.get('specificity')}, Clarity: {static_eval_result.get('clarity')})")
+
+    eval_set_filepath = generate_trigger_test_cases(skill_name, skill_md_content)
+    if not eval_set_filepath:
+        raise ValueError("テストケース生成に失敗しました。")
+
+    save_report(skill_name, static_eval_result, eval_set_filepath)
+    
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/05_trig_gen_out.json"
+    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "status": "success",
+            "message": "Successfully generated trigger test assets.",
+            "eval_set_path": eval_set_filepath
+        }, f, indent=2, ensure_ascii=False)
+        
+    tool_context.state["temp:trig_eval_set_path"] = eval_set_filepath
+    
+    return f"Success: Generated trigger tests at '{eval_set_filepath}'."
+
 
 def main():
     parser = argparse.ArgumentParser(description="指定されたスキルのトリガー定義の品質チェックとテスト生成を行います。")

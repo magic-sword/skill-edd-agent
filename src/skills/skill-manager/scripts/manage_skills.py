@@ -8,6 +8,8 @@ import hashlib
 import json
 import os
 import sys
+from google.adk.tools import ToolContext
+
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_REGISTRY_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", "skills_registry.json"))
@@ -108,6 +110,46 @@ def update_meta(skill_name, registry_path=None):
     registry["skills"][skill_name]["file_hashes"] = hashes
     save_registry(registry, registry_path)
     print(f"Updated file hashes for skill '{skill_name}'.")
+
+def set_skill_tier(command: str, tier: int, tool_context: ToolContext) -> str:
+    """
+    指定されたスキルのTierを設定・更新します。
+    引数:
+      command: 'set-tier' を指定
+      tier: 設定するTier値 (0, 1, 2, 3)
+    """
+    skill_name = tool_context.state.get("temp:skill_name")
+    registry_path = tool_context.state.get("temp:registry_path")
+    
+    if not skill_name:
+        raise ValueError("セッション状態に 'temp:skill_name' が設定されていません。")
+        
+    if registry_path:
+        registry_path = os.path.abspath(registry_path)
+    else:
+        registry_path = DEFAULT_REGISTRY_PATH
+
+    if command != "set-tier":
+        raise ValueError("現在、このツールでは 'set-tier' コマンドのみがサポートされています。")
+        
+    set_tier(skill_name, tier, registry_path)
+    
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/01_reg_out.json"
+    if tier == 1:
+        output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/07_final_reg_out.json"
+        
+    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "status": "success",
+            "message": f"Set tier of '{skill_name}' to {tier}.",
+            "skill_name": skill_name
+        }, f, indent=2, ensure_ascii=False)
+        
+    tool_context.state["temp:reg_out_json_path"] = output_json_path
+    
+    return f"Success: Set tier of '{skill_name}' to {tier}."
+
 
 def main():
     parser = argparse.ArgumentParser(description="Skill Tier Registry Manager CLI")

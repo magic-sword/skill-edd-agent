@@ -3,6 +3,8 @@ import subprocess
 import os
 import sys
 import re
+from google.adk.tools import ToolContext
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="ADK evalテストを実行し、合格閾値に基づいて判定を行います。")
@@ -194,5 +196,58 @@ def main():
         print(f"\n❌ テスト不合格! 精度 {accuracy:.4f} < 閾値 {threshold_accuracy:.4f}", file=sys.stderr)
         sys.exit(1)
 
+def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: ToolContext) -> str:
+    """
+    指定されたスキルのテストを実行します。
+    引数:
+      eval_mode: 1 (単体テスト評価用) または 0 (トリガー評価用)
+      threshold_accuracy: 合格に必要な精度の閾値（0.0〜1.0）
+    """
+    skill_name = tool_context.state.get("temp:skill_name")
+    
+    if eval_mode == 1:
+        eval_set_path = tool_context.state.get("temp:eval_set_path")
+        step_name = "04_ut_exec"
+    else:
+        eval_set_path = tool_context.state.get("temp:trig_eval_set_path")
+        step_name = "06_trig_exec"
+        
+    if not skill_name or not eval_set_path:
+        raise ValueError("セッション状態に 'temp:skill_name' または 'temp:eval_set_path' / 'temp:trig_eval_set_path' が設定されていません。")
+        
+    python_bin = sys.executable or "python3"
+    script_path = os.path.abspath(__file__)
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/{step_name}_out.json"
+    
+    cmd = [
+        python_bin, script_path,
+        "--skill_name", skill_name,
+        "--eval_set_path", eval_set_path,
+        "--threshold_accuracy", str(threshold_accuracy),
+        "--eval_mode", str(eval_mode),
+        "--output_json", output_json_path
+    ]
+    
+    print(f"Executing: {' '.join(cmd)}")
+    result = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd="/workspace"
+    )
+    
+    print("--- SUBPROCESS OUTPUT ---")
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print(result.stderr, file=sys.stderr)
+        
+    if result.returncode != 0:
+        raise RuntimeError(f"テストが不合格またはエラーが発生しました (exit code {result.returncode})。")
+        
+    return f"Success: Tests passed with accuracy >= {threshold_accuracy}."
+
 if __name__ == "__main__":
     main()
+
