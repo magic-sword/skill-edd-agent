@@ -24,3 +24,17 @@ python src/skills/eval-unit-tester/scripts/eval_unit_tester.py --skill_name [ス
 - 指定したスキルの `tests/` ディレクトリ内に以下のファイルが生成されます：
   1. `[スキル名]_eval_set.evalset.json` (テストケースファイル)
   2. `test_config.json` (評価設定ファイル)
+
+## AIエージェント向け使用方法 (run_skill_script)
+
+このスキルを実行する際は、`run_skill_script` ツールを使用して、必ず以下の引数構造（JSON）で実行してください。
+
+```json
+{
+  "skill_name": "eval-unit-tester",
+  "file_path": "scripts/eval_unit_tester.py",
+  "args": {
+    "--skill_name": "<テストケースを生成したいスキル名>"
+  }
+}
+```

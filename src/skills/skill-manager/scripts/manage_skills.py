@@ -10,24 +10,25 @@ import os
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# /workspace/src/skills/skill-manager/scripts -> /workspace/src/skills_registry.json
-REGISTRY_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", "skills_registry.json"))
+DEFAULT_REGISTRY_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", "skills_registry.json"))
 SKILLS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
-def load_registry():
-    if not os.path.exists(REGISTRY_PATH):
+def load_registry(registry_path=None):
+    path = registry_path or DEFAULT_REGISTRY_PATH
+    if not os.path.exists(path):
         return {"skills": {}}
     try:
-        with open(REGISTRY_PATH, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
         print(f"Error loading registry: {e}", file=sys.stderr)
         return {"skills": {}}
 
-def save_registry(registry):
+def save_registry(registry, registry_path=None):
+    path = registry_path or DEFAULT_REGISTRY_PATH
     try:
-        os.makedirs(os.path.dirname(REGISTRY_PATH), exist_ok=True)
-        with open(REGISTRY_PATH, "w", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(registry, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"Error saving registry: {e}", file=sys.stderr)
@@ -41,7 +42,6 @@ def calculate_skill_hashes(skill_name):
         for file in files:
             file_path = os.path.join(root, file)
             rel_path = os.path.relpath(file_path, skill_dir)
-            # キャッシュファイルなどは除外
             if "__pycache__" in rel_path or rel_path.endswith(".pyc") or ".git" in rel_path:
                 continue
             hasher = hashlib.sha256()
@@ -54,8 +54,8 @@ def calculate_skill_hashes(skill_name):
                 pass
     return hashes
 
-def register_skill(skill_name):
-    registry = load_registry()
+def register_skill(skill_name, registry_path=None):
+    registry = load_registry(registry_path)
     if skill_name in registry["skills"]:
         print(f"Skill '{skill_name}' already registered.")
         return
@@ -66,23 +66,14 @@ def register_skill(skill_name):
         "last_tested": None,
         "file_hashes": hashes
     }
-    save_registry(registry)
+    save_registry(registry, registry_path)
     print(f"Registered skill '{skill_name}' at Tier 1.")
 
-def get_tier(skill_name):
-    registry = load_registry()
-    skill_info = registry["skills"].get(skill_name)
-    if not skill_info:
-        # 未登録スキルの場合は一時的に Tier 1 とみなして出力
-        print("1")
-        return
-    print(skill_info["tier"])
-
-def set_tier(skill_name, tier):
-    if tier not in [1, 2, 3]:
-        print("Error: Tier must be 1, 2, or 3.", file=sys.stderr)
+def set_tier(skill_name, tier, registry_path=None):
+    if tier not in [0, 1, 2, 3]:
+        print("Error: Tier must be 0, 1, 2, or 3.", file=sys.stderr)
         sys.exit(1)
-    registry = load_registry()
+    registry = load_registry(registry_path)
     
     now_str = datetime.datetime.now().isoformat() + "Z"
     if skill_name not in registry["skills"]:
@@ -96,64 +87,101 @@ def set_tier(skill_name, tier):
         registry["skills"][skill_name]["last_tested"] = now_str
         registry["skills"][skill_name]["file_hashes"] = calculate_skill_hashes(skill_name)
         
-    save_registry(registry)
+    save_registry(registry, registry_path)
     print(f"Set tier of '{skill_name}' to {tier}.")
 
-def list_skills():
-    registry = load_registry()
+def list_skills(registry_path=None):
+    registry = load_registry(registry_path)
     print(f"{'Skill Name':<25} | {'Tier':<5} | {'Last Tested':<25}")
     print("-" * 63)
     for name, info in sorted(registry["skills"].items()):
         last_tested = info.get("last_tested") or "Never"
         print(f"{name:<25} | {info['tier']:<5} | {last_tested:<25}")
 
-def update_meta(skill_name):
-    registry = load_registry()
+def update_meta(skill_name, registry_path=None):
+    registry = load_registry(registry_path)
     if skill_name not in registry["skills"]:
-        register_skill(skill_name)
+        register_skill(skill_name, registry_path)
         return
     
     hashes = calculate_skill_hashes(skill_name)
     registry["skills"][skill_name]["file_hashes"] = hashes
-    save_registry(registry)
+    save_registry(registry, registry_path)
     print(f"Updated file hashes for skill '{skill_name}'.")
 
 def main():
     parser = argparse.ArgumentParser(description="Skill Tier Registry Manager CLI")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    
-    # register
-    reg_parser = subparsers.add_parser("register", help="Register a new skill")
-    reg_parser.add_argument("skill_name", help="Name of the skill")
-    
-    # get-tier
-    get_parser = subparsers.add_parser("get-tier", help="Get current tier of a skill")
-    get_parser.add_argument("skill_name", help="Name of the skill")
-    
-    # set-tier
-    set_parser = subparsers.add_parser("set-tier", help="Set tier of a skill")
-    set_parser.add_argument("skill_name", help="Name of the skill")
-    set_parser.add_argument("tier", type=int, choices=[1, 2, 3], help="Tier value (1, 2, 3)")
-    
-    # list
-    subparsers.add_parser("list", help="List all registered skills")
-    
-    # update-meta
-    meta_parser = subparsers.add_parser("update-meta", help="Update file hashes and metadata of a skill")
-    meta_parser.add_argument("skill_name", help="Name of the skill")
+    parser.add_argument("--command", choices=["register", "get-tier", "set-tier", "list", "update-meta"], required=True, help="Command to execute")
+    parser.add_argument("--skill_name", help="Name of the skill")
+    parser.add_argument("--tier", type=int, choices=[0, 1, 2, 3], help="Tier value (0, 1, 2, 3)")
+    parser.add_argument("--registry_path", help="Path to skills_registry.json file")
+    parser.add_argument("--output_json", help="Path to output JSON file")
     
     args = parser.parse_args()
     
-    if args.command == "register":
-        register_skill(args.skill_name)
-    elif args.command == "get-tier":
-        get_tier(args.skill_name)
-    elif args.command == "set-tier":
-        set_tier(args.skill_name, args.tier)
-    elif args.command == "list":
-        list_skills()
-    elif args.command == "update-meta":
-        update_meta(args.skill_name)
+    command = args.command
+    skill_name = args.skill_name
+    tier = args.tier
+    registry_path = args.registry_path
+    
+    # パスが渡された場合は絶対パスに変換
+    if registry_path:
+        registry_path = os.path.abspath(registry_path)
+        
+    status = "success"
+    message = ""
+    result_data = {}
+    
+    try:
+        if command == "register":
+            if not skill_name:
+                raise ValueError("skill_name is required")
+            register_skill(skill_name, registry_path)
+            message = f"Registered skill '{skill_name}' at Tier 1."
+        elif command == "get-tier":
+            if not skill_name:
+                raise ValueError("skill_name is required")
+            registry = load_registry(registry_path)
+            skill_info = registry["skills"].get(skill_name)
+            current_tier = skill_info["tier"] if skill_info else 1
+            print(current_tier)
+            result_data["tier"] = current_tier
+            message = f"Got tier {current_tier} for skill '{skill_name}'."
+        elif command == "set-tier":
+            if not skill_name or tier is None:
+                raise ValueError("skill_name and tier are required")
+            set_tier(skill_name, tier, registry_path)
+            message = f"Set tier of '{skill_name}' to {tier}."
+        elif command == "list":
+            list_skills(registry_path)
+            message = "Listed all skills."
+        elif command == "update-meta":
+            if not skill_name:
+                raise ValueError("skill_name is required")
+            update_meta(skill_name, registry_path)
+            message = f"Updated metadata for skill '{skill_name}'."
+    except Exception as e:
+        status = "failed"
+        message = str(e)
+        print(f"Error executing command: {e}", file=sys.stderr)
+        
+    if args.output_json:
+        try:
+            out_dir = os.path.dirname(os.path.abspath(args.output_json))
+            if out_dir:
+                os.makedirs(out_dir, exist_ok=True)
+            with open(args.output_json, "w", encoding="utf-8") as f:
+                json.dump({
+                    "status": status,
+                    "message": message,
+                    "skill_name": skill_name,
+                    **result_data
+                }, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error writing output_json: {e}", file=sys.stderr)
+            
+    if status == "failed":
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

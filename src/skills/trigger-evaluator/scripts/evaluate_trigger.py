@@ -203,38 +203,76 @@ def save_report(skill_name, static_eval_result, generated_cases_file):
 
 def main():
     parser = argparse.ArgumentParser(description="指定されたスキルのトリガー定義の品質チェックとテスト生成を行います。")
-    parser.add_argument("--skill_name", required=True, help="評価対象のスキル名")
+    parser.add_argument("--skill_name", help="評価対象のスキル名")
+    parser.add_argument("--input_json", help="Path to input JSON file")
+    parser.add_argument("--output_json", help="Path to output JSON file")
     args = parser.parse_args()
 
     skill_name = args.skill_name
+    
+    if args.input_json:
+        try:
+            with open(args.input_json, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                skill_name = data.get("skill_name", skill_name)
+        except Exception as e:
+            print(f"Error reading input_json: {e}", file=sys.stderr)
+            sys.exit(1)
+            
+    if not skill_name:
+        print("エラー: --skill_name または --input_json は必須です。", file=sys.stderr)
+        sys.exit(1)
+        
     skill_md_filepath = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
     
     print(f"スキル '{skill_name}' のトリガーアセット生成を開始します。\n")
 
+    status = "success"
+    message = "Successfully generated trigger test assets."
+    eval_set_filepath = ""
+
     try:
-        skill_md_content = load_file_content(skill_md_filepath)
-    except FileNotFoundError:
-        print(f"エラー: 対象スキル '{skill_name}' のSKILL.mdファイルが見つかりません: {skill_md_filepath}", file=sys.stderr)
+        try:
+            skill_md_content = load_file_content(skill_md_filepath)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"対象スキル '{skill_name}' のSKILL.mdファイルが見つかりません: {skill_md_filepath}")
+
+        # 第1ゲート: 静的評価
+        static_eval_result = static_evaluate_skill_md(skill_name, skill_md_content)
+        if not static_eval_result["passed"]:
+            raise ValueError(f"トリガー静的評価不合格 (Specificity: {static_eval_result.get('specificity')}, Clarity: {static_eval_result.get('clarity')})")
+
+        # 第2ゲート: テストケース生成
+        eval_set_filepath = generate_trigger_test_cases(skill_name, skill_md_content)
+        if not eval_set_filepath:
+            raise ValueError("テストケース生成に失敗しました。")
+
+        # 全体合格とレポート保存
+        print(f"🎉 スキル '{skill_name}' のトリガー評価用テストアセットを正常に生成しました！")
+        save_report(skill_name, static_eval_result, eval_set_filepath)
+        print("アセット生成プロセスが正常に完了しました。")
+    except Exception as e:
+        status = "failed"
+        message = str(e)
+        print(f"❌ エラー: {e}", file=sys.stderr)
+        
+    if args.output_json:
+        try:
+            out_dir = os.path.dirname(os.path.abspath(args.output_json))
+            if out_dir:
+                os.makedirs(out_dir, exist_ok=True)
+            with open(args.output_json, "w", encoding="utf-8") as f:
+                json.dump({
+                    "status": status,
+                    "message": message,
+                    "skill_name": skill_name,
+                    "eval_set_path": eval_set_filepath
+                }, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error writing output_json: {e}", file=sys.stderr)
+            
+    if status == "failed":
         sys.exit(1)
-
-    # 第1ゲート: 静的評価
-    static_eval_result = static_evaluate_skill_md(skill_name, skill_md_content)
-    if not static_eval_result["passed"]:
-        print(f"❌ スキル '{skill_name}' のトリガー静的評価は不合格でした。")
-        save_report(skill_name, static_eval_result, None)
-        sys.exit(1) # 静的チェックで失敗したためエラーコードで終了
-
-    # 第2ゲート: テストケース生成
-    eval_set_filepath = generate_trigger_test_cases(skill_name, skill_md_content)
-    if not eval_set_filepath:
-        print(f"❌ スキル '{skill_name}' のテストケース生成に失敗しました。")
-        sys.exit(1)
-
-    # 全体合格とレポート保存
-    print(f"🎉 スキル '{skill_name}' のトリガー評価用テストアセットを正常に生成しました！")
-    save_report(skill_name, static_eval_result, eval_set_filepath)
-    print("アセット生成プロセスが正常に完了しました。")
-    sys.exit(0)
 
 if __name__ == "__main__":
     main()

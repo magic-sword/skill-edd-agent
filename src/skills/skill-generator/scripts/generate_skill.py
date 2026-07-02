@@ -5,6 +5,7 @@ ADKのサブエージェント（SkillDeveloperAgent）を動的に起動し、
 """
 import argparse
 import asyncio
+import json
 import os
 import sys
 import uuid
@@ -36,21 +37,21 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
         f"- スキル名: {skill_name}\n"
         f"- 出力ディレクトリ: {output_dir}\n"
         f"\n"
+        f"【開発ルール（コンテキスト汚染防止・ADKツールスキーマ整合）】\n"
+        f"1. 入出力のファイルカプセル化:\n"
+        f"   - スキルの実動スクリプトは、大量 of データや状態の受け渡しによる会話のコンテキスト汚染を防ぐため、必ず入力を引数 `--input_json`（ファイルパス）で受け取り、実行結果を引数 `--output_json`（ファイルパス）へJSONファイルとして出力する仕様にしてください。\n"
+        f"2. SKILL.md でのツール実行仕様の定義:\n"
+        f"   - `SKILL.md` の中の使用手順には、ADKの `run_skill_script` ツールを用いてこのスキルを呼び出す際の、具体的な `args` の JSON 引数構造（キーと値の例）を必ず記載してください。\n"
+        f"\n"
         f"【作成すべきファイル構成】\n"
         f"1. `SKILL.md`: スキルの仕様・トリガー条件書。以下のフロントマターを先頭に必ず含むこと（日本語で詳細を記述してください）：\n"
         f"   ---\n"
         f"   name: {skill_name}\n"
         f"   description: スキルの短い説明（日本語）\n"
         f"   ---\n"
-        f"2. `scripts/{script_name}`: 実際に動くPythonプログラム。引数（argparse）を解析し結果を出力する実動コード。\n"
-        f"3. `tests/{test_name}`: 評価用データセット（JSON形式）。eval_set_id, name, eval_cases（eval_id, conversation [invocation_id, user_content, final_response], session_input）を含むこと。\n"
-        f"\n"
-        f"【動作確認・品質保証（不具合防止）の義務】\n"
-        f"ファイルを書き出した後、必ず以下の確認を行ってください：\n"
-        f"1. `Execute` ツールを使い、生成した Python スクリプトを実際にコマンドライン（例: `python {output_dir}/scripts/{script_name} --help` などの適切なテスト引数）で実行します。\n"
-        f"2. 実行時に SyntaxError や例外エラー、インポートエラーが発生しないことを確認してください。\n"
-        f"3. 不具合やクラッシュが検出された場合は、`EditFile` ツール等を使って自律的にコードを修正し、再度動作確認を行ってください。\n"
-        f"4. 正常に動作し、初期実行で不具合がないことを実証できたら、完了報告を行って終了してください。"
+        f"   ※ 'AIエージェント向け使用方法 (run_skill_script)' というセクションを末尾に作り、`run_skill_script` で実行する際の具体的な `args` のJSON定義例を必ず含めてください。\n"
+        f"2. `scripts/{script_name}`: 実際に動くPythonプログラム。引数（`--input_json` と `--output_json`）を解析してJSONファイルを入出力する実動コード。\n"
+        f"3. `tests/{test_name}`: 評価用データセット（JSON形式）。eval_set_id, name, eval_cases（eval_id, conversation [invocation_id, user_content, final_response], session_input）を含むこと。"
     )
     
     # エージェント定義
@@ -107,27 +108,53 @@ def main():
     parser.add_argument("--prompt", required=True, help="生成したいスキルの説明や要件")
     parser.add_argument("--model", default="gemini-2.5-flash", help="使用するモデル名")
     parser.add_argument("--max_attempts", type=int, default=15, help="サブエージェントの最大ターン数")
+    parser.add_argument("--output_json", help="Path to output JSON file")
     
     args = parser.parse_args()
     
     if not os.environ.get("GEMINI_API_KEY"):
-        print("エラー: 環境変数 GEMINI_API_KEY が設定されていません。")
+        print("エラー: 環境変数 GEMINI_API_KEY が設定されていません。", file=sys.stderr)
         sys.exit(1)
         
+    status = "success"
+    message = "Successfully generated skill."
+    output_dir = os.path.abspath(args.output_dir)
+    
     print(f"=== スキル開発タスクを開始します ===")
-    print(f"出力先: {args.output_dir}")
+    print(f"出力先: {output_dir}")
     print(f"要件: {args.prompt}")
     
-    asyncio.run(
-        run_skill_developer_agent(
-            output_dir=args.output_dir,
-            prompt=args.prompt,
-            model=args.model,
-            max_turns=args.max_attempts
+    try:
+        asyncio.run(
+            run_skill_developer_agent(
+                output_dir=output_dir,
+                prompt=args.prompt,
+                model=args.model,
+                max_turns=args.max_attempts
+            )
         )
-    )
-    
-    print("\n=== スキル開発タスクが完了しました ===")
+        print("\n=== スキル開発タスクが完了しました ===")
+    except Exception as e:
+        status = "failed"
+        message = str(e)
+        print(f"Error: {e}", file=sys.stderr)
+        
+    if args.output_json:
+        try:
+            out_dir = os.path.dirname(os.path.abspath(args.output_json))
+            if out_dir:
+                os.makedirs(out_dir, exist_ok=True)
+            with open(args.output_json, "w", encoding="utf-8") as f:
+                json.dump({
+                    "status": status,
+                    "message": message,
+                    "output_dir": output_dir
+                }, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error writing output_json: {e}", file=sys.stderr)
+            
+    if status == "failed":
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -9,3 +9,4 @@ implementation_plan.md
 task.md
 walkthrough.md
 tests/*.json
+src/.workflow_tmp/ 
