@@ -1,19 +1,50 @@
 import json
 import argparse
 import sys
+import os
 from google.adk.tools import ToolContext
+
+# =============================================================================
+# [ベストプラクティス指示] 
+# もしビジネスロジック内で Gemini API 等の LLM を呼び出して JSON を出力させる場合は、
+# プロンプト内でのJSON構造の直書きやテキストパースは厳禁です。
+# 必ず以下の Pydantic スキーマ定義と response_schema (構造化出力) のパターンを模倣し、
+# プロンプト指示自体は外部アセット (assets/[プロンプト名].txt) として分離してロードしてください。
+# -----------------------------------------------------------------------------
+# from pydantic import BaseModel, Field
+# from google.genai import types
+#
+# class LLMResponseSchema(BaseModel):
+#     result_value: str = Field(..., description="処理結果の値")
+#
+# # プロンプトアセットのロード
+# script_dir = os.path.dirname(os.path.abspath(__file__))
+# prompt_path = os.path.join(script_dir, "..", "assets", "prompt.txt")
+# with open(prompt_path, "r", encoding="utf-8") as f:
+#     prompt_tmpl = f.read()
+#
+# response = client.models.generate_content(
+#     model="gemini-2.5-flash",
+#     contents=prompt_tmpl,
+#     config=types.GenerateContentConfig(
+#         response_mime_type="application/json",
+#         response_schema=LLMResponseSchema,
+#         temperature=0.1
+#     )
+# )
+# result = json.loads(response.text)
+# =============================================================================
 
 def process_message(tool_context: ToolContext):
     """
     ここにスキルのビジネスロジックを実装してください。
-    - tool_context.state から必要なパラメータを取得します。
-    - 処理結果を tool_context.state に格納します。
+    - tool_context.state から必要なパラメータ（プレフィックスなし）を取得します。
+    - 処理結果を tool_context.state に格納します（例: tool_context.state["result_message"] = ...）
     """
     user_message = tool_context.state.get("user_message", "")
     
-    # [TODO] ここに必要なロジックを実装してください。
-    # 例: result_message = user_message.upper()
-    result_message = user_message # プレースホルダー
+    # [TODO] ここに必要なビジネスロジックを実装してください。
+    result_message = user_message  # プレースホルダー
     
     tool_context.state["result_message"] = result_message
 

@@ -5,11 +5,39 @@ import json
 from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
-
+from pydantic import BaseModel, Field
 
 # インポートキャッシュの不整合対策
 sys.modules.pop('google', None)
 sys.modules.pop('google.adk', None)
+
+class PartItem(BaseModel):
+    text: str = Field(..., description="発話のテキスト中身")
+
+class ConversationMessage(BaseModel):
+    role: str = Field(..., description="発話者の役割 ('user' または 'model')")
+    parts: list[PartItem] = Field(..., description="発話のパーツリスト")
+
+class IntermediateData(BaseModel):
+    tool_uses: list = Field(default_factory=list, description="実行されたツールのリスト。常に空 [] にしてください。")
+    intermediate_responses: list = Field(default_factory=list, description="中間レスポンスのリスト。常に空 [] にしてください。")
+
+class ConversationTurn(BaseModel):
+    invocation_id: str = Field(..., description="一意の呼び出しID")
+    user_content: ConversationMessage = Field(..., description="ユーザー側の発話オブジェクト")
+    final_response: ConversationMessage = Field(..., description="モデル側の期待応答オブジェクト")
+    intermediate_data: IntermediateData = Field(default_factory=IntermediateData, description="テスト中の中間実行データ")
+
+class EvalCase(BaseModel):
+    eval_id: str = Field(..., description="一意のテストケースID")
+    conversation: list[ConversationTurn] = Field(..., description="対話シーケンスのリスト")
+    session_input: dict = Field(..., description="初期セッション状態 (app_name, user_id, state 等)")
+
+class EvalSet(BaseModel):
+    eval_set_id: str = Field(..., description="評価セットの一意なID")
+    name: str = Field(..., description="評価セットの名前")
+    description: str = Field(..., description="評価セットの説明")
+    eval_cases: list[EvalCase] = Field(..., description="テストケースのリスト")
 
 def generate_test_cases(skill_name: str):
     skill_dir = os.path.join("/workspace/src/skills", skill_name)
@@ -52,6 +80,14 @@ def generate_test_cases(skill_name: str):
         "{skill_name}", skill_name
     )
     
+    # 入力状態キーの自動抽出とマッピング
+    input_key = "user_message"
+    for candidate in ["user_message", "input_message", "message"]:
+        if candidate in skill_content:
+            input_key = candidate
+            break
+    json_template = json_template.replace("INPUT_KEY", input_key)
+    
     # プロンプトの組み立て
     prompt = prompt_template.replace(
         "{skill_content}", skill_content
@@ -66,6 +102,7 @@ def generate_test_cases(skill_name: str):
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
+            response_schema=EvalSet,
             temperature=0.2
         )
     )

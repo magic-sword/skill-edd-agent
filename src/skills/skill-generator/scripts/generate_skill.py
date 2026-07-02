@@ -30,22 +30,17 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     script_name = skill_name.replace("-", "_") + ".py"
     test_name = skill_name.replace("-", "_") + "_eval_set.evalset.json"
     
-    # 開発者エージェントのインストラクション構成
-    instruction_template = r"""あなたは Google ADK 2.0 に準拠したスキルを開発する、優秀なコーディングエージェント（SkillDeveloperAgent）です。
-
-【開発対象スキルの情報】
-- スキル名: {skill_name}
-- 出力ディレクトリ: {output_dir}
-
-出力ディレクトリ内には、すでにスキルのひな形ファイル（SKILL.md および scripts/{script_name}）が生成されています。
-
-あなたのタスクは以下の通りです：
-1. `scripts/{script_name}` を読み込み、`process_message` 関数内の `[TODO]` 部分に、ユーザーからの要件を満たすビジネスロジックを実装してください。
-2. ひな形ファイルの構成やインターフェース（ToolContext 読み書き、CLI引数処理、標準出力へのJSONダンプ等）は、ADK仕様に準拠するようあらかじめ構築されています。この既存の構造や関数定義は絶対に破壊せず、ロジック部分のみを追加・修正してください。
-3. `tests/{test_name}` に、このスキルの動作検証（要件に合わせた変換など）を行うための評価用データセット（JSON形式）を新規作成して配置してください。eval_set_id, name, eval_cases（eval_id, conversation [invocation_id, user_content, final_response], session_input）を含む形式で記述してください。
-4. 開発が完了したら、実際に `scripts/{script_name}` を CLI ツールとして実行し（例: `python3 scripts/{script_name} --input_json '{"user_message": "値"}'`）、期待する結果が正しく標準出力（stdout）に出力されるかテスト・動作検証を行ってください。
-"""
-
+    # テンプレートおよびプロンプトアセットの読み込み
+    generator_dir = os.path.dirname(os.path.abspath(__file__))
+    assets_dir = os.path.join(generator_dir, "..", "assets")
+    
+    inst_path = os.path.join(assets_dir, "system_instruction.txt")
+    if not os.path.exists(inst_path):
+        raise FileNotFoundError(f"Error: Instruction file {inst_path} not found.")
+        
+    with open(inst_path, "r", encoding="utf-8") as f:
+        instruction_template = f.read()
+        
     instruction = instruction_template.replace(
         "{skill_name}", skill_name
     ).replace(
@@ -73,6 +68,8 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(os.path.join(output_dir, "scripts"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "tests"), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, "references"), exist_ok=True)
+    os.makedirs(os.path.join(output_dir, "assets"), exist_ok=True)
 
     # テンプレートファイルをコピー・展開
     generator_dir = os.path.dirname(os.path.abspath(__file__))

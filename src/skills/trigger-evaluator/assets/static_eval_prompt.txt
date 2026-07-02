@@ -6,14 +6,5 @@
 {eval_criteria}
 ```
 
-評価結果は、以下のJSON形式で出力してください。
-
-```json
-{
-  "specificity": [1-5の整数],
-  "clarity": [1-5の整数]
-}
-```
-
 --- SKILL.mdコンテンツ ---
 {skill_md_content}

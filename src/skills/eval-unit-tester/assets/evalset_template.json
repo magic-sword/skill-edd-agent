@@ -4,15 +4,15 @@
   "description": "{skill_name} skill unit tests",
   "eval_cases": [
     {
-      "eval_id": "{skill_name_underscore}_001",
+      "eval_id": "{skill_name_underscore}_happy_path_001",
       "conversation": [
         {
-          "invocation_id": "inv_1",
+          "invocation_id": "inv_001",
           "user_content": {
             "role": "user",
             "parts": [
               {
-                "text": "ユーザーの入力プロンプト（例: 『Hello』を大文字に変換し、結果のテキストのみを出力してください。）"
+                "text": "「hello world」を処理し、結果のテキストのみを出力してください。"
               }
             ]
           },
@@ -20,7 +20,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "期待されるモデルの最終出力テキスト（例: HELLO。余計な解説や説明文は絶対に含めず、結果そのものだけにしてください）"
+                "text": "HELLO WORLD"
               }
             ]
           },
@@ -34,7 +34,42 @@
         "app_name": "src",
         "user_id": "test_user",
         "state": {
-          "INPUT_KEY": "入力値"
+          "user_message": "hello world"
+        }
+      }
+    },
+    {
+      "eval_id": "{skill_name_underscore}_happy_path_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「AI is fun!」を処理し、結果のテキストのみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "AI IS FUN!"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "src",
+        "user_id": "test_user",
+        "state": {
+          "user_message": "AI is fun!"
         }
       }
     }

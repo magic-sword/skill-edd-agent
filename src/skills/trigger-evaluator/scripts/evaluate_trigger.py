@@ -13,7 +13,18 @@ sys.path.append(WORKSPACE_ROOT)
 
 from google import genai
 from google.genai import types
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+class StaticEvalResult(BaseModel):
+    specificity: int = Field(..., description="トリガー条件の具体性を1-5の整数で評価したもの")
+    clarity: int = Field(..., description="トリガー条件の明確性を1-5の整数で評価したもの")
+
+class PromptItem(BaseModel):
+    text: str = Field(..., description="プロンプトのテキスト")
+
+class TriggerTestCases(BaseModel):
+    positive_prompts: list[PromptItem] = Field(..., description="このスキルがトリガーされるべき陽性プロンプト（10件）")
+    negative_prompts: list[PromptItem] = Field(..., description="このスキルとは関係のない一般的な雑談などの陰性プロンプト（10件）")
 
 # パスの定義
 SKILLS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -64,6 +75,7 @@ def static_evaluate_skill_md(skill_name, skill_md_content):
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
+                response_schema=StaticEvalResult,
                 temperature=0.1
             )
         )
@@ -103,6 +115,7 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
+                response_schema=TriggerTestCases,
                 temperature=0.2
             )
         )
