@@ -28,16 +28,35 @@ class ConversationTurn(BaseModel):
     final_response: ConversationMessage = Field(..., description="モデル側の期待応答オブジェクト")
     intermediate_data: IntermediateData = Field(default_factory=IntermediateData, description="テスト中の中間実行データ")
 
+class SessionInput(BaseModel):
+    appName: str = Field("src", description="アプリケーション名 (常に 'src')")
+    userId: str = Field("test_user", description="ユーザーID (常に 'test_user')")
+    state: dict = Field(..., description="状態辞書。例えば {'user_message': 'hello'} など、入力キーに応じた値を含めてください。")
+
 class EvalCase(BaseModel):
     eval_id: str = Field(..., description="一意のテストケースID")
     conversation: list[ConversationTurn] = Field(..., description="対話シーケンスのリスト")
-    session_input: dict = Field(..., description="初期セッション状態 (app_name, user_id, state 等)")
+    session_input: SessionInput = Field(..., description="初期セッション状態 (appName, userId, state を含めること)")
 
 class EvalSet(BaseModel):
     eval_set_id: str = Field(..., description="評価セットの一意なID")
     name: str = Field(..., description="評価セットの名前")
     description: str = Field(..., description="評価セットの説明")
     eval_cases: list[EvalCase] = Field(..., description="テストケースのリスト")
+
+def remove_additional_properties(schema: dict) -> dict:
+    """JSONスキーマから Gemini Developer API で未サポートの 'additionalProperties' を再帰的に削除します。"""
+    if not isinstance(schema, dict):
+        return schema
+    schema.pop("additionalProperties", None)
+    for key, value in schema.items():
+        if isinstance(value, dict):
+            remove_additional_properties(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    remove_additional_properties(item)
+    return schema
 
 def generate_test_cases(skill_name: str):
     skill_dir = os.path.join("/workspace/src/skills", skill_name)
@@ -97,12 +116,16 @@ def generate_test_cases(skill_name: str):
 
     print("Generating unit test cases using Gemini API...")
     
+    # response_schema のクレンジング
+    schema_dict = EvalSet.model_json_schema()
+    clean_schema = remove_additional_properties(schema_dict)
+
     response = client.models.generate_content(
         model='gemini-2.5-flash',
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
-            response_schema=EvalSet,
+            response_schema=clean_schema,
             temperature=0.2
         )
     )
@@ -131,7 +154,10 @@ def generate_test_cases(skill_name: str):
     config_path = os.path.join(tests_dir, "test_config.json")
     config_data = {
         "eval_set_path": eval_set_path,
-        "threshold_accuracy": 1.0
+        "threshold_accuracy": 1.0,
+        "criteria": {
+            "response_match_score": 0.8
+        }
     }
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config_data, f, indent=2, ensure_ascii=False)

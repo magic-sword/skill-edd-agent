@@ -30,6 +30,15 @@ python src/skills/trigger-evaluator/scripts/evaluate_trigger.py --skill_name [�
   2. `[スキル名]_trigger_eval.evalset.config.json` (評価設定ファイル)
   3. `trigger_eval_report.json` (静的評価と生成結果の詳細レポート)
 
+## トリガー評価基準値（ベストプラクティス）
+
+本スキルで生成されるテスト設定ファイル（`[スキル名]_trigger_eval.evalset.config.json`）には、以下の業界標準（ベストプラクティス）に基づいた評価基準値が定義されています。
+
+* **トリガー実行時のツール軌跡一致基準 (`criteria.tool_trajectory_avg_score`): `1.0` (ANY_ORDER)**
+  * **理由**: 対象のスキルが正しく起動されたかどうか（または陰性の際に関連のないスキルが起動しなかったか）を、0か1か（起動可否）の軌跡情報で厳格に一致させる必要があるためです。
+* **最終判定での合格閾値精度 (`threshold_accuracy`): `0.9` (90%以上)**
+  * **理由**: スキルの過剰反応や無反応を防ぐ分類判断の正確性を保証するための標準的な合格基準として、陽性・陰性プロンプト合計20件に対して90%以上（18件以上）の正確な判断を求めるためです。この合格精度値は実行ツールである `test-executor` を呼び出す際に引数（`--threshold_accuracy 0.9`）として指定され、適用されます。
+
 ## AIエージェント向け使用方法 (FunctionTool)
 
 このスキルをエージェントにバインドして実行する際は、インプロセスの `generate_trigger_tests` 関数ツールを直接呼び出してください。

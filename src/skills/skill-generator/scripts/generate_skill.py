@@ -1,7 +1,6 @@
 """
 ADKのサブエージェント（SkillDeveloperAgent）を動的に起動し、
-指定された要件に基づくスキル（SKILL.md, scripts/*.py, tests/*.json）の生成と、
-スクリプトが正常にエラーなく動作することの自律検証を行うスクリプト。
+指定された要件に基づくスキル（SKILL.md, scripts/*.py）のコード実装を行うスクリプト。
 """
 import argparse
 import asyncio
@@ -17,6 +16,7 @@ from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactServ
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.genai import types
 from google.adk.tools import ToolContext
+from google.adk.tools.environment._environment_tools import ReadFileTool, EditFileTool, WriteFileTool
 
 
 # インポートキャッシュの不整合対策
@@ -28,7 +28,6 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     output_dir = os.path.abspath(output_dir)
     skill_name = os.path.basename(output_dir)
     script_name = skill_name.replace("-", "_") + ".py"
-    test_name = skill_name.replace("-", "_") + "_eval_set.evalset.json"
     
     # テンプレートおよびプロンプトアセットの読み込み
     generator_dir = os.path.dirname(os.path.abspath(__file__))
@@ -47,17 +46,18 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
         "{output_dir}", output_dir
     ).replace(
         "{script_name}", script_name
-    ).replace(
-        "{test_name}", test_name
     )
     
     # エージェント定義
+    local_env = LocalEnvironment(working_dir=output_dir)
     developer_agent = Agent(
         model=model,
         name='SkillDeveloperAgent',
         instruction=instruction,
         tools=[
-            EnvironmentToolset(environment=LocalEnvironment())
+            ReadFileTool(local_env),
+            EditFileTool(local_env),
+            WriteFileTool(local_env),
         ]
     )
     
@@ -67,7 +67,6 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     # 一時フォルダの作成保証
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(os.path.join(output_dir, "scripts"), exist_ok=True)
-    os.makedirs(os.path.join(output_dir, "tests"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "references"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "assets"), exist_ok=True)
 
@@ -103,7 +102,7 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     ) as runner:
         user_message = types.Content(
             role='user',
-            parts=[types.Part(text=f"以下の要件に従って、スキルを開発し、スクリプトの動作検証（不具合チェック）を行ってください：\n{prompt}")]
+            parts=[types.Part(text=f"以下の要件に従って、対象スキルのビジネスロジックを実装してください：\n{prompt}")]
         )
         
         # サブエージェントの推論を実行し、進行状況をコンソールに出力

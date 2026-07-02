@@ -25,6 +25,15 @@ python src/skills/eval-unit-tester/scripts/eval_unit_tester.py --skill_name [ス
   1. `[スキル名]_eval_set.evalset.json` (テストケースファイル)
   2. `test_config.json` (評価設定ファイル)
 
+## 単体テスト評価基準値（ベストプラクティス）
+
+本スキルで生成されるテスト設定ファイル（`test_config.json`）には、以下の業界標準（ベストプラクティス）に基づいた評価基準値が定義されています。
+
+* **合格閾値 (`threshold_accuracy`): `1.0` (100%合格)**
+  * **理由**: スキルのビジネスロジックはバグなく 100% 正しく動作することが、Tier 1（本登録）昇格の前提条件となるためです。
+* **類似度判定基準 (`criteria.response_match_score`): `0.8` (80%一致)**
+  * **理由**: テキスト処理時に発生しうる自然言語特有の軽微な文字表現のブレや、不要な記号・空白の有無などを Rouge-1 評価で適度に許容するためです。
+
 ## AIエージェント向け使用方法 (FunctionTool)
 
 このスキルをエージェントにバインドして実行する際は、インプロセスの `generate_unit_tests` 関数ツールを直接呼び出してください。

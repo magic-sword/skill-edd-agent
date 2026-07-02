@@ -26,6 +26,20 @@ class TriggerTestCases(BaseModel):
     positive_prompts: list[PromptItem] = Field(..., description="このスキルがトリガーされるべき陽性プロンプト（10件）")
     negative_prompts: list[PromptItem] = Field(..., description="このスキルとは関係のない一般的な雑談などの陰性プロンプト（10件）")
 
+def remove_additional_properties(schema: dict) -> dict:
+    """JSONスキーマから Gemini Developer API で未サポートの 'additionalProperties' を再帰的に削除します。"""
+    if not isinstance(schema, dict):
+        return schema
+    schema.pop("additionalProperties", None)
+    for key, value in schema.items():
+        if isinstance(value, dict):
+            remove_additional_properties(value)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    remove_additional_properties(item)
+    return schema
+
 # パスの定義
 SKILLS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 
@@ -70,12 +84,15 @@ def static_evaluate_skill_md(skill_name, skill_md_content):
     )
 
     try:
+        schema_dict = StaticEvalResult.model_json_schema()
+        clean_schema = remove_additional_properties(schema_dict)
+
         response = genai_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=StaticEvalResult,
+                response_schema=clean_schema,
                 temperature=0.1
             )
         )
@@ -110,12 +127,15 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
     )
 
     try:
+        schema_dict = TriggerTestCases.model_json_schema()
+        clean_schema = remove_additional_properties(schema_dict)
+
         response = genai_client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=TriggerTestCases,
+                response_schema=clean_schema,
                 temperature=0.2
             )
         )
