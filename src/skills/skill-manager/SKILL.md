@@ -118,18 +118,18 @@ description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管�
 
 *   `allowed_tools`: 該当Tierで許可するツールの名前のリスト。`*` は全ツール（制限なし）を意味します。セキュリティフィルタはこの定義に基づいて、エージェントが利用可能なツールセットを動的にラップ・制限します。
 
-## AIエージェント向け使用方法 (run_skill_script)
+## AIエージェント向け使用方法 (FunctionTool)
 
-このスキルを実行する際は、`run_skill_script` ツールを使用して、必ず以下の引数構造（JSON）で実行してください。入力・出力はJSONファイルを介してパスでやり取りします。
+このスキルをエージェントにバインドして実行する際は、インプロセスの `set_skill_tier` 関数ツールを直接呼び出してください。
 
-```json
-{
-  "skill_name": "skill-manager",
-  "file_path": "scripts/manage_skills.py",
-  "args": {
-    "--input_json": "/workspace/src/.workflow_tmp/<スキル名>/<入力ファイル名>.json",
-    "--output_json": "/workspace/src/.workflow_tmp/<スキル名>/<出力ファイル名>.json"
-  }
-}
-```
+### 共有セッション状態 (Session State) のインターフェース
+* **入力値の読み込み**:
+  * `temp:skill_name`: 対象スキルの名前 (例: `my-skill`)
+  * `temp:registry_path` (任意): レジストリファイルのパス (デフォルト: `/workspace/src/skills_registry.json`)
+* **出力値の書き込み**:
+  * `temp:reg_out_json_path`: 登録結果の出力JSONファイルパスを格納します。
+
+### 呼び出し時のパラメータ
+* `command`: `"set-tier"`
+* `tier`: 登録するTierの数値 (`0`, `1`, `2`, `3`)
 

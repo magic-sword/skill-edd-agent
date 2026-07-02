@@ -36,17 +36,18 @@ description: 指定されたスキルのADK evalテストセットを実行し�
     --timeout_seconds 120
   ```
 
-## AIエージェント向け使用方法 (run_skill_script)
+## AIエージェント向け使用方法 (FunctionTool)
 
-このスキルを実行する際は、`run_skill_script` ツールを使用して、必ず以下の引数構造（JSON）で実行してください。入力・出力はJSONファイルを介してパスでやり取りします。
+このスキルをエージェントにバインドして実行する際は、インプロセスの `run_skill_tests` 関数ツールを直接呼び出してください。
 
-```json
-{
-  "skill_name": "test-executor",
-  "file_path": "scripts/execute_test.py",
-  "args": {
-    "--input_json": "/workspace/src/.workflow_tmp/<スキル名>/<入力ファイル名>.json",
-    "--output_json": "/workspace/src/.workflow_tmp/<スキル名>/<出力ファイル名>.json"
-  }
-}
-```
+### 共有セッション状態 (Session State) のインターフェース
+* **入力値の読み込み**:
+  * `temp:skill_name`: テスト対象のスキル名
+  * `temp:eval_set_path` (eval_mode=1 の場合): 単体テスト評価アセットのパス
+  * `temp:trig_eval_set_path` (eval_mode=0 の場合): トリガー精度テスト評価アセットのパス
+* **出力値の書き込み**:
+  * なし (テスト不合格時は例外がスローされ、ワークフローが自動で停止します)
+
+### 呼び出し時のパラメータ
+* `eval_mode`: `1` (単体テスト実行) または `0` (トリガー精度テスト実行)
+* `threshold_accuracy`: 合格閾値の精度 (`0.0` 〜 `1.0`)

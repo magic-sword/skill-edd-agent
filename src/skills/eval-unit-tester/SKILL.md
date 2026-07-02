@@ -25,16 +25,15 @@ python src/skills/eval-unit-tester/scripts/eval_unit_tester.py --skill_name [ス
   1. `[スキル名]_eval_set.evalset.json` (テストケースファイル)
   2. `test_config.json` (評価設定ファイル)
 
-## AIエージェント向け使用方法 (run_skill_script)
+## AIエージェント向け使用方法 (FunctionTool)
 
-このスキルを実行する際は、`run_skill_script` ツールを使用して、必ず以下の引数構造（JSON）で実行してください。
+このスキルをエージェントにバインドして実行する際は、インプロセスの `generate_unit_tests` 関数ツールを直接呼び出してください。
 
-```json
-{
-  "skill_name": "eval-unit-tester",
-  "file_path": "scripts/eval_unit_tester.py",
-  "args": {
-    "--skill_name": "<テストケースを生成したいスキル名>"
-  }
-}
-```
+### 共有セッション状態 (Session State) のインターフェース
+* **入力値の読み込み**:
+  * `temp:skill_name`: 単体テストを生成するスキルの名前
+* **出力値の書き込み**:
+  * `temp:eval_set_path`: 生成された単体テスト評価アセットのJSONファイルパスを格納します。
+
+### 呼び出し時のパラメータ
+* なし (パラメータはセッション状態から自動取得されます)

@@ -4,58 +4,20 @@ ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠し、
 状態バケツリレー用の WorkflowState スキーマや LLM Agent に対する JSON 制御指示を完全に排除する。
 各エージェントはインプロセス関数ツール (FunctionTool) を実行し、状態は ToolContext を介して裏側で自動的に共有される。
 """
-import importlib.util
-import sys
-import os
 from google.adk import Workflow
 from google.adk import Agent
 from google.adk.tools import FunctionTool
+from workflows.utils import load_tool_from_skill
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
-def import_function_from_path(module_name: str, file_path: str, function_name: str):
-    """
-    ハイフンを含むパスでもインポートできるよう、ファイル絶対パスから動的に関数をロードします。
-    """
-    abs_path = os.path.abspath(file_path)
-    if not os.path.exists(abs_path):
-        raise FileNotFoundError(f"Script file not found: {abs_path}")
-    spec = importlib.util.spec_from_file_location(module_name, abs_path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    return getattr(module, function_name)
+# インプロセスツールの関数を動的に解決してロード (疎結合)
+set_skill_tier = load_tool_from_skill("skill-manager", "set_skill_tier")
+generate_skill_code = load_tool_from_skill("skill-generator", "generate_skill_code")
+generate_unit_tests = load_tool_from_skill("eval-unit-tester", "generate_unit_tests")
+run_skill_tests = load_tool_from_skill("test-executor", "run_skill_tests")
+generate_trigger_tests = load_tool_from_skill("trigger-evaluator", "generate_trigger_tests")
 
-# インプロセスツールの関数を動的ロード
-set_skill_tier = import_function_from_path(
-    "manage_skills",
-    "/workspace/src/skills/skill-manager/scripts/manage_skills.py",
-    "set_skill_tier"
-)
-
-generate_skill_code = import_function_from_path(
-    "generate_skill",
-    "/workspace/src/skills/skill-generator/scripts/generate_skill.py",
-    "generate_skill_code"
-)
-
-generate_unit_tests = import_function_from_path(
-    "eval_unit_tester",
-    "/workspace/src/skills/eval-unit-tester/scripts/eval_unit_tester.py",
-    "generate_unit_tests"
-)
-
-run_skill_tests = import_function_from_path(
-    "execute_test",
-    "/workspace/src/skills/test-executor/scripts/execute_test.py",
-    "run_skill_tests"
-)
-
-generate_trigger_tests = import_function_from_path(
-    "evaluate_trigger",
-    "/workspace/src/skills/trigger-evaluator/scripts/evaluate_trigger.py",
-    "generate_trigger_tests"
-)
 
 
 # ==========================================
@@ -94,7 +56,7 @@ generate_unit_test_agent = Agent(
     name="generate_unit_test_agent",
     tools=[FunctionTool(func=generate_unit_tests)],
     instruction=(
-        "あなたは単体テストアセットの生成担当者です。`generate_unit_tests` ツールを呼び出して、"
+        "あなたは単体テストアセットの生成担当者です。`generate_unit_tests` ツールを呼び出して, "
         "現在のスキルに対する単体テストケースの自動生成を実行してください。\n"
         "引数は不要です。"
     )

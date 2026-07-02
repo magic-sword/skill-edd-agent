@@ -30,17 +30,15 @@ python src/skills/trigger-evaluator/scripts/evaluate_trigger.py --skill_name [�
   2. `[スキル名]_trigger_eval.evalset.config.json` (評価設定ファイル)
   3. `trigger_eval_report.json` (静的評価と生成結果の詳細レポート)
 
-## AIエージェント向け使用方法 (run_skill_script)
+## AIエージェント向け使用方法 (FunctionTool)
 
-このスキルを実行する際は、`run_skill_script` ツールを使用して、必ず以下の引数構造（JSON）で実行してください。入力・出力はJSONファイルを介してパスでやり取りします。
+このスキルをエージェントにバインドして実行する際は、インプロセスの `generate_trigger_tests` 関数ツールを直接呼び出してください。
 
-```json
-{
-  "skill_name": "trigger-evaluator",
-  "file_path": "scripts/evaluate_trigger.py",
-  "args": {
-    "--input_json": "/workspace/src/.workflow_tmp/<スキル名>/<入力ファイル名>.json",
-    "--output_json": "/workspace/src/.workflow_tmp/<スキル名>/<出力ファイル名>.json"
-  }
-}
-```
+### 共有セッション状態 (Session State) のインターフェース
+* **入力値の読み込み**:
+  * `temp:skill_name`: トリガーテストを生成するスキルの名前
+* **出力値の書き込み**:
+  * `temp:trig_eval_set_path`: 生成されたトリガーテスト評価アセットのJSONファイルパスを格納します。
+
+### 呼び出し時のパラメータ
+* なし (パラメータはセッション状態から自動取得されます)
