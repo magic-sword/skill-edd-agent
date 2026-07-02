@@ -21,6 +21,18 @@ description: {skill_description}
 このスキルは `run_skill_script` ツールを使用して実行します。
 `stdout` から結果の JSON を直接取得して読み取ってください。
 
+### 出力形式の要件 (Output Mode)
+[※ 開発者エージェントは、以下の選択肢から実装したビジネスロジックに合致する1つのみを残し、それ以外の選択肢をすべて削除してください]
+
+- **Output Mode: VALUE_ONLY**
+  読み取った結果の `result_message` の中身のみを、余計な説明文（「結果は〜です」など）を一切付け加えずに、そのまま最終応答テキストとしてユーザーに返却してください。
+
+- **Output Mode: CONVERSATIONAL**
+  読み取った結果を踏まえて、ユーザーに対して自然な対話応答メッセージを生成して返却してください。
+
+- **Output Mode: STRUCTURED_JSON**
+  得られた出力を指定された JSON スキーマに準拠した JSON 文字列のみで返却し、自然言語のテキストは一切含めないでください。
+
 ### パラメータ
 
 - `file_path`: `scripts/{script_name}`

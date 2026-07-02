@@ -46,3 +46,7 @@ python src/skills/eval-unit-tester/scripts/eval_unit_tester.py --skill_name [ス
 
 ### 呼び出し時のパラメータ
 * なし (パラメータはセッション状態から自動取得されます)
+
+### 出力形式の要件 (Output Mode)
+- **Output Mode: VALUE_ONLY**
+  単体テストケース生成完了に関する決定論的なステータスメッセージのみを返却します。

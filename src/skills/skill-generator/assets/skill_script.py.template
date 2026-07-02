@@ -3,6 +3,7 @@ import argparse
 import sys
 import os
 from google.adk.tools import ToolContext
+from workflows.testing.mock_context import MockInvocationContext
 
 # =============================================================================
 # [ベストプラクティス指示] 
@@ -54,7 +55,7 @@ def main():
     parser.add_argument("--output_json", type=str, help="Path to write the output JSON to")
 
     args = parser.parse_args()
-    tool_context = ToolContext()
+    tool_context = ToolContext(invocation_context=MockInvocationContext())
 
     if args.input_json:
         try:

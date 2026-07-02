@@ -133,3 +133,7 @@ description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管�
 * `command`: `"set-tier"`
 * `tier`: 登録するTierの数値 (`0`, `1`, `2`, `3`)
 
+### 出力形式の要件 (Output Mode)
+- **Output Mode: VALUE_ONLY**
+  Tierの設定完了に関する決定論的なステータスメッセージのみを返却します。
+

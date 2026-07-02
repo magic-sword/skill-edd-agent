@@ -92,6 +92,60 @@ def generate_test_cases(skill_name: str):
     with open(json_tmpl_path, "r", encoding="utf-8") as f:
         json_template = f.read()
         
+    # 決定論的な仕様スキャン
+    is_value_only = "Output Mode: VALUE_ONLY" in skill_content
+    is_conversational = "Output Mode: CONVERSATIONAL" in skill_content
+    is_structured_json = "Output Mode: STRUCTURED_JSON" in skill_content
+    
+    # デフォルトは VALUE_ONLY
+    if not (is_value_only or is_conversational or is_structured_json):
+        is_value_only = True
+        
+    # Output Mode に応じたプロンプトとテンプレートの動的合成
+    if is_value_only:
+        instruction_override = (
+            "実例にならい、会話内のユーザー入力には必ず「〜〜の結果のみを出力してください」という制約を含め、"
+            "期待応答（final_response）は余計な解説を一切排した結果そのもの（例: 大文字化されたテキストのみ）としてください。"
+        )
+    elif is_conversational:
+        instruction_override = (
+            "会話内のユーザー入力は自然なメッセージ（制約なし）とし、期待応答（final_response）は"
+            "ユーザーに対する自然な対話応答メッセージ（例: 「〜〜を処理しました。結果は〜〜です。」など）としてください。"
+        )
+        # テンプレートの Few-Shot 例を対話応答用に置換
+        json_template = json_template.replace(
+            "「hello world」を処理し、結果のテキストのみを出力してください。",
+            "「hello world」を処理してください。"
+        ).replace(
+            "「AI is fun!」を処理し、結果のテキストのみを出力してください。",
+            "「AI is fun!」を処理してください。"
+        ).replace(
+            '"text": "HELLO WORLD"',
+            '"text": "「hello world」の処理が完了しました。結果は HELLO WORLD です。"'
+        ).replace(
+            '"text": "AI IS FUN!"',
+            '"text": "「AI is fun!」の処理が完了しました。結果は AI IS FUN! です。"'
+        )
+    elif is_structured_json:
+        instruction_override = (
+            "期待応答（final_response）は余計な解説を一切排した生の JSON 文字列（例: {\"result_message\": \"〜〜\"}）"
+            "のみとし、自然言語テキストは絶対に含めないでください。"
+        )
+        # テンプレートの Few-Shot 例を JSON 用に置換
+        json_template = json_template.replace(
+            "「hello world」を処理し、結果のテキストのみを出力してください。",
+            "「hello world」を処理し、結果をJSON形式のみで出力してください。"
+        ).replace(
+            "「AI is fun!」を処理し、結果のテキストのみを出力してください。",
+            "「AI is fun!」を処理し、結果をJSON形式のみで出力してください。"
+        ).replace(
+            '"text": "HELLO WORLD"',
+            '"text": "{\\n  \\"result_message\\": \\"HELLO WORLD\\"\\n}"'
+        ).replace(
+            '"text": "AI IS FUN!"',
+            '"text": "{\\n  \\"result_message\\": \\"AI IS FUN!\\"\\n}"'
+        )
+
     # json_template 自体に含まれるプレースホルダーを置換
     json_template = json_template.replace(
         "{skill_name_underscore}", skill_name.replace('-', '_')
@@ -112,6 +166,8 @@ def generate_test_cases(skill_name: str):
         "{skill_content}", skill_content
     ).replace(
         "{json_template}", json_template
+    ).replace(
+        "{instruction_override}", instruction_override
     )
 
     print("Generating unit test cases using Gemini API...")

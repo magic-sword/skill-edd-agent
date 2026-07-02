@@ -51,3 +51,7 @@ python src/skills/trigger-evaluator/scripts/evaluate_trigger.py --skill_name [�
 
 ### 呼び出し時のパラメータ
 * なし (パラメータはセッション状態から自動取得されます)
+
+### 出力形式の要件 (Output Mode)
+- **Output Mode: VALUE_ONLY**
+  トリガーテストケース生成完了に関する決定論的なステータスメッセージのみを返却します。
