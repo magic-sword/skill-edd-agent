@@ -52,7 +52,7 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     )
     
     # 共通ライブラリ（edd-agent-tools）の公式仕様書を提供する動的リーダーツールを初期化
-    reference_tool = LibraryDocumentationReader(library_name="edd_agent_tools")
+    reader = LibraryDocumentationReader(library_name="edd_agent_tools")
     
     # エージェント定義
     local_env = LocalEnvironment(working_dir=output_dir)
@@ -64,7 +64,7 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
             ReadFileTool(local_env),
             EditFileTool(local_env),
             WriteFileTool(local_env),
-            reference_tool, # AIエージェントに「道具（ツール）」として手渡す
+            reader.read_documentation, # インスタンスのバインドされたメソッドをそのまま手渡す
         ]
     )
     

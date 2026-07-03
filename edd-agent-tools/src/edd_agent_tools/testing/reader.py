@@ -7,7 +7,7 @@ class LibraryDocumentationReader:
     def __init__(self, library_name: str = "edd_agent_tools"):
         self.library_name = library_name
 
-    def __call__(self, target_library: str = "edd_agent_tools") -> str:
+    def read_documentation(self, target_library: str = "edd_agent_tools") -> str:
         """
         指定されたライブラリ（edd_agent_toolsなど）のLLM向け公式開発規約やAPI仕様のドキュメントを動的にロードします。
         新規コードの実装や修正を開始する前に、必ずこのツールを実行して最新のAPI仕様や状態管理（state）のルールを確認してください。
