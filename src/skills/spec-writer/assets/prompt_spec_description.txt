@@ -1,0 +1,13 @@
+You are an expert technical writer.
+Given the following skill design information and implementation code, generate a concise summary of the skill's purpose and functionality.
+
+Design Parameters:
+{{parameters}}
+
+Dependencies:
+{{dependencies}}
+
+Implementation Code:
+{{implementation_code}}
+
+Please provide a summary that captures the essence of the skill in a clear and professional manner.

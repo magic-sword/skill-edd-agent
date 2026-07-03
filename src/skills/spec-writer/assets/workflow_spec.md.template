@@ -1,0 +1,28 @@
+---
+name: ${workflow_name}
+description: ${mechanical_description}
+dependencies:
+${dependencies_yaml}
+---
+
+# ${workflow_name}
+
+## 概要
+
+${human_overview}
+
+## 入力パラメータ
+
+${input_parameters}
+
+## 実行方法
+
+```bash
+python3 src/agents/${workflow_name}/scripts/main.py \
+${execution_arguments}
+```
+
+## 依存関係
+
+このワークフローサブエージェントは以下のスキルに依存しています。
+${dependencies_explanation}

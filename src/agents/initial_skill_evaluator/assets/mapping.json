@@ -1,0 +1,64 @@
+{
+  "mappings": [
+    {
+      "step_number": 1,
+      "task_description": "スキル仮登録: `set_skill_tier` コマンドを `'register'` で呼び出し、対象スキルが未登録であれば Tier 0 でレジストリに仮登録します。",
+      "mapped": true,
+      "skill": "skill-manager",
+      "functions": ["set_skill_tier"],
+      "args": {
+        "command": "register",
+        "tier": 0
+      }
+    },
+    {
+      "step_number": 2,
+      "task_description": "トリガーテストケース生成: `generate_trigger_tests` を呼び出し、対象スキルのトリガーチェックのためのテストケースを生成します。",
+      "mapped": true,
+      "skill": "trigger-evaluator",
+      "functions": ["generate_trigger_tests"],
+      "args": {}
+    },
+    {
+      "step_number": 3,
+      "task_description": "トリガーテスト実行: `run_skill_tests` を `eval_mode=0`、`threshold_accuracy=0.90` の設定で呼び出し、生成されたトリガーテストケースを実行します。",
+      "mapped": true,
+      "skill": "test-executor",
+      "functions": ["run_skill_tests"],
+      "args": {
+        "eval_mode": 0,
+        "threshold_accuracy": 0.90
+      }
+    },
+    {
+      "step_number": 4,
+      "task_description": "ユニットテストケース生成: `generate_unit_tests` を呼び出し、対象スキルのユニットテストのためのテストケースを生成します。",
+      "mapped": true,
+      "skill": "eval-unit-tester",
+      "functions": ["generate_unit_tests"],
+      "args": {}
+    },
+    {
+      "step_number": 5,
+      "task_description": "ユニットテスト実行: `run_skill_tests` を `eval_mode=1`、`threshold_accuracy=1.0` の設定で呼び出し、生成されたユニットテストケースを実行します。",
+      "mapped": true,
+      "skill": "test-executor",
+      "functions": ["run_skill_tests"],
+      "args": {
+        "eval_mode": 1,
+        "threshold_accuracy": 1.0
+      }
+    },
+    {
+      "step_number": 6,
+      "task_description": "スキルティア昇格: `set_skill_tier` コマンドを `'set-tier'`、`tier=1` の設定で呼び出し、対象スキルが Tier 0 であれば Tier 1 へ昇格させます。",
+      "mapped": true,
+      "skill": "skill-manager",
+      "functions": ["set_skill_tier"],
+      "args": {
+        "command": "set-tier",
+        "tier": 1
+      }
+    }
+  ]
+}

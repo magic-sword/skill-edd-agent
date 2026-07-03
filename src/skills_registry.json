@@ -39,6 +39,10 @@
     "workflow-generator": {
       "tier": 1,
       "last_tested": null
+    },
+    "initial_skill_evaluator": {
+      "tier": 0,
+      "last_tested": null
     }
   }
 }

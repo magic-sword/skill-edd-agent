@@ -1,0 +1,36 @@
+{
+  "name": "spec-writer",
+  "dependencies": [],
+  "parameters": [
+    {
+      "name": "target_type",
+      "type": "str",
+      "required": true,
+      "description": "対象の種類（'skill' または 'workflow'）"
+    },
+    {
+      "name": "name",
+      "type": "str",
+      "required": true,
+      "description": "対象の名前"
+    },
+    {
+      "name": "design_path",
+      "type": "str",
+      "required": true,
+      "description": "design.json のパス"
+    },
+    {
+      "name": "source_code_path",
+      "type": "str",
+      "required": false,
+      "description": "ソースコードのパス"
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "required": true,
+      "description": "出力先ディレクトリ"
+    }
+  ]
+}

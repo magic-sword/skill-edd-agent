@@ -1,0 +1,47 @@
+---
+name: ${workflow_name}
+description: ${mechanical_description}
+---
+
+# ${workflow_name}
+
+## 概要
+
+${human_overview}
+
+## トリガー条件
+
+${trigger_conditions}
+
+## AIエージェント向け使用方法
+
+このスキルは `run_skill_script` ツールを使用して実行します。
+`stdout` から結果の JSON を直接取得して読み取ってください。
+
+### 出力形式の要件 (Output Mode)
+
+- **Output Mode: ${output_mode}**
+  ${output_mode_description}
+
+### パラメータ
+
+- `file_path`: `scripts/${script_module_name}.py`
+- `args`: JSON引数として以下を渡してください。
+  - `input_json`: パラメータ情報を含む JSON 文字列
+  - `output_json`: 結果を一時保存するファイルパス
+
+### 入力パラメータ
+
+${input_parameters}
+
+### 実行例
+
+```python
+run_skill_script(
+    file_path="scripts/${script_module_name}.py",
+    args={
+        "input_json": "{\"param\": \"value\"}",
+        "output_json": "/workspace/src/.workflow_tmp/output.json"
+    }
+)
+```
