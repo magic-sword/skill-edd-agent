@@ -1,9 +1,9 @@
 ---
-name: spec-writer
+name: skill-spec-writer
 description: 設計情報（parameters, dependencies）と実装コードを入力として受け取り、LLMで端的な説明文（Pydantic構造化出力）を生成した上で、多態的クラスを用いて決定論的にMarkdown仕様書（SKILL.md）を構築して指定ディレクトリに保存するドキュメント自動生成スキル。
 ---
 
-# spec-writer
+# skill-spec-writer
 
 設計情報（parameters, dependencies）と実装コードを入力として受け取り、LLMで端的な説明文（Pydantic構造化出力）を生成した上で、多態的クラスを用いて決定論的にMarkdown仕様書（SKILL.md）を構築して指定ディレクトリに保存するドキュメント自動生成スキル。
 
