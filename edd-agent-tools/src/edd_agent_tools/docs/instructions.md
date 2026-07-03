@@ -78,3 +78,27 @@ set_skill_tier = registry.load_tool("skill-manager", "set_skill_tier")
 registry.list_skills()
 ```
 
+---
+
+## 5. 同期コマンド実行インプロセスツール: `run_system_command`
+
+エージェントが評価テストの実行（`adk eval`など）や、時間のかかるシェルコマンドを実行する際、システムが提供する `run_command` は10秒の制限を超えると非同期（バックグラウンド）実行になりエージェントがスタックする原因になります。
+
+これを回避するために、`edd-agent-tools` が提供する同期コマンド実行用インプロセスツール `run_system_command` をインプロセスツールとしてバインドして実行させてください。
+
+### 基本的な構成例
+```python
+from edd_agent_tools.utils import run_system_command
+from google.adk.tools import ToolContext
+
+# ToolContext 内の state に実行したいコマンドを設定します
+tool_context = ToolContext()
+tool_context.state["command"] = "python src/skills/eval-unit-tester/scripts/eval_unit_tester.py --skill_name skill-generator"
+tool_context.state["cwd"] = "/workspace"
+tool_context.state["timeout_seconds"] = 120
+
+# 同期実行 (コマンド完了までブロックして出力を返します)
+output_message = run_system_command(tool_context)
+print(output_message)
+```
+
