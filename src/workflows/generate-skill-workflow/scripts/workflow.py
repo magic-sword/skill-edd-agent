@@ -7,16 +7,17 @@ ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠し、
 from google.adk import Workflow
 from google.adk import Agent
 from google.adk.tools import FunctionTool
-from workflows.utils import load_tool_from_skill
+from edd_agent_tools.testing import SkillRegistry
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
-# インプロセスツールの関数を動的に解決してロード (疎結合)
-set_skill_tier = load_tool_from_skill("skill-manager", "set_skill_tier")
-generate_skill_code = load_tool_from_skill("skill-generator", "generate_skill_code")
-generate_unit_tests = load_tool_from_skill("eval-unit-tester", "generate_unit_tests")
-run_skill_tests = load_tool_from_skill("test-executor", "run_skill_tests")
-generate_trigger_tests = load_tool_from_skill("trigger-evaluator", "generate_trigger_tests")
+# レジストリを初期化してインプロセスツールの関数を動的ロード
+registry = SkillRegistry()
+set_skill_tier = registry.load_tool("skill-manager", "set_skill_tier")
+generate_skill_code = registry.load_tool("skill-generator", "generate_skill_code")
+generate_unit_tests = registry.load_tool("eval-unit-tester", "generate_unit_tests")
+run_skill_tests = registry.load_tool("test-executor", "run_skill_tests")
+generate_trigger_tests = registry.load_tool("trigger-evaluator", "generate_trigger_tests")
 
 
 

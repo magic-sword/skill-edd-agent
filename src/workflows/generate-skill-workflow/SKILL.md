@@ -34,7 +34,7 @@ dependencies:
 ## 実行方法
 
 ```bash
-PYTHONPATH=src python3 src/workflows/run_workflow.py \
+python3 src/workflows/run_workflow.py \
   --workflow_name generate-skill-workflow \
   --skill_name <スキル名> \
   --prompt "<要件プロンプト>"

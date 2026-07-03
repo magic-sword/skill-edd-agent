@@ -27,27 +27,27 @@ description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管�
 
    * **新規スキルの登録**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py register <スキル名>
+     python src/skills/skill-manager/scripts/manage_skills.py --command register --skill_name <スキル名>
      ```
    
    * **Tierの変更 (昇格・降格)**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py set-tier <スキル名> <1|2|3>
+     python src/skills/skill-manager/scripts/manage_skills.py --command set-tier --skill_name <スキル名> --tier <1|2|3>
      ```
    
    * **現在のTierの取得**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py get-tier <スキル名>
+     python src/skills/skill-manager/scripts/manage_skills.py --command get-tier --skill_name <スキル名>
      ```
    
    * **登録スキル一覧の表示**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py list
+     python src/skills/skill-manager/scripts/manage_skills.py --command list
      ```
 
    * **ファイル変更の検知に伴うメタデータ（ハッシュ）更新**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py update-meta <スキル名>
+     python src/skills/skill-manager/scripts/manage_skills.py --command update-meta --skill_name <スキル名>
      ```
 
 2. **エージェントからの動的権限制御 (Python API)**:

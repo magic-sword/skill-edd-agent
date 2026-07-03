@@ -57,3 +57,24 @@ LLMが実装するビジネスロジック内では、以下の規則に従っ�
 ビジネスロジック内で異常を検知した場合は、`RuntimeError` や `ValueError` などの例外（Exception）をスローしてください。
 - `SkillCommandLineRunner` が例外をキャッチし、エラー内容を出力した上で、自動的に終了コード `1` でプロセスを終了させます。
 - 自前で `sys.exit(1)` を呼ぶ必要はありません。
+
+---
+
+## 4. スキルレジストリ操作と動的解決: `SkillRegistry`
+
+ワークフローの実行スクリプトやスキル管理ツールなどの「システム側（実行エンジン）」では、`skills_registry.json` に登録されたスキルの操作やインプロセスツールの動的ロードに `SkillRegistry` クラスを使用してください。
+
+### 基本的な構成例
+```python
+from edd_agent_tools.testing import SkillRegistry
+
+# レジストリの初期化 (デフォルトで /workspace/src/skills_registry.json を対象とします)
+registry = SkillRegistry()
+
+# 1. 登録されているスキルのインプロセスツールを動的解決・ロード
+set_skill_tier = registry.load_tool("skill-manager", "set_skill_tier")
+
+# 2. 登録スキルの一覧取得・管理
+registry.list_skills()
+```
+
