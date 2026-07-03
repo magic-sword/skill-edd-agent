@@ -28,3 +28,6 @@ dependencies = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"edd_agent_tools.docs" = ["*.md"]

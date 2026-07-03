@@ -42,12 +42,24 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     with open(inst_path, "r", encoding="utf-8") as f:
         instruction_template = f.read()
         
+    # 共通ライブラリの使用規約ドキュメントをパッケージ内からロード
+    try:
+        from importlib import resources
+        if hasattr(resources, "files"):
+            library_docs = resources.files("edd_agent_tools.docs").joinpath("instructions.md").read_text(encoding="utf-8")
+        else:
+            library_docs = resources.read_text("edd_agent_tools.docs", "instructions.md")
+    except Exception as e:
+        library_docs = f"(Warning: Could not load edd_agent_tools instructions: {e})"
+
     instruction = instruction_template.replace(
         "{skill_name}", skill_name
     ).replace(
         "{output_dir}", output_dir
     ).replace(
         "{script_name}", script_name
+    ).replace(
+        "{library_instructions}", library_docs
     )
     
     # エージェント定義
