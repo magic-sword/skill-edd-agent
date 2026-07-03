@@ -6,6 +6,7 @@ from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
 from pydantic import BaseModel, Field
+from edd_agent_tools.utils.schema import remove_additional_properties
 
 # インポートキャッシュの不整合対策
 sys.modules.pop('google', None)
@@ -44,19 +45,7 @@ class EvalSet(BaseModel):
     description: str = Field(..., description="評価セットの説明")
     eval_cases: list[EvalCase] = Field(..., description="テストケースのリスト")
 
-def remove_additional_properties(schema: dict) -> dict:
-    """JSONスキーマから Gemini Developer API で未サポートの 'additionalProperties' を再帰的に削除します。"""
-    if not isinstance(schema, dict):
-        return schema
-    schema.pop("additionalProperties", None)
-    for key, value in schema.items():
-        if isinstance(value, dict):
-            remove_additional_properties(value)
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    remove_additional_properties(item)
-    return schema
+
 
 def generate_test_cases(skill_name: str):
     skill_dir = os.path.join("/workspace/src/skills", skill_name)

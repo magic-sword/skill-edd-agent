@@ -14,6 +14,7 @@ sys.path.append(WORKSPACE_ROOT)
 from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
+from edd_agent_tools.utils.schema import remove_additional_properties
 
 class StaticEvalResult(BaseModel):
     specificity: int = Field(..., description="トリガー条件の具体性を1-5の整数で評価したもの")
@@ -26,19 +27,7 @@ class TriggerTestCases(BaseModel):
     positive_prompts: list[PromptItem] = Field(..., description="このスキルがトリガーされるべき陽性プロンプト（10件）")
     negative_prompts: list[PromptItem] = Field(..., description="このスキルとは関係のない一般的な雑談などの陰性プロンプト（10件）")
 
-def remove_additional_properties(schema: dict) -> dict:
-    """JSONスキーマから Gemini Developer API で未サポートの 'additionalProperties' を再帰的に削除します。"""
-    if not isinstance(schema, dict):
-        return schema
-    schema.pop("additionalProperties", None)
-    for key, value in schema.items():
-        if isinstance(value, dict):
-            remove_additional_properties(value)
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    remove_additional_properties(item)
-    return schema
+
 
 # パスの定義
 SKILLS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
