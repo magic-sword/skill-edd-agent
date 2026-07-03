@@ -11,8 +11,6 @@ from edd_agent_tools.utils.schema import remove_additional_properties
 
 from edd_agent_tools.registry import SkillRegistry
 
-# インポートキャッシュの不整合対策
-sys.modules.pop('google', None)
 
 class TestParameterCase(BaseModel):
     user_instruction: str = Field(

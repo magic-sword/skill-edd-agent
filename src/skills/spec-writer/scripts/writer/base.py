@@ -4,8 +4,6 @@ import json
 from abc import ABC, abstractmethod
 from google.adk.tools import ToolContext
 
-# google 名前空間のインポート不整合・デッドロック対策
-sys.modules.pop('google', None)
 from google import genai
 from google.genai import types
 

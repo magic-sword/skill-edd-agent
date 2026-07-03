@@ -2,7 +2,7 @@ import os
 import sys
 import json
 from google.adk.tools import ToolContext
-from writer.factory import SpecWriterFactory
+from .writer.factory import SpecWriterFactory
 
 def process_message(tool_context: ToolContext):
     """
