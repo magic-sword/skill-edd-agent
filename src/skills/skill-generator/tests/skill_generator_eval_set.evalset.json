@@ -1,0 +1,172 @@
+{
+  "eval_set_id": "skill_generator_eval_set",
+  "name": "skill-generator evaluation set",
+  "description": "skill-generator skill unit tests",
+  "eval_cases": [
+    {
+      "eval_id": "skill_generator_happy_path_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「ユーザーからのメッセージを大文字に変換するスキル」を生成し、その結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "SKILL GENERATED SUCCESSFULLY"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_generator_happy_path_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「レシピに従って料理をサポートするスキル」を生成し、その結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "SKILL GENERATED SUCCESSFULLY"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_generator_happy_path_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「指定された都市の現在の天気予報を提供するスキル」を生成し、その結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "SKILL GENERATED SUCCESSFULLY"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_generator_happy_path_004",
+      "conversation": [
+        {
+          "invocation_id": "inv_004",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「基本的な算術演算（加算、減算、乗算、除算）を実行するスキル」を生成し、その結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "SKILL GENERATED SUCCESSFULLY"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_generator_happy_path_005",
+      "conversation": [
+        {
+          "invocation_id": "inv_005",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「ユーザーのTo-Doリストを管理（追加、削除、表示）するスキル」を生成し、その結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "SKILL GENERATED SUCCESSFULLY"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}

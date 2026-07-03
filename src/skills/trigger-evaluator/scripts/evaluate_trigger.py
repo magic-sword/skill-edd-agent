@@ -16,6 +16,7 @@ from google.genai import types
 from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
 from edd_agent_tools.testing import SkillCommandLineRunner
+from edd_agent_tools.registry import SkillRegistry
 
 class StaticEvalResult(BaseModel):
     specificity: int = Field(..., description="トリガー条件の具体性を1-5の整数で評価したもの")
@@ -30,8 +31,17 @@ class TriggerTestCases(BaseModel):
 
 
 
-# パスの定義
-SKILLS_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
+# 探索パス決定用ヘルパー
+def resolve_skill_dir(skill_name: str) -> str:
+    """レジストリの探索パスに基づいてスキルの実体ディレクトリパスを特定します。"""
+    registry = SkillRegistry()
+    registry.load()
+    search_paths = registry.data.get("search_paths", ["src/skills"])
+    for path_entry in search_paths:
+        possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
+        if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
+            return possible_dir
+    raise FileNotFoundError(f"Error: Skill or Agent '{skill_name}' not found in paths: {search_paths}")
 
 # Gemini API の初期化
 api_key = os.environ.get("GEMINI_API_KEY")
@@ -195,7 +205,8 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
         }
 
         # 保存先は対象スキルの tests/ ディレクトリ
-        skill_tests_dir = os.path.join(SKILLS_DIR, skill_name, "tests")
+        skill_dir = resolve_skill_dir(skill_name)
+        skill_tests_dir = os.path.join(skill_dir, "tests")
         os.makedirs(skill_tests_dir, exist_ok=True)
         
         eval_set_filepath = os.path.join(skill_tests_dir, f"{skill_name}_trigger_eval.evalset.json")
@@ -215,7 +226,8 @@ def save_report(skill_name, static_eval_result, generated_cases_file):
     """詳細レポートを保存します。"""
     now_str = datetime.now().isoformat() + "Z"
     
-    report_filepath = os.path.join(SKILLS_DIR, skill_name, "tests", "trigger_eval_report.json")
+    skill_dir = resolve_skill_dir(skill_name)
+    report_filepath = os.path.join(skill_dir, "tests", "trigger_eval_report.json")
     report_data = {
         "skill_name": skill_name,
         "static_evaluation": static_eval_result,
@@ -232,7 +244,8 @@ def execute_trigger_logic(tool_context: ToolContext):
     if not skill_name:
         raise ValueError("エラー: skill_name がセッション状態に設定されていません。")
         
-    skill_md_filepath = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
+    skill_dir = resolve_skill_dir(skill_name)
+    skill_md_filepath = os.path.join(skill_dir, "SKILL.md")
     
     print(f"スキル '{skill_name}' のトリガーアセット生成を開始します。\n")
 

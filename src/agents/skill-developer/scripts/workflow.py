@@ -7,7 +7,7 @@ ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠し、
 from google.adk import Workflow
 from google.adk import Agent
 from google.adk.tools import FunctionTool
-from edd_agent_tools.testing import SkillRegistry
+from edd_agent_tools.registry import SkillRegistry
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 

@@ -66,7 +66,7 @@ LLMが実装するビジネスロジック内では、以下の規則に従っ�
 
 ### 基本的な構成例
 ```python
-from edd_agent_tools.testing import SkillRegistry
+from edd_agent_tools.registry import SkillRegistry
 
 # レジストリの初期化 (デフォルトで /workspace/src/skills_registry.json を対象とします)
 registry = SkillRegistry()

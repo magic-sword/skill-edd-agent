@@ -7,7 +7,8 @@ import os
 import sys
 import json
 from google.adk.tools import ToolContext
-from edd_agent_tools.testing import SkillCommandLineRunner, SkillRegistry
+from edd_agent_tools.testing import SkillCommandLineRunner
+from edd_agent_tools.registry import SkillRegistry
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

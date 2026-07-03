@@ -1,0 +1,205 @@
+{
+  "eval_set_id": "skill_developer_eval_set",
+  "name": "skill-developer evaluation set",
+  "description": "skill-developer skill unit tests",
+  "eval_cases": [
+    {
+      "eval_id": "skill_developer_happy_path_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「my-first-skill」というスキル名で、「ユーザーからのメッセージを大文字に変換するスキル」を開発し、結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "スキル 'my-first-skill' が正常に開発され、Tier 1 に登録されました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_developer_happy_path_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「greeting-skill」というスキル名で、「ユーザーに「こんにちは！」と挨拶するスキル」を開発し、結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "スキル 'greeting-skill' が正常に開発され、Tier 1 に登録されました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_developer_happy_path_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「math-calculator」というスキル名で、「2つの数値を受け取り、その合計を返すスキル」を開発し、結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "スキル 'math-calculator' が正常に開発され、Tier 1 に登録されました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_developer_happy_path_004",
+      "conversation": [
+        {
+          "invocation_id": "inv_004",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「json-formatter」というスキル名で、「与えられたテキストをJSON形式に整形するスキル」を開発し、結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "スキル 'json-formatter' が正常に開発され、Tier 1 に登録されました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_developer_happy_path_005",
+      "conversation": [
+        {
+          "invocation_id": "inv_005",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「weather-reporter」というスキル名で、「指定された都市の現在の天気を報告するスキル」を開発し、結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "スキル 'weather-reporter' が正常に開発され、Tier 1 に登録されました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_developer_happy_path_006",
+      "conversation": [
+        {
+          "invocation_id": "inv_006",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「todo-list-manager」というスキル名で、「ユーザーのToDoリストを管理（追加、削除、表示）するスキル」を開発し、結果のみを出力してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "スキル 'todo-list-manager' が正常に開発され、Tier 1 に登録されました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}

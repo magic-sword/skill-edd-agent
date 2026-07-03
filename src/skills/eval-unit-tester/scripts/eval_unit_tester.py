@@ -8,6 +8,7 @@ from google.adk.tools import ToolContext
 from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
 from edd_agent_tools.testing import SkillCommandLineRunner
+from edd_agent_tools.registry import SkillRegistry
 
 # インポートキャッシュの不整合対策
 sys.modules.pop('google', None)
@@ -48,8 +49,20 @@ class EvalSet(BaseModel):
 
 
 
+def resolve_skill_dir(skill_name: str) -> str:
+    """レジストリの探索パスに基づいてスキルの実体ディレクトリパスを特定します。"""
+    registry = SkillRegistry()
+    registry.load()
+    search_paths = registry.data.get("search_paths", ["src/skills"])
+    for path_entry in search_paths:
+        possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
+        if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
+            return possible_dir
+    raise FileNotFoundError(f"Error: Skill or Agent '{skill_name}' not found in paths: {search_paths}")
+
+
 def generate_test_cases(skill_name: str):
-    skill_dir = os.path.join("/workspace/src/skills", skill_name)
+    skill_dir = resolve_skill_dir(skill_name)
     skill_md_path = os.path.join(skill_dir, "SKILL.md")
     
     if not os.path.exists(skill_md_path):
@@ -220,7 +233,7 @@ def execute_unit_tester_logic(tool_context: ToolContext):
     generate_test_cases(skill_name)
     
     # 結果パスをセッション状態に保存
-    skill_dir = os.path.join("/workspace/src/skills", skill_name)
+    skill_dir = resolve_skill_dir(skill_name)
     eval_set_filename = f"{skill_name.replace('-', '_')}_eval_set.evalset.json"
     eval_set_path = os.path.join(skill_dir, "tests", eval_set_filename)
     
