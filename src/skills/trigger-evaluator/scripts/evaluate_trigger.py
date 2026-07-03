@@ -15,19 +15,24 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
-from edd_agent_tools.testing import SkillCommandLineRunner
+from edd_agent_tools.testing import SkillCommand, CommandLineRunner
 from edd_agent_tools.registry import SkillRegistry
 
 class StaticEvalResult(BaseModel):
     specificity: int = Field(..., description="トリガー条件の具体性を1-5の整数で評価したもの")
     clarity: int = Field(..., description="トリガー条件の明確性を1-5の整数で評価したもの")
 
-class PromptItem(BaseModel):
-    text: str = Field(..., description="プロンプトのテキスト")
-
 class TriggerTestCases(BaseModel):
-    positive_prompts: list[PromptItem] = Field(..., description="このスキルがトリガーされるべき陽性プロンプト（10件）")
-    negative_prompts: list[PromptItem] = Field(..., description="このスキルとは関係のない一般的な雑談などの陰性プロンプト（10件）")
+    positive_prompts: list[str] = Field(
+        ...,
+        description="このスキルがトリガーされるべき陽性プロンプト（10件）",
+        examples=[["このスキルを起動して", "対象スキルを実行して"]]
+    )
+    negative_prompts: list[str] = Field(
+        ...,
+        description="このスキルとは関係のない一般的な雑談などの陰性プロンプト（10件）",
+        examples=[["こんにちは", "今日の天気は？"]]
+    )
 
 
 
@@ -130,8 +135,8 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
         generated_cases = json.loads(response.text)
 
         eval_cases = []
-        for i, p_prompt in enumerate(generated_cases.get("positive_prompts", [])):
-            text = p_prompt.get("text", "")
+        for i, item in enumerate(generated_cases.get("positive_prompts", [])):
+            text = item.get("text", "") if isinstance(item, dict) else str(item)
             eval_cases.append({
                 "eval_id": f"positive_{i+1}",
                 "conversation": [
@@ -157,8 +162,8 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
                 "session_input": {"app_name": "evaluation_driven_development_agent", "user_id": "user"}
             })
             
-        for i, n_prompt in enumerate(generated_cases.get("negative_prompts", [])):
-            text = n_prompt.get("text", "")
+        for i, item in enumerate(generated_cases.get("negative_prompts", [])):
+            text = item.get("text", "") if isinstance(item, dict) else str(item)
             eval_cases.append({
                 "eval_id": f"negative_{i+1}",
                 "conversation": [
@@ -195,7 +200,7 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
         # 保存先は対象スキルの tests/ ディレクトリ
         registry = SkillRegistry()
         registry.load()
-        skill_dir = registry.resolve_skill_dir(skill_name)
+        skill_dir = registry.get_skill_dir(skill_name)
         skill_tests_dir = os.path.join(skill_dir, "tests")
         os.makedirs(skill_tests_dir, exist_ok=True)
         
@@ -218,7 +223,7 @@ def save_report(skill_name, static_eval_result, generated_cases_file):
     
     registry = SkillRegistry()
     registry.load()
-    skill_dir = registry.resolve_skill_dir(skill_name)
+    skill_dir = registry.get_skill_dir(skill_name)
     report_filepath = os.path.join(skill_dir, "tests", "trigger_eval_report.json")
     report_data = {
         "skill_name": skill_name,
@@ -238,7 +243,7 @@ def execute_trigger_logic(tool_context: ToolContext):
         
     registry = SkillRegistry()
     registry.load()
-    skill_dir = registry.resolve_skill_dir(skill_name)
+    skill_dir = registry.get_skill_dir(skill_name)
     skill_md_filepath = os.path.join(skill_dir, "SKILL.md")
     
     print(f"スキル '{skill_name}' のトリガーアセット生成を開始します。\n")

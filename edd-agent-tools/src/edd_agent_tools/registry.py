@@ -209,3 +209,4 @@ class SkillRegistry:
             if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
                 return possible_dir
         return None
+

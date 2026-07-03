@@ -15,12 +15,36 @@ from edd_agent_tools.registry import SkillRegistry
 sys.modules.pop('google', None)
 
 class TestParameterCase(BaseModel):
-    user_instruction: str = Field(..., description="ユーザーからの自然言語での指示（例: 『hello worldを大文字にしてください』など）")
-    input_parameters: dict | str = Field(..., description="ツールに渡す引数（args）の辞書、またはそのJSON文字列")
-    expected_output: str = Field(..., description="ツールまたはエージェントからの期待される最終的なテキスト応答（例: 'HELLO WORLD'）")
+    user_instruction: str = Field(
+        ...,
+        description="ユーザーからの自然言語での指示（例: 『hello worldを大文字にしてください』など）",
+        examples=["「hello world」を大文字に変換し、結果のテキストのみを出力してください。"]
+    )
+    input_parameters: dict = Field(
+        ...,
+        description="ツールに渡す引数（args）の辞書。キー名は仕様書（SKILL.md）の引数に従ってください。",
+        examples=[{"text": "hello world"}]
+    )
+    expected_output: str = Field(
+        ...,
+        description="ツールまたはエージェントからの期待される最終的なテキスト応答（例: 'HELLO WORLD'）",
+        examples=["HELLO WORLD"]
+    )
 
 class TestParameterSet(BaseModel):
-    cases: list[TestParameterCase] = Field(..., description="生成されたテストパラメータケースのリスト")
+    cases: list[TestParameterCase] = Field(
+        ...,
+        description="生成されたテストパラメータケースのリスト",
+        examples=[
+            [
+                {
+                    "user_instruction": "「hello world」を大文字に変換し、結果のテキストのみを出力してください。",
+                    "input_parameters": {"text": "hello world"},
+                    "expected_output": "HELLO WORLD"
+                }
+            ]
+        ]
+    )
 
 
 
@@ -44,7 +68,7 @@ def get_skill_main_function(skill_dir: str) -> str:
 def generate_test_cases(skill_name: str):
     registry = SkillRegistry()
     registry.load()
-    skill_dir = registry.resolve_skill_dir(skill_name)
+    skill_dir = registry.get_skill_dir(skill_name)
     skill_md_path = os.path.join(skill_dir, "SKILL.md")
     
     if not os.path.exists(skill_md_path):
@@ -60,22 +84,16 @@ def generate_test_cases(skill_name: str):
         raise ValueError("Error: GEMINI_API_KEY environment variable is not set.")
         
     client = genai.Client(api_key=api_key)
-    
     # Load templates and prompt assets
     script_dir = os.path.dirname(os.path.abspath(__file__))
     assets_dir = os.path.join(script_dir, "..", "assets")
     
     prompt_tmpl_path = os.path.join(assets_dir, "test_case_gen_prompt.txt")
-    json_tmpl_path = os.path.join(assets_dir, "evalset_template.json")
-    
-    if not os.path.exists(prompt_tmpl_path) or not os.path.exists(json_tmpl_path):
-        raise FileNotFoundError("Error: Template files not found in assets.")
+    if not os.path.exists(prompt_tmpl_path):
+        raise FileNotFoundError("Error: Template file not found in assets.")
         
     with open(prompt_tmpl_path, "r", encoding="utf-8") as f:
         prompt_template = f.read()
-        
-    with open(json_tmpl_path, "r", encoding="utf-8") as f:
-        json_template = f.read()
         
     # 決定論的な仕様スキャン
     is_value_only = "Output Mode: VALUE_ONLY" in skill_content
@@ -107,10 +125,9 @@ def generate_test_cases(skill_name: str):
     prompt = prompt_template.replace(
         "{skill_content}", skill_content
     ).replace(
-        "{json_template}", json_template
-    ).replace(
         "{instruction_override}", instruction_override
     )
+
 
     print("Generating unit test cases using Gemini API...")
     
@@ -146,14 +163,11 @@ def generate_test_cases(skill_name: str):
     for i, case in enumerate(param_set.cases):
         eval_id = f"{skill_name_underscore}_happy_path_{i+1:03d}"
         
-        # args の中のエスケープ文字列等も、ここでオブジェクトであることを保証
+        # args の型が辞書であることを保証
         input_args = case.input_parameters
-        if isinstance(input_args, str):
-            try:
-                input_args = json.loads(input_args)
-            except Exception:
-                input_args = {"text": input_args}
-        
+        if not isinstance(input_args, dict):
+            input_args = {"text": str(input_args)}
+
         # 1ターン分の対話ターンをビルド
         conversation_turn = {
             "invocation_id": f"inv_{i+1:03d}",
@@ -250,7 +264,7 @@ def execute_unit_tester_logic(tool_context: ToolContext):
     # 結果パスをセッション状態に保存
     registry = SkillRegistry()
     registry.load()
-    skill_dir = registry.resolve_skill_dir(skill_name)
+    skill_dir = registry.get_skill_dir(skill_name)
     eval_set_filename = f"{skill_name.replace('-', '_')}_eval_set.evalset.json"
     eval_set_path = os.path.join(skill_dir, "tests", eval_set_filename)
     

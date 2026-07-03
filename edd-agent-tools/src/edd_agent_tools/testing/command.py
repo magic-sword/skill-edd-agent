@@ -28,7 +28,7 @@ class SkillCommand(Command):
         self.registry.load()
 
     def build_cmd_args(self) -> list[str]:
-        skill_dir = self.registry.resolve_skill_dir(self.skill_name)
+        skill_dir = self.registry.get_skill_dir(self.skill_name)
         main_py_path = os.path.join(skill_dir, "scripts", "main.py")
         if not os.path.exists(main_py_path):
             main_py_path = os.path.join(skill_dir, "main.py")
