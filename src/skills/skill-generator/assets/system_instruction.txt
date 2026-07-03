@@ -23,5 +23,9 @@
 3. `config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=...)` を用いて、定義した Pydantic スキーマで Gemini 構造化出力を実行してください。
 4. プロンプト指示自体は、外部ファイル（`assets/prompt.txt` など）に簡潔に要件のみを定義し、スクリプト実行時に動的にロードして使用してください。
 
+【相対インポートの推進とパッケージ構造（重要）】
+1. ビジネスロジックモジュールやエントリーポイント（`main.py`）から同じディレクトリ（`scripts/` など）のファイルをインポートする際は、`sys.path.insert(0, ...)` などの動的探索パス追加ハックを絶対に使用せず、必ず「相対インポート」（例: `from .xxxx import process_message`）を使用してください。
+2. 相対インポートを正常に機能させるため、`scripts/` フォルダの直下には空の `__init__.py` (空のコメント `#` のみを含む) を必ず配置するようにしてください。
+
 
 

@@ -36,17 +36,15 @@ def process_message(tool_context: ToolContext):
 
 **CLIエントリーポイント側 (`scripts/main.py`)**:
 ```python
-import os
 import sys
-from edd_agent_tools.testing.cli import SkillCommandLineRunner
+from edd_agent_tools.testing import SkillCommand, CommandLineRunner
 
-# 同一ディレクトリのビジネスロジックをインポート
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from my_skill import process_message
+# 動的パス操作（sys.path.insert 等）は行わず、相対インポートを使用
+from .my_skill import process_message
 
 if __name__ == "__main__":
-    runner = SkillCommandLineRunner(description="スキルの説明")
-    runner.add_argument("--user_message", type=str, help="ユーザーへのメッセージ")
+    cmd = SkillCommand.from_argv("my-skill", sys.argv[1:])
+    runner = CommandLineRunner(cmd)
     runner.run(process_message)
 ```
 
@@ -54,7 +52,7 @@ if __name__ == "__main__":
 
 ## 2. 状態管理（`tool_context.state`）のルール
 
-`SkillCommandLineRunner` は、CLI引数（例: `--param xxx`）および JSON 形式の入力（例: `--input_json '{"param": "xxx"}'`）を**自動的にプレフィックスなしで `tool_context.state` にマージ**します。
+`CommandLineRunner` と `SkillCommand` の組み合わせは、CLI引数（例: `--param xxx`）および JSON 形式の入力（例: `--input_json '{"param": "xxx"}'`）を**自動的にプレフィックスなしで `tool_context.state` にマージ**します。
 
 LLMが実装するビジネスロジック内では、以下の規則に従って状態の読み書きを行ってください。
 
@@ -66,14 +64,14 @@ LLMが実装するビジネスロジック内では、以下の規則に従っ�
 ### 出力値の設定
 処理結果やエラー情報などは、すべて `tool_context.state["キー名"] = 値` として設定してください。
 - **良例**: `tool_context.state["status"] = "success"`
-- **説明**: 設定された状態は、プログラム終了時に `SkillCommandLineRunner` によって自動的に標準出力 (stdout) へJSONとして書き出され、`--output_json` が指定されている場合はファイルへも書き出されます。自前で JSON ファイルへの書き出し処理を実装する必要はありません。
+- **説明**: 設定された状態は、プログラム終了時に `CommandLineRunner` によって自動的に標準出力 (stdout) へJSONとして書き出され、`--output_json` が指定されている場合はファイルへも書き出されます。自前で JSON ファイルへの書き出し処理を実装する必要はありません。
 
 ---
 
 ## 3. エラー処理と終了コード
 
 ビジネスロジック内で異常を検知した場合は、`RuntimeError` や `ValueError` などの例外（Exception）をスローしてください。
-- `SkillCommandLineRunner` が例外をキャッチし、エラー内容を出力した上で、自動的に終了コード `1` でプロセスを終了させます。
+- `CommandLineRunner` が例外をキャッチし、エラー内容を出力した上で、自動的に終了コード `1` でプロセスを終了させます。
 - 自前で `sys.exit(1)` を呼ぶ必要はありません。
 
 ---
