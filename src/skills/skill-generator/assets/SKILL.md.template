@@ -7,6 +7,12 @@ description: {skill_description}
 
 {skill_description}
 
+## 設計基準（Pydanticの活用とプロンプト簡素化）
+
+本スキルで LLM (Gemini API) 呼び出しを行う場合は、以下の ADK 設計基準に準拠してください：
+1. **Pydantic による構造化出力 (response_schema)**: 出力データの形式を Pydantic モデル（`BaseModel`）で定義し、Gemini API の `response_schema` に設定して構造化出力を得てください。Few-Shot の例は Pydantic `Field` の `examples` パラメータとして定義します。
+2. **外部プロンプトファイルの利用**: プロンプト指示そのものは `assets/` ディレクトリ配下にテキストファイル（`prompt.txt` 等）として分離し、実行時に動的にロードして使用してください。プロンプトには出力構造（JSONフォーマット）に関する指示を含めず、簡潔に記述します。
+
 ## トリガー条件
 
 - ユーザーがこのスキルの実行を求めた場合。

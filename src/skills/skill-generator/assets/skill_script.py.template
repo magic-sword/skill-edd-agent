@@ -1,22 +1,26 @@
-import json
-import argparse
-import sys
 import os
+import sys
 from google.adk.tools import ToolContext
-from edd_agent_tools.testing.cli import SkillCommandLineRunner
 
 # =============================================================================
-# [ベストプラクティス指示] 
-# もしビジネスロジック内で Gemini API 等の LLM を呼び出して JSON を出力させる場合は、
-# プロンプト内でのJSON構造の直書きやテキストパースは厳禁です。
-# 必ず以下の Pydantic スキーマ定義と response_schema (構造化出力) のパターンを模倣し、
-# プロンプト指示自体は外部アセット (assets/[プロンプト名].txt) として分離してロードしてください。
+# 【設計思想：Pydanticを活用した構造化出力とプロンプトの簡素化】
+# スキルのビジネスロジック内で Gemini API 等の LLM を呼び出して JSON や特定の
+# 構造を出力させる場合、プロンプト内でのJSON構造の直書き（テンプレート記述）や
+# 複雑なテキストパース処理は厳禁です。
+#
+# 必ず以下の Pydantic スキーマ定義と response_schema (構造化出力) のパターンを採用し、
+# プロンプト自体は外部アセット (assets/[プロンプト名].txt) にシンプルかつ簡潔に
+# 記述してロードする設計にしてください。
 # -----------------------------------------------------------------------------
 # from pydantic import BaseModel, Field
 # from google.genai import types
 #
 # class LLMResponseSchema(BaseModel):
-#     result_value: str = Field(..., description="処理結果の値")
+#     result_value: str = Field(
+#         ..., 
+#         description="処理結果の値",
+#         examples=["期待される出力の例"] # Few-Shotの例はモデルのFieldに記述
+#     )
 #
 # # プロンプトアセットのロード
 # script_dir = os.path.dirname(os.path.abspath(__file__))
