@@ -9,7 +9,7 @@
 
 【タスク】
 1. 配置済みの `assets/design.json` から `parameters` の設計を読み込みます。
-2. 配置済みのランナースクリプト `scripts/run_{workflow_module_name}.py` (例: `scripts/run_test_workflow.py` 等) を読み込みます。
+2. 配置済みのスクリプト `scripts/main.py` を読み込みます。
 3. `__main__` ブロック内にある `runner = SkillCommandLineRunner(...)` の後に、必要なすべてのパラメータに対応する `runner.add_argument(...)` の定義を追加してください。
 
 【実装時の詳細指示】

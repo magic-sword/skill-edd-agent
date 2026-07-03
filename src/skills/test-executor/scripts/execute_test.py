@@ -171,7 +171,7 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
         raise ValueError("セッション状態に 'skill_name' または 'eval_set_path' / 'trig_eval_set_path' が設定されていません。")
         
     python_bin = sys.executable or "python3"
-    script_path = os.path.abspath(__file__)
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
     output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/{step_name}_out.json"
     
     cmd = [
@@ -202,12 +202,3 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
         raise RuntimeError(f"テストが不合格またはエラーが発生しました (exit code {result.returncode})。")
         
     return f"Success: Tests passed with accuracy >= {threshold_accuracy}."
-
-if __name__ == "__main__":
-    runner = SkillCommandLineRunner(description="ADK evalテストを実行し、合格閾値に基づいて判定を行います。")
-    runner.add_argument("--skill_name", type=str, help="テスト対象のスキル名")
-    runner.add_argument("--eval_set_path", type=str, help="テストケース定義ファイルのパス")
-    runner.add_argument("--threshold_accuracy", type=float, default=1.0, help="合格に必要な精度の閾値（0.0〜1.0）")
-    runner.add_argument("--timeout_seconds", type=int, default=180, help="テスト実行のタイムアウト制限（秒）")
-    runner.add_argument("--eval_mode", type=int, choices=[0, 1], default=1, help="ADK_EVAL_MODE の値 (1: 単体評価用, 0: 通常/トリガー評価用)")
-    runner.run(execute_test_logic)

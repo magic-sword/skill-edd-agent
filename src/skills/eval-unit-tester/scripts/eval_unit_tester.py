@@ -245,8 +245,3 @@ def generate_unit_tests(tool_context: ToolContext) -> str:
     """
     execute_unit_tester_logic(tool_context)
     return f"Success: Unit tests generated at {tool_context.state.get('eval_set_path')}"
-
-if __name__ == "__main__":
-    runner = SkillCommandLineRunner(description="Unit Test Case Generator")
-    runner.add_argument("--skill_name", type=str, required=True)
-    runner.run(execute_unit_tester_logic)

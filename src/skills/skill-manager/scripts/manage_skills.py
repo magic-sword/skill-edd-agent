@@ -109,11 +109,3 @@ def set_skill_tier(command: str, tier: int, tool_context: ToolContext) -> str:
     tool_context.state["reg_out_json_path"] = output_json_path
     
     return f"Success: Set tier of '{skill_name}' to {tier}."
-
-if __name__ == "__main__":
-    runner = SkillCommandLineRunner(description="Skill Tier Registry Manager CLI")
-    runner.add_argument("--command", choices=["register", "get-tier", "set-tier", "list", "update-meta"], required=True, help="Command to execute")
-    runner.add_argument("--skill_name", help="Name of the skill")
-    runner.add_argument("--tier", type=int, choices=[0, 1, 2, 3], help="Tier value (0, 1, 2, 3)")
-    runner.add_argument("--registry_path", help="Path to skills_registry.json file")
-    runner.run(manage_skills_logic)

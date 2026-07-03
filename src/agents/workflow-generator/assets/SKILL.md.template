@@ -20,7 +20,7 @@ dependencies:
 ## 実行方法
 
 ```bash
-python3 src/agents/{workflow_name}/scripts/run_{workflow_module_name}.py \
+python3 src/agents/{workflow_name}/scripts/main.py \
   --param1 <値> ...
 ```
 

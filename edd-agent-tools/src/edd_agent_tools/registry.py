@@ -36,39 +36,6 @@ class SkillRegistry:
         except Exception as e:
             raise RuntimeError(f"エラー: レジストリの保存に失敗しました: {e}")
 
-    def calculate_skill_hashes(self, skill_name: str) -> dict[str, str]:
-        """指定されたスキルの Python ファイルや SKILL.md のハッシュ値を計算します。"""
-        if self.data is None:
-            self.load()
-            
-        search_paths = self.data.get("search_paths", ["src/skills"])
-        skill_dir = None
-        for path_entry in search_paths:
-            possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
-            if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
-                skill_dir = possible_dir
-                break
-                
-        hashes = {}
-        if not skill_dir:
-            return hashes
-            
-        for root, _, files in os.walk(skill_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                rel_path = os.path.relpath(file_path, skill_dir)
-                if "__pycache__" in rel_path or rel_path.endswith(".pyc") or ".git" in rel_path:
-                    continue
-                hasher = hashlib.sha256()
-                try:
-                    with open(file_path, "rb") as f:
-                        for chunk in iter(lambda: f.read(4096), b""):
-                            hasher.update(chunk)
-                    hashes[rel_path] = hasher.hexdigest()
-                except Exception:
-                    pass
-        return hashes
-
     def _get_category_and_info(self, name: str) -> tuple[str, dict] | tuple[None, None]:
         """指定された名前の登録カテゴリ(skills または agents)とメタデータを取得します。"""
         if self.data is None:
@@ -101,11 +68,9 @@ class SkillRegistry:
             print(f"{cat[:-1].capitalize()} '{skill_name}' already registered.")
             return
             
-        hashes = self.calculate_skill_hashes(skill_name)
         skills_info[skill_name] = {
             "tier": 1,
-            "last_tested": None,
-            "file_hashes": hashes
+            "last_tested": None
         }
         self.save()
         print(f"Registered {cat[:-1]} '{skill_name}' at Tier 1.")
@@ -125,12 +90,15 @@ class SkillRegistry:
         skills_info = self.data.setdefault(cat, {})
         now_str = datetime.datetime.now().isoformat() + "Z"
         
-        hashes = self.calculate_skill_hashes(skill_name)
+        existing_info = info if info else {}
         skills_info[skill_name] = {
+            **existing_info,
             "tier": tier,
-            "last_tested": now_str,
-            "file_hashes": hashes
+            "last_tested": now_str
         }
+        if "file_hashes" in skills_info[skill_name]:
+            del skills_info[skill_name]["file_hashes"]
+            
         self.save()
         print(f"Set tier of '{skill_name}' to {tier} ({cat}).")
 
@@ -147,7 +115,7 @@ class SkillRegistry:
                 print(f"{cat[:-1].capitalize():<10} | {name:<25} | {info['tier']:<5} | {last_tested:<25}")
 
     def update_meta(self, skill_name: str):
-        """スキルまたはエージェントのファイルハッシュメタデータを最新の状態に更新します。"""
+        """スキルまたはエージェントのメタデータを最新の状態に更新します（ハッシュ廃止に伴い、何もしません）。"""
         if self.data is None:
             self.load()
             
@@ -156,10 +124,11 @@ class SkillRegistry:
             self.register_skill(skill_name)
             return
             
-        hashes = self.calculate_skill_hashes(skill_name)
-        self.data[cat][skill_name]["file_hashes"] = hashes
-        self.save()
-        print(f"Updated file hashes for {cat[:-1]} '{skill_name}'.")
+        if "file_hashes" in info:
+            del info["file_hashes"]
+            self.save()
+            
+        print(f"Updated metadata for {cat[:-1]} '{skill_name}' (hashes removed).")
 
     def load_tool(self, skill_name: str, function_name: str):
         """指定されたスキル/エージェントと関数名から Python スクリプトを動的ロードし、関数オブジェクトを返します。"""
@@ -172,18 +141,8 @@ class SkillRegistry:
         if not cat:
             raise ValueError(f"エラー: スキル/エージェント '{skill_name}' がレジストリに登録されていません。")
             
-        file_hashes = skill_meta.get("file_hashes", {})
-        
-        script_rel_path = None
-        for file_path in file_hashes.keys():
-            if file_path.startswith("scripts/") and file_path.endswith(".py"):
-                script_rel_path = file_path
-                break
-                
-        if not script_rel_path:
-            raise FileNotFoundError(
-                f"エラー: '{skill_name}' のメタデータ内に実行可能な Python スクリプト (scripts/*.py) が登録されていません。"
-            )
+        # 統一ルール: entry_point は常に scripts/main.py となる
+        script_rel_path = "scripts/main.py"
             
         # search_paths からディレクトリを動的特定
         skill_dir = None

@@ -26,7 +26,7 @@ async def run_workflow_developer_agent(output_dir: str, workflow_name: str, prom
     # パス情報の解析
     output_dir = os.path.abspath(output_dir)
     workflow_module_name = workflow_name.replace("-", "_")
-    runner_name = f"run_{workflow_module_name}.py"
+    runner_name = "main.py"
     
     # テンプレートおよびプロンプトアセットの読み込み
     generator_dir = os.path.dirname(os.path.abspath(__file__))
@@ -52,7 +52,7 @@ async def run_workflow_developer_agent(output_dir: str, workflow_name: str, prom
     designer_inst = load_instruction("designer_instruction.txt")
     loader_inst = load_instruction("loader_instruction.txt")
     dag_inst = load_instruction("dag_instruction.txt")
-    runner_inst = load_instruction("runner_instruction.txt")
+    runner_inst = load_instruction("main_instruction.txt")
     doc_inst = load_instruction("doc_instruction.txt")
     
     # 共通ライブラリのドキュメントリーダー
@@ -96,9 +96,9 @@ async def run_workflow_developer_agent(output_dir: str, workflow_name: str, prom
         ]
     )
     
-    runner_generator_agent = Agent(
+    main_generator_agent = Agent(
         model=model,
-        name='RunnerGeneratorAgent',
+        name='MainGeneratorAgent',
         instruction=runner_inst,
         tools=[
             ReadFileTool(local_env),
@@ -127,8 +127,8 @@ async def run_workflow_developer_agent(output_dir: str, workflow_name: str, prom
             ("START", designer_agent),
             (designer_agent, loader_agent),
             (loader_agent, dag_builder_agent),
-            (dag_builder_agent, runner_generator_agent),
-            (runner_generator_agent, doc_generator_agent)
+            (dag_builder_agent, main_generator_agent),
+            (main_generator_agent, doc_generator_agent)
         ]
     )
     
@@ -144,7 +144,7 @@ async def run_workflow_developer_agent(output_dir: str, workflow_name: str, prom
     # テンプレートファイルをコピー・展開
     skill_md_tmpl_path = os.path.join(assets_dir, "SKILL.md.template")
     workflow_tmpl_path = os.path.join(assets_dir, "workflow.py.template")
-    runner_tmpl_path = os.path.join(assets_dir, "runner.py.template")
+    runner_tmpl_path = os.path.join(assets_dir, "main.py.template")
     
     if os.path.exists(skill_md_tmpl_path):
         with open(skill_md_tmpl_path, "r", encoding="utf-8") as f:
@@ -243,69 +243,3 @@ async def generate_workflow_code(tool_context: ToolContext) -> str:
     
     return f"Success: Generated workflow '{workflow_name}' at '{output_dir}'."
 
-
-def main():
-    parser = argparse.ArgumentParser(description="ADKサブエージェントを用いたワークフローの自律的生成と検証")
-    parser.add_argument("--workflow_name", required=True, help="作成するワークフローエージェントの名前 (例: data-pipeline)")
-    parser.add_argument("--prompt", required=True, help="生成したいワークフローの要件や手順")
-    parser.add_argument("--output_dir", help="出力先 (例: src/agents/data-pipeline)")
-    parser.add_argument("--model", default="gemini-2.5-flash", help="使用するモデル名")
-    parser.add_argument("--max_attempts", type=int, default=15, help="サブエージェントの最大ターン数")
-    parser.add_argument("--output_json", help="Path to output JSON file")
-    
-    args = parser.parse_args()
-    
-    if not os.environ.get("GEMINI_API_KEY"):
-        print("エラー: 環境変数 GEMINI_API_KEY が設定されていません。", file=sys.stderr)
-        sys.exit(1)
-        
-    status = "success"
-    message = "Successfully generated workflow."
-    workflow_name = args.workflow_name
-    
-    if args.output_dir:
-        output_dir = os.path.abspath(args.output_dir)
-    else:
-        output_dir = os.path.abspath(f"/workspace/src/agents/{workflow_name}")
-    
-    print(f"=== ワークフロー開発タスクを開始します ===")
-    print(f"ワークフロー名: {workflow_name}")
-    print(f"出力先: {output_dir}")
-    print(f"要件: {args.prompt}")
-    
-    try:
-        asyncio.run(
-            run_workflow_developer_agent(
-                output_dir=output_dir,
-                workflow_name=workflow_name,
-                prompt=args.prompt,
-                model=args.model,
-                max_turns=args.max_attempts
-            )
-        )
-        print("\n=== ワークフロー開発タスクが完了しました ===")
-    except Exception as e:
-        status = "failed"
-        message = str(e)
-        print(f"Error: {e}", file=sys.stderr)
-        
-    if args.output_json:
-        try:
-            out_dir = os.path.dirname(os.path.abspath(args.output_json))
-            if out_dir:
-                os.makedirs(out_dir, exist_ok=True)
-            with open(args.output_json, "w", encoding="utf-8") as f:
-                json.dump({
-                    "status": status,
-                    "message": message,
-                    "output_dir": output_dir
-                }, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error writing output_json: {e}", file=sys.stderr)
-            
-    if status == "failed":
-        sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()

@@ -112,9 +112,3 @@ def develop_skill_logic(tool_context: ToolContext):
         "status": "success",
         "message": result
     })
-
-if __name__ == "__main__":
-    runner = SkillCommandLineRunner(description="Skill Developer Workflow Agent CLI")
-    runner.add_argument("--skill_name", required=True, help="Name of the skill to develop")
-    runner.add_argument("--prompt", required=True, help="Requirements prompt for the skill")
-    runner.run(develop_skill_logic)
