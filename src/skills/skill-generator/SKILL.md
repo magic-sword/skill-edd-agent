@@ -17,12 +17,12 @@ description: 指定されたディレクトリに、ユーザーの指示に応�
 ## 使用手順
 
 1. **スクリプトの実行**:
-   エージェントは `scripts/generate_skill.py` を実行するために `EnvironmentToolset`（`Execute`）ツールを呼び出します。
+   エージェントは `scripts/main.py` を実行するために `EnvironmentToolset`（`Execute`）ツールを呼び出します。
    引数として、新しいスキルの生成先ディレクトリを指定する `--output_dir` と、作成したいスキルの説明や要件を指定する `--prompt` を渡します。必要に応じて使用するモデルを指定する `--model` も指定可能です。
 
    コマンドの実行例:
    ```bash
-   python src/skills/skill-generator/scripts/generate_skill.py \
+   python src/skills/skill-generator/scripts/main.py \
      --output_dir src/skills/cooking-helper \
      --prompt "レシピに従って料理をサポートするスキル"
    ```
@@ -34,16 +34,21 @@ description: 指定されたディレクトリに、ユーザーの指示に応�
 ## AIエージェント向け使用方法 (FunctionTool)
 
 このスキルをエージェントにバインドして実行する際は、インプロセスの `generate_skill_code` 関数ツールを直接呼び出してください。
+テストの自動実行および動的ロードは、エントリーポイントである `scripts/main.py` を通じて行われます。
+
+### 入力パラメータ
+
+| パラメータ名 | 型 | 必須 | 説明 |
+|---|---|---|---|
+| skill_name | str | true | 作成するスキルの名前 (例: `my-skill`) |
+| prompt | str | true | 生成したいスキルの要件や手順 |
 
 ### 共有セッション状態 (Session State) のインターフェース
 * **入力値の読み込み**:
-  * `skill_name`: 作成するスキルの名前 (例: `my-skill`)
-  * `prompt`: 生成したいスキルの要件やプロンプト指示
+  * `skill_name`: `tool_context.state` から自動取得されます。
+  * `prompt`: `tool_context.state` から自動取得されます。
 * **出力値の書き込み**:
   * `skill_dir`: 生成されたスキルの絶対ディレクトリパスを格納します。
-
-### 呼び出し時のパラメータ
-* なし (パラメータはセッション状態から自動取得されます)
 
 ### 出力形式の要件 (Output Mode)
 - **Output Mode: VALUE_ONLY**

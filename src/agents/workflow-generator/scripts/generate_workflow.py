@@ -1,6 +1,6 @@
 """
 ADKのサブエージェント（WorkflowDeveloperAgent）を動的に起動し、
-指定された要件に基づくワークフロー（SKILL.md, scripts/workflow.py, scripts/run_****.py）のコード実装を行うスクリプト。
+指定された要件に基づくワークフロー（SKILL.md, scripts/workflow.py, scripts/main.py）のコード実装を行うスクリプト。
 """
 import argparse
 import asyncio

@@ -49,6 +49,4 @@ def process_message(tool_context: ToolContext):
     
     tool_context.state["result_message"] = result_message
 
-if __name__ == "__main__":
-    runner = SkillCommandLineRunner(description="Skill Script CLI Wrapper")
-    runner.run(process_message)
+

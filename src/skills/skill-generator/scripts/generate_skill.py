@@ -77,9 +77,11 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     # テンプレートファイルをコピー・展開
     generator_dir = os.path.dirname(os.path.abspath(__file__))
     templates_dir = os.path.join(generator_dir, "..", "assets")
+    script_module_name = skill_name.replace("-", "_")
     
     skill_md_tmpl_path = os.path.join(templates_dir, "SKILL.md.template")
     skill_script_tmpl_path = os.path.join(templates_dir, "skill_script.py.template")
+    main_tmpl_path = os.path.join(templates_dir, "main.py.template")
     
     if os.path.exists(skill_md_tmpl_path):
         with open(skill_md_tmpl_path, "r", encoding="utf-8") as f:
@@ -93,6 +95,13 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
             tmpl_content = f.read()
         with open(os.path.join(output_dir, "scripts", script_name), "w", encoding="utf-8") as f:
             f.write(tmpl_content)
+
+    if os.path.exists(main_tmpl_path):
+        with open(main_tmpl_path, "r", encoding="utf-8") as f:
+            tmpl_content = f.read()
+        content = tmpl_content.replace("{skill_name}", skill_name).replace("{script_module_name}", script_module_name)
+        with open(os.path.join(output_dir, "scripts", "main.py"), "w", encoding="utf-8") as f:
+            f.write(content)
     
     session_service = InMemorySessionService()
     artifact_service = InMemoryArtifactService()

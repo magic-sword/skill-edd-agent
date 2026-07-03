@@ -23,31 +23,31 @@ description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管�
 ## 使用手順
 
 1. **スキルの登録 / Tierの更新**:
-   エージェントまたは外部ワークフローは `scripts/manage_skills.py` を実行して、スキルのステータスを変更または取得します。
+   エージェントまたは外部ワークフローは `scripts/main.py` を実行して、スキルのステータスを変更または取得します。
 
    * **新規スキルの登録**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py --command register --skill_name <スキル名>
+     python src/skills/skill-manager/scripts/main.py --command register --skill_name <スキル名>
      ```
    
    * **Tierの変更 (昇格・降格)**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py --command set-tier --skill_name <スキル名> --tier <1|2|3>
+     python src/skills/skill-manager/scripts/main.py --command set-tier --skill_name <スキル名> --tier <1|2|3>
      ```
    
    * **現在のTierの取得**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py --command get-tier --skill_name <スキル名>
+     python src/skills/skill-manager/scripts/main.py --command get-tier --skill_name <スキル名>
      ```
    
    * **登録スキル一覧の表示**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py --command list
+     python src/skills/skill-manager/scripts/main.py --command list
      ```
 
-   * **ファイル変更の検知に伴うメタデータ（ハッシュ）更新**:
+   * **メタデータのクリーンアップ・更新**:
      ```bash
-     python src/skills/skill-manager/scripts/manage_skills.py --command update-meta --skill_name <スキル名>
+     python src/skills/skill-manager/scripts/main.py --command update-meta --skill_name <スキル名>
      ```
 
 2. **エージェントからの動的権限制御 (Python API)**:
@@ -64,11 +64,7 @@ description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管�
   "skills": {
     "skill-generator": {
       "tier": 3,
-      "last_tested": "2026-06-30T08:30:00Z",
-      "file_hashes": {
-        "SKILL.md": "sha256...",
-        "scripts/generate_skill.py": "sha256..."
-      }
+      "last_tested": "2026-06-30T08:30:00Z"
     }
   }
 }
@@ -77,7 +73,6 @@ description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管�
 *   `skills`: 登録されているスキル名をキーとするオブジェクト。
 *   `tier`: スキルの現在の信頼度レベル（1 = Read-Only, 2 = Draft-Only, 3 = Action-Allowed）。
 *   `last_tested`: スキルに対するテスト（トリガー評価や機能テストなど）に最後に合格したタイムスタンプ。
-*   `file_hashes`: スキルのソースコード（`SKILL.md` や `scripts/` 配下のファイル）の完全性検証用ハッシュマップ（SHA-256）。
 
 #### ライフサイクルと状態遷移ルール
 
@@ -85,14 +80,12 @@ description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管�
 
 1.  **初期登録 (新規スキルの追加)**
     *   新しく生成されたスキルは、デフォルトで **Tier 1 (Read-Only)** として登録されます。
-    *   登録時にその時点での全ファイルのSHA-256ハッシュが計算され、`file_hashes` に記録されます。
 2.  **試験合格による昇格 (Promotion)**
     *   `trigger-evaluator` などの評価ツールでテストを実行し、業界基準の合格ライン（トリガー精度 90% 以上など）をクリアすると、Tierの昇格が許可されます。
-    *   昇格時に `last_tested` が現在時刻に更新され、最新のファイルハッシュが再記録されます。
-3.  **ソースコード修正に伴う自動降格 (Demotion) と再試験**
-    *   エージェントがスキルを実行する際、または管理スクリプトが定期実行される際、現在のファイルのハッシュ値と `skills_registry.json` に記録されたハッシュ値の比較が行われます。
-    *   **ハッシュ値の不一致が検出された場合（＝許可なくコードが修正された場合）**、改ざんや未検証の機能追加とみなされ、**即座に Tier 1 (Read-Only) へ降格（または登録保留）** されます。
-    *   再度 Tier を昇格させるには、再試験（トリガー精度・機能評価）に合格する必要があります。
+    *   昇格時に `last_tested` が現在時刻に更新されます。
+3.  **エントリーポイントの統一と完全性チェックの廃止**
+    *   メンテナンス性と実行速度を向上させるため、従来のファイルハッシュ比較による自動降格（Demotion）ルールは廃止されました。
+    *   すべてのスキル・エージェントは `scripts/main.py` に実行エントリーポイントが統一されており、セキュリティ上の制限は各Tierによるツールセット制御に基づいて静的に判断されます。
 
 ### 2. 権限ポリシー定義 (`src/skills/skill-manager/assets/policy.json`)
 各Tierにおいてエージェントに許可するツールのリストを定義します。

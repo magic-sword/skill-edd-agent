@@ -32,7 +32,7 @@ class TestGenerateWorkflow(unittest.IsolatedAsyncioTestCase):
                 f.write("# dummy skill md")
             with open(os.path.join(output_dir, "scripts", "workflow.py"), "w", encoding="utf-8") as f:
                 f.write("# dummy workflow")
-            with open(os.path.join(output_dir, "scripts", f"run_{workflow_name.replace('-', '_')}.py"), "w", encoding="utf-8") as f:
+            with open(os.path.join(output_dir, "scripts", "main.py"), "w", encoding="utf-8") as f:
                 f.write("# dummy runner")
 
         mock_run_agent.side_effect = fake_run
@@ -51,7 +51,7 @@ class TestGenerateWorkflow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(tool_context.state["workflow_dir"], self.test_dir)
         self.assertTrue(os.path.exists(os.path.join(self.test_dir, "SKILL.md")))
         self.assertTrue(os.path.exists(os.path.join(self.test_dir, "scripts", "workflow.py")))
-        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "scripts", "run_test_workflow.py")))
+        self.assertTrue(os.path.exists(os.path.join(self.test_dir, "scripts", "main.py")))
 
 if __name__ == "__main__":
     unittest.main()

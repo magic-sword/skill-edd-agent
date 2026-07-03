@@ -1,0 +1,14 @@
+"""
+Unified entry point for {skill_name}.
+"""
+import os
+import sys
+from edd_agent_tools.testing.cli import SkillCommandLineRunner
+
+# 同一ディレクトリのビジネスロジックモジュールをインポート可能にする
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from {script_module_name} import process_message
+
+if __name__ == "__main__":
+    runner = SkillCommandLineRunner(description="{skill_name} CLI Wrapper")
+    runner.run(process_message)

@@ -1,26 +1,26 @@
 ---
 name: workflow-generator
-description: 指定されたディレクトリに、ユーザーの指示に応じた新しいワークフローエージェント（SKILL.md, scripts/workflow.py, scripts/run_****.py）を自動生成するスキル。
+description: 指定されたディレクトリに、ユーザーの指示に応じた新しいワークフローエージェント（SKILL.md, scripts/workflow.py, scripts/main.py）を自動生成するスキル。
 ---
 
-# ワークフロー生成スキル
+# ワークフロー生成エージェント
 
-このスキルは、ユーザーの指定した要件や説明に基づいて、新しい Google ADK 互換のワークフローエージェント（DAG制御エージェント）を自律的に生成します。
+このスキルは、ユーザーの指定した要件や説明に基づいて、新しい Google ADK 互換 of ワークフローエージェント（DAG制御エージェント）を自律的に生成します。
 
 生成されるアセットは以下の通りです：
 * `SKILL.md`（YAMLフロントマター、使用手順、依存するスキル）
 * `scripts/workflow.py`（エージェントおよびエッジによるDAG定義）
-* `scripts/run_****.py`（ToolContextから情報を受け取りワークフローを非同期実行するランナー）
+* `scripts/main.py`（ToolContextから情報を受け取りワークフローを非同期実行するエントリーポイント）
 
 ## 使用手順
 
 1. **スクリプトの実行**:
-   エージェントは `scripts/generate_workflow.py` を実行するために `EnvironmentToolset`（`Execute`）ツールを呼び出します。
+   エージェントは `scripts/main.py` を実行するために `EnvironmentToolset`（`Execute`）ツールを呼び出します。
    引数として、作成したいワークフローの名前を示す `--workflow_name` と、ワークフローの要件や手順を示す `--prompt` を渡します。オプションで出力先ディレクトリ `--output_dir` や使用モデル `--model` も指定可能です。
 
    コマンドの実行例:
    ```bash
-   python src/skills/workflow-generator/scripts/generate_workflow.py \
+   python src/agents/workflow-generator/scripts/main.py \
      --workflow_name data-pipeline \
      --prompt "データを取得し、フォーマット変換を行い、要約を出力するワークフロー" \
      --output_dir src/agents/data-pipeline
@@ -33,17 +33,23 @@ description: 指定されたディレクトリに、ユーザーの指示に応�
 ## AIエージェント向け使用方法 (FunctionTool)
 
 このスキルをエージェントにバインドして実行する際は、インプロセスの `generate_workflow_code` 関数ツールを直接呼び出してください。
+テストの自動実行および動的ロードは、エントリーポイントである `scripts/main.py` を通じて行われます。
+
+### 入力パラメータ
+
+| パラメータ名 | 型 | 必須 | 説明 |
+|---|---|---|---|
+| workflow_name | str | true | 作成するワークフローエージェントの名前 (例: `data-pipeline`) |
+| prompt | str | true | 生成したいワークフローの要件や手順 |
+| output_dir | str | false | 生成されたワークフローの絶対出力ディレクトリパス |
 
 ### 共有セッション状態 (Session State) のインターフェース
 * **入力値の読み込み**:
-  * `workflow_name`: 作成するワークフローエージェントの名前 (例: `data-pipeline`)
-  * `prompt`: 生成したいワークフローの要件やプロンプト指示
-  * `output_dir` (任意): 生成されたワークフローの絶対出力ディレクトリパス。指定がない場合はデフォルトで `/workspace/src/agents/{workflow_name}` となります。
+  * `workflow_name`: `tool_context.state` から自動取得されます。
+  * `prompt`: `tool_context.state` から自動取得されます。
+  * `output_dir` (任意): `tool_context.state` から自動取得されます。
 * **出力値の書き込み**:
   * `workflow_dir`: 生成されたワークフローの絶対ディレクトリパスを格納します。
-
-### 呼び出し時のパラメータ
-* なし (パラメータはセッション状態から自動取得されます)
 
 ### 出力形式の要件 (Output Mode)
 - **Output Mode: VALUE_ONLY**
@@ -58,7 +64,7 @@ description: 指定されたディレクトリに、ユーザーの指示に応�
 *   **WorkflowDesignerAgent (設計)**: 要件プロンプトを分析し、必要な依存スキル、CLIパラメータ、DAGエッジ接続構造をまとめた `assets/design.json` を生成する。
 *   **ToolLoaderAgent (ツール & Agent定義)**: `design.json` に基づき、`workflow.py` に `SkillRegistry` からのツールロードと各 `Agent` インスタンス定義を実装する。
 *   **DagBuilderAgent (DAG構築)**: `design.json` に基づき、`workflow.py` にエッジ接続（Workflow定義）を実装し、エクスポートする。
-*   **RunnerGeneratorAgent (ランナー引数実装)**: 設計された引数リストを基に、`run_****.py` の `add_argument` にパラメータ定義を追加する。
+*   **MainGeneratorAgent (エントリーポイント引数実装)**: 設計された引数リストを基に、`main.py` の `add_argument` にパラメータ定義を追加する。
 *   **DocGeneratorAgent (ドキュメント生成)**: 完成したコードを解析し、YAML メタデータやパラメータ表を含んだ `SKILL.md` を完成させる。
 
 ### 2. API 制限の回避 (503 / 429 対策)
