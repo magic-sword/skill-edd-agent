@@ -156,12 +156,7 @@ class SkillRegistry:
         script_rel_path = "scripts/main.py"
             
         # search_paths からディレクトリを動的特定
-        skill_dir = None
-        for path_entry in search_paths:
-            possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
-            if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
-                skill_dir = possible_dir
-                break
+        skill_dir = self.get_skill_dir(skill_name)
                 
         if not skill_dir:
             raise FileNotFoundError(
@@ -192,3 +187,25 @@ class SkillRegistry:
             raise AttributeError(f"エラー: モジュール '{module_name}' に関数 '{function_name}' が定義されていません。")
             
         return getattr(module, function_name)
+
+    def get_registered_skills(self) -> dict[str, dict]:
+        """登録されているすべてのスキルおよびエージェントの情報をマージして返します。"""
+        if self.data is None:
+            self.load()
+        skills = self.data.get("skills", {})
+        agents = self.data.get("agents", {})
+        merged = {}
+        merged.update(skills)
+        merged.update(agents)
+        return merged
+
+    def get_skill_dir(self, skill_name: str) -> str | None:
+        """指定されたスキルまたはエージェントの物理ディレクトリ絶対パスを探索して返します。"""
+        if self.data is None:
+            self.load()
+        search_paths = self.data.get("search_paths", ["src/skills"])
+        for path_entry in search_paths:
+            possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
+            if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
+                return possible_dir
+        return None
