@@ -34,7 +34,7 @@ dependencies:
 ## 実行方法
 
 ```bash
-python3 src/agents/skill-developer/scripts/develop_skill.py \
+python3 src/agents/skill-developer/scripts/main.py \
   --skill_name <スキル名> \
   --prompt "<要件プロンプト>"
 ```

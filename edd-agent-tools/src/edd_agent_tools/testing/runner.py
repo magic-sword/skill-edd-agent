@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 from edd_agent_tools.testing.command import Command
 
@@ -38,3 +39,24 @@ class SubprocessRunner:
         }
         run_args.update(kwargs)
         return subprocess.run(cmd_args, **run_args)
+
+
+class CommandLineRunner:
+    """Command を現在のプロセス内で (CLI 起動として) 実行するランナー"""
+    def __init__(self, command: Command):
+        self.command = command
+
+    def run(self, process_func):
+        """引数のパース、状態のマージ、およびビジネスロジックの実行を行います。"""
+        # 1. コマンドから実行用の引数 (args, kwargs) を構築 (多態的)
+        exec_args, exec_kwargs = self.command.build_exec_args()
+        
+        # 2. 実行
+        try:
+            process_func(*exec_args, **exec_kwargs)
+        except Exception as e:
+            print(f"Error executing business logic: {e}", file=sys.stderr)
+            sys.exit(1)
+            
+        # 3. 結果の出力・永続化 (多態的)
+        self.command.handle_result(exec_args)

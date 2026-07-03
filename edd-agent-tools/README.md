@@ -81,31 +81,73 @@ ADK 2.0 が標準で利用している Rouge-1 評価器（`final_response_match
 
 ### 仕組み（Monkey Patch のインジェクション）
 Python の自動フックファイルである `usercustomize.py` をパッケージ内の `patch/` ディレクトリ配下に定義しています。
-後述の `SkillSubprocessRunner` を経由してサブプロセスを実行する際、このパッチディレクトリが自動的に環境変数 `PYTHONPATH` に結合されて起動し、対象プロセス内の `rouge_score` のデフォルトトークナイザーを多言語対応モデルに自動的に上書き・差し替えます。
+後述の `SubprocessRunner` を経由してサブプロセスを実行する際、このパッチディレクトリが自動的に環境変数 `PYTHONPATH` に結合されて起動し、対象プロセス内の `rouge_score` のデフォルトトークナイザーを多言語対応モデルに自動的に上書き・差し替えます。
 
 ---
 
-## サブプロセス実行設計 (SubprocessRunner & Commands)
+## コマンドとランナーの設計 (Command & Runner Pattern)
 
-`edd-agent-tools` では、他のスキルや外部のシステムコマンド（`adk eval` 等）を親プロセスから CLI サブプロセスとして実行するために、**「コマンドの定義（データ）」**と**「ランナー（実行環境）」**を分離したオブジェクト指向設計を採用しています。
-
-これにより、すべてのサブプロセス起動時に**自動的に日本語トークナイズパッチ（`PYTHONPATH`）が適用**されます。
+`edd-agent-tools` では、他のスキルや外部のシステムコマンド（`adk eval` 等）を実行するために、**「コマンドの定義（データ）」**と**「ランナー（実行環境）」**を完全に分離し、対称的な多態性（ポリモーフィズム）を用いたオブジェクト指向設計を採用しています。
 
 ### 主要クラス
-- **`SubprocessRunner`**: コマンドオブジェクト（`Command`）を受け取り、環境変数を自動補正した上でサブプロセスとして安全に実行するランナー。
-- **`SkillCommand`**: 登録されたスキル（例: `test-executor`）を起動するためのコマンドクラス。スキルのエントリーポイント（`scripts/main.py`）をレジストリから自動解決します。
-- **`SystemCommand`**: 外部のシステムコマンド（例: `adk`）を起動するためのコマンドクラス。
+
+#### 1. コマンド定義 (Command)
+実行したい対象を表すデータ定義クラスです。
+- **`SkillCommand`**: 登録されたスキル（例: `test-executor`）を実行するコマンド。引数（`argv`）から自身を復元するファクトリメソッド `from_argv()` を持ち、スキル特有の `ToolContext` の初期化と引数マージを担当します。
+- **`SystemCommand`**: 外部のシステムコマンド（例: `adk`）を実行するコマンド。
+
+#### 2. 実行環境 (Runner)
+コマンドオブジェクトを受け取って実際に実行するクラスです。条件分岐を一切排除し、コマンドの多態性に基づいて実行します。
+- **`SubprocessRunner`**: コマンドを **別プロセス（サブプロセス）** で安全に（多言語パッチを自動適用して）実行するランナー。
+- **`CommandLineRunner`**: コマンドを **現在のプロセス内** で（引数を受け取って）実行する CLI 用ランナー。
+
+---
 
 ### 使用方法
 
-#### 1. 外部システムコマンド（例: `adk eval`）を実行する場合
+#### 1. 親プロセス：他のスキルをサブプロセスとして呼び出す場合
+```python
+from edd_agent_tools.testing import SkillCommand, SubprocessRunner
+
+# 1. 起動したいスキルとパラメータを定義
+cmd = SkillCommand(
+    "test-executor",
+    args=["--eval_mode", "1", "--threshold_accuracy", "1.0"],
+    input_data={
+        "skill_name": "eval-unit-tester",
+        "eval_set_path": "path/to/evalset.json"
+    }
+)
+
+# 2. SubprocessRunner に渡して実行
+runner = SubprocessRunner(cmd)
+result = runner.run()
+
+print(result.stdout)
+```
+
+#### 2. 子プロセス：CLI からスキルが起動される場合（統一エントリーポイント `main.py`）
+```python
+import sys
+from edd_agent_tools.testing import SkillCommand, CommandLineRunner
+
+if __name__ == "__main__":
+    # 1. コマンドライン引数から SkillCommand を自動パース・構築
+    cmd = SkillCommand.from_argv("eval-unit-tester", sys.argv[1:])
+    
+    # 2. 同一プロセス内ランナーで実行
+    runner = CommandLineRunner(cmd)
+    runner.run(execute_unit_tester_logic)
+```
+
+#### 3. 外部システムコマンド（例: `adk eval`）を実行する場合
 ```python
 from edd_agent_tools.testing import SystemCommand, SubprocessRunner
 
 # 1. 外部コマンドと引数を定義
 cmd = SystemCommand("adk", args=["eval", "/workspace/src", "/workspace/src/tests/..."])
 
-# 2. ランナーに渡して実行
+# 2. サブプロセスで実行 (自動的に日本語トークナイズパッチが適用されます)
 runner = SubprocessRunner(cmd)
 result = runner.run(
     env={
@@ -113,27 +155,4 @@ result = runner.run(
         "GEMINI_API_KEY": "...",
     }
 )
-
-print(result.stdout)
-```
-
-#### 2. 他のスキルをサブプロセスとして実行する場合
-```python
-from edd_agent_tools.testing import SkillCommand, SubprocessRunner
-
-# 1. スキル起動用の引数と入力データを定義
-cmd = SkillCommand(
-    "test-executor",
-    args=["--eval_mode", "1", "--threshold_accuracy", "1.0"],
-    input_data={
-        "skill_name": "skill-evaluator",
-        "eval_set_path": "path/to/evalset.json"
-    }
-)
-
-# 2. ランナーに渡して実行（自動で main.py が解決されます）
-runner = SubprocessRunner(cmd)
-result = runner.run()
-
-print(result.stdout)
 ```

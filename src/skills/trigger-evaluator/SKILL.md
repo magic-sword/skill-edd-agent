@@ -16,7 +16,7 @@ description: 他のスキルのトリガー定義の品質を静的チェック�
 ## 使用手順
 
 ```bash
-python src/skills/trigger-evaluator/scripts/evaluate_trigger.py --skill_name [評価対象のスキル名]
+python src/skills/trigger-evaluator/scripts/main.py --skill_name [評価対象のスキル名]
 ```
 
 ### 入力パラメータ

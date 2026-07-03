@@ -9,7 +9,7 @@ description: 指定されたスキルのADK evalテストセットを実行し�
 
 ## 使用方法
 
-スクリプト `scripts/execute_test.py` を呼び出して、テストを実行します。
+スクリプト `scripts/main.py` を呼び出して、テストを実行します。
 
 ### 引数
 
@@ -22,14 +22,14 @@ description: 指定されたスキルのADK evalテストセットを実行し�
 
 - **単体テストの実行（100%合格が条件）**:
   ```bash
-  python src/skills/test-executor/scripts/execute_test.py \
+  python src/skills/test-executor/scripts/main.py \
     --skill_name text-formatter \
     --eval_set_path src/skills/text-formatter/tests/text_formatter_eval_set.evalset.json
   ```
 
 - **トリガー精度の実行（90%以上の合格率が条件、タイムアウト120秒制限）**:
   ```bash
-  python src/skills/test-executor/scripts/execute_test.py \
+  python src/skills/test-executor/scripts/main.py \
     --skill_name text-formatter \
     --eval_set_path src/skills/text-formatter/tests/text_formatter_trigger_eval.evalset.json \
     --threshold_accuracy 0.90 \

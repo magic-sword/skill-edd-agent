@@ -57,22 +57,16 @@ def execute_test_logic(tool_context: ToolContext):
                 json.dump({"criteria": {"response_match_score": 0.8}}, f, indent=2)
         config_file = default_config_path
  
-    # 実行するadk evalコマンド
-    adk_command = [
-        "/home/vscode/.local/bin/adk",
-        "eval",
-        "/workspace/src",
-        eval_set_path
-    ]
-    
+    # SystemCommand の引数リストを定義
+    args = ["eval", "/workspace/src", eval_set_path]
     if config_file:
-        adk_command.extend(["--config_file_path", config_file])
+        args.extend(["--config_file_path", config_file])
     
-    print(f"Executing: {' '.join(adk_command)}")
+    print(f"Executing: adk {' '.join(args)}")
     
     try:
         # SystemCommand と SubprocessRunner を用いた外部コマンド実行 (自動多言語パッチ適用)
-        cmd = SystemCommand("adk", args=adk_command[1:])
+        cmd = SystemCommand("adk", args=args)
         runner = SubprocessRunner(cmd)
         result = runner.run(
             env=env,

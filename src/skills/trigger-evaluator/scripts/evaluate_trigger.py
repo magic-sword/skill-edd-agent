@@ -31,18 +31,6 @@ class TriggerTestCases(BaseModel):
 
 
 
-# 探索パス決定用ヘルパー
-def resolve_skill_dir(skill_name: str) -> str:
-    """レジストリの探索パスに基づいてスキルの実体ディレクトリパスを特定します。"""
-    registry = SkillRegistry()
-    registry.load()
-    search_paths = registry.data.get("search_paths", ["src/skills"])
-    for path_entry in search_paths:
-        possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
-        if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
-            return possible_dir
-    raise FileNotFoundError(f"Error: Skill or Agent '{skill_name}' not found in paths: {search_paths}")
-
 # Gemini API の初期化
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
@@ -205,7 +193,9 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
         }
 
         # 保存先は対象スキルの tests/ ディレクトリ
-        skill_dir = resolve_skill_dir(skill_name)
+        registry = SkillRegistry()
+        registry.load()
+        skill_dir = registry.resolve_skill_dir(skill_name)
         skill_tests_dir = os.path.join(skill_dir, "tests")
         os.makedirs(skill_tests_dir, exist_ok=True)
         
@@ -226,7 +216,9 @@ def save_report(skill_name, static_eval_result, generated_cases_file):
     """詳細レポートを保存します。"""
     now_str = datetime.now().isoformat() + "Z"
     
-    skill_dir = resolve_skill_dir(skill_name)
+    registry = SkillRegistry()
+    registry.load()
+    skill_dir = registry.resolve_skill_dir(skill_name)
     report_filepath = os.path.join(skill_dir, "tests", "trigger_eval_report.json")
     report_data = {
         "skill_name": skill_name,
@@ -244,7 +236,9 @@ def execute_trigger_logic(tool_context: ToolContext):
     if not skill_name:
         raise ValueError("エラー: skill_name がセッション状態に設定されていません。")
         
-    skill_dir = resolve_skill_dir(skill_name)
+    registry = SkillRegistry()
+    registry.load()
+    skill_dir = registry.resolve_skill_dir(skill_name)
     skill_md_filepath = os.path.join(skill_dir, "SKILL.md")
     
     print(f"スキル '{skill_name}' のトリガーアセット生成を開始します。\n")
