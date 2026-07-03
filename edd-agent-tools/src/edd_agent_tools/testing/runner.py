@@ -38,7 +38,16 @@ class SubprocessRunner:
             "cwd": "/workspace"
         }
         run_args.update(kwargs)
-        return subprocess.run(cmd_args, **run_args)
+        
+        result = subprocess.run(cmd_args, **run_args)
+        
+        if result.returncode != 0:
+            print(f"Subprocess '{self.command.skill_name}' failed with exit code {result.returncode}.", file=sys.stderr)
+            if result.stderr:
+                print(result.stderr, file=sys.stderr)
+            sys.exit(1)
+            
+        return result
 
 
 class CommandLineRunner:
@@ -49,13 +58,26 @@ class CommandLineRunner:
     def run(self, process_func):
         """引数のパース、状態のマージ、およびビジネスロジックの実行を行います。"""
         # 1. コマンドから実行用の引数 (args, kwargs) を構築 (多態的)
-        exec_args, exec_kwargs = self.command.build_exec_args()
+        try:
+            exec_args, exec_kwargs = self.command.build_exec_args()
+        except Exception as e:
+            print(f"Error building command args: {e}", file=sys.stderr)
+            sys.exit(1)
         
         # 2. 実行
         try:
             process_func(*exec_args, **exec_kwargs)
         except Exception as e:
             print(f"Error executing business logic: {e}", file=sys.stderr)
+            if exec_args and hasattr(exec_args[0], 'state'):
+                exec_args[0].state.update({
+                    "status": "failed",
+                    "message": str(e)
+                })
+                try:
+                    self.command.handle_result(exec_args)
+                except Exception as he:
+                    print(f"Error handling failure result: {he}", file=sys.stderr)
             sys.exit(1)
             
         # 3. 結果の出力・永続化 (多態的)
