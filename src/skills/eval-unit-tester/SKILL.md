@@ -9,10 +9,10 @@ description: 指定されたスキルの仕様書（SKILL.md）に基づき、AD
 
 ### 使用方法
 
-スクリプト `scripts/eval_unit_tester.py` を呼び出して、テストケースを生成します。
+スクリプト `scripts/main.py` を呼び出して、テストケースを生成します。
 
 ```bash
-python src/skills/eval-unit-tester/scripts/eval_unit_tester.py --skill_name [スキル名]
+python src/skills/eval-unit-tester/scripts/main.py --skill_name [スキル名]
 ```
 
 ### 入力パラメータ

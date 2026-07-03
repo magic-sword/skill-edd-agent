@@ -6,6 +6,7 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
 
 - **CLI 実行ラッパー (`edd_agent_tools.testing.cli`)**: 各スキルスクリプトをCLIから直接実行・テストするための共通ラッパー。
 - **モックコンテキスト (`edd_agent_tools.testing.mock_context`)**: テスト・デバッグ用の `MockInvocationContext` を提供。
+- **多言語テスト実行パッチ (`edd_agent_tools.testing.cli.get_patched_env`)**: ADKのRouge-1評価における日本語の分かち書きすり抜けバグを解決するための環境変数インジェクタ。
 
 ## スキルレジストリとエントリーポイント規約 (Skill Registry & Entrypoint Convention)
 
@@ -67,3 +68,39 @@ twine upload dist/*
 ```bash
 twine upload --repository-url https://<REGION>-python.pkg.dev/<PROJECT_ID>/<REPOSITORY_NAME>/ dist/*
 ```
+
+---
+
+## 多言語（日本語）テスト実行パッチについて
+
+### 背景と目的
+ADK 2.0 が標準で利用している Rouge-1 評価器（`final_response_match_v1`）は、内部でスペース区切り（英語向け）のトークナイザーを使用しているため、日本語のようなスペース区切りのない言語では、テキスト全体が巨大な1トークン扱いとなり、曖昧なマッチングによって「不合格のケースが合格として判定されてしまう（すり抜け）」というバグが発生します。
+
+この問題を解決するため、`edd-agent-tools` には Hugging Face の多言語対応トークナイザー（`bert-base-multilingual-cased`）を `adk eval` の Python 実行プロセスに動的に注入（モンキーパッチ）する仕組みが組み込まれています。
+
+### 仕組み（Monkey Patch のインジェクション）
+Python の自動フックファイルである `usercustomize.py` をパッケージ内の `patch/` ディレクトリ配下に定義しています。
+`adk eval` などの外部コマンドを Python プロセスとしてサブプロセス実行する際、このパッチディレクトリを環境変数 `PYTHONPATH` の先頭に結合して起動することで、対象プロセス内の `rouge_score` のデフォルトトークナイザーを多言語対応モデルに自動的に上書き・差し替えます。
+
+### 使用方法
+
+テスト実行用のスクリプト内で、環境変数 `env` を解決する際に `get_patched_env()` ヘルパー関数を呼び出します。
+
+```python
+import subprocess
+from edd_agent_tools.testing import get_patched_env
+
+# 1. パッチ済みの環境変数を取得
+env = get_patched_env({
+    "HOME": "/home/vscode",
+    "GEMINI_API_KEY": "...",
+    # その他の環境変数
+})
+
+# 2. パッチ済みの env を渡して ADK コマンドを実行
+subprocess.run(
+    ["adk", "eval", "/workspace/src", "..."],
+    env=env
+)
+```
+これだけで、特別な変更を加えることなく、日本語の評価が文字単位・サブワード単位で厳格に判定されるようになります。

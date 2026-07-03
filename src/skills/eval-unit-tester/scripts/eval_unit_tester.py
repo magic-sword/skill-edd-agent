@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import json
+import re
 from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
@@ -12,41 +13,14 @@ from edd_agent_tools.registry import SkillRegistry
 
 # インポートキャッシュの不整合対策
 sys.modules.pop('google', None)
-sys.modules.pop('google.adk', None)
 
-class PartItem(BaseModel):
-    text: str = Field(..., description="発話のテキスト中身")
+class TestParameterCase(BaseModel):
+    user_instruction: str = Field(..., description="ユーザーからの自然言語での指示（例: 『hello worldを大文字にしてください』など）")
+    input_parameters: dict | str = Field(..., description="ツールに渡す引数（args）の辞書、またはそのJSON文字列")
+    expected_output: str = Field(..., description="ツールまたはエージェントからの期待される最終的なテキスト応答（例: 'HELLO WORLD'）")
 
-class ConversationMessage(BaseModel):
-    role: str = Field(..., description="発話者の役割 ('user' または 'model')")
-    parts: list[PartItem] = Field(..., description="発話のパーツリスト")
-
-class IntermediateData(BaseModel):
-    tool_uses: list = Field(default_factory=list, description="実行されたツールのリスト。常に空 [] にしてください。")
-    intermediate_responses: list = Field(default_factory=list, description="中間レスポンスのリスト。常に空 [] にしてください。")
-
-class ConversationTurn(BaseModel):
-    invocation_id: str = Field(..., description="一意の呼び出しID")
-    user_content: ConversationMessage = Field(..., description="ユーザー側の発話オブジェクト")
-    final_response: ConversationMessage = Field(..., description="モデル側の期待応答オブジェクト")
-    intermediate_data: IntermediateData = Field(default_factory=IntermediateData, description="テスト中の中間実行データ")
-
-class SessionInput(BaseModel):
-    appName: str = Field("src", description="アプリケーション名 (常に 'src')")
-    userId: str = Field("test_user", description="ユーザーID (常に 'test_user')")
-    state: dict = Field(..., description="状態辞書。例えば {'user_message': 'hello'} など、入力キーに応じた値を含めてください。")
-
-class EvalCase(BaseModel):
-    eval_id: str = Field(..., description="一意のテストケースID")
-    conversation: list[ConversationTurn] = Field(..., description="対話シーケンスのリスト")
-    session_input: SessionInput = Field(..., description="初期セッション状態 (appName, userId, state を含めること)")
-
-class EvalSet(BaseModel):
-    eval_set_id: str = Field(..., description="評価セットの一意なID")
-    name: str = Field(..., description="評価セットの名前")
-    description: str = Field(..., description="評価セットの説明")
-    eval_cases: list[EvalCase] = Field(..., description="テストケースのリスト")
-
+class TestParameterSet(BaseModel):
+    cases: list[TestParameterCase] = Field(..., description="生成されたテストパラメータケースのリスト")
 
 
 def resolve_skill_dir(skill_name: str) -> str:
@@ -59,6 +33,23 @@ def resolve_skill_dir(skill_name: str) -> str:
         if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
             return possible_dir
     raise FileNotFoundError(f"Error: Skill or Agent '{skill_name}' not found in paths: {search_paths}")
+
+
+def get_skill_main_function(skill_dir: str) -> str:
+    """スキルの main.py から runner.run にバインドされているエントリーポイント関数名を決定論的に抽出します。"""
+    main_py_path = os.path.join(skill_dir, "scripts", "main.py")
+    if not os.path.exists(main_py_path):
+        main_py_path = os.path.join(skill_dir, "main.py")
+        
+    if os.path.exists(main_py_path):
+        with open(main_py_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        match = re.search(r'runner\.run\(([^)]+)\)', content)
+        if match:
+            return match.group(1).strip()
+            
+    # フォールバック: スキル名のハイフンをアンダースコアにしたもの
+    return os.path.basename(skill_dir).replace("-", "_")
 
 
 def generate_test_cases(skill_name: str):
@@ -104,66 +95,23 @@ def generate_test_cases(skill_name: str):
     if not (is_value_only or is_conversational or is_structured_json):
         is_value_only = True
         
-    # Output Mode に応じたプロンプトとテンプレートの動的合成
+    # Output Mode に応じたプロンプトの動的合成
     if is_value_only:
         instruction_override = (
-            "実例にならい、会話内のユーザー入力には必ず「〜〜の結果のみを出力してください」という制約を含め、"
-            "期待応答（final_response）は余計な解説を一切排した結果そのもの（例: 大文字化されたテキストのみ）としてください。"
+            "会話内のユーザー入力には必ず「〜〜の結果のみを出力してください」という制約を含め、"
+            "期待応答（expected_output）は余計な解説を一切排した結果そのもの（例: 大文字化されたテキストのみ）としてください。"
         )
     elif is_conversational:
         instruction_override = (
-            "会話内のユーザー入力は自然なメッセージ（制約なし）とし、期待応答（final_response）は"
+            "会話内のユーザー入力は自然なメッセージ（制約なし）とし、期待応答（expected_output）は"
             "ユーザーに対する自然な対話応答メッセージ（例: 「〜〜を処理しました。結果は〜〜です。」など）としてください。"
-        )
-        # テンプレートの Few-Shot 例を対話応答用に置換
-        json_template = json_template.replace(
-            "「hello world」を処理し、結果のテキストのみを出力してください。",
-            "「hello world」を処理してください。"
-        ).replace(
-            "「AI is fun!」を処理し、結果のテキストのみを出力してください。",
-            "「AI is fun!」を処理してください。"
-        ).replace(
-            '"text": "HELLO WORLD"',
-            '"text": "「hello world」の処理が完了しました。結果は HELLO WORLD です。"'
-        ).replace(
-            '"text": "AI IS FUN!"',
-            '"text": "「AI is fun!」の処理が完了しました。結果は AI IS FUN! です。"'
         )
     elif is_structured_json:
         instruction_override = (
-            "期待応答（final_response）は余計な解説を一切排した生の JSON 文字列（例: {\"result_message\": \"〜〜\"}）"
+            "期待応答（expected_output）は余計な解説を一切排した生の JSON 文字列（例: {\"result_message\": \"〜〜\"}）"
             "のみとし、自然言語テキストは絶対に含めないでください。"
         )
-        # テンプレートの Few-Shot 例を JSON 用に置換
-        json_template = json_template.replace(
-            "「hello world」を処理し、結果のテキストのみを出力してください。",
-            "「hello world」を処理し、結果をJSON形式のみで出力してください。"
-        ).replace(
-            "「AI is fun!」を処理し、結果のテキストのみを出力してください。",
-            "「AI is fun!」を処理し、結果をJSON形式のみで出力してください。"
-        ).replace(
-            '"text": "HELLO WORLD"',
-            '"text": "{\\n  \\"result_message\\": \\"HELLO WORLD\\"\\n}"'
-        ).replace(
-            '"text": "AI IS FUN!"',
-            '"text": "{\\n  \\"result_message\\": \\"AI IS FUN!\\"\\n}"'
-        )
 
-    # json_template 自体に含まれるプレースホルダーを置換
-    json_template = json_template.replace(
-        "{skill_name_underscore}", skill_name.replace('-', '_')
-    ).replace(
-        "{skill_name}", skill_name
-    )
-    
-    # 入力状態キーの自動抽出とマッピング
-    input_key = "user_message"
-    for candidate in ["user_message", "input_message", "message"]:
-        if candidate in skill_content:
-            input_key = candidate
-            break
-    json_template = json_template.replace("INPUT_KEY", input_key)
-    
     # プロンプトの組み立て
     prompt = prompt_template.replace(
         "{skill_content}", skill_content
@@ -176,7 +124,7 @@ def generate_test_cases(skill_name: str):
     print("Generating unit test cases using Gemini API...")
     
     # response_schema のクレンジング
-    schema_dict = EvalSet.model_json_schema()
+    schema_dict = TestParameterSet.model_json_schema()
     clean_schema = remove_additional_properties(schema_dict)
 
     response = client.models.generate_content(
@@ -191,12 +139,88 @@ def generate_test_cases(skill_name: str):
     
     # 応答をパース
     try:
-        test_case_data = json.loads(response.text)
+        parameter_data = json.loads(response.text)
+        param_set = TestParameterSet.model_validate(parameter_data)
     except Exception as e:
         print(f"Error parsing Gemini response: {e}")
         print(response.text)
         raise e
         
+    # 決定論的にエントリーポイント関数名を特定
+    main_function_name = get_skill_main_function(skill_dir)
+    skill_name_underscore = skill_name.replace('-', '_')
+    
+    # ADK 2.0 の .evalset.json 構造へ組み立てる
+    eval_cases = []
+    for i, case in enumerate(param_set.cases):
+        eval_id = f"{skill_name_underscore}_happy_path_{i+1:03d}"
+        
+        # args の中のエスケープ文字列等も、ここでオブジェクトであることを保証
+        input_args = case.input_parameters
+        if isinstance(input_args, str):
+            try:
+                input_args = json.loads(input_args)
+            except Exception:
+                input_args = {"text": input_args}
+        
+        # 1ターン分の対話ターンをビルド
+        conversation_turn = {
+            "invocation_id": f"inv_{i+1:03d}",
+            "user_content": {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": case.user_instruction
+                    }
+                ]
+            },
+            "final_response": {
+                "role": "model",
+                "parts": [
+                    {
+                        "text": case.expected_output
+                    }
+                ]
+            },
+            "intermediate_data": {
+                "tool_uses": [
+                    {
+                        "name": main_function_name,
+                        "args": input_args
+                    }
+                ],
+                "tool_responses": [
+                    {
+                        "name": main_function_name,
+                        "response": {
+                            "result": case.expected_output
+                        }
+                    }
+                ]
+            }
+        }
+        
+        # セッション初期状態
+        session_input = {
+            "appName": "src",
+            "userId": "test_user",
+            "state": input_args
+        }
+        
+        eval_case = {
+            "eval_id": eval_id,
+            "conversation": [conversation_turn],
+            "session_input": session_input
+        }
+        eval_cases.append(eval_case)
+        
+    eval_set_data = {
+        "eval_set_id": f"{skill_name_underscore}_eval_set",
+        "name": f"{skill_name} evaluation set",
+        "description": f"{skill_name} skill unit tests",
+        "eval_cases": eval_cases
+    }
+
     # テストファイルを保存
     tests_dir = os.path.join(skill_dir, "tests")
     os.makedirs(tests_dir, exist_ok=True)
@@ -205,7 +229,7 @@ def generate_test_cases(skill_name: str):
     eval_set_path = os.path.join(tests_dir, eval_set_filename)
     
     with open(eval_set_path, "w", encoding="utf-8") as f:
-        json.dump(test_case_data, f, indent=2, ensure_ascii=False)
+        json.dump(eval_set_data, f, indent=2, ensure_ascii=False)
         
     print(f"Successfully generated and saved test cases: {eval_set_path}")
     

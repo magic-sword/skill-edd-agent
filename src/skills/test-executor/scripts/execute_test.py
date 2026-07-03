@@ -4,7 +4,7 @@ import os
 import sys
 import re
 from google.adk.tools import ToolContext
-from edd_agent_tools.testing import SkillCommandLineRunner
+from edd_agent_tools.testing import SkillCommandLineRunner, get_patched_env
 
 
 
@@ -30,12 +30,12 @@ def execute_test_logic(tool_context: ToolContext):
     print(f"Threshold accuracy: {threshold_accuracy:.2f}, Timeout: {timeout_seconds}s, Eval mode: {eval_mode}")
     
     # adk evalの環境変数の設定 (ハング防止の env -i)
-    env = {
+    env = get_patched_env({
         "HOME": "/home/vscode",
         "PATH": os.environ.get("PATH", "/workspace/.venv/bin:/usr/local/bin:/usr/bin:/bin"),
         "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
         "ADK_EVAL_MODE": str(eval_mode)
-    }
+    })
     
     # テストディレクトリに eval_config.json または test_config.json があればそれを指定する
     eval_dir = os.path.dirname(eval_set_path)

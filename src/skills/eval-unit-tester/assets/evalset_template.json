@@ -1,77 +1,18 @@
 {
-  "eval_set_id": "{skill_name_underscore}_eval_set",
-  "name": "{skill_name} evaluation set",
-  "description": "{skill_name} skill unit tests",
-  "eval_cases": [
+  "cases": [
     {
-      "eval_id": "{skill_name_underscore}_happy_path_001",
-      "conversation": [
-        {
-          "invocation_id": "inv_001",
-          "user_content": {
-            "role": "user",
-            "parts": [
-              {
-                "text": "「hello world」を処理し、結果のテキストのみを出力してください。"
-              }
-            ]
-          },
-          "final_response": {
-            "role": "model",
-            "parts": [
-              {
-                "text": "HELLO WORLD"
-              }
-            ]
-          },
-          "intermediate_data": {
-            "tool_uses": [],
-            "intermediate_responses": []
-          }
-        }
-      ],
-      "session_input": {
-        "app_name": "src",
-        "user_id": "test_user",
-        "state": {
-          "user_message": "hello world"
-        }
-      }
+      "user_instruction": "「hello world」を大文字に変換し、結果のテキストのみを出力してください。",
+      "input_parameters": {
+        "text": "hello world"
+      },
+      "expected_output": "HELLO WORLD"
     },
     {
-      "eval_id": "{skill_name_underscore}_happy_path_002",
-      "conversation": [
-        {
-          "invocation_id": "inv_002",
-          "user_content": {
-            "role": "user",
-            "parts": [
-              {
-                "text": "「AI is fun!」を処理し、結果のテキストのみを出力してください。"
-              }
-            ]
-          },
-          "final_response": {
-            "role": "model",
-            "parts": [
-              {
-                "text": "AI IS FUN!"
-              }
-            ]
-          },
-          "intermediate_data": {
-            "tool_uses": [],
-            "intermediate_responses": []
-          }
-        }
-      ],
-      "session_input": {
-        "app_name": "src",
-        "user_id": "test_user",
-        "state": {
-          "user_message": "AI is fun!"
-        }
-      }
+      "user_instruction": "「AI is fun!」を大文字に変換し、結果のテキストのみを出力してください。",
+      "input_parameters": {
+        "text": "AI is fun!"
+      },
+      "expected_output": "AI IS FUN!"
     }
   ]
 }
