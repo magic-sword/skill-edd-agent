@@ -4,53 +4,26 @@ import os
 import sys
 import re
 from google.adk.tools import ToolContext
+from edd_agent_tools.testing.cli import SkillCommandLineRunner
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="ADK evalテストを実行し、合格閾値に基づいて判定を行います。")
-    parser.add_argument("--skill_name", type=str, help="テスト対象のスキル名")
-    parser.add_argument("--eval_set_path", type=str, help="テストケース定義ファイルのパス")
-    parser.add_argument("--threshold_accuracy", type=float, default=1.0, help="合格に必要な精度の閾値（0.0〜1.0）")
-    parser.add_argument("--timeout_seconds", type=int, default=180, help="テスト実行のタイムアウト制限（秒）")
-    parser.add_argument("--eval_mode", type=int, choices=[0, 1], default=1, help="ADK_EVAL_MODE の値 (1: 単体評価用, 0: 通常/トリガー評価用)")
-    parser.add_argument("--input_json", help="Path to input JSON file")
-    parser.add_argument("--output_json", help="Path to output JSON file")
-    return parser.parse_args()
 
-def main():
-    args = parse_args()
-    
-    skill_name = args.skill_name
-    eval_set_path = args.eval_set_path
-    threshold_accuracy = args.threshold_accuracy
-    timeout_seconds = args.timeout_seconds
-    eval_mode = args.eval_mode
-    
-    if args.input_json:
-        try:
-            import json
-            with open(args.input_json, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                skill_name = data.get("skill_name", skill_name)
-                eval_set_path = data.get("eval_set_path", eval_set_path)
-                threshold_accuracy = data.get("threshold_accuracy", threshold_accuracy)
-                timeout_seconds = data.get("timeout_seconds", timeout_seconds)
-                eval_mode = data.get("eval_mode", eval_mode)
-        except Exception as e:
-            print(f"Error reading input_json: {e}", file=sys.stderr)
-            sys.exit(1)
-            
+def execute_test_logic(tool_context: ToolContext):
+    skill_name = tool_context.state.get("skill_name")
+    eval_set_path = tool_context.state.get("eval_set_path")
+    threshold_accuracy = tool_context.state.get("threshold_accuracy", 1.0)
+    timeout_seconds = tool_context.state.get("timeout_seconds", 180)
+    eval_mode = tool_context.state.get("eval_mode", 1)
+
     if not skill_name or not eval_set_path:
-        print("エラー: --skill_name と --eval_set_path、もしくは --input_json は必須です。", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError("エラー: --skill_name と --eval_set_path、もしくは --input_json は必須です。")
         
     # パスの検証
     if not os.path.isabs(eval_set_path):
         eval_set_path = os.path.abspath(os.path.join("/workspace", eval_set_path))
         
     if not os.path.exists(eval_set_path):
-        print(f"エラー: テストファイルが存在しません: {eval_set_path}", file=sys.stderr)
-        sys.exit(1)
+        raise FileNotFoundError(f"エラー: テストファイルが存在しません: {eval_set_path}")
         
     print(f"Running test-executor for skill: {skill_name}")
     print(f"Eval set: {eval_set_path}")
@@ -115,20 +88,13 @@ def main():
         if e.stderr:
             print(f"STDERR:\n{e.stderr}", file=sys.stderr)
         
-        if args.output_json:
-            try:
-                import json
-                with open(args.output_json, "w", encoding="utf-8") as f:
-                    json.dump({
-                        "status": "failed",
-                        "message": f"Timeout after {timeout_seconds} seconds.",
-                        "skill_name": skill_name,
-                        "accuracy": 0.0,
-                        "threshold_accuracy": threshold_accuracy
-                    }, f, indent=2, ensure_ascii=False)
-            except Exception:
-                pass
-        sys.exit(124) # timeoutの標準的な終了コード
+        tool_context.state.update({
+            "status": "failed",
+            "message": f"Timeout after {timeout_seconds} seconds.",
+            "accuracy": 0.0,
+            "threshold_accuracy": threshold_accuracy
+        })
+        raise RuntimeError(f"Timeout after {timeout_seconds} seconds.") from e
         
     # 結果の表示
     print("--- ADK EVAL OUTPUT ---")
@@ -172,29 +138,18 @@ def main():
     status = "passed" if accuracy >= threshold_accuracy else "failed"
     message = f"Accuracy {accuracy:.4f} is {'greater than or equal to' if status == 'passed' else 'less than'} threshold {threshold_accuracy:.4f}."
     
-    if args.output_json:
-        try:
-            import json
-            out_dir = os.path.dirname(os.path.abspath(args.output_json))
-            if out_dir:
-                os.makedirs(out_dir, exist_ok=True)
-            with open(args.output_json, "w", encoding="utf-8") as f:
-                json.dump({
-                    "status": status,
-                    "message": message,
-                    "skill_name": skill_name,
-                    "accuracy": accuracy,
-                    "threshold_accuracy": threshold_accuracy
-                }, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error writing output_json: {e}", file=sys.stderr)
-            
+    tool_context.state.update({
+        "status": status,
+        "message": message,
+        "accuracy": accuracy,
+        "threshold_accuracy": threshold_accuracy
+    })
+    
     if status == "passed":
         print(f"\n🎉 テスト合格! 精度 {accuracy:.4f} >= 閾値 {threshold_accuracy:.4f}")
-        sys.exit(0)
     else:
         print(f"\n❌ テスト不合格! 精度 {accuracy:.4f} < 閾値 {threshold_accuracy:.4f}", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError(message)
 
 def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: ToolContext) -> str:
     """
@@ -249,5 +204,10 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
     return f"Success: Tests passed with accuracy >= {threshold_accuracy}."
 
 if __name__ == "__main__":
-    main()
-
+    runner = SkillCommandLineRunner(description="ADK evalテストを実行し、合格閾値に基づいて判定を行います。")
+    runner.add_argument("--skill_name", type=str, help="テスト対象のスキル名")
+    runner.add_argument("--eval_set_path", type=str, help="テストケース定義ファイルのパス")
+    runner.add_argument("--threshold_accuracy", type=float, default=1.0, help="合格に必要な精度の閾値（0.0〜1.0）")
+    runner.add_argument("--timeout_seconds", type=int, default=180, help="テスト実行のタイムアウト制限（秒）")
+    runner.add_argument("--eval_mode", type=int, choices=[0, 1], default=1, help="ADK_EVAL_MODE の値 (1: 単体評価用, 0: 通常/トリガー評価用)")
+    runner.run(execute_test_logic)

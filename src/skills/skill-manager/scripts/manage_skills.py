@@ -9,6 +9,7 @@ import json
 import os
 import sys
 from google.adk.tools import ToolContext
+from edd_agent_tools.testing.cli import SkillCommandLineRunner
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -111,69 +112,25 @@ def update_meta(skill_name, registry_path=None):
     save_registry(registry, registry_path)
     print(f"Updated file hashes for skill '{skill_name}'.")
 
-def set_skill_tier(command: str, tier: int, tool_context: ToolContext) -> str:
-    """
-    指定されたスキルのTierを設定・更新します。
-    引数:
-      command: 'set-tier' を指定
-      tier: 設定するTier値 (0, 1, 2, 3)
-    """
+def manage_skills_logic(tool_context: ToolContext):
+    """スキル登録・管理のメインビジネスロジック"""
+    command = tool_context.state.get("command")
     skill_name = tool_context.state.get("skill_name")
+    tier = tool_context.state.get("tier")
     registry_path = tool_context.state.get("registry_path")
-    
-    if not skill_name:
-        raise ValueError("セッション状態に 'skill_name' が設定されていません。")
-        
+
+    if not command:
+        raise ValueError("Error: 'command' is required.")
+
     if registry_path:
         registry_path = os.path.abspath(registry_path)
     else:
         registry_path = DEFAULT_REGISTRY_PATH
 
-    if command != "set-tier":
-        raise ValueError("現在、このツールでは 'set-tier' コマンドのみがサポートされています。")
-        
-    set_tier(skill_name, tier, registry_path)
-    
-    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/01_reg_out.json"
-    if tier == 1:
-        output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/07_final_reg_out.json"
-        
-    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
-    with open(output_json_path, "w", encoding="utf-8") as f:
-        json.dump({
-            "status": "success",
-            "message": f"Set tier of '{skill_name}' to {tier}.",
-            "skill_name": skill_name
-        }, f, indent=2, ensure_ascii=False)
-        
-    tool_context.state["reg_out_json_path"] = output_json_path
-    
-    return f"Success: Set tier of '{skill_name}' to {tier}."
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Skill Tier Registry Manager CLI")
-    parser.add_argument("--command", choices=["register", "get-tier", "set-tier", "list", "update-meta"], required=True, help="Command to execute")
-    parser.add_argument("--skill_name", help="Name of the skill")
-    parser.add_argument("--tier", type=int, choices=[0, 1, 2, 3], help="Tier value (0, 1, 2, 3)")
-    parser.add_argument("--registry_path", help="Path to skills_registry.json file")
-    parser.add_argument("--output_json", help="Path to output JSON file")
-    
-    args = parser.parse_args()
-    
-    command = args.command
-    skill_name = args.skill_name
-    tier = args.tier
-    registry_path = args.registry_path
-    
-    # パスが渡された場合は絶対パスに変換
-    if registry_path:
-        registry_path = os.path.abspath(registry_path)
-        
     status = "success"
     message = ""
     result_data = {}
-    
+
     try:
         if command == "register":
             if not skill_name:
@@ -192,6 +149,10 @@ def main():
         elif command == "set-tier":
             if not skill_name or tier is None:
                 raise ValueError("skill_name and tier are required")
+            try:
+                tier = int(tier)
+            except ValueError:
+                pass
             set_tier(skill_name, tier, registry_path)
             message = f"Set tier of '{skill_name}' to {tier}."
         elif command == "list":
@@ -202,28 +163,57 @@ def main():
                 raise ValueError("skill_name is required")
             update_meta(skill_name, registry_path)
             message = f"Updated metadata for skill '{skill_name}'."
+        else:
+            raise ValueError(f"Unknown command: {command}")
     except Exception as e:
         status = "failed"
         message = str(e)
         print(f"Error executing command: {e}", file=sys.stderr)
+
+    # 共通の出力状態のセット
+    tool_context.state.update({
+        "status": status,
+        "message": message,
+        "skill_name": skill_name,
+        **result_data
+    })
+
+    if status != "success":
+        raise RuntimeError(message)
+
+def set_skill_tier(command: str, tier: int, tool_context: ToolContext) -> str:
+    """
+    指定されたスキルのTierを設定・更新します。
+    """
+    # セッション状態を更新して共通ロジックに流す
+    tool_context.state["command"] = command
+    tool_context.state["tier"] = tier
+    
+    skill_name = tool_context.state.get("skill_name")
+    
+    manage_skills_logic(tool_context)
+    
+    # ワークフロー固有の一時ファイル出力 (互換性のため)
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/01_reg_out.json"
+    if tier == 1:
+        output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/07_final_reg_out.json"
         
-    if args.output_json:
-        try:
-            out_dir = os.path.dirname(os.path.abspath(args.output_json))
-            if out_dir:
-                os.makedirs(out_dir, exist_ok=True)
-            with open(args.output_json, "w", encoding="utf-8") as f:
-                json.dump({
-                    "status": status,
-                    "message": message,
-                    "skill_name": skill_name,
-                    **result_data
-                }, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error writing output_json: {e}", file=sys.stderr)
-            
-    if status == "failed":
-        sys.exit(1)
+    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "status": "success",
+            "message": f"Set tier of '{skill_name}' to {tier}.",
+            "skill_name": skill_name
+        }, f, indent=2, ensure_ascii=False)
+        
+    tool_context.state["reg_out_json_path"] = output_json_path
+    
+    return f"Success: Set tier of '{skill_name}' to {tier}."
 
 if __name__ == "__main__":
-    main()
+    runner = SkillCommandLineRunner(description="Skill Tier Registry Manager CLI")
+    runner.add_argument("--command", choices=["register", "get-tier", "set-tier", "list", "update-meta"], required=True, help="Command to execute")
+    runner.add_argument("--skill_name", help="Name of the skill")
+    runner.add_argument("--tier", type=int, choices=[0, 1, 2, 3], help="Tier value (0, 1, 2, 3)")
+    runner.add_argument("--registry_path", help="Path to skills_registry.json file")
+    runner.run(manage_skills_logic)

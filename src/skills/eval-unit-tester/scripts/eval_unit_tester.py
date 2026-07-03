@@ -7,6 +7,7 @@ from google.genai import types
 from google.adk.tools import ToolContext
 from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
+from edd_agent_tools.testing.cli import SkillCommandLineRunner
 
 # インポートキャッシュの不整合対策
 sys.modules.pop('google', None)
@@ -210,10 +211,11 @@ def generate_test_cases(skill_name: str):
     print(f"Successfully generated and saved test config: {config_path}")
 
 
-def generate_unit_tests(tool_context: ToolContext) -> str:
+def execute_unit_tester_logic(tool_context: ToolContext):
+    """単体テスト生成のメインビジネスロジック"""
     skill_name = tool_context.state.get("skill_name")
     if not skill_name:
-        raise ValueError("Error: 'skill_name' is not set in session state.")
+        raise ValueError("Error: 'skill_name' is not set.")
         
     generate_test_cases(skill_name)
     
@@ -223,14 +225,15 @@ def generate_unit_tests(tool_context: ToolContext) -> str:
     eval_set_path = os.path.join(skill_dir, "tests", eval_set_filename)
     
     tool_context.state["eval_set_path"] = eval_set_path
-    return f"Success: Unit tests generated at {eval_set_path}"
 
-
-def main():
-    parser = argparse.ArgumentParser(description="Unit Test Case Generator")
-    parser.add_argument("--skill_name", type=str, required=True)
-    args = parser.parse_args()
-    generate_test_cases(args.skill_name)
+def generate_unit_tests(tool_context: ToolContext) -> str:
+    """
+    指定されたスキルのテストを実行します。
+    """
+    execute_unit_tester_logic(tool_context)
+    return f"Success: Unit tests generated at {tool_context.state.get('eval_set_path')}"
 
 if __name__ == "__main__":
-    main()
+    runner = SkillCommandLineRunner(description="Unit Test Case Generator")
+    runner.add_argument("--skill_name", type=str, required=True)
+    runner.run(execute_unit_tester_logic)

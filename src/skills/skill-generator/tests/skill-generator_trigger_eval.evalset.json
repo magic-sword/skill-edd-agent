@@ -1,0 +1,696 @@
+{
+  "eval_set_id": "skill-generator_trigger_eval_set",
+  "name": "skill-generator Trigger Evaluation Set",
+  "eval_cases": [
+    {
+      "eval_id": "positive_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "「レシピに従って料理をサポートするスキル」を`src/skills/cooking-helper`ディレクトリに生成してほしい。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_2",
+          "user_content": {
+            "parts": [
+              {
+                "text": "新しいADK互換のスキルを`my-new-skill`という名前で作成してください。要件は「ユーザーの気分に合わせた音楽を推薦する」です。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_3",
+          "user_content": {
+            "parts": [
+              {
+                "text": "`src/skills/weather-reporter`に「現在の天気予報を伝えるスキル」を自動生成して。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_4",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_4",
+          "user_content": {
+            "parts": [
+              {
+                "text": "「今日のニュースを要約するスキル」を`news-summarizer`ディレクトリに作ってくれないか。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_5",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_5",
+          "user_content": {
+            "parts": [
+              {
+                "text": "指定されたプロンプト「会議の議事録を自動で作成する」に基づいて、新しいスキルを開発してほしい。出力先は`meeting-minutes`で。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_6",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_6",
+          "user_content": {
+            "parts": [
+              {
+                "text": "ADKスキルを生成するツールを使いたい。「旅行プランを提案するスキル」を`travel-planner`に作成して。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_7",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_7",
+          "user_content": {
+            "parts": [
+              {
+                "text": "`src/skills/task-manager`に「タスク管理をサポートするスキル」を生成してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_8",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_8",
+          "user_content": {
+            "parts": [
+              {
+                "text": "ユーザーの指示でスキルを自動生成する機能を使いたい。「簡単な計算を行うスキル」を`calculator-skill`として作成して。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_9",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_9",
+          "user_content": {
+            "parts": [
+              {
+                "text": "「健康的な食事のレシピを提供するスキル」を`health-recipes`ディレクトリに作ってほしい。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_10",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_10",
+          "user_content": {
+            "parts": [
+              {
+                "text": "新しいスキルを`src/skills/joke-teller`に生成して。「面白いジョークを話すスキル」です。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-generator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "今日の天気はどうですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_2",
+          "user_content": {
+            "parts": [
+              {
+                "text": "123 + 456 はいくつになりますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_3",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Pythonでリストの要素を逆順にするにはどうすればいいですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_4",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_4",
+          "user_content": {
+            "parts": [
+              {
+                "text": "こんにちは、元気ですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_5",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_5",
+          "user_content": {
+            "parts": [
+              {
+                "text": "最近何か面白いことありましたか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_6",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_6",
+          "user_content": {
+            "parts": [
+              {
+                "text": "明日の会議は何時からでしたっけ？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_7",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_7",
+          "user_content": {
+            "parts": [
+              {
+                "text": "このファイルのパーミッションを変更したいのですが。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_8",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_8",
+          "user_content": {
+            "parts": [
+              {
+                "text": "ADKのスキルレジストリについて教えてください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_9",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_9",
+          "user_content": {
+            "parts": [
+              {
+                "text": "新しいディレクトリを作成するにはどうすればいいですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_10",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_10",
+          "user_content": {
+            "parts": [
+              {
+                "text": "JavaScriptで非同期処理を書く方法を教えてください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    }
+  ]
+}

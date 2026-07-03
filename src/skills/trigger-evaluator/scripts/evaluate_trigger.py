@@ -15,6 +15,7 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
+from edd_agent_tools.testing.cli import SkillCommandLineRunner
 
 class StaticEvalResult(BaseModel):
     specificity: int = Field(..., description="トリガー条件の具体性を1-5の整数で評価したもの")
@@ -225,66 +226,11 @@ def save_report(skill_name, static_eval_result, generated_cases_file):
     save_json_file(report_filepath, report_data)
     print(f"  - 詳細レポートを '{report_filepath}' に保存しました。\n")
 
-def generate_trigger_tests(tool_context: ToolContext) -> str:
-    """
-    指定されたスキル（skill_name）に対するトリガーテストケースを自動生成し、
-    結果を trig_eval_set_path に保存します。
-    """
+def execute_trigger_logic(tool_context: ToolContext):
+    """トリガー評価・生成のメインビジネスロジック"""
     skill_name = tool_context.state.get("skill_name")
     if not skill_name:
-        raise ValueError("セッション状態に 'skill_name' が設定されていません。")
-        
-    skill_md_filepath = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
-    if not os.path.exists(skill_md_filepath):
-         raise FileNotFoundError(f"対象スキル '{skill_name}' のSKILL.mdファイルが見つかりません: {skill_md_filepath}")
-         
-    skill_md_content = load_file_content(skill_md_filepath)
-    
-    static_eval_result = static_evaluate_skill_md(skill_name, skill_md_content)
-    if not static_eval_result["passed"]:
-        raise ValueError(f"トリガー静的評価不合格 (Specificity: {static_eval_result.get('specificity')}, Clarity: {static_eval_result.get('clarity')})")
-
-    eval_set_filepath = generate_trigger_test_cases(skill_name, skill_md_content)
-    if not eval_set_filepath:
-        raise ValueError("テストケース生成に失敗しました。")
-
-    save_report(skill_name, static_eval_result, eval_set_filepath)
-    
-    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/05_trig_gen_out.json"
-    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
-    with open(output_json_path, "w", encoding="utf-8") as f:
-        json.dump({
-            "status": "success",
-            "message": "Successfully generated trigger test assets.",
-            "eval_set_path": eval_set_filepath
-        }, f, indent=2, ensure_ascii=False)
-        
-    tool_context.state["trig_eval_set_path"] = eval_set_filepath
-    
-    return f"Success: Generated trigger tests at '{eval_set_filepath}'."
-
-
-def main():
-    parser = argparse.ArgumentParser(description="指定されたスキルのトリガー定義の品質チェックとテスト生成を行います。")
-    parser.add_argument("--skill_name", help="評価対象のスキル名")
-    parser.add_argument("--input_json", help="Path to input JSON file")
-    parser.add_argument("--output_json", help="Path to output JSON file")
-    args = parser.parse_args()
-
-    skill_name = args.skill_name
-    
-    if args.input_json:
-        try:
-            with open(args.input_json, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                skill_name = data.get("skill_name", skill_name)
-        except Exception as e:
-            print(f"Error reading input_json: {e}", file=sys.stderr)
-            sys.exit(1)
-            
-    if not skill_name:
-        print("エラー: --skill_name または --input_json は必須です。", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError("エラー: skill_name がセッション状態に設定されていません。")
         
     skill_md_filepath = os.path.join(SKILLS_DIR, skill_name, "SKILL.md")
     
@@ -318,24 +264,40 @@ def main():
         status = "failed"
         message = str(e)
         print(f"❌ エラー: {e}", file=sys.stderr)
+
+    # 共通の出力状態のセット
+    tool_context.state.update({
+        "status": status,
+        "message": message,
+        "eval_set_path": eval_set_filepath
+    })
+
+    if status == "success":
+        tool_context.state["trig_eval_set_path"] = eval_set_filepath
+    else:
+        raise RuntimeError(message)
+
+def generate_trigger_tests(tool_context: ToolContext) -> str:
+    """
+    指定されたスキル（skill_name）に対するトリガーテストケースを自動生成し、
+    結果を trig_eval_set_path に保存します。
+    """
+    execute_trigger_logic(tool_context)
+    
+    # ワークフロー用の固有一時フォルダへの書き出し (互換性のため)
+    skill_name = tool_context.state.get("skill_name")
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/05_trig_gen_out.json"
+    os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
+    with open(output_json_path, "w", encoding="utf-8") as f:
+        json.dump({
+            "status": tool_context.state.get("status"),
+            "message": tool_context.state.get("message"),
+            "eval_set_path": tool_context.state.get("eval_set_path")
+        }, f, indent=2, ensure_ascii=False)
         
-    if args.output_json:
-        try:
-            out_dir = os.path.dirname(os.path.abspath(args.output_json))
-            if out_dir:
-                os.makedirs(out_dir, exist_ok=True)
-            with open(args.output_json, "w", encoding="utf-8") as f:
-                json.dump({
-                    "status": status,
-                    "message": message,
-                    "skill_name": skill_name,
-                    "eval_set_path": eval_set_filepath
-                }, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error writing output_json: {e}", file=sys.stderr)
-            
-    if status == "failed":
-        sys.exit(1)
+    return f"Success: Generated trigger tests at '{tool_context.state.get('eval_set_path')}'."
 
 if __name__ == "__main__":
-    main()
+    runner = SkillCommandLineRunner(description="指定されたスキルのトリガー定義の品質チェックとテスト生成を行います。")
+    runner.add_argument("--skill_name", help="評価対象のスキル名")
+    runner.run(execute_trigger_logic)
