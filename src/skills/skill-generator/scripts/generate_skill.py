@@ -19,7 +19,7 @@ from google.adk.tools import ToolContext
 from google.adk.tools.environment._read_file_tool import ReadFileTool
 from google.adk.tools.environment._edit_file_tool import EditFileTool
 from google.adk.tools.environment._write_file_tool import WriteFileTool
-from edd_agent_tools.testing.cli import LibraryDocumentationReader
+from edd_agent_tools.testing import LibraryDocumentationReader
 
 
 # インポートキャッシュの不整合対策

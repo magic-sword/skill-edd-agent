@@ -15,7 +15,7 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
-from edd_agent_tools.testing.cli import SkillCommandLineRunner
+from edd_agent_tools.testing import SkillCommandLineRunner
 
 class StaticEvalResult(BaseModel):
     specificity: int = Field(..., description="トリガー条件の具体性を1-5の整数で評価したもの")

@@ -7,7 +7,7 @@ from google.genai import types
 from google.adk.tools import ToolContext
 from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
-from edd_agent_tools.testing.cli import SkillCommandLineRunner
+from edd_agent_tools.testing import SkillCommandLineRunner
 
 # インポートキャッシュの不整合対策
 sys.modules.pop('google', None)
