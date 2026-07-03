@@ -57,25 +57,26 @@ class SkillRegistry:
                     return "agents"
         return "skills"  # デフォルト
 
-    def register_skill(self, skill_name: str):
-        """スキルまたはエージェントを新規登録します（デフォルトは Tier 1）。"""
+    def register_skill(self, skill_name: str) -> bool:
+        """スキルまたはエージェントを新規登録します（新規は常に Tier 0 から開始）。"""
         if self.data is None:
             self.load()
             
         cat = self.detect_category(skill_name)
         skills_info = self.data.setdefault(cat, {})
         if skill_name in skills_info:
-            print(f"{cat[:-1].capitalize()} '{skill_name}' already registered.")
-            return
+            print(f"{cat[:-1].capitalize()} '{skill_name}' already registered. Current tier: {skills_info[skill_name].get('tier')}")
+            return False
             
         skills_info[skill_name] = {
-            "tier": 1,
+            "tier": 0,
             "last_tested": None
         }
         self.save()
-        print(f"Registered {cat[:-1]} '{skill_name}' at Tier 1.")
+        print(f"Registered {cat[:-1]} '{skill_name}' at Tier 0.")
+        return True
 
-    def set_tier(self, skill_name: str, tier: int):
+    def set_tier(self, skill_name: str, tier: int) -> bool:
         """指定されたスキルまたはエージェントの Tier を設定・更新します。"""
         if tier not in [0, 1, 2, 3]:
             raise ValueError("Error: Tier must be 0, 1, 2, or 3.")
@@ -91,6 +92,15 @@ class SkillRegistry:
         now_str = datetime.datetime.now().isoformat() + "Z"
         
         existing_info = info if info else {}
+        current_tier = existing_info.get("tier")
+        
+        # Tier 1 への更新のとき、現在の Tier が 0 の場合のみ許可する。
+        # すでに Tier 1 以上の既存スキルはダウングレードや不要な上書きを防ぐためスキップ。
+        if tier == 1:
+            if current_tier is not None and current_tier != 0:
+                print(f"Skipped promotion to Tier 1 for '{skill_name}': Current tier is {current_tier} (only Tier 0 can be promoted).")
+                return False
+            
         skills_info[skill_name] = {
             **existing_info,
             "tier": tier,
@@ -101,6 +111,7 @@ class SkillRegistry:
             
         self.save()
         print(f"Set tier of '{skill_name}' to {tier} ({cat}).")
+        return True
 
     def list_skills(self):
         """登録されている全スキルおよびエージェントの一覧を表示します。"""
@@ -162,7 +173,12 @@ class SkillRegistry:
             raise FileNotFoundError(f"エラー: 特定されたスクリプトファイルが存在しません: {script_abs_path}")
             
         # 動的インポート
-        module_name = skill_name.replace("-", "_")
+        # モジュール名に単にスキル名を使用すると、ロードされた main.py 内部で
+        # 同名モジュール（例: eval_unit_tester.py）をインポートしようとした際に、
+        # sys.modules 内に既に自身が登録されているため循環参照してしまい、
+        # ImportError が発生します。
+        # これを回避するために、専用の名前空間（FQDN）の配下に階層化して登録します。
+        module_name = f"edd_agent_tools.dynamic_skills.{skill_name.replace('-', '_')}"
         
         if module_name in sys.modules:
             module = sys.modules[module_name]
