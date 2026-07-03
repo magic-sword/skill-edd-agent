@@ -1,3 +1,4 @@
 google-adk[a2a]
 google-adk[eval]
 a2a-sdk[http-server]
+-e edd-agent-tools
