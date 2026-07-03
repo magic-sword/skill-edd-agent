@@ -9,10 +9,6 @@ import os
 import sys
 import asyncio
 
-# プロジェクトルートをsys.pathに追加
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-WORKSPACE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", ".."))
-sys.path.append(WORKSPACE_ROOT)
 
 import google
 import google.auth

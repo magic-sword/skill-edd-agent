@@ -6,10 +6,6 @@ from datetime import datetime
 from google.adk.tools import ToolContext
 
 
-# プロジェクトルートをsys.pathに追加
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-WORKSPACE_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", ".."))
-sys.path.append(WORKSPACE_ROOT)
 
 from google import genai
 from google.genai import types
