@@ -4,7 +4,7 @@ import os
 import sys
 import re
 from google.adk.tools import ToolContext
-from edd_agent_tools.testing import SkillCommandLineRunner, get_patched_env
+from edd_agent_tools.testing import SkillCommandLineRunner, SkillCommand, SystemCommand, SubprocessRunner
 
 
 
@@ -30,12 +30,12 @@ def execute_test_logic(tool_context: ToolContext):
     print(f"Threshold accuracy: {threshold_accuracy:.2f}, Timeout: {timeout_seconds}s, Eval mode: {eval_mode}")
     
     # adk evalの環境変数の設定 (ハング防止の env -i)
-    env = get_patched_env({
+    env = {
         "HOME": "/home/vscode",
         "PATH": os.environ.get("PATH", "/workspace/.venv/bin:/usr/local/bin:/usr/bin:/bin"),
         "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
         "ADK_EVAL_MODE": str(eval_mode)
-    })
+    }
     
     # テストディレクトリに eval_config.json または test_config.json があればそれを指定する
     eval_dir = os.path.dirname(eval_set_path)
@@ -71,15 +71,12 @@ def execute_test_logic(tool_context: ToolContext):
     print(f"Executing: {' '.join(adk_command)}")
     
     try:
-        # タイムアウト付きでサブプロセスを実行
-        result = subprocess.run(
-            adk_command,
+        # SystemCommand と SubprocessRunner を用いた外部コマンド実行 (自動多言語パッチ適用)
+        cmd = SystemCommand("adk", args=adk_command[1:])
+        runner = SubprocessRunner(cmd)
+        result = runner.run(
             env=env,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=timeout_seconds,
-            cwd="/workspace"
+            timeout=timeout_seconds
         )
     except subprocess.TimeoutExpired as e:
         print(f"\n❌ エラー: テスト実行がタイムアウト（{timeout_seconds}秒）しました。デッドロック防止のため終了します。", file=sys.stderr)
@@ -170,27 +167,23 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
     if not skill_name or not eval_set_path:
         raise ValueError("セッション状態に 'skill_name' または 'eval_set_path' / 'trig_eval_set_path' が設定されていません。")
         
-    python_bin = sys.executable or "python3"
-    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
     output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/{step_name}_out.json"
     
-    cmd = [
-        python_bin, script_path,
-        "--skill_name", skill_name,
-        "--eval_set_path", eval_set_path,
-        "--threshold_accuracy", str(threshold_accuracy),
-        "--eval_mode", str(eval_mode),
-        "--output_json", output_json_path
-    ]
-    
-    print(f"Executing: {' '.join(cmd)}")
-    result = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        cwd="/workspace"
+    # SkillCommand と SubprocessRunner を用いたスキル CLI サブプロセス実行
+    cmd = SkillCommand(
+        "test-executor",
+        args=[
+            "--skill_name", skill_name,
+            "--eval_set_path", eval_set_path,
+            "--threshold_accuracy", str(threshold_accuracy),
+            "--eval_mode", str(eval_mode),
+            "--output_json", output_json_path
+        ]
     )
+    runner = SubprocessRunner(cmd)
+    
+    print(f"Executing: python main.py via SubprocessRunner for test-executor")
+    result = runner.run()
     
     print("--- SUBPROCESS OUTPUT ---")
     if result.stdout:

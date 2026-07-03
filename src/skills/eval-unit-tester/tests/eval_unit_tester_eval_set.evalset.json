@@ -4,15 +4,15 @@
   "description": "eval-unit-tester skill unit tests",
   "eval_cases": [
     {
-      "eval_id": "gen_cases_001",
+      "eval_id": "eval_unit_tester_happy_path_001",
       "conversation": [
         {
-          "invocation_id": "inv_1",
+          "invocation_id": "inv_001",
           "user_content": {
             "role": "user",
             "parts": [
               {
-                "text": "スキル 'text-formatter' の仕様書から単体テストケースを生成してください"
+                "text": "「my-simple-skill」の単体テストケースを生成し、その結果のみを返してください。"
               }
             ]
           },
@@ -20,20 +20,232 @@
             "role": "model",
             "parts": [
               {
-                "text": "🎉 テストケースファイルを正常に生成し保存しました: /workspace/src/skills/text-formatter/tests/text_formatter_eval_set.evalset.json\n🎉 評価設定ファイルを正常に生成し保存しました: /workspace/src/skills/text-formatter/tests/test_config.json"
+                "text": "単体テストケースの生成が完了しました。"
               }
             ]
           },
           "intermediate_data": {
-            "tool_uses": [],
-            "intermediate_responses": []
+            "tool_uses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "args": {
+                  "skill_name": "my-simple-skill"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "response": {
+                  "result": "単体テストケースの生成が完了しました。"
+                }
+              }
+            ]
           }
         }
       ],
       "session_input": {
-        "app_name": "src",
-        "user_id": "test_user",
-        "state": {}
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "skill_name": "my-simple-skill"
+        }
+      }
+    },
+    {
+      "eval_id": "eval_unit_tester_happy_path_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「text-analyzer-skill」の単体テストケースを生成し、その結果のみを返してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "単体テストケースの生成が完了しました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "args": {
+                  "skill_name": "text-analyzer-skill"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "response": {
+                  "result": "単体テストケースの生成が完了しました。"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "skill_name": "text-analyzer-skill"
+        }
+      }
+    },
+    {
+      "eval_id": "eval_unit_tester_happy_path_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「image-processor-v2」の単体テストケースを生成し、その結果のみを返してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "単体テストケースの生成が完了しました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "args": {
+                  "skill_name": "image-processor-v2"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "response": {
+                  "result": "単体テストケースの生成が完了しました。"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "skill_name": "image-processor-v2"
+        }
+      }
+    },
+    {
+      "eval_id": "eval_unit_tester_happy_path_004",
+      "conversation": [
+        {
+          "invocation_id": "inv_004",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「document-summarizer-with-keywords」の単体テストケースを生成し、その結果のみを返してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "単体テストケースの生成が完了しました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "args": {
+                  "skill_name": "document-summarizer-with-keywords"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "response": {
+                  "result": "単体テストケースの生成が完了しました。"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "skill_name": "document-summarizer-with-keywords"
+        }
+      }
+    },
+    {
+      "eval_id": "eval_unit_tester_happy_path_005",
+      "conversation": [
+        {
+          "invocation_id": "inv_005",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "「calculator」の単体テストケースを生成し、その結果のみを返してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "単体テストケースの生成が完了しました。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "args": {
+                  "skill_name": "calculator"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "execute_unit_tester_logic",
+                "response": {
+                  "result": "単体テストケースの生成が完了しました。"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "skill_name": "calculator"
+        }
       }
     }
   ]

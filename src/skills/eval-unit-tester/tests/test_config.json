@@ -1,0 +1,7 @@
+{
+  "eval_set_path": "/workspace/src/skills/eval-unit-tester/tests/eval_unit_tester_eval_set.evalset.json",
+  "threshold_accuracy": 1.0,
+  "criteria": {
+    "response_match_score": 0.8
+  }
+}
