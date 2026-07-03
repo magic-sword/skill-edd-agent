@@ -6,14 +6,22 @@
 
 ---
 
-## 1. CLI実行ランナー: `SkillCommandLineRunner`
+## 1. エントリーポイントの統一 (`scripts/main.py`) と CLI・ビジネスロジックの分離
 
-スキルのエントリーポイント（`if __name__ == "__main__":` ブロック）では、手続き型の引数パースを行わず、必ず `SkillCommandLineRunner` クラスを使用してください。
+すべてのスキルは、以下の2つの役割（ファイル）に厳密に分離し、エントリーポイントを **`scripts/main.py`** に統一しなければなりません。
+
+1.  **ビジネスロジックモジュール (`scripts/[skill_name_with_underscores].py`)**:
+    *   純粋な Python モジュールとして、ビジネスロジックである `process_message` などの関数定義のみを記述します。
+    *   このファイル内に `if __name__ == "__main__":` や `SkillCommandLineRunner`、引数パース、副作用のあるグローバル処理は**記述してはいけません**。
+2.  **CLIエントリーポイントラッパー (`scripts/main.py`)**:
+    *   `SkillCommandLineRunner` を使用して CLI の引数パースと実行を行うだけの軽量なラッパーファイルです。
+    *   ビジネスロジック関数（`process_message` など）をインポートして公開（エクスポート）します。
 
 ### 基本的な構成例
+
+**ビジネスロジック側 (`scripts/my_skill.py`)**:
 ```python
 from google.adk.tools import ToolContext
-from edd_agent_tools.testing.cli import SkillCommandLineRunner
 
 def process_message(tool_context: ToolContext):
     # 1. パラメータの入力取得
@@ -24,10 +32,20 @@ def process_message(tool_context: ToolContext):
     
     # 3. 処理結果の出力設定
     tool_context.state["result_message"] = result
+```
+
+**CLIエントリーポイント側 (`scripts/main.py`)**:
+```python
+import os
+import sys
+from edd_agent_tools.testing.cli import SkillCommandLineRunner
+
+# 同一ディレクトリのビジネスロジックをインポート
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from my_skill import process_message
 
 if __name__ == "__main__":
     runner = SkillCommandLineRunner(description="スキルの説明")
-    # 必要に応じて独自引数を登録
     runner.add_argument("--user_message", type=str, help="ユーザーへのメッセージ")
     runner.run(process_message)
 ```
@@ -64,6 +82,8 @@ LLMが実装するビジネスロジック内では、以下の規則に従っ�
 
 ワークフローの実行スクリプトやスキル管理ツールなどの「システム側（実行エンジン）」では、`skills_registry.json` に登録されたスキルの操作やインプロセスツールの動的ロードに `SkillRegistry` クラスを使用してください。
 
+`SkillRegistry.load_tool` は、指定されたスキルの **`scripts/main.py`** を自動的に動的ロードし、そこから関数オブジェクトを取得します。
+
 ### 基本的な構成例
 ```python
 from edd_agent_tools.registry import SkillRegistry
@@ -72,6 +92,7 @@ from edd_agent_tools.registry import SkillRegistry
 registry = SkillRegistry()
 
 # 1. 登録されているスキルのインプロセスツールを動的解決・ロード
+# (scripts/main.py から set_skill_tier がインポート・エクスポートされます)
 set_skill_tier = registry.load_tool("skill-manager", "set_skill_tier")
 
 # 2. 登録スキルの一覧取得・管理
