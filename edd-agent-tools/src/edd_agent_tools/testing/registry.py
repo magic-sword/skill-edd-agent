@@ -69,14 +69,36 @@ class SkillRegistry:
                     pass
         return hashes
 
+    def _get_category_and_info(self, name: str) -> tuple[str, dict] | tuple[None, None]:
+        """指定された名前の登録カテゴリ(skills または agents)とメタデータを取得します。"""
+        if self.data is None:
+            self.load()
+        for cat in ["skills", "agents"]:
+            if name in self.data.get(cat, {}):
+                return cat, self.data[cat][name]
+        return None, None
+
+    def detect_category(self, skill_name: str) -> str:
+        """指定されたスキル名/エージェント名が属するフォルダからカテゴリ(skills または agents)を判定します。"""
+        if self.data is None:
+            self.load()
+        search_paths = self.data.get("search_paths", ["src/skills"])
+        for path_entry in search_paths:
+            possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
+            if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
+                if "agents" in path_entry:
+                    return "agents"
+        return "skills"  # デフォルト
+
     def register_skill(self, skill_name: str):
-        """スキルを新規登録します（デフォルトは Tier 1）。"""
+        """スキルまたはエージェントを新規登録します（デフォルトは Tier 1）。"""
         if self.data is None:
             self.load()
             
-        skills_info = self.data.setdefault("skills", {})
+        cat = self.detect_category(skill_name)
+        skills_info = self.data.setdefault(cat, {})
         if skill_name in skills_info:
-            print(f"Skill '{skill_name}' already registered.")
+            print(f"{cat[:-1].capitalize()} '{skill_name}' already registered.")
             return
             
         hashes = self.calculate_skill_hashes(skill_name)
@@ -86,17 +108,21 @@ class SkillRegistry:
             "file_hashes": hashes
         }
         self.save()
-        print(f"Registered skill '{skill_name}' at Tier 1.")
+        print(f"Registered {cat[:-1]} '{skill_name}' at Tier 1.")
 
     def set_tier(self, skill_name: str, tier: int):
-        """指定されたスキルの Tier を設定・更新します。"""
+        """指定されたスキルまたはエージェントの Tier を設定・更新します。"""
         if tier not in [0, 1, 2, 3]:
             raise ValueError("Error: Tier must be 0, 1, 2, or 3.")
             
         if self.data is None:
             self.load()
             
-        skills_info = self.data.setdefault("skills", {})
+        cat, info = self._get_category_and_info(skill_name)
+        if not cat:
+            cat = self.detect_category(skill_name)
+            
+        skills_info = self.data.setdefault(cat, {})
         now_str = datetime.datetime.now().isoformat() + "Z"
         
         hashes = self.calculate_skill_hashes(skill_name)
@@ -106,46 +132,46 @@ class SkillRegistry:
             "file_hashes": hashes
         }
         self.save()
-        print(f"Set tier of '{skill_name}' to {tier}.")
+        print(f"Set tier of '{skill_name}' to {tier} ({cat}).")
 
     def list_skills(self):
-        """登録されている全スキルの一覧を表示します。"""
+        """登録されている全スキルおよびエージェントの一覧を表示します。"""
         if self.data is None:
             self.load()
             
-        print(f"{'Skill Name':<25} | {'Tier':<5} | {'Last Tested':<25}")
-        print("-" * 63)
-        for name, info in sorted(self.data.get("skills", {}).items()):
-            last_tested = info.get("last_tested") or "Never"
-            print(f"{name:<25} | {info['tier']:<5} | {last_tested:<25}")
+        print(f"{'Category':<10} | {'Name':<25} | {'Tier':<5} | {'Last Tested':<25}")
+        print("-" * 75)
+        for cat in ["skills", "agents"]:
+            for name, info in sorted(self.data.get(cat, {}).items()):
+                last_tested = info.get("last_tested") or "Never"
+                print(f"{cat[:-1].capitalize():<10} | {name:<25} | {info['tier']:<5} | {last_tested:<25}")
 
     def update_meta(self, skill_name: str):
-        """スキルのファイルハッシュメタデータを最新の状態に更新します。"""
+        """スキルまたはエージェントのファイルハッシュメタデータを最新の状態に更新します。"""
         if self.data is None:
             self.load()
             
-        skills_info = self.data.get("skills", {})
-        if skill_name not in skills_info:
+        cat, info = self._get_category_and_info(skill_name)
+        if not cat:
             self.register_skill(skill_name)
             return
             
         hashes = self.calculate_skill_hashes(skill_name)
-        skills_info[skill_name]["file_hashes"] = hashes
+        self.data[cat][skill_name]["file_hashes"] = hashes
         self.save()
-        print(f"Updated file hashes for skill '{skill_name}'.")
+        print(f"Updated file hashes for {cat[:-1]} '{skill_name}'.")
 
     def load_tool(self, skill_name: str, function_name: str):
-        """指定されたスキルと関数名から Python スクリプトを動的ロードし、関数オブジェクトを返します。"""
+        """指定されたスキル/エージェントと関数名から Python スクリプトを動的ロードし、関数オブジェクトを返します。"""
         if self.data is None:
             self.load()
             
         search_paths = self.data.get("search_paths", ["src/skills"])
-        skills_info = self.data.get("skills", {})
         
-        if skill_name not in skills_info:
-            raise ValueError(f"エラー: スキル '{skill_name}' がレジストリに登録されていません。")
+        cat, skill_meta = self._get_category_and_info(skill_name)
+        if not cat:
+            raise ValueError(f"エラー: スキル/エージェント '{skill_name}' がレジストリに登録されていません。")
             
-        skill_meta = skills_info[skill_name]
         file_hashes = skill_meta.get("file_hashes", {})
         
         script_rel_path = None
@@ -156,10 +182,10 @@ class SkillRegistry:
                 
         if not script_rel_path:
             raise FileNotFoundError(
-                f"エラー: スキル '{skill_name}' のメタデータ内に実行可能な Python スクリプト (scripts/*.py) が登録されていません。"
+                f"エラー: '{skill_name}' のメタデータ内に実行可能な Python スクリプト (scripts/*.py) が登録されていません。"
             )
             
-        # search_paths からスキルディレクトリを動的特定
+        # search_paths からディレクトリを動的特定
         skill_dir = None
         for path_entry in search_paths:
             possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
@@ -169,7 +195,7 @@ class SkillRegistry:
                 
         if not skill_dir:
             raise FileNotFoundError(
-                f"エラー: スキル '{skill_name}' の実体ディレクトリが探索パス {search_paths} 内に見つかりません。"
+                f"エラー: '{skill_name}' の実体ディレクトリが探索パス {search_paths} 内に見つかりません。"
             )
             
         script_abs_path = os.path.join(skill_dir, script_rel_path)

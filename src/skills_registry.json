@@ -1,7 +1,7 @@
 {
   "search_paths": [
     "src/skills",
-    "src/workflows"
+    "src/agents"
   ],
   "skills": {
     "skill-generator": {
@@ -58,6 +58,17 @@
       "file_hashes": {
         "SKILL.md": "b3e101ec0b907cc4c0b7f7cf17d969ee7e2666195579758724971626c18867f7",
         "scripts/execute_test.py": "c4be0f26121e16b02ecda978cd643e28207d511a772627ad17a1cbeb0084af00"
+      }
+    }
+  },
+  "agents": {
+    "skill-developer": {
+      "tier": 3,
+      "last_tested": null,
+      "file_hashes": {
+        "SKILL.md": "0376fcfa33bffe89d7fb255ee61d0fd7efc0ce9197cdb69c34e82bb9d58cfeb4",
+        "scripts/develop_skill.py": "faba5bf9e21502ea4f83a0ee57ebd752b938226b9607f56bd9e71a692e995be3",
+        "scripts/workflow.py": "5cb3f22d4ef5682982ca0306887db1f02674c1a35432e7438e80789a9377515c"
       }
     }
   }

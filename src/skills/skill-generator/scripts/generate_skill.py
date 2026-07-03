@@ -22,9 +22,6 @@ from google.adk.tools.environment._write_file_tool import WriteFileTool
 from edd_agent_tools.testing import LibraryDocumentationReader
 
 
-# インポートキャッシュの不整合対策
-sys.modules.pop('google', None)
-sys.modules.pop('google.adk', None)
 
 async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, max_turns: int):
     # パス情報の解析

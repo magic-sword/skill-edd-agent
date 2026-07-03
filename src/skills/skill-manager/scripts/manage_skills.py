@@ -40,11 +40,11 @@ def manage_skills_logic(tool_context: ToolContext):
             if not skill_name:
                 raise ValueError("skill_name is required")
             registry_data = registry.load()
-            skill_info = registry_data.get("skills", {}).get(skill_name)
+            skill_info = registry_data.get("skills", {}).get(skill_name) or registry_data.get("agents", {}).get(skill_name)
             current_tier = skill_info["tier"] if skill_info else 1
             print(current_tier)
             result_data["tier"] = current_tier
-            message = f"Got tier {current_tier} for skill '{skill_name}'."
+            message = f"Got tier {current_tier} for skill/agent '{skill_name}'."
         elif command == "set-tier":
             if not skill_name or tier is None:
                 raise ValueError("skill_name and tier are required")

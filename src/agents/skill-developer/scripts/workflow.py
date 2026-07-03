@@ -1,5 +1,5 @@
 """
-generate-skill-workflow の Workflow オブジェクト定義。
+skill_developer の Workflow オブジェクト定義。
 ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠し、
 状態バケツリレー用の WorkflowState スキーマや LLM Agent に対する JSON 制御指示を完全に排除する。
 各エージェントはインプロセス関数ツール (FunctionTool) を実行し、状態は ToolContext を介して裏側で自動的に共有される。
@@ -98,7 +98,7 @@ execute_trigger_test_agent = Agent(
         "あなたはトリガー精度テスト実行の担当者です。`run_skill_tests` ツールを呼び出して、"
         "生成されたトリガーテストケースを実行し合格判定を行ってください。\n"
         "【ツール呼び出しパラメータ】\n"
-        "- eval_mode: 0 (トリガー評価用)\n"
+        "- eval_mode: 0 (トリガー精度評価用)\n"
         "- threshold_accuracy: 0.90"
     )
 )
@@ -121,7 +121,7 @@ set_tier_1_agent = Agent(
 # ワークフローの定義と接続
 # ==========================================
 root_workflow = Workflow(
-    name="generate_skill_workflow",
+    name="skill_developer",
     edges=[
         ("START", set_tier_0_agent),
         (set_tier_0_agent, generate_skill_agent),

@@ -1,6 +1,6 @@
 ---
-name: generate-skill-workflow
-description: 新規スキルを自動生成し、単体テスト・トリガーテストに合格させて Tier 1 に正式本登録する上位ワークフロー。
+name: skill-developer
+description: 新規スキルを自動生成し、単体テスト・トリガーテストに合格させて Tier 1 に正式本登録する上位ワークフロー（サブエージェント）。
 dependencies:
   - skill-manager
   - skill-generator
@@ -9,12 +9,12 @@ dependencies:
   - trigger-evaluator
 ---
 
-# generate-skill-workflow
+# skill-developer
 
 ## 概要
 
 ユーザーから提供されたスキル名と要件プロンプトをもとに、以下の 7 ステップを決定論的に順次実行し、
-品質保証済みのスキルを自動的に正式登録するワークフローです。
+品質保証済みのスキルを自動的に正式登録するワークフロー型サブエージェントです。
 
 1. スキルの仮登録（Tier 0）
 2. スキル本体コードの自動生成
@@ -34,15 +34,14 @@ dependencies:
 ## 実行方法
 
 ```bash
-python3 src/workflows/run_workflow.py \
-  --workflow_name generate-skill-workflow \
+python3 src/agents/skill-developer/scripts/develop_skill.py \
   --skill_name <スキル名> \
   --prompt "<要件プロンプト>"
 ```
 
 ## 依存関係
 
-このワークフローは以下の単体スキルに依存しています。
+このワークフローサブエージェントは以下の単体スキルに依存しています。
 依存するスキルが `skills_registry.json` に登録されていない場合、実行は事前に拒否されます。
 
 - **skill-manager**: スキルの Tier 登録・管理

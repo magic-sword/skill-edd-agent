@@ -4,9 +4,6 @@ import sys
 from google.adk.tools import ToolContext
 from edd_agent_tools.testing.mock_context import MockInvocationContext
 
-# インポートキャッシュの不整合対策
-sys.modules.pop('google', None)
-sys.modules.pop('google.adk', None)
 
 class SkillCommandLineRunner:
     """スキルスクリプトをオブジェクト指向でCLIから直接実行可能にするための共通ランナー"""
