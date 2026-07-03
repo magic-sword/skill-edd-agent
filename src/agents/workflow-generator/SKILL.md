@@ -39,7 +39,7 @@ description: 指定されたディレクトリに、ユーザーの指示に応�
 
 | パラメータ名 | 型 | 必須 | 説明 |
 |---|---|---|---|
-| workflow_name | str | true | 作成するワークフローエージェントの名前 (例: `data-pipeline`) |
+| workflow_name | str | true | 作成するワークフローエージェントの定義名。有効な Python 識別子である必要があります（ADK 2.0 の制約によりハイフン `-` は使用できず、アンダースコア形式である必要があります。例: `data_pipeline`） |
 | prompt | str | true | 生成したいワークフローの要件や手順 |
 | output_dir | str | false | 生成されたワークフローの絶対出力ディレクトリパス |
 

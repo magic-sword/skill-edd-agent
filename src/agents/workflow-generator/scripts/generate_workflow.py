@@ -156,14 +156,14 @@ async def run_workflow_developer_agent(output_dir: str, workflow_name: str, prom
     if os.path.exists(workflow_tmpl_path):
         with open(workflow_tmpl_path, "r", encoding="utf-8") as f:
             tmpl_content = f.read()
-        content = tmpl_content.replace("{workflow_name}", workflow_name)
+        content = tmpl_content.replace("{workflow_name}", workflow_name).replace("{workflow_module_name}", workflow_module_name)
         with open(os.path.join(output_dir, "scripts", "workflow.py"), "w", encoding="utf-8") as f:
             f.write(content)
 
     if os.path.exists(runner_tmpl_path):
         with open(runner_tmpl_path, "r", encoding="utf-8") as f:
             tmpl_content = f.read()
-        content = tmpl_content.replace("{workflow_name}", workflow_name)
+        content = tmpl_content.replace("{workflow_name}", workflow_name).replace("{workflow_module_name}", workflow_module_name)
         with open(os.path.join(output_dir, "scripts", runner_name), "w", encoding="utf-8") as f:
             f.write(content)
     

@@ -35,7 +35,7 @@ registry = SkillRegistry()
 # ワークフローの定義と接続
 # ==========================================
 root_workflow = Workflow(
-    name="{workflow_name}",
+    name="{workflow_module_name}",
     edges=[
         # [TODO] エッジの接続定義 (DAG)
         # 例: ("START", set_tier_0_agent), (set_tier_0_agent, generate_skill_agent)
