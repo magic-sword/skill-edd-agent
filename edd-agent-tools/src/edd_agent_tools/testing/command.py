@@ -33,8 +33,14 @@ class SkillCommand(Command):
         if not os.path.exists(main_py_path):
             main_py_path = os.path.join(skill_dir, "main.py")
             
+        # 探索ルート（/workspace）からの相対パスを取得してモジュール名に変換
+        abs_path = os.path.abspath(main_py_path)
+        rel_path = os.path.relpath(abs_path, "/workspace")
+        module_name, _ = os.path.splitext(rel_path)
+        module_path = module_name.replace(os.sep, ".")
+        
         python_bin = sys.executable or "python3"
-        cmd = [python_bin, main_py_path]
+        cmd = [python_bin, "-m", module_path]
         
         if self.args:
             cmd.extend(self.args)
