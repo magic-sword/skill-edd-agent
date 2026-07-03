@@ -64,7 +64,7 @@ description: 指定されたディレクトリに、ユーザーの指示に応�
 *   **WorkflowDesignerAgent (設計)**: 要件プロンプトを分析し、必要な依存スキル、CLIパラメータ、DAGエッジ接続構造をまとめた `assets/design.json` を生成する。
 *   **ToolLoaderAgent (ツール & Agent定義)**: `design.json` に基づき、`workflow.py` に `SkillRegistry` からのツールロードと各 `Agent` インスタンス定義を実装する。
 *   **DagBuilderAgent (DAG構築)**: `design.json` に基づき、`workflow.py` にエッジ接続（Workflow定義）を実装し、エクスポートする。
-*   **MainGeneratorAgent (エントリーポイント引数実装)**: 設計された引数リストを基に、`main.py` の `add_argument` にパラメータ定義を追加する。
+*   **MainGeneratorAgent (エントリーポイント確認)**: 自動生成された `main.py` を読み込み、不要なTODOコメントなどのクリーンアップを行う。
 *   **DocGeneratorAgent (ドキュメント生成)**: 完成したコードを解析し、YAML メタデータやパラメータ表を含んだ `SKILL.md` を完成させる。
 
 ### 2. API 制限の回避 (503 / 429 対策)

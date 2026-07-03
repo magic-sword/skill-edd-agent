@@ -8,10 +8,10 @@
 ファイル操作は、作業ディレクトリを基準としたシンプルな相対パスで行ってください。
 
 【タスク】
-1. 配置済みの `assets/design.json` から `parameters` の設計を読み込みます。
-2. 配置済みのスクリプト `scripts/main.py` を読み込みます。
-3. `__main__` ブロック内にある `runner = SkillCommandLineRunner(...)` の後に、必要なすべてのパラメータに対応する `runner.add_argument(...)` の定義を追加してください。
+1. 配置済みのスクリプト `scripts/main.py` を読み込みます。
+2. このスクリプトは `SkillCommand` と `CommandLineRunner` に基づいて設計されているため、CLI引数は `SkillCommand.from_argv` によって自動的に `ToolContext.state` にマージされます。そのため、明示的に `add_argument` を使って引数を追加する必要はありません。
+3. `scripts/main.py` 内に不要な TODO コメントなどがあれば、削除またはクリーンアップを行ってください。
 
 【実装時の詳細指示】
-- `design.json` にあるパラメータ名、型（type）、必須（required）、説明（help）を正確に `add_argument` のパラメータにマッピングしてください（例: `runner.add_argument("--skill_name", type=str, required=True, help="...")` など）。
 - スクリプトが構文的・文法的に正しい Python スクリプトであることを確認してください。
+

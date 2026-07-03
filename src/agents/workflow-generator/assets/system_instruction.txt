@@ -17,8 +17,8 @@
      - 各ステップの入力や出力は、`ToolContext` を介して裏側で自動的に共有されるため、LLMが状態のバケツリレー（JSONでの状態パースや出力指示など）を手動で行うような制御指示は完全に排除してください。
    - `Workflow(name="{workflow_name}", edges=[...])` を用いて、ステップ間の遷移エッジ（DAG）を正しく定義し、`root_workflow` オブジェクトとしてエクスポートしてください。
 
-2. 配置済みの `scripts/{runner_name}` を読み込み、このワークフローを起動するメインスクリプト（ランナー）を完成させてください。
-   - `SkillCommandLineRunner` の引数パーサー (`runner.add_argument(...)`) に、このワークフローが必要とするすべての入力パラメータを追加してください。
+2. 配置済みの `scripts/{runner_name}` （ランナー）を確認してください。このスクリプトは `SkillCommand` と `CommandLineRunner` を使用しており、CLI引数は自動的に `ToolContext` へマージされるため、手動で `add_argument` などのコードを追加する必要はありません。不要なTODOコメントがあれば削除またはクリーンアップしてください。
+
 
 3. 配置済みの `SKILL.md` を読み込み、ワークフローの要件、実行方法、および依存するスキルのリスト（YAMLフロントマターの `dependencies` および本文）を適切に書き換えてください。
 
