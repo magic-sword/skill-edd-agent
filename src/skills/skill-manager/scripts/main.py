@@ -6,9 +6,7 @@ import sys
 from google.adk.tools import ToolContext
 from edd_agent_tools.testing import SkillCommand, CommandLineRunner
 
-# 動的インポートとロードの解決
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from manage_skills import manage_skills_logic, set_skill_tier
+from .manage_skills import manage_skills_logic, set_skill_tier
 
 if __name__ == "__main__":
     cmd = SkillCommand.from_argv("skill-manager", sys.argv[1:])

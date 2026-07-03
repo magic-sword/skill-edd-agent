@@ -70,9 +70,15 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     
     # 一時フォルダの作成保証
     os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(os.path.join(output_dir, "scripts"), exist_ok=True)
+    scripts_dir = os.path.join(output_dir, "scripts")
+    os.makedirs(scripts_dir, exist_ok=True)
     os.makedirs(os.path.join(output_dir, "references"), exist_ok=True)
     os.makedirs(os.path.join(output_dir, "assets"), exist_ok=True)
+
+    # scripts フォルダ内に空の __init__.py を作成
+    init_py_path = os.path.join(scripts_dir, "__init__.py")
+    with open(init_py_path, "w", encoding="utf-8") as f:
+        f.write("#\n")
 
     # テンプレートファイルをコピー・展開
     generator_dir = os.path.dirname(os.path.abspath(__file__))
