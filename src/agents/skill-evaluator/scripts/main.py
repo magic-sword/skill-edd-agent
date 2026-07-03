@@ -1,6 +1,6 @@
 """
 SkillCommandLineRunner ＆ 共有セッション状態に準拠した、
-{workflow_name} のメイン起動スクリプト。
+skill-evaluator のメイン起動スクリプト。
 """
 import argparse
 import asyncio
@@ -19,15 +19,17 @@ from edd_agent_tools.testing.cli import SkillCommandLineRunner
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from workflow import root_workflow
 
-async def run_workflow_instance(tool_context: ToolContext = None):
+async def run_evaluator_workflow(skill_name: str, tool_context: ToolContext = None):
     session_service = InMemorySessionService()
     artifact_service = InMemoryArtifactService()
     session_id = str(uuid.uuid4())
     
     # 初期セッション状態
     initial_state = {
+        "skill_name": skill_name,
+        "registry_path": "/workspace/src/skills_registry.json",
         "status": "running",
-        "message": "Workflow {workflow_name} is running."
+        "message": "Skill evaluation workflow is running."
     }
     
     # 既存の tool_context 状態を引き継ぐ
@@ -38,7 +40,7 @@ async def run_workflow_instance(tool_context: ToolContext = None):
     await session_service.create_session(
         user_id="workflow_user",
         session_id=session_id,
-        app_name="{workflow_name}_runner",
+        app_name="skill_evaluator_runner",
         state=initial_state
     )
     
@@ -46,7 +48,7 @@ async def run_workflow_instance(tool_context: ToolContext = None):
     message = "Workflow successfully completed."
     
     async with Runner(
-        app_name="{workflow_name}_runner",
+        app_name="skill_evaluator_runner",
         agent=root_workflow,
         session_service=session_service,
         artifact_service=artifact_service,
@@ -54,10 +56,10 @@ async def run_workflow_instance(tool_context: ToolContext = None):
     ) as runner:
         user_message = types.Content(
             role='user',
-            parts=[types.Part(text="ワークフローを開始してください。")]
+            parts=[types.Part(text="スキル評価ワークフローを開始してください。")]
         )
         
-        try:
+        try: 
             async for event in runner.run_async(
                 user_id="workflow_user",
                 session_id=session_id,
@@ -91,12 +93,17 @@ async def run_workflow_instance(tool_context: ToolContext = None):
         
     return f"Success: {message}"
 
-def workflow_logic(tool_context: ToolContext):
+def evaluate_skill_logic(tool_context: ToolContext):
     """
     SkillCommandLineRunner およびインプロセスツールから呼び出されるビジネスロジック。
     """
+    skill_name = tool_context.state.get("skill_name")
+    
+    if not skill_name:
+        raise ValueError("Error: 'skill_name' is required.")
+        
     # 非同期実行
-    result = asyncio.run(run_workflow_instance(tool_context))
+    result = asyncio.run(run_evaluator_workflow(skill_name, tool_context))
     
     tool_context.state.update({
         "status": "success",
@@ -104,6 +111,6 @@ def workflow_logic(tool_context: ToolContext):
     })
 
 if __name__ == "__main__":
-    runner = SkillCommandLineRunner(description="{workflow_name} Workflow CLI")
-    # [TODO] 必要に応じてコマンドライン引数を追加してください (例: runner.add_argument("--my_param", required=True))
-    runner.run(workflow_logic)
+    runner = SkillCommandLineRunner(description="Skill Evaluation & Promotion CLI Runner")
+    runner.add_argument("--skill_name", required=True, help="Name of the skill to evaluate")
+    runner.run(evaluate_skill_logic)

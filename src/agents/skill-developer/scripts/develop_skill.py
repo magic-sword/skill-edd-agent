@@ -35,8 +35,7 @@ async def run_developer_workflow(skill_name: str, prompt: str, tool_context: Too
     
     # 既存の tool_context 状態を引き継ぐ
     if tool_context:
-        for k, v in tool_context.state.items():
-            initial_state[k] = v
+        initial_state.update(tool_context.state.to_dict())
 
     # 起動前にセッションを作成
     await session_service.create_session(
