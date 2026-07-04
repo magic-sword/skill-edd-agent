@@ -68,3 +68,39 @@ class SkillDirectory:
             raise FileNotFoundError(f"Error: Skill specification not found at: {spec_path}")
         with open(spec_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def get_eval_set_path(self, test_type: str = "unit") -> str:
+        """
+        評価用のテストケースファイル (*.evalset.json) の絶対パスを返します。
+        """
+        skill_name_underscore = self.name.replace('-', '_')
+        filename = f"{skill_name_underscore}_{test_type}.evalset.json"
+        return self.get_test_filepath(filename)
+
+    def get_eval_config_path(self, test_type: str = "unit") -> str:
+        """
+        評価用の設定ファイル (*.evalset.config.json) の絶対パスを返します。
+        """
+        skill_name_underscore = self.name.replace('-', '_')
+        filename = f"{skill_name_underscore}_{test_type}.evalset.config.json"
+        return self.get_test_filepath(filename)
+
+    def save_eval_set(self, data: dict, test_type: str = "unit") -> str:
+        """
+        テストケースファイルを保存し、保存先パスを返します。
+        """
+        import json
+        path = self.get_eval_set_path(test_type)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        return path
+
+    def save_eval_config(self, data: dict, test_type: str = "unit") -> str:
+        """
+        テスト構成ファイルを保存し、保存先パスを返します。
+        """
+        import json
+        path = self.get_eval_config_path(test_type)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        return path

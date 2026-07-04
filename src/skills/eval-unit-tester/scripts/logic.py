@@ -7,6 +7,7 @@ from google.adk.tools import ToolContext
 from pydantic import BaseModel, Field, create_model
 from edd_agent_tools.utils.schema import remove_additional_properties
 from edd_agent_tools.registry import SkillRegistry
+from .strategy import get_output_mode_strategy
 
 class TestParameterCase(BaseModel):
     user_instruction: str = Field(
@@ -40,6 +41,7 @@ class TestParameterSet(BaseModel):
         ]
     )
 
+
 def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
     """
     指定されたスキルに対して評価用の単体テストスイートを生成し、パスを返します。
@@ -61,28 +63,8 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
     with open(prompt_tmpl_path, "r", encoding="utf-8") as f:
         prompt_template = f.read()
         
-    is_value_only = "Output Mode: VALUE_ONLY" in skill_content
-    is_conversational = "Output Mode: CONVERSATIONAL" in skill_content
-    is_structured_json = "Output Mode: STRUCTURED_JSON" in skill_content
-    
-    if not (is_value_only or is_conversational or is_structured_json):
-        is_value_only = True
-        
-    if is_value_only:
-        instruction_override = (
-            "会話内のユーザー入力には必ず「〜〜の結果のみを出力してください」という制約を含め、"
-            "期待応答（expected_output）は余計な解説を一切排した結果そのもの（例: 大文字化されたテキストのみ）としてください。"
-        )
-    elif is_conversational:
-        instruction_override = (
-            "会話内のユーザー入力は自然なメッセージ（制約なし）とし、期待応答（expected_output）は"
-            "ユーザーに対する自然な対話応答メッセージ（例: 「〜〜を処理しました。結果は〜〜です。」など）としてください。"
-        )
-    elif is_structured_json:
-        instruction_override = (
-            "期待応答（expected_output）は余計な解説を一切排した生の JSON 文字列（例: {\"result_message\": \"〜〜\"}）"
-            "のみとし、自然言語テキストは絶対に含めないでください。"
-        )
+    strategy = get_output_mode_strategy(skill_content)
+    instruction_override = strategy.get_instruction_override()
 
     pydantic_schema_str = ""
     InputSchema = registry.load_input_schema(skill_name)
@@ -224,25 +206,18 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
         "eval_cases": eval_cases
     }
 
-    eval_set_path = skill_dir_obj.get_test_filepath(f"{skill_name_underscore}_eval_set.evalset.json")
-    
-    with open(eval_set_path, "w", encoding="utf-8") as f:
-        json.dump(eval_set_data, f, indent=2, ensure_ascii=False)
-        
+    eval_set_path = skill_dir_obj.save_eval_set(eval_set_data, test_type="unit")
     print(f"Successfully generated and saved test cases: {eval_set_path}")
     
-    # テスト構成ファイルの保存名を変更
-    config_path = skill_dir_obj.get_test_filepath(f"{skill_name_underscore}_eval_set.evalset.config.json")
+    # テスト構成ファイルの保存
     config_data = {
-        "eval_set_path": eval_set_path, # ここは既存コードで既に含まれていることを確認済み
+        "eval_set_path": eval_set_path,
         "threshold_accuracy": 1.0,
         "criteria": {
             "response_match_score": 0.8
         }
     }
-    with open(config_path, "w", encoding="utf-8") as f:
-        json.dump(config_data, f, indent=2, ensure_ascii=False)
-        
+    config_path = skill_dir_obj.save_eval_config(config_data, test_type="unit")
     print(f"Successfully generated and saved test config: {config_path}")
     
     return eval_set_path

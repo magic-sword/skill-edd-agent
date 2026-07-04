@@ -196,11 +196,8 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
         registry.load()
         skill_dir_obj = registry.get_skill_directory(name=skill_name)
         
-        eval_set_filepath = skill_dir_obj.get_test_filepath(f"{skill_name}_trigger_eval.evalset.json")
-        config_filepath = skill_dir_obj.get_test_filepath(f"{skill_name}_trigger_eval.evalset.config.json")
-        
-        save_json_file(eval_set_filepath, eval_set_data)
-        save_json_file(config_filepath, config_data)
+        eval_set_filepath = skill_dir_obj.save_eval_set(eval_set_data, test_type="trigger")
+        config_filepath = skill_dir_obj.save_eval_config(config_data, test_type="trigger")
         
         print(f"  - テストケースを '{eval_set_filepath}' に保存しました。")
         print(f"  - 評価設定を '{config_filepath}' に保存しました。\n")
