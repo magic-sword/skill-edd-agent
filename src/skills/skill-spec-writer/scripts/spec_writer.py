@@ -32,12 +32,34 @@ def process_message(tool_context: ToolContext):
     with open(design_path, "r", encoding="utf-8") as f:
         design_data = json.load(f)
 
-    # 実装コードのロード (オプション)
+    # 実装コードのロード (オプション、未指定時は自動検知)
     source_code = ""
+    
+    if not source_code_path and design_path:
+        # design_path (例: src/skills/<name>/assets/design.json) からコンポーネントルートを導出
+        component_root = os.path.dirname(os.path.dirname(design_path))
+        scripts_dir = os.path.join(component_root, "scripts")
+        
+        if os.path.exists(scripts_dir):
+            py_files = [f for f in os.listdir(scripts_dir) if f.endswith(".py") and f != "__init__.py"]
+            
+            if "main.py" in py_files:
+                source_code_path = os.path.join(scripts_dir, "main.py")
+            else:
+                expected_name = f"{name.replace('-', '_')}.py"
+                if expected_name in py_files:
+                    source_code_path = os.path.join(scripts_dir, expected_name)
+                elif len(py_files) == 1:
+                    source_code_path = os.path.join(scripts_dir, py_files[0])
+                elif len(py_files) > 1:
+                    # 特定できない場合は最初の候補を選択
+                    source_code_path = os.path.join(scripts_dir, py_files[0])
+
     if source_code_path:
         if not os.path.isabs(source_code_path):
             source_code_path = os.path.abspath(os.path.join("/workspace", source_code_path))
         if os.path.exists(source_code_path):
+            print(f"Automatically detected source code path: {source_code_path}")
             with open(source_code_path, "r", encoding="utf-8") as f:
                 source_code = f.read()
 
@@ -52,6 +74,7 @@ def process_message(tool_context: ToolContext):
             name=name,
             design_data=design_data,
             source_code=source_code,
+            source_code_path=source_code_path,
             tool_context=tool_context
         )
         

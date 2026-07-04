@@ -9,10 +9,11 @@ from google.genai import types
 
 
 class BaseSpecWriter(ABC):
-    def __init__(self, name: str, design_data: dict, source_code: str, tool_context: ToolContext):
+    def __init__(self, name: str, design_data: dict, source_code: str, source_code_path: str, tool_context: ToolContext):
         self.name = name
         self.design_data = design_data
         self.source_code = source_code
+        self.source_code_path = source_code_path
         self.tool_context = tool_context
         
         api_key = os.environ.get("GEMINI_API_KEY")

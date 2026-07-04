@@ -1,50 +1,63 @@
 ---
 name: skill-spec-writer
-description: 設計情報（parameters, dependencies）と実装コードを入力として受け取り、LLMで端的な説明文（Pydantic構造化出力）を生成した上で、多態的クラスを用いて決定論的にMarkdown仕様書（SKILL.md）を構築して指定ディレクトリに保存するドキュメント自動生成スキル。
+description: 設計パラメータとソースコードを解析し、Google ADK 2.0互換の仕様書を生成するスキル。
 ---
 
 # skill-spec-writer
 
-設計情報（parameters, dependencies）と実装コードを入力として受け取り、LLMで端的な説明文（Pydantic構造化出力）を生成した上で、多態的クラスを用いて決定論的にMarkdown仕様書（SKILL.md）を構築して指定ディレクトリに保存するドキュメント自動生成スキル。
+## 概要
 
-## 設計基準（Pydanticの活用とプロンプト簡素化）
-
-本スキルで LLM (Gemini API) 呼び出しを行う場合は、以下の ADK 設計基準に準拠してください：
-1. **Pydantic による構造化出力 (response_schema)**: 出力データの形式を Pydantic モデル（`BaseModel`）で定義し、Gemini API の `response_schema` に設定して構造化出力を得てください。Few-Shot の例は Pydantic `Field` の `examples` パラメータとして定義します。
-2. **外部プロンプトファイルの利用**: プロンプト指示そのものは `assets/` ディレクトリ配下にテキストファイル（`prompt.txt` 等）として分離し、実行時に動的にロードして使用してください。プロンプトには出力構造（JSONフォーマット）に関する指示を含めず、簡潔に記述します。
+このスキルは、Google ADK 2.0 互換の仕様書（SKILL.md や WORKFLOW.md など）を自動生成するための専門ツールです。与えられた設計パラメータ（target_type, name, design_path, source_code_path, output_dir）と、必要に応じて実装コードの内容を詳細に解析します。解析結果に基づき、スキルやワークフローの目的、具体的な機能、入出力インターフェース、依存関係、トリガー条件などを抽出し、人間（開発者）と機械（LLM）の両方にとって理解しやすい形式で整形されたドキュメントとして出力します。これにより、開発者は手動でのドキュメント作成にかかる時間と労力を大幅に削減し、常に最新かつ正確な仕様書を維持することが可能になります。特に、LLMがツールとして利用する際のコンテキスト汚染を最小限に抑えるための簡潔な要約も自動生成されます。
 
 ## トリガー条件
 
-- ユーザーがこのスキルの実行を求めた場合。
-
-## スキルの動作
-
-1. `user_message` から入力を受け取ります。
-2. 処理を行い、結果を `result_message` に格納します。
+- このスキルの仕様書を生成して
+- skill-spec-writer のドキュメントを作成して
+- 設計情報からSKILL.mdを生成してほしい
+- 指定されたパスの設計とコードから仕様書を書いて
+- 新しいスキルの仕様書を自動作成して
 
 ## AIエージェント向け使用方法
 
-このスキルは `run_skill_script` ツールを使用して実行します。
-`stdout` から結果の JSON を直接取得して読み取ってください。
+このスキルは、インプロセス（Python関数のロード）およびサブプロセス（`run_skill_script`によるCLI実行）の双方の実行モードをサポートします。
 
-### 出力形式の要件 (Output Mode)
+### 1. インプロセス呼び出し (Python API)
+ワークフローや他の親エージェントから直接ロードして呼び出す場合は、以下のインターフェースを使用します。
+
+* **ロード関数名**: `process_message`
+* **入力状態 (`tool_context.state`)**:
+  * スキルのパラメータが直接状態（キー/値）として設定されます。
+* **出力状態 (`tool_context.state`)**:
+  * 処理の成否や結果データが直接状態に書き込まれます。
+
+### 2. サブプロセス呼び出し (CLI)
+* **実行ファイル**: `scripts/main.py`
+* **引数 (`args`)**:
+  * `input_json`: パラメータ情報を含む JSON 文字列
+  * `output_json`: 結果を一時保存するファイルパス
+
+### 3. 出力形式の要件 (Output Mode)
+
 - **Output Mode: CONVERSATIONAL**
-  読み取った結果を踏まえて、ユーザーに対して自然な対話応答メッセージを生成して返却してください。
+  仕様書の生成が完了したことをユーザーに伝え、生成されたファイルのパスを案内します。エラーが発生した場合は、その旨を具体的に伝えます。
 
-### パラメータ
+### 入力パラメータ
 
-- `file_path`: `scripts/spec_writer.py`
-- `args`: JSON引数として以下を渡してください。
-  - `input_json`: `{"user_message": "入力テキスト"}`
-  - `output_json`: 結果を一時保存するファイルパス
+| パラメータ名 | 型 | 必須 | 説明 |
+|---|---|---|---|
+| target_type | str | はい | 対象の種類（'skill' または 'workflow'） |
+| name | str | はい | 対象の名前 |
+| design_path | str | はい | design.json のパス |
+| source_code_path | str | いいえ | ソースコードのパス |
+| output_dir | str | はい | 出力先ディレクトリ |
 
-### 実行例
+### 実行例 (サブプロセス)
 
-```
+```python
 run_skill_script(
-    file_path="scripts/spec_writer.py",
+    file_path="scripts/main.py",
     args={
-        "input_json": "{\"user_message\": \"hello world\"}",
+        "input_json": "{\"param\": \"value\"}",
         "output_json": "/workspace/src/.workflow_tmp/output.json"
     }
 )

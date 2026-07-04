@@ -51,8 +51,12 @@ class SkillSpecWriter(BaseSpecWriter):
             
         t = Template(tmpl_content)
         
-        # スクリプトモジュール名（アンダースコア表記）
-        script_module_name = self.name.replace("-", "_")
+        # スクリプトモジュール名（source_code_pathがあればそのbasename、なければデフォルト）
+        if self.source_code_path:
+            script_file = os.path.basename(self.source_code_path)
+            script_module_name, _ = os.path.splitext(script_file)
+        else:
+            script_module_name = self.name.replace("-", "_")
         
         return t.substitute(
             workflow_name=self.name,

@@ -15,26 +15,33 @@ ${trigger_conditions}
 
 ## AIエージェント向け使用方法
 
-このスキルは `run_skill_script` ツールを使用して実行します。
-`stdout` から結果の JSON を直接取得して読み取ってください。
+このスキルは、インプロセス（Python関数のロード）およびサブプロセス（`run_skill_script`によるCLI実行）の双方の実行モードをサポートします。
 
-### 出力形式の要件 (Output Mode)
+### 1. インプロセス呼び出し (Python API)
+ワークフローや他の親エージェントから直接ロードして呼び出す場合は、以下のインターフェースを使用します。
+
+* **ロード関数名**: `process_message`
+* **入力状態 (`tool_context.state`)**:
+  * スキルのパラメータが直接状態（キー/値）として設定されます。
+* **出力状態 (`tool_context.state`)**:
+  * 処理の成否や結果データが直接状態に書き込まれます。
+
+### 2. サブプロセス呼び出し (CLI)
+* **実行ファイル**: `scripts/${script_module_name}.py`
+* **引数 (`args`)**:
+  * `input_json`: パラメータ情報を含む JSON 文字列
+  * `output_json`: 結果を一時保存するファイルパス
+
+### 3. 出力形式の要件 (Output Mode)
 
 - **Output Mode: ${output_mode}**
   ${output_mode_description}
-
-### パラメータ
-
-- `file_path`: `scripts/${script_module_name}.py`
-- `args`: JSON引数として以下を渡してください。
-  - `input_json`: パラメータ情報を含む JSON 文字列
-  - `output_json`: 結果を一時保存するファイルパス
 
 ### 入力パラメータ
 
 ${input_parameters}
 
-### 実行例
+### 実行例 (サブプロセス)
 
 ```python
 run_skill_script(
