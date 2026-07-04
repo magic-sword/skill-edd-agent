@@ -1,0 +1,21 @@
+{any_import}from pydantic import BaseModel, Field
+from google.adk.tools import ToolContext
+from .logic import process_message as run_logic
+
+SKILL_METADATA = {metadata_str}
+
+class Input(BaseModel):
+{fields_str}
+
+def process_message(tool_context: ToolContext):
+    # バリデーション済みのオブジェクトを取得
+    params: Input = tool_context.state.get("validated_input")
+    
+    # Stateパラメータを移行
+    if params:
+        for key, value in params.model_dump().items():
+            if value is not None:
+                tool_context.state[key] = value
+            
+    # ビジネスロジックを呼び出す
+    run_logic(tool_context)

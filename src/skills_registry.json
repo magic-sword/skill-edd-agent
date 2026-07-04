@@ -37,6 +37,14 @@
     "skill-designer": {
       "tier": 1,
       "last_tested": null
+    },
+    "skill-coder": {
+      "tier": 0,
+      "last_tested": null
+    },
+    "sample-weather": {
+      "tier": 0,
+      "last_tested": null
     }
   },
   "agents": {
