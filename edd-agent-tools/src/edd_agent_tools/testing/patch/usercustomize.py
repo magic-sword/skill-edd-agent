@@ -1,3 +1,11 @@
+# google 名前空間デッドロック防止のための先行インポート
+try:
+    from google import genai
+    from google.adk.tools import ToolContext
+except ImportError:
+    pass
+
+# rouge-score などの多言語パッチ
 try:
     import rouge_score.tokenizers as tokenizers
     from tokenizers import Tokenizer

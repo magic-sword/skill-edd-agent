@@ -2,28 +2,23 @@
   "name": "skill-designer",
   "parameters": [
     {
-      "name": "target_type",
-      "type": "str",
-      "description": "設計対象のタイプ（例: 'skill', 'agent'）",
-      "required": true
-    },
-    {
-      "name": "name",
-      "type": "str",
-      "description": "設計するスキルまたはエージェントの名前",
-      "required": true
-    },
-    {
       "name": "requirement",
       "type": "str",
-      "description": "設計のための自然言語による機能要件",
+      "description": "設計するスキルの機能要件を記述した自然言語のテキスト。",
       "required": true
     },
     {
       "name": "output_dir",
       "type": "str",
-      "description": "生成されたdesign.jsonを保存するディレクトリパス",
+      "description": "生成されたdesign.jsonを保存するディレクトリのパス。",
       "required": true
+    },
+    {
+      "name": "source_code_path",
+      "type": "str",
+      "description": "再設計のベースとなる既存のスキル実装コードのファイルパス。指定しない場合、自動的に検出を試みます。",
+      "required": false,
+      "default": null
     }
   ],
   "dependencies": []

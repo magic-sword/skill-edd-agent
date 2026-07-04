@@ -26,8 +26,7 @@ class SkillSpecWriter(BaseSpecWriter):
             target_type="skill",
             name=self.name,
             parameters_json=parameters_json,
-            dependencies_json=dependencies_json,
-            implementation_code=self.source_code
+            dependencies_json=dependencies_json
         )
 
     def render_markdown(self, text_parts: SkillTextParts) -> str:

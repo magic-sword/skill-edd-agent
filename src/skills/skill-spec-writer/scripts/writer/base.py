@@ -44,9 +44,14 @@ class BaseSpecWriter(ABC):
         schema_dict = schema.model_json_schema()
         clean_schema = remove_additional_properties(schema_dict)
         
+        # マルチパーツ contents リストの構築 (指示とソースコードデータの分離)
+        contents = [prompt]
+        if self.source_code:
+            contents.append(self.source_code)
+        
         response = self.client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=prompt,
+            contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=clean_schema,

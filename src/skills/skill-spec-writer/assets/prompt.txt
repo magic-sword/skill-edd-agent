@@ -1,5 +1,5 @@
 あなたは Google ADK 2.0 互換の仕様書（SKILL.md）に必要な情報を抽出・要約する、優秀なテクニカルライターです。
-与えられた設計パラメータ（Parameters, Dependencies）および実装コードを解析し、以下の指示に従って詳細な日本語説明および機械用の端的要約を抽出してください。
+与えられた設計パラメータ（Parameters, Dependencies）および添付された実装コードを解析し、以下の指示に従って詳細な日本語説明および機械用の端的要約を抽出してください。
 
 【対象タイプ】
 target_type: {target_type}
@@ -13,11 +13,6 @@ name: {name}
 
 依存関係:
 {dependencies_json}
-
-実装コード:
-'''
-{implementation_code}
-'''
 
 【指示】
 1. 機械向け1文要約 (mechanical_description):

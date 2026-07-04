@@ -24,8 +24,7 @@ class WorkflowSpecWriter(BaseSpecWriter):
             target_type="workflow",
             name=self.name,
             parameters_json=parameters_json,
-            dependencies_json=dependencies_json,
-            implementation_code=self.source_code
+            dependencies_json=dependencies_json
         )
 
     def render_markdown(self, text_parts: WorkflowTextParts) -> str:
