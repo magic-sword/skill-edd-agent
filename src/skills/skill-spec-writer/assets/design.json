@@ -1,6 +1,6 @@
 {
   "name": "skill-spec-writer",
-  "description": "SKILL.md仕様書を自動生成します。",
+  "description": "仕様書(SKILL.md)を自動生成するスキル。",
   "execution_type": "tool",
   "output_mode": "VALUE_ONLY",
   "parameters": [
@@ -8,19 +8,22 @@
       "name": "design_path",
       "type": "str",
       "description": "design.json ファイルの直接のパス。省略された場合は name から自動探索します。",
-      "required": false
+      "required": false,
+      "default": null
     },
     {
       "name": "name",
       "type": "str",
       "description": "対象の既存スキル名。design_path 省略時の自動探索キーとして使用されます。",
-      "required": false
+      "required": false,
+      "default": null
     },
     {
       "name": "output_dir",
       "type": "str",
       "description": "生成されたSKILL.mdを保存するディレクトリのパス。省略時は対象スキルのディレクトリに出力されます。",
-      "required": false
+      "required": false,
+      "default": null
     },
     {
       "name": "source_code_dir",
@@ -31,5 +34,7 @@
     }
   ],
   "dependencies": [],
-  "constraints": []
+  "constraints": [
+    "name と design_path のいずれか一方は必ず指定する必要があります。"
+  ]
 }

@@ -235,3 +235,29 @@ class SkillRegistry:
                 return possible_dir
         return None
 
+    def resolve_skill_paths(self, skill_name: str) -> dict[str, str]:
+        """
+        指定されたスキル名から、各アセットの絶対パスを決定論的に解決して返します。
+        
+        返り値の辞書構造:
+        {
+            "component_root": "スキルのルートディレクトリ",
+            "design_path": "design.json の絶対パス",
+            "source_code_dir": "scripts の絶対パス"
+        }
+        """
+        component_root = self.get_skill_dir(skill_name)
+        
+        # 登録されていない場合はデフォルトの配置 src/skills/<skill_name> とする
+        if not component_root:
+            component_root = os.path.abspath(os.path.join("/workspace", "src", "skills", skill_name))
+            
+        design_path = os.path.join(component_root, "assets", "design.json")
+        source_code_dir = os.path.join(component_root, "scripts")
+        
+        return {
+            "component_root": component_root,
+            "design_path": design_path,
+            "source_code_dir": source_code_dir
+        }
+

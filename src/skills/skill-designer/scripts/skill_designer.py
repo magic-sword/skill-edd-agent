@@ -14,65 +14,92 @@ def process_message(tool_context: ToolContext):
     """
     requirement = tool_context.state.get("requirement")
     output_dir = tool_context.state.get("output_dir")
-    source_code_path = tool_context.state.get("source_code_path")
+    name = tool_context.state.get("name")
+    source_code_dir = tool_context.state.get("source_code_dir")
 
-    if not all([requirement, output_dir]):
-        raise ValueError("requirement, output_dir のいずれか、またはすべてが指定されていません。")
+    from edd_agent_tools.registry import SkillRegistry
+    registry = SkillRegistry()
+    registry.load()
 
-    # パスの補正
+    # 1. 共通パス特定
+    resolved = None
+    if name:
+        resolved = registry.resolve_skill_paths(name)
+        if not output_dir:
+            output_dir = resolved["component_root"]
+        if not source_code_dir:
+            source_code_dir = resolved["source_code_dir"]
+
+    if not output_dir:
+        raise ValueError("Error: 'output_dir' or 'name' must be provided.")
+
     if not os.path.isabs(output_dir):
         output_dir = os.path.abspath(os.path.join("/workspace", output_dir))
 
-    # ソースコードパスの自動検知
-    if not source_code_path and output_dir:
-        scripts_dir = os.path.join(output_dir, "scripts")
-        if os.path.exists(scripts_dir):
-            py_files = [f for f in os.listdir(scripts_dir) if f.endswith(".py") and f != "__init__.py"]
-            if "main.py" in py_files:
-                source_code_path = os.path.join(scripts_dir, "main.py")
-            elif len(py_files) == 1:
-                source_code_path = os.path.join(scripts_dir, py_files[0])
-
-    # ソースコードパスの絶対パス解決
-    if source_code_path and not os.path.isabs(source_code_path):
-        source_code_path = os.path.abspath(os.path.join("/workspace", source_code_path))
-
-    # 既存のスキル名の特定 (再設計時に元の名前を決定論的に強制するため)
-    existing_name = None
-    
-    # 1. 既存のソースコードパスの親階層から抽出 (最も確実)
-    if source_code_path and os.path.exists(source_code_path):
-        comp_root = os.path.dirname(os.path.dirname(source_code_path))
-        if os.path.basename(comp_root) not in ["", ".", ".."]:
-            existing_name = os.path.basename(comp_root)
-
-    # 2. 既存の design.json から取得
+    # 2. 既存スキル名の特定
+    existing_name = name
     if not existing_name:
-        existing_design_paths = [
-            os.path.join(output_dir, "assets", "design.json"),
-            os.path.join(output_dir, "design.json")
-        ]
-        for p in existing_design_paths:
-            if os.path.exists(p):
-                try:
-                    with open(p, "r", encoding="utf-8") as f:
-                        old_data = json.load(f)
-                        if isinstance(old_data, dict) and old_data.get("name"):
-                            existing_name = old_data["name"]
-                            break
-                except Exception:
-                    pass
+        design_json_path = os.path.join(output_dir, "assets", "design.json")
+        if os.path.exists(design_json_path):
+            try:
+                with open(design_json_path, "r", encoding="utf-8") as f:
+                    old_data = json.load(f)
+                    if isinstance(old_data, dict) and old_data.get("name"):
+                        existing_name = old_data["name"]
+            except Exception:
+                pass
+        if not existing_name and os.path.basename(output_dir) not in ["", ".", ".."]:
+            existing_name = os.path.basename(output_dir)
 
-    # 3. 既存の出力先フォルダ名から取得
-    if not existing_name and os.path.exists(output_dir) and os.path.basename(output_dir) not in ["", ".", ".."]:
-        existing_name = os.path.basename(output_dir)
-
-    # 既存のソースコードのロード
+    # 3. 既存ソースコード（ディレクトリ全体または単一ファイル）の収集
     source_code = ""
-    if source_code_path and os.path.exists(source_code_path):
-        print(f"Automatically detected existing source code path: {source_code_path}")
-        with open(source_code_path, "r", encoding="utf-8") as f:
-            source_code = f.read()
+    scan_target = source_code_dir
+
+    if scan_target:
+        if not os.path.isabs(scan_target):
+            scan_target = os.path.abspath(os.path.join("/workspace", scan_target))
+    elif output_dir:
+        scan_target = os.path.join(output_dir, "scripts")
+
+    if scan_target and os.path.exists(scan_target):
+        if os.path.isdir(scan_target):
+            py_files = []
+            for root, dirs, files in os.walk(scan_target):
+                for f in files:
+                    if f.endswith(".py"):
+                        py_files.append(os.path.join(root, f))
+            if py_files:
+                combined_code = []
+                ref_root = output_dir if output_dir else os.path.dirname(scan_target)
+                for file_path in sorted(py_files):
+                    rel_path = os.path.relpath(file_path, ref_root)
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            content = f.read()
+                        combined_code.append(f"# --- File: {rel_path} ---\n{content}")
+                    except Exception as e:
+                        print(f"Warning: Failed to read {file_path}: {e}")
+                source_code = "\n\n".join(combined_code)
+        else:
+            try:
+                with open(scan_target, "r", encoding="utf-8") as f:
+                    source_code = f.read()
+            except Exception as e:
+                print(f"Warning: Failed to read {scan_target}: {e}")
+
+    # 既存の制約事項を抽出
+    existing_constraints_str = "なし"
+    if existing_name:
+        from edd_agent_tools.parser import PydanticModelParser
+        try:
+            handler_module = registry.load_handler(existing_name)
+            InputSchema = getattr(handler_module, "Input", None)
+            if InputSchema:
+                extracted = PydanticModelParser.parse_constraints(InputSchema)
+                if extracted:
+                    existing_constraints_str = "\n".join(f"- {c}" for c in extracted)
+        except Exception as e:
+            print(f"Info: Could not load handler.py for validator constraint parsing in designer: {e}")
 
     # プロンプトアセットのロード
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -84,16 +111,17 @@ def process_message(tool_context: ToolContext):
 
     if not os.path.exists(prompt_path):
         with open(prompt_path, "w", encoding="utf-8") as f:
-            f.write("あなたは優秀なスキルデザイナーです。以下の情報に基づき、ADK 2.0互換 of design.jsonを設計してください。\n\n要件詳細:\n{requirement}\n\n[既存の実装コード]\n{implementation_code}\n\n設計するdesign.jsonのフォーマットは、Pydanticスキーマとして定義されたSkillDesignクラスに従ってください。")
+            f.write("あなたは優秀なスキルデザイナーです。以下の情報に基づき、ADK 2.0互換のdesign.jsonを設計してください。\n\n既存のスキル名:\n{existing_name}\n\n要件詳細:\n{requirement}\n\n既存の制約事項:\n{existing_constraints}")
             
     with open(prompt_path, "r", encoding="utf-8") as f:
         prompt_tmpl = f.read()
 
-    # プロンプトの整形 (existing_name のみ引き渡し、コードは除外)
+    # プロンプトの整形
     existing_name_str = existing_name or "なし"
     formatted_prompt = prompt_tmpl.format(
         existing_name=existing_name_str,
-        requirement=requirement
+        requirement=requirement,
+        existing_constraints=existing_constraints_str
     )
 
     # Gemini API 用のマルチパーツ contents リスト構築

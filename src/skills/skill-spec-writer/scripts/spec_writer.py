@@ -21,18 +21,36 @@ def process_message(tool_context: ToolContext):
     registry = SkillRegistry()
     registry.load()
 
-    # 1. コンポーネントルートの特定と design_path の解決
-    component_root = None
-    if name:
-        component_root = registry.get_skill_dir(name)
+    # 1. 共通パス特定
+    resolved = None
+    target_name = name
+    if not target_name and design_path:
+        if not os.path.isabs(design_path):
+            tmp_path = os.path.abspath(os.path.join("/workspace", design_path))
+        else:
+            tmp_path = design_path
+        if os.path.exists(tmp_path) and not os.path.isdir(tmp_path):
+            try:
+                with open(tmp_path, "r", encoding="utf-8") as f:
+                    old_data = json.load(f)
+                    if isinstance(old_data, dict) and old_data.get("name"):
+                        target_name = old_data["name"]
+            except Exception:
+                pass
 
+    if target_name:
+        resolved = registry.resolve_skill_paths(target_name)
+        if not design_path:
+            design_path = resolved["design_path"]
+        if not output_dir:
+            output_dir = resolved["component_root"]
+        if not source_code_dir:
+            source_code_dir = resolved["source_code_dir"]
+
+    # パスの補正とロード
     if not design_path:
-        # design_path 省略時は、既存スキルの assets/design.json を自動探索
-        if not component_root:
-            raise ValueError(f"Error: Could not locate existing directory for skill '{name}' to find design.json.")
-        design_path = os.path.join(component_root, "assets", "design.json")
+        raise ValueError("Error: Either 'name' or 'design_path' must be provided.")
 
-    # design_path 絶対パス解決
     if not os.path.isabs(design_path):
         design_path = os.path.abspath(os.path.join("/workspace", design_path))
 
@@ -46,37 +64,22 @@ def process_message(tool_context: ToolContext):
     except Exception as e:
         raise ValueError(f"Error loading and validating design.json: {e}")
 
-    # ロードした真のスキル名を用いてルートディレクトリを再特定（name引数が未指定だった場合のフォールバック）
+    # component_root の再特定
+    component_root = registry.get_skill_dir(design_data.name)
     if not component_root:
-        component_root = registry.get_skill_dir(design_data.name)
-        if not component_root:
-            # 新規スキルなどでレジストリ未登録の場合、design_path の親階層からコンポーネントルートを特定
-            dir_name = os.path.dirname(design_path)
-            if os.path.basename(dir_name) == "assets":
-                component_root = os.path.dirname(dir_name)
-            else:
-                component_root = dir_name
-
-    # 対象スキルの handler.py から Pydantic バリデータ情報を動的解析
-    from edd_agent_tools.parser import PydanticModelParser
-    try:
-        handler_module = registry.load_handler(design_data.name)
-        InputSchema = getattr(handler_module, "Input", None)
-        if InputSchema:
-            extracted_constraints = PydanticModelParser.parse_constraints(InputSchema)
-            if extracted_constraints:
-                # 既存の constraints にマージして重複を排除
-                design_data.constraints = list(set(design_data.constraints + extracted_constraints))
-    except Exception as e:
-        print(f"Info: Could not load handler.py for validator constraint parsing: {e}")
+        dir_name = os.path.dirname(design_path)
+        if os.path.basename(dir_name) == "assets":
+            component_root = os.path.dirname(dir_name)
+        else:
+            component_root = dir_name
 
     # 2. output_dir の解決
     if not output_dir:
-        # output_dir 省略時は、対象スキルのディレクトリに自動出力
         output_dir = component_root
 
     if not os.path.isabs(output_dir):
         output_dir = os.path.abspath(os.path.join("/workspace", output_dir))
+
 
     # 3. 実装コードのロード (ディレクトリ内の全Pythonファイルの結合スキャン、または単一ファイル)
     source_code = ""
