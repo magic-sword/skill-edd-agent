@@ -1,0 +1,16 @@
+{
+  "name": "eval-unit-tester",
+  "description": "指定されたスキルに対して評価用の単体テストスイート（*.evalset.json）を自動生成します。",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "parameters": [
+    {
+      "name": "skill_name",
+      "type": "str",
+      "description": "テストケースを生成する対象のスキル名",
+      "required": true
+    }
+  ],
+  "dependencies": [],
+  "constraints": []
+}

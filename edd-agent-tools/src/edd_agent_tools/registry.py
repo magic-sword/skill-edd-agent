@@ -287,11 +287,13 @@ class SkillRegistry:
             meta = skills_meta.get(skill_name, {})
             description = meta.get("description", f"Execute {skill_name} skill")
             
+            # 関数の属性を動的に書き換えることで、FunctionTool がツール名と説明を正しく解決できるようにする
+            process_func.__name__ = skill_name.replace("-", "_")
+            process_func.__doc__ = description
+            
             tools.append(
                 FunctionTool(
-                    func=process_func,
-                    name=skill_name.replace("-", "_"),
-                    description=description
+                    func=process_func
                 )
             )
         return tools

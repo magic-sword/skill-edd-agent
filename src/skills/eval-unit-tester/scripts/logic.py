@@ -1,16 +1,12 @@
-import argparse
 import os
-import sys
 import json
 import re
 from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, create_model
 from edd_agent_tools.utils.schema import remove_additional_properties
-
 from edd_agent_tools.registry import SkillRegistry
-
 
 class TestParameterCase(BaseModel):
     user_instruction: str = Field(
@@ -44,16 +40,10 @@ class TestParameterSet(BaseModel):
         ]
     )
 
-
-
-def get_skill_main_function(skill_dir: str) -> str:
-    """スキルのエントリーポイント関数名を返します（handler.py規約により常に process_message です）。"""
-    return "process_message"
-
-
-def generate_test_cases(skill_name: str):
-    registry = SkillRegistry()
-    registry.load()
+def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
+    """
+    指定されたスキルに対して評価用の単体テストスイートを生成し、パスを返します。
+    """
     skill_dir = registry.get_skill_dir(skill_name)
     skill_md_path = os.path.join(skill_dir, "SKILL.md")
     
@@ -64,13 +54,12 @@ def generate_test_cases(skill_name: str):
     with open(skill_md_path, "r", encoding="utf-8") as f:
         skill_content = f.read()
         
-    # Initialize Gemini API Client
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("Error: GEMINI_API_KEY environment variable is not set.")
         
     client = genai.Client(api_key=api_key)
-    # Load templates and prompt assets
+    
     script_dir = os.path.dirname(os.path.abspath(__file__))
     assets_dir = os.path.join(script_dir, "..", "assets")
     
@@ -81,16 +70,13 @@ def generate_test_cases(skill_name: str):
     with open(prompt_tmpl_path, "r", encoding="utf-8") as f:
         prompt_template = f.read()
         
-    # 決定論的な仕様スキャン
     is_value_only = "Output Mode: VALUE_ONLY" in skill_content
     is_conversational = "Output Mode: CONVERSATIONAL" in skill_content
     is_structured_json = "Output Mode: STRUCTURED_JSON" in skill_content
     
-    # デフォルトは VALUE_ONLY
     if not (is_value_only or is_conversational or is_structured_json):
         is_value_only = True
         
-    # Output Mode に応じたプロンプトの動的合成
     if is_value_only:
         instruction_override = (
             "会話内のユーザー入力には必ず「〜〜の結果のみを出力してください」という制約を含め、"
@@ -107,8 +93,8 @@ def generate_test_cases(skill_name: str):
             "のみとし、自然言語テキストは絶対に含めないでください。"
         )
 
-    # Input スキーマの動的ロード
     pydantic_schema_str = ""
+    InputSchema = None
     try:
         handler_module = registry.load_handler(skill_name)
         InputSchema = getattr(handler_module, "Input", None)
@@ -118,7 +104,6 @@ def generate_test_cases(skill_name: str):
         print(f"Warning: Could not extract Pydantic schema for {skill_name}: {e}")
     print(f"DEBUG: Pydantic Schema = {pydantic_schema_str}")
 
-    # プロンプトの組み立て
     prompt = prompt_template.replace(
         "{skill_content}", skill_content
     ).replace(
@@ -127,11 +112,8 @@ def generate_test_cases(skill_name: str):
         "{instruction_override}", instruction_override
     )
 
-
     print("Generating unit test cases using Gemini API...")
     
-    # 対象スキルの InputSchema を使って、動的にレスポンススキーマを構築
-    from pydantic import create_model
     TargetSetClass = TestParameterSet
     
     if InputSchema:
@@ -163,7 +145,6 @@ def generate_test_cases(skill_name: str):
             print(f"Warning: Could not create dynamic response schema: {e}")
             TargetSetClass = TestParameterSet
 
-    # response_schema のクレンジング
     schema_dict = TargetSetClass.model_json_schema()
     clean_schema = remove_additional_properties(schema_dict)
 
@@ -177,7 +158,6 @@ def generate_test_cases(skill_name: str):
         )
     )
     
-    # 応答をパース
     print(f"DEBUG: Gemini Response = {response.text}")
     try:
         parameter_data = json.loads(response.text)
@@ -187,21 +167,18 @@ def generate_test_cases(skill_name: str):
         print(response.text)
         raise e
         
-    # 決定論的にエントリーポイント関数名を特定
-    main_function_name = get_skill_main_function(skill_dir)
     skill_name_underscore = skill_name.replace('-', '_')
+    # ツール関数名を skill_name_underscore に変更
+    tool_function_name = skill_name_underscore
     
-    # ADK 2.0 の .evalset.json 構造へ組み立てる
     eval_cases = []
     for i, case in enumerate(param_set.cases):
         eval_id = f"{skill_name_underscore}_happy_path_{i+1:03d}"
         
-        # args の型が辞書であることを保証
         input_args = case.input_parameters
         if not isinstance(input_args, dict):
             input_args = {"text": str(input_args)}
 
-        # 1ターン分の対話ターンをビルド
         conversation_turn = {
             "invocation_id": f"inv_{i+1:03d}",
             "user_content": {
@@ -223,13 +200,13 @@ def generate_test_cases(skill_name: str):
             "intermediate_data": {
                 "tool_uses": [
                     {
-                        "name": main_function_name,
+                        "name": tool_function_name,  # ここを修正
                         "args": input_args
                     }
                 ],
                 "tool_responses": [
                     {
-                        "name": main_function_name,
+                        "name": tool_function_name,  # ここを修正
                         "response": {
                             "result": case.expected_output
                         }
@@ -238,7 +215,6 @@ def generate_test_cases(skill_name: str):
             }
         }
         
-        # セッション初期状態
         session_input = {
             "appName": "src",
             "userId": "test_user",
@@ -259,11 +235,10 @@ def generate_test_cases(skill_name: str):
         "eval_cases": eval_cases
     }
 
-    # テストファイルを保存
     tests_dir = os.path.join(skill_dir, "tests")
     os.makedirs(tests_dir, exist_ok=True)
     
-    eval_set_filename = f"{skill_name.replace('-', '_')}_eval_set.evalset.json"
+    eval_set_filename = f"{skill_name_underscore}_eval_set.evalset.json"
     eval_set_path = os.path.join(tests_dir, eval_set_filename)
     
     with open(eval_set_path, "w", encoding="utf-8") as f:
@@ -271,10 +246,11 @@ def generate_test_cases(skill_name: str):
         
     print(f"Successfully generated and saved test cases: {eval_set_path}")
     
-    # テスト構成ファイルを保存
-    config_path = os.path.join(tests_dir, "test_config.json")
+    # テスト構成ファイルの保存名を変更
+    config_filename = f"{skill_name_underscore}_eval_set.evalset.config.json"
+    config_path = os.path.join(tests_dir, config_filename)
     config_data = {
-        "eval_set_path": eval_set_path,
+        "eval_set_path": eval_set_path, # ここは既存コードで既に含まれていることを確認済み
         "threshold_accuracy": 1.0,
         "criteria": {
             "response_match_score": 0.8
@@ -284,28 +260,22 @@ def generate_test_cases(skill_name: str):
         json.dump(config_data, f, indent=2, ensure_ascii=False)
         
     print(f"Successfully generated and saved test config: {config_path}")
+    
+    return eval_set_path
 
-
-def execute_unit_tester_logic(tool_context: ToolContext):
-    """単体テスト生成のメインビジネスロジック"""
+def process_message(tool_context: ToolContext):
+    """
+    指定されたスキルに対して評価用の単体テストスイートを自動生成します。
+    """
     skill_name = tool_context.state.get("skill_name")
     if not skill_name:
-        raise ValueError("Error: 'skill_name' is not set.")
+        raise ValueError("Error: 'skill_name' is not set in tool_context.state.")
         
-    generate_test_cases(skill_name)
+    registry = SkillRegistry()
+    registry.load() # SkillRegistryをロード
+    
+    eval_set_path = _generate_test_cases(skill_name, registry)
     
     # 結果パスをセッション状態に保存
-    registry = SkillRegistry()
-    registry.load()
-    skill_dir = registry.get_skill_dir(skill_name)
-    eval_set_filename = f"{skill_name.replace('-', '_')}_eval_set.evalset.json"
-    eval_set_path = os.path.join(skill_dir, "tests", eval_set_filename)
-    
     tool_context.state["eval_set_path"] = eval_set_path
-
-def generate_unit_tests(tool_context: ToolContext) -> str:
-    """
-    指定されたスキルのテストを実行します。
-    """
-    execute_unit_tester_logic(tool_context)
-    return f"Success: Unit tests generated at {tool_context.state.get('eval_set_path')}"
+    tool_context.state["result_message"] = f"Success: Unit tests generated at {eval_set_path}"

@@ -6,7 +6,7 @@ ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠。
 """
 from google.adk import Workflow
 from google.adk import Agent
-from google.adk import node
+from google.adk.workflow import node
 from google.adk.tools import ToolContext
 from edd_agent_tools.registry import SkillRegistry
 
