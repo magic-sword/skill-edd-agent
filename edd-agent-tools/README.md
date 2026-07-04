@@ -4,74 +4,91 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
 
 ## 主な機能
 
-- **CLI 実行ラッパー (`edd_agent_tools.testing.cli.SkillCommandLineRunner`)**: 各スキルスクリプトをCLIから直接実行・テストするための共通ラッパー。
-- **モックコンテキスト (`edd_agent_tools.testing.mock_context`)**: テスト・デバッグ用の `MockInvocationContext` を提供。
-- **サブプロセス実行コマンド定義 (`edd_agent_tools.testing.command.Command`, `SkillCommand`, `SystemCommand`)**: 起動するスキルや外部コマンドを表すSOLIDなコマンドオブジェクト。
-- **サブプロセス実行ランナー (`edd_agent_tools.testing.runner.SubprocessRunner`)**: コマンドをサブプロセスとして安全に起動するランナー。ADKの評価で日本語 Rouge-1 のすり抜けを防止する多言語パッチを自動適用します。
+* **共通CLIランナー (`edd_agent_tools.cli.run`)**: 
+  各スキルの `Input`（Pydanticモデル）から引数を自動的に構築し、型検証および実行結果の保存までを制御する統合CLIエントリーポイント。
+* **スキルレジストリ (`edd_agent_tools.registry.SkillRegistry`)**:
+  プロジェクト内のスキル/エージェントを `skills_registry.json` にベースに動的に検索・ロード・カプセル化するモジュール。
+* **モックコンテキスト (`edd_agent_tools.testing.mock_context`)**:
+  テスト・デバッグ用の `MockInvocationContext` を提供。
 
-## スキルレジストリとエントリーポイント規約 (Skill Registry & Entrypoint Convention)
+---
 
-`edd-agent-tools` は、プロジェクト内のスキル（インプロセスツール）やエージェントの動的ロード・管理を司る `SkillRegistry` クラスを提供します。このレジストリシステムは、**「規約による設定 (Convention over Configuration)」** という設定思想に基づいて設計されています。
+## スキルおよびエージェントの定義規約 (Entrypoint Convention)
 
-### 1. 統一エントリーポイント規約 (`scripts/main.py`)
-すべてのスキル・エージェントは、実行可能なエントリーポイントとして常に **`scripts/main.py`** を配備しなければなりません。
-`SkillRegistry.load_tool("スキル名", "関数名")` が呼び出されると、レジストリは自動的に対象スキルの `scripts/main.py` を動的ロードし、指定された関数オブジェクトを取得します。
+`edd-agent-tools` は、**「規約による設定 (Convention over Configuration)」** に基づいて設計されています。すべてのスキルおよびエージェントは、以下のインターフェース規約に完全に従って定義されます。
 
-### 2. 設計思想：CLIとビジネスロジックの分離
-エントリーポイントの統一と、実行コード of 分離には以下の決定的な理由があります。
+### 1. 統一ハンドラー規約 (`scripts/handler.py`)
+すべてのスキル・エージェントは、動的ロードのエントリーポイントとして常に **`scripts/handler.py`** を配備しなければなりません。この中には以下の3つの要素を定義します。
 
-1.  **インポート副作用（Side Effects）の排除**:
-    ワークフローや自動テストエンジンがインプロセスでツールを動的インポートする際、CLIのパース処理（`argparse` などの実行）が勝手に走ってしまい、実行時エラーを引き起こす問題（副作用）を防ぎます。
-2.  **実行環境の分離**:
-    - **CLI経由での独立実行**: `python -m src.skills.[スキル名].scripts.main --param1 value` のように、パッケージモジュール実行（`-m`）を前提とし、配置ディレクトリの場所に関わらず独立して動作確認できます。
-    - **インプロセスでのセマンティックな連携**: ワークフロー内では、`main.py` に隔離された CLI 処理を介さず、インプロセス関数（`process_message` など）として副作用なく安全にロードして呼び出せます。
+* **`SKILL_METADATA`** (辞書): 
+  スキルの基本メタデータ（名前、説明、実行形式、出力モード等）。
+* **`Input`** (Pydantic `BaseModel`): 
+  スキルが要求する引数（型、必須/任意、説明文）を定義したスキーマ。
+* **`process_message(tool_context: ToolContext)`** (関数): 
+  スキルのメインビジネスロジック。バリデーション済みの入力パラメータ（`tool_context.state["validated_input"]`）を受け取って処理を実行します。
 
-### 3. 設計思想：モジュール起動（-m）と相対インポートの推進
-各スキルの再配置（ポータビリティ）を保証するため、スキル内でのインポートは探索パスの動的追加（`sys.path.insert` など）を一切排除し、**「相対インポート」**（例: `from .my_skill import process_message`）を使用してください。
-サブプロセス実行を担う `SkillCommand` クラスは、実行時に自動的にファイルパスを探索ルートからのドット表記モジュール名（例: `src.skills.spec-writer.scripts.main`）に変換し、`python -m` 形式でサブプロセスを起動します。これにより、インプロセス実行環境との間で相対インポートの挙動が完全に一貫化されます。
+#### 定義例 (`scripts/handler.py`)
+```python
+from pydantic import BaseModel, Field
+from google.adk.tools import ToolContext
 
-## インストール方法
+SKILL_METADATA = {
+    "name": "my-sample-skill",
+    "description": "サンプルスキルの説明。",
+    "execution_type": "tool",
+    "output_mode": "STRUCTURED_JSON"
+}
 
-### ローカル開発環境（editable モード）
-```bash
-pip install -e /workspace/edd-agent-tools
-```
+class Input(BaseModel):
+    requirement: str = Field(..., description="指示テキスト。")
+    output_dir: str = Field(..., description="出力先ディレクトリ。")
 
-### Gitから直接インストール
-```bash
-pip install git+https://github.com/magic-sword/edd-agent-tools.git
+def process_message(tool_context: ToolContext):
+    # バリデーション済みのPydanticオブジェクトを安全に取得
+    params: Input = tool_context.state.get("validated_input")
+    
+    # ビジネスロジックの実行
+    print(f"Processing: {params.requirement} -> {params.output_dir}")
 ```
 
 ---
 
-## パッケージのビルドと公開手順（PyPI / プライベートレジストリ）
+## 設計思想と動的インポート解決
 
-将来的に PyPI や Artifact Registry 等へ公開・リリースする際の手順です。
+### 1. インプロセス呼び出しにおけるキャッシュ干渉の完全解消
+同一プロセス内で異なる複数のスキルを順次ロードして実行（例: `eval-unit-tester` によるテスト生成や `test-executor` によるテスト実行）する際、通常の Python インポートシステムでは `"scripts.handler"` などのパッケージ名が競合し、モジュールが互いに上書きされてしまう問題（キャッシュ干渉）が発生します。
 
-### 1. ビルドツールのインストール
-```bash
-pip install build twine
+これを解消するため、`SkillRegistry.load_handler(skill_name)` は以下の**ベストプラクティス**に沿ってロードをカプセル化しています。
+
+* **一意の名前空間への仮想マッピング**:
+  ロード時に、モジュール名を `edd_agent_tools.dynamic_skills.{skill_name}.scripts.handler` のように一意に名前空間化します。
+* **ダミーパッケージの登録による相対インポートの動作保証**:
+  `sys.modules` に対象スキルの仮想的なパッケージ階層を動的に組み立てて登録します。これにより、インプロセスでの動的インポート時にも、`handler.py` 内に記述されたローカル相対インポート（例: `from .xxx import yyy`）が競合することなく標準の仕組み通り正常に解決されます。
+* **`sys.modules` を破壊しない**:
+  モジュールを `del` するなどの危険なランタイムハックを一切排除し、安全にモジュール空間を分離しています。
+
+#### 呼び出し方法
+```python
+from edd_agent_tools.registry import SkillRegistry
+
+registry = SkillRegistry()
+# キャッシュの競合なく、相対インポートも動作する状態で安全にモジュールをロード
+handler_module = registry.load_handler("my-sample-skill")
 ```
 
-### 2. パッケージのビルド
-プロジェクトのルート（`pyproject.toml` があるディレクトリ）で以下のコマンドを実行し、配布用パッケージを生成します。
-```bash
-python -m build
-```
-実行後、`dist/` ディレクトリ内に `.tar.gz` と `.whl` ファイルが生成されます。
+### 2. 共通CLIランナーによるスキーマ駆動実行 (Schema-Driven CLI)
+共通CLIランナー (`edd-run` / `edd_agent_tools.cli.run`) は、指定されたスキルの `Input` クラスからコマンドライン引数を自動生成してパースし、型検証を行ってからビジネスロジックを実行します。
 
-### 3. レジストリへのアップロード（公開）
+* **重複回避**: スキーマ内に共通引数（`--skill_name` 等）と同じフィールドがあっても、argparse の衝突エラーを自動回避します。
+* **エスケープ対策**: 説明文に `%` (パーセント記号) が含まれる場合でも、argparse のフォーマットパースエラーが発生しないように自動的にエスケープを行います。
 
-#### PyPI (パブリック) へ公開する場合
+#### 実行方法
 ```bash
-twine upload dist/*
-```
-※認証情報（APIトークン等）の入力を求められます。
-
-#### プライベートレジストリ（例: Google Cloud Artifact Registry）へ公開する場合
-事前にレジストリ設定を終えた後、以下を実行します。
-```bash
-twine upload --repository-url https://<REGION>-python.pkg.dev/<PROJECT_ID>/<REPOSITORY_NAME>/ dist/*
+# 共通ランナー経由で特定のスキルを実行する
+PYTHONPATH=/workspace/edd-agent-tools/src python3 -m edd_agent_tools.cli.run \
+  --skill_name my-sample-skill \
+  --requirement "新しい仕様の設計" \
+  --output_dir "/tmp/my_output"
 ```
 
 ---
@@ -81,82 +98,6 @@ twine upload --repository-url https://<REGION>-python.pkg.dev/<PROJECT_ID>/<REPO
 ### 背景と目的
 ADK 2.0 が標準で利用している Rouge-1 評価器（`final_response_match_v1`）は、内部でスペース区切り（英語向け）のトークナイザーを使用しているため、日本語のようなスペース区切りのない言語では、テキスト全体が巨大な1トークン扱いとなり、曖昧なマッチングによって「不合格のケースが合格として判定されてしまう（すり抜け）」というバグが発生します。
 
-この問題を解決するため、`edd-agent-tools` には Hugging Face の多言語対応トークナイザー（`bert-base-multilingual-cased`）を `adk eval` や他のスキルの実行プロセスに動的に注入（モンキーパッチ）する仕組みが組み込まれています。
-
 ### 仕組み（Monkey Patch のインジェクション）
 Python の自動フックファイルである `usercustomize.py` をパッケージ内の `patch/` ディレクトリ配下に定義しています。
-後述の `SubprocessRunner` を経由してサブプロセスを実行する際、このパッチディレクトリが自動的に環境変数 `PYTHONPATH` に結合されて起動し、対象プロセス内の `rouge_score` のデフォルトトークナイザーを多言語対応モデルに自動的に上書き・差し替えます。
-
----
-
-## コマンドとランナーの設計 (Command & Runner Pattern)
-
-`edd-agent-tools` では、他のスキルや外部のシステムコマンド（`adk eval` 等）を実行するために、**「コマンドの定義（データ）」**と**「ランナー（実行環境）」**を完全に分離し、対称的な多態性（ポリモーフィズム）を用いたオブジェクト指向設計を採用しています。
-
-### 主要クラス
-
-#### 1. コマンド定義 (Command)
-実行したい対象を表すデータ定義クラスです。
-- **`SkillCommand`**: 登録されたスキル（例: `test-executor`）を実行するコマンド。引数（`argv`）から自身を復元するファクトリメソッド `from_argv()` を持ち、スキル特有の `ToolContext` の初期化と引数マージを担当します。
-- **`SystemCommand`**: 外部のシステムコマンド（例: `adk`）を実行するコマンド。
-
-#### 2. 実行環境 (Runner)
-コマンドオブジェクトを受け取って実際に実行するクラスです。条件分岐を一切排除し、コマンドの多態性に基づいて実行します。
-- **`SubprocessRunner`**: コマンドを **別プロセス（サブプロセス）** で安全に（多言語パッチを自動適用して）実行するランナー。
-- **`CommandLineRunner`**: コマンドを **現在のプロセス内** で（引数を受け取って）実行する CLI 用ランナー。
-
----
-
-### 使用方法
-
-#### 1. 親プロセス：他のスキルをサブプロセスとして呼び出す場合
-```python
-from edd_agent_tools.testing import SkillCommand, SubprocessRunner
-
-# 1. 起動したいスキルとパラメータを定義
-cmd = SkillCommand(
-    "test-executor",
-    args=["--eval_mode", "1", "--threshold_accuracy", "1.0"],
-    input_data={
-        "skill_name": "eval-unit-tester",
-        "eval_set_path": "path/to/evalset.json"
-    }
-)
-
-# 2. SubprocessRunner に渡して実行
-runner = SubprocessRunner(cmd)
-result = runner.run()
-
-print(result.stdout)
-```
-
-#### 2. 子プロセス：CLI からスキルが起動される場合（統一エントリーポイント `main.py`）
-```python
-import sys
-from edd_agent_tools.testing import SkillCommand, CommandLineRunner
-
-if __name__ == "__main__":
-    # 1. コマンドライン引数から SkillCommand を自動パース・構築
-    cmd = SkillCommand.from_argv("eval-unit-tester", sys.argv[1:])
-    
-    # 2. 同一プロセス内ランナーで実行
-    runner = CommandLineRunner(cmd)
-    runner.run(execute_unit_tester_logic)
-```
-
-#### 3. 外部システムコマンド（例: `adk eval`）を実行する場合
-```python
-from edd_agent_tools.testing import SystemCommand, SubprocessRunner
-
-# 1. 外部コマンドと引数を定義
-cmd = SystemCommand("adk", args=["eval", "/workspace/src", "/workspace/src/tests/..."])
-
-# 2. サブプロセスで実行 (自動的に日本語トークナイズパッチが適用されます)
-runner = SubprocessRunner(cmd)
-result = runner.run(
-    env={
-        "HOME": "/home/vscode",
-        "GEMINI_API_KEY": "...",
-    }
-)
-```
+`test-executor` 内から `adk eval` をサブプロセスとして実行する際、このパッチディレクトリが自動的に環境変数 `PYTHONPATH` の最優先パスに結合されて起動し、対象プロセス内の `rouge_score` のデフォルトトークナイザーを Hugging Face の多言語モデル（`bert-base-multilingual-cased`）に自動的に上書き・差し替えます。

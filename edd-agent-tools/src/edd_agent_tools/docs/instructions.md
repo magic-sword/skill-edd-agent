@@ -1,100 +1,88 @@
 # edd-agent-tools パッケージ使用規約（LLM向けドキュメント）
 
-本パッケージ `edd-agent-tools` は、Google ADK 2.0 に準拠したスキル開発を効率化し、手動CLI実行とシステム/エージェント呼び出しの両方において互換性（二重のポータビリティ）を保証するためのライブラリです。
+本パッケージ `edd-agent-tools` は、Google ADK 2.0 に準拠したスキル開発を効率化し、手動CLI実行とシステム/エージェント呼び出しの両方において完全な互換性と安全なインプロセス実行を保証するためのライブラリです。
 
-スキルの開発においては、以下のAPIおよび状態管理のルールに必ず従ってください。
+スキルの開発および統合においては、以下のルールに必ず従ってください。
 
 ---
 
-## 1. エントリーポイントの統一 (`scripts/main.py`) と CLI・ビジネスロジックの分離
+## 1. 統一ハンドラー規約 (`scripts/handler.py`)
 
-すべてのスキルは、以下の2つの役割（ファイル）に厳密に分離し、エントリーポイントを **`scripts/main.py`** に統一しなければなりません。
+すべてのスキルおよびエージェントは、エントリーポイントおよびインターフェース定義を **`scripts/handler.py`** に統一しなければなりません。このファイルには以下の3つの要素を定義します。
 
-1.  **ビジネスロジックモジュール (`scripts/[skill_name_with_underscores].py`)**:
-    *   純粋な Python モジュールとして、ビジネスロジックである `process_message` などの関数定義のみを記述します。
-    *   このファイル内に `if __name__ == "__main__":` や `SkillCommandLineRunner`、引数パース、副作用のあるグローバル処理は**記述してはいけません**。
-2.  **CLIエントリーポイントラッパー (`scripts/main.py`)**:
-    *   `SkillCommandLineRunner` を使用して CLI の引数パースと実行を行うだけの軽量なラッパーファイルです。
-    *   ビジネスロジック関数（`process_message` など）をインポートして公開（エクスポート）します。
+1. **`SKILL_METADATA`** (辞書):
+   スキルの基本メタデータ（名前、説明、実行形式、出力モード等）。
+2. **`Input`** (Pydantic `BaseModel`):
+   スキルが受け取る引数を定義した入力スキーマ。型ヒント、必須/任意の制約、および `Field` による説明文を含めます。
+3. **`process_message(tool_context: ToolContext)`** (関数):
+   スキルのメインビジネスロジック。型検証済みの入力パラメータオブジェクト（`tool_context.state["validated_input"]`）を受け取って処理を実行します。
 
-### 基本的な構成例
-
-**ビジネスロジック側 (`scripts/my_skill.py`)**:
+### 基本的な構成例 (`scripts/handler.py`)
 ```python
+from pydantic import BaseModel, Field
 from google.adk.tools import ToolContext
+from .logic import execute_business_logic # 相対インポートを推奨
+
+SKILL_METADATA = {
+    "name": "my-sample-skill",
+    "description": "サンプルスキルの説明文。",
+    "execution_type": "tool",
+    "output_mode": "STRUCTURED_JSON"
+}
+
+class Input(BaseModel):
+    requirement: str = Field(..., description="指示内容の自然言語テキスト。")
+    output_dir: str = Field(..., description="成果物を保存するディレクトリの絶対パス。")
 
 def process_message(tool_context: ToolContext):
-    # 1. パラメータの入力取得
-    user_message = tool_context.state.get("user_message", "")
+    # 1. バリデーション済みのPydanticオブジェクトを取得
+    params: Input = tool_context.state.get("validated_input")
     
-    # 2. ビジネスロジックの実行
-    result = f"Hello, {user_message}"
+    # 2. ビジネスロジックの呼び出し (handler.py 自体は薄く保つ)
+    result = execute_business_logic(params.requirement, params.output_dir)
     
-    # 3. 処理結果の出力設定
-    tool_context.state["result_message"] = result
-```
-
-**CLIエントリーポイント側 (`scripts/main.py`)**:
-```python
-import sys
-from edd_agent_tools.testing import SkillCommand, CommandLineRunner
-
-# 動的パス操作（sys.path.insert 等）は行わず、相対インポートを使用
-from .my_skill import process_message
-
-if __name__ == "__main__":
-    cmd = SkillCommand.from_argv("my-skill", sys.argv[1:])
-    runner = CommandLineRunner(cmd)
-    runner.run(process_message)
+    # 3. 処理結果を状態に設定
+    tool_context.state.update(result)
 ```
 
 ---
 
-## 2. 状態管理（`tool_context.state`）のルール
+## 2. 状態管理（`tool_context.state`）とスキーマ駆動
 
-`CommandLineRunner` と `SkillCommand` の組み合わせは、CLI引数（例: `--param xxx`）および JSON 形式の入力（例: `--input_json '{"param": "xxx"}'`）を**自動的にプレフィックスなしで `tool_context.state` にマージ**します。
-
-LLMが実装するビジネスロジック内では、以下の規則に従って状態の読み書きを行ってください。
-
-### 入力値の取得
-`tool_context.state.get("引数名")` を使用して、プレフィックスなしのキーで値を取得します。
-- **良例**: `skill_name = tool_context.state.get("skill_name")`
-- **悪例**: `skill_name = args.skill_name` (args などのグローバル変数をビジネスロジック内で直接参照してはいけません)
-
-### 出力値の設定
-処理結果やエラー情報などは、すべて `tool_context.state["キー名"] = 値` として設定してください。
-- **良例**: `tool_context.state["status"] = "success"`
-- **説明**: 設定された状態は、プログラム終了時に `CommandLineRunner` によって自動的に標準出力 (stdout) へJSONとして書き出され、`--output_json` が指定されている場合はファイルへも書き出されます。自前で JSON ファイルへの書き出し処理を実装する必要はありません。
+* **入力値の取得**:
+  共通CLIランナーは、Pydanticの `Input` スキーマに基づいてコマンドライン引数を動的パース・バリデーションし、パース後のオブジェクトを `validated_input` という名前で `tool_context.state` にバインドします。ビジネスロジック内では、必ず `tool_context.state.get("validated_input")` を使用して安全に入力を取得してください。
+* **出力値の設定**:
+  処理結果や出力メタデータは、すべて `tool_context.state["キー名"] = 値` として設定してください。共通CLIランナーが自動的に標準出力やファイル（`--output_json`）にJSONとして書き出します。
 
 ---
 
 ## 3. エラー処理と終了コード
 
-ビジネスロジック内で異常を検知した場合は、`RuntimeError` や `ValueError` などの例外（Exception）をスローしてください。
-- `CommandLineRunner` が例外をキャッチし、エラー内容を出力した上で、自動的に終了コード `1` でプロセスを終了させます。
-- 自前で `sys.exit(1)` を呼ぶ必要はありません。
+ビジネスロジック内で異常（要件の違反、実行時エラー等）を検知した場合は、`ValueError` や `RuntimeError` などの例外（Exception）をスローしてください。
+* 共通CLIランナーが自動的に例外をキャッチし、エラー内容を出力した上で、終了コード `1` で安全にプロセスを終了させます。
+* 自前で `sys.exit(1)` を呼ぶ必要はありません。
 
 ---
 
-## 4. スキルレジストリ操作と動的解決: `SkillRegistry`
+## 4. スキルの動的ロードと解決: `SkillRegistry`
 
-ワークフローの実行スクリプトやスキル管理ツールなどの「システム側（実行エンジン）」では、`skills_registry.json` に登録されたスキルの操作やインプロセスツールの動的ロードに `SkillRegistry` クラスを使用してください。
+ワークフローの実行スクリプトやシステム側（実行エンジン）でスキルをインプロセスでロードする際は、`skills_registry.json` に基づいてロードを制御する `SkillRegistry` クラスを使用してください。
 
-`SkillRegistry.load_tool` は、指定されたスキルの **`scripts/main.py`** を自動的に動的ロードし、そこから関数オブジェクトを取得します。
+`SkillRegistry.load_handler(skill_name)` は、キャッシュ競合を避けるために一意の名前空間（仮想FQDN）の配下にハンドラーモジュールを登録してロードします。これにより、同一プロセス内で複数のスキルを順次ロードしても、モジュールが干渉することなく安全に動作します。
 
-### 基本的な構成例
+### 基本的な解決例
 ```python
 from edd_agent_tools.registry import SkillRegistry
 
 # レジストリの初期化 (デフォルトで /workspace/src/skills_registry.json を対象とします)
 registry = SkillRegistry()
 
-# 1. 登録されているスキルのインプロセスツールを動的解決・ロード
-# (scripts/main.py から set_skill_tier がインポート・エクスポートされます)
-set_skill_tier = registry.load_tool("skill-manager", "set_skill_tier")
+# 1. 登録されているスキルの handler モジュールを安全にロード
+handler_module = registry.load_handler("my-sample-skill")
 
-# 2. 登録スキルの一覧取得・管理
-registry.list_skills()
+# 2. ロードしたモジュールからスキーマやエントリーポイントを呼び出し
+InputSchema = getattr(handler_module, "Input")
+process_message = getattr(handler_module, "process_message")
 ```
 
 ---
@@ -112,12 +100,11 @@ from google.adk.tools import ToolContext
 
 # ToolContext 内の state に実行したいコマンドを設定します
 tool_context = ToolContext()
-tool_context.state["command"] = "python src/skills/eval-unit-tester/scripts/eval_unit_tester.py --skill_name skill-generator"
+tool_context.state["command"] = "adk eval /workspace/src /workspace/src/tests/evalset.json"
 tool_context.state["cwd"] = "/workspace"
-tool_context.state["timeout_seconds"] = 120
+tool_context.state["timeout_seconds"] = 180
 
 # 同期実行 (コマンド完了までブロックして出力を返します)
 output_message = run_system_command(tool_context)
 print(output_message)
 ```
-
