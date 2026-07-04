@@ -51,7 +51,7 @@ class SkillRegistry:
             self.load()
         search_paths = self.data.get("search_paths", ["src/skills"])
         for path_entry in search_paths:
-            possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
+            possible_dir = os.path.abspath(os.path.join(os.getcwd(), path_entry, skill_name))
             if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
                 if "agents" in path_entry:
                     return "agents"
@@ -230,34 +230,74 @@ class SkillRegistry:
             self.load()
         search_paths = self.data.get("search_paths", ["src/skills"])
         for path_entry in search_paths:
-            possible_dir = os.path.abspath(os.path.join("/workspace", path_entry, skill_name))
+            possible_dir = os.path.abspath(os.path.join(os.getcwd(), path_entry, skill_name))
             if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
                 return possible_dir
         return None
 
-    def resolve_skill_paths(self, skill_name: str) -> dict[str, str]:
+    def get_skill_directory(self, name: str | None = None, design_path: str | None = None) -> "SkillDirectory":
         """
-        指定されたスキル名から、各アセットの絶対パスを決定論的に解決して返します。
-        
-        返り値の辞書構造:
-        {
-            "component_root": "スキルのルートディレクトリ",
-            "design_path": "design.json の絶対パス",
-            "source_code_dir": "scripts の絶対パス"
-        }
+        指定された name または design_path から一元的に SkillDirectory オブジェクトを構築して返します。
         """
-        component_root = self.get_skill_dir(skill_name)
-        
-        # 登録されていない場合はデフォルトの配置 src/skills/<skill_name> とする
-        if not component_root:
-            component_root = os.path.abspath(os.path.join("/workspace", "src", "skills", skill_name))
-            
-        design_path = os.path.join(component_root, "assets", "design.json")
-        source_code_dir = os.path.join(component_root, "scripts")
-        
-        return {
-            "component_root": component_root,
-            "design_path": design_path,
-            "source_code_dir": source_code_dir
-        }
+        import os
+        from edd_agent_tools.models import SkillDesign
+
+        root_dir = None
+        target_name = name
+
+        if not target_name and design_path:
+            abs_path = os.path.abspath(design_path)
+            try:
+                design_data = SkillDesign.load_from_file(abs_path)
+                target_name = design_data.name
+            except Exception:
+                pass
+            if not target_name:
+                dir_name = os.path.dirname(abs_path)
+                root_dir = os.path.dirname(dir_name) if os.path.basename(dir_name) == "assets" else dir_name
+
+        if target_name:
+            root_dir = self.get_skill_dir(target_name)
+            if not root_dir:
+                root_dir = os.path.abspath(os.path.join(os.getcwd(), "src", "skills", target_name))
+
+        if not root_dir:
+            raise ValueError("Error: Could not resolve skill directory path.")
+
+        return SkillDirectory(root_dir)
+
+
+class SkillDirectory:
+    """
+    特定のスキルのフォルダ構造と各主要ファイルのパスを一元管理するオブジェクト指向クラス。
+    """
+    def __init__(self, root_dir: str):
+        self.root_dir = os.path.abspath(root_dir)
+
+    @property
+    def name(self) -> str:
+        from edd_agent_tools.models import SkillDesign
+        try:
+            return SkillDesign.load_from_file(self.design_path).name
+        except Exception:
+            return os.path.basename(self.root_dir)
+
+    @property
+    def design_path(self) -> str:
+        """design.json の絶対パス"""
+        return os.path.join(self.root_dir, "assets", "design.json")
+
+    @property
+    def source_code_dir(self) -> str:
+        """scripts の絶対パス"""
+        return os.path.join(self.root_dir, "scripts")
+
+    @property
+    def spec_path(self) -> str:
+        """SKILL.md の絶対パス"""
+        return os.path.join(self.root_dir, "SKILL.md")
+
+    def load_design(self) -> "SkillDesign":
+        from edd_agent_tools.models import SkillDesign
+        return SkillDesign.load_from_file(self.design_path)
 

@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 from google import genai
 from google.genai import types
@@ -21,71 +20,16 @@ def process_message(tool_context: ToolContext):
     registry = SkillRegistry()
     registry.load()
 
-    # 1. 共通パス特定
-    resolved = None
-    if name:
-        resolved = registry.resolve_skill_paths(name)
-        if not output_dir:
-            output_dir = resolved["component_root"]
-        if not source_code_dir:
-            source_code_dir = resolved["source_code_dir"]
+    # 1. スキルフォルダの解決
+    design_path_fallback = None
+    if not name and output_dir:
+        design_path_fallback = os.path.join(os.path.abspath(output_dir), "assets", "design.json")
 
-    if not output_dir:
-        raise ValueError("Error: 'output_dir' or 'name' must be provided.")
+    directory = registry.get_skill_directory(name=name, design_path=design_path_fallback)
+    existing_name = directory.name
 
-    if not os.path.isabs(output_dir):
-        output_dir = os.path.abspath(os.path.join("/workspace", output_dir))
-
-    # 2. 既存スキル名の特定
-    existing_name = name
-    if not existing_name:
-        design_json_path = os.path.join(output_dir, "assets", "design.json")
-        if os.path.exists(design_json_path):
-            try:
-                with open(design_json_path, "r", encoding="utf-8") as f:
-                    old_data = json.load(f)
-                    if isinstance(old_data, dict) and old_data.get("name"):
-                        existing_name = old_data["name"]
-            except Exception:
-                pass
-        if not existing_name and os.path.basename(output_dir) not in ["", ".", ".."]:
-            existing_name = os.path.basename(output_dir)
-
-    # 3. 既存ソースコード（ディレクトリ全体または単一ファイル）の収集
-    source_code = ""
-    scan_target = source_code_dir
-
-    if scan_target:
-        if not os.path.isabs(scan_target):
-            scan_target = os.path.abspath(os.path.join("/workspace", scan_target))
-    elif output_dir:
-        scan_target = os.path.join(output_dir, "scripts")
-
-    if scan_target and os.path.exists(scan_target):
-        if os.path.isdir(scan_target):
-            py_files = []
-            for root, dirs, files in os.walk(scan_target):
-                for f in files:
-                    if f.endswith(".py"):
-                        py_files.append(os.path.join(root, f))
-            if py_files:
-                combined_code = []
-                ref_root = output_dir if output_dir else os.path.dirname(scan_target)
-                for file_path in sorted(py_files):
-                    rel_path = os.path.relpath(file_path, ref_root)
-                    try:
-                        with open(file_path, "r", encoding="utf-8") as f:
-                            content = f.read()
-                        combined_code.append(f"# --- File: {rel_path} ---\n{content}")
-                    except Exception as e:
-                        print(f"Warning: Failed to read {file_path}: {e}")
-                source_code = "\n\n".join(combined_code)
-        else:
-            try:
-                with open(scan_target, "r", encoding="utf-8") as f:
-                    source_code = f.read()
-            except Exception as e:
-                print(f"Warning: Failed to read {scan_target}: {e}")
+    output_dir = os.path.abspath(output_dir or directory.root_dir)
+    scan_target = os.path.abspath(source_code_dir or directory.source_code_dir)
 
     # 既存の制約事項を抽出
     existing_constraints_str = "なし"
@@ -125,11 +69,12 @@ def process_message(tool_context: ToolContext):
     )
 
     # Gemini API 用のマルチパーツ contents リスト構築
-    contents = [formatted_prompt]
-    
-    if source_code:
-        # ソースコードを独立したテキストパーツとしてシンプルに添付
-        contents.append(source_code)
+    from edd_agent_tools.gemini import GeminiContentBuilder
+    builder = GeminiContentBuilder(formatted_prompt)
+    if scan_target:
+        ref_root = output_dir if output_dir else os.path.dirname(scan_target)
+        builder.add_dir(scan_target, ref_root=ref_root, file_filter=lambda p: p.endswith(".py"))
+    contents = builder.build()
 
     # Gemini API の呼び出し
     api_key = os.environ.get("GEMINI_API_KEY")

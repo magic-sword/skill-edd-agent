@@ -31,3 +31,14 @@ class SkillDesign(BaseModel):
     parameters: list[Parameter] = Field(..., description="スキルが受け取るパラメータのリスト")
     dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
     constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")
+
+    @classmethod
+    def load_from_file(cls, filepath: str) -> "SkillDesign":
+        """
+        指定された JSON ファイルを読み込み、SkillDesign スキーマで検証してインスタンスを返します。
+        """
+        import os
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"design.json not found at: {filepath}")
+        with open(filepath, "r", encoding="utf-8") as f:
+            return cls.model_validate_json(f.read())

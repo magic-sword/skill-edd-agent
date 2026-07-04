@@ -9,6 +9,9 @@ class SkillTextParts(BaseModel):
     trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
 class AgentSpecWriter(BaseSpecWriter):
+    def __init__(self, design_data, source_code_dir: str, tool_context):
+        super().__init__(design_data, source_code_dir, tool_context)
+
     def get_pydantic_schema(self):
         return SkillTextParts
 

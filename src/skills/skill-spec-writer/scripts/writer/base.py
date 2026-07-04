@@ -11,10 +11,9 @@ from google.genai import types
 from edd_agent_tools.models import SkillDesign
 
 class BaseSpecWriter(ABC):
-    def __init__(self, design_data: SkillDesign, source_code: str, source_code_dir: str, tool_context: ToolContext):
+    def __init__(self, design_data: SkillDesign, source_code_dir: str, tool_context: ToolContext):
         self.design_data = design_data
         self.name = design_data.name
-        self.source_code = source_code
         self.source_code_dir = source_code_dir
         self.tool_context = tool_context
         
@@ -38,16 +37,11 @@ class BaseSpecWriter(ABC):
         """Markdown ドキュメントを構築する"""
         pass
 
-    def _call_gemini_api(self, prompt: str, schema):
+    def _call_gemini_api(self, contents: list[str], schema):
         """Gemini API を使って構造化 JSON を取得しパースする共通メソッド"""
         from edd_agent_tools.utils.schema import remove_additional_properties
         schema_dict = schema.model_json_schema()
         clean_schema = remove_additional_properties(schema_dict)
-        
-        # マルチパーツ contents リストの構築 (指示とソースコードデータの分離)
-        contents = [prompt]
-        if self.source_code:
-            contents.append(self.source_code)
         
         response = self.client.models.generate_content(
             model="gemini-2.5-flash",
@@ -80,8 +74,16 @@ class BaseSpecWriter(ABC):
         prompt = self.build_prompt(prompt_tmpl)
         schema = self.get_pydantic_schema()
         
+        # GeminiContentBuilderを用いてマルチパーツ添付を構築
+        from edd_agent_tools.gemini import GeminiContentBuilder
+        builder = GeminiContentBuilder(prompt)
+        if self.source_code_dir:
+            ref_root = output_dir if output_dir else os.path.dirname(self.source_code_dir)
+            builder.add_dir(self.source_code_dir, ref_root=ref_root, file_filter=lambda p: p.endswith(".py"))
+        contents = builder.build()
+        
         # LLMから非決定論的情報の抽出
-        text_parts = self._call_gemini_api(prompt, schema)
+        text_parts = self._call_gemini_api(contents, schema)
         
         # 決定論的な Markdown 合成
         markdown_content = self.render_markdown(text_parts)
