@@ -267,6 +267,35 @@ class SkillRegistry:
 
         return SkillDirectory(root_dir)
 
+    def get_tools(self, skill_names: list[str]):
+        """
+        指定されたスキル名（またはエージェント名）のリストに対応する
+        ADKの FunctionTool のリストを動的ロード・構築して返します。
+        """
+        from google.adk.tools import FunctionTool
+        
+        if self.data is None:
+            self.load()
+            
+        tools = []
+        for skill_name in skill_names:
+            # process_message を動的ロード
+            process_func = self.load_tool(skill_name, "process_message")
+            
+            # メタデータから説明を取得
+            skills_meta = self.get_registered_skills()
+            meta = skills_meta.get(skill_name, {})
+            description = meta.get("description", f"Execute {skill_name} skill")
+            
+            tools.append(
+                FunctionTool(
+                    func=process_func,
+                    name=skill_name.replace("-", "_"),
+                    description=description
+                )
+            )
+        return tools
+
 
 
 

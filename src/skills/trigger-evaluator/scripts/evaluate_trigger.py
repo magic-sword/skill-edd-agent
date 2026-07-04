@@ -11,7 +11,6 @@ from google import genai
 from google.genai import types
 from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
-from edd_agent_tools.testing import SkillCommand, CommandLineRunner
 from edd_agent_tools.registry import SkillRegistry
 
 class StaticEvalResult(BaseModel):

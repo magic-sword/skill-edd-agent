@@ -1,85 +1,119 @@
 """
 initial_skill_evaluator の Workflow オブジェクト定義。
 ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠。
-各エージェントはインプロセス関数ツール (FunctionTool) を実行し、状態は ToolContext を介して裏側で自動的に共有されます。
+推論が必要なステップは LLMエージェント、
+機械的な処理（登録・テスト実行・Tier更新）は Python関数ノードで直接実行します。
 """
 from google.adk import Workflow
 from google.adk import Agent
-from google.adk.tools import FunctionTool
+from google.adk import node
+from google.adk.tools import ToolContext
 from edd_agent_tools.registry import SkillRegistry
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
-# レジストリを初期化してインプロセスツールの関数を動的ロード
+# スキルレジストリの初期化
 registry = SkillRegistry()
 
-# 依存するスキルからツールを動的ロード
-set_skill_tier = registry.load_tool("skill-manager", "set_skill_tier")
-generate_trigger_tests = registry.load_tool("trigger-evaluator", "generate_trigger_tests")
-run_skill_tests = registry.load_tool("test-executor", "run_skill_tests")
-generate_unit_tests = registry.load_tool("eval-unit-tester", "generate_unit_tests")
+
+# ==========================================
+# 1. Python関数ノードの定義
+# ==========================================
+
+@node(name="register_skill_node")
+def register_skill_node(tool_context: ToolContext):
+    """評価対象のスキルをTier 0でレジストリに登録します。"""
+    handler = registry.load_handler("skill-manager")
+    
+    # パラメータオブジェクトを構築
+    params = handler.Input(
+        command="register",
+        skill_name=tool_context.state.get("skill_name"),
+        tier=0
+    )
+    
+    # 状態をセットして実行
+    tool_context.state["validated_input"] = params
+    handler.process_message(tool_context)
+
+
+@node(name="run_trigger_tests_node")
+def run_trigger_tests_node(tool_context: ToolContext):
+    """トリガーテストケースの実行を行います。"""
+    handler = registry.load_handler("test-executor")
+    
+    params = handler.Input(
+        skill_name=tool_context.state.get("skill_name"),
+        eval_set_path=tool_context.state.get("trig_eval_set_path"),
+        threshold_accuracy=0.90,
+        eval_mode=0
+    )
+    
+    tool_context.state["validated_input"] = params
+    handler.process_message(tool_context)
+
+
+@node(name="run_unit_tests_node")
+def run_unit_tests_node(tool_context: ToolContext):
+    """ユニットテストの実行を行います。"""
+    handler = registry.load_handler("test-executor")
+    
+    params = handler.Input(
+        skill_name=tool_context.state.get("skill_name"),
+        eval_set_path=tool_context.state.get("eval_set_path"),
+        threshold_accuracy=1.00,
+        eval_mode=1
+    )
+    
+    tool_context.state["validated_input"] = params
+    handler.process_message(tool_context)
+
+
+@node(name="set_skill_tier_node")
+def set_skill_tier_node(tool_context: ToolContext):
+    """評価結果が合格であれば、スキルのTierを1に更新します。"""
+    handler = registry.load_handler("skill-manager")
+    
+    params = handler.Input(
+        command="set-tier",
+        skill_name=tool_context.state.get("skill_name"),
+        tier=1
+    )
+    
+    tool_context.state["validated_input"] = params
+    handler.process_message(tool_context)
 
 
 # ==========================================
-# 各ステップ専用エージェント（ノード）の定義
+# 2. LLMエージェントの定義 (推論・生成を伴うステップ)
 # ==========================================
-
-# 各エージェント（ノード）の定義
-register_skill_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="register_skill_agent",
-    tools=[FunctionTool(func=set_skill_tier)],
-    instruction="ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として command='register', tier=0 で set_skill_tier 関数を実行します。"
-)
 
 generate_trigger_tests_agent = Agent(
     model=DEFAULT_MODEL,
     name="generate_trigger_tests_agent",
-    tools=[FunctionTool(func=generate_trigger_tests)],
-    instruction="ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として generate_trigger_tests 関数を実行します。"
-)
-
-run_trigger_tests_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="run_trigger_tests_agent",
-    tools=[FunctionTool(func=run_skill_tests)],
-    instruction="ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として eval_mode=0, threshold_accuracy=0.90 で run_skill_tests 関数を実行します。"
+    tools=registry.get_tools(["trigger-evaluator"]),
+    instruction="登録したスキルのトリガーテストケースを自動生成してください。ユーザーに対するテキスト応答メッセージは一切出力せず、サイレントに完了してください。"
 )
 
 generate_unit_tests_agent = Agent(
     model=DEFAULT_MODEL,
     name="generate_unit_tests_agent",
-    tools=[FunctionTool(func=generate_unit_tests)],
-    instruction="ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として generate_unit_tests 関数を実行します。"
-)
-
-run_unit_tests_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="run_unit_tests_agent",
-    tools=[FunctionTool(func=run_skill_tests)],
-    instruction="ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として eval_mode=1, threshold_accuracy=1.0 で run_skill_tests 関数を実行します。"
-)
-
-set_skill_tier_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="set_skill_tier_agent",
-    tools=[FunctionTool(func=set_skill_tier)],
-    instruction="ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として command='set-tier', tier=1 で set_skill_tier 関数を実行します。"
+    tools=registry.get_tools(["eval-unit-tester"]),
+    instruction="評価対象スキルのユニットテストケースを自動生成してください。ユーザーに対するテキスト応答メッセージは一切出力せず、サイレントに完了してください。"
 )
 
 
 # ==========================================
-# ワークフローの定義と接続
+# 3. ワークフローの定義と接続
 # ==========================================
 root_workflow = Workflow(
     name="initial_skill_evaluator",
     edges=[
-        ("START", register_skill_agent),
-        (register_skill_agent, generate_trigger_tests_agent),
-        (generate_trigger_tests_agent, run_trigger_tests_agent),
-        (run_trigger_tests_agent, generate_unit_tests_agent),
-        (generate_unit_tests_agent, run_unit_tests_agent),
-        (run_unit_tests_agent, set_skill_tier_agent),
-        (set_skill_tier_agent, "END"),
+        ("START", register_skill_node),
+        (register_skill_node, generate_trigger_tests_agent),
+        (generate_trigger_tests_agent, run_trigger_tests_node),
+        (run_trigger_tests_node, generate_unit_tests_agent),
+        (generate_unit_tests_agent, run_unit_tests_node),
+        (run_unit_tests_node, set_skill_tier_node),
     ]
 )

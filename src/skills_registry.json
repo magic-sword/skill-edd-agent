@@ -41,6 +41,10 @@
     "skill-coder": {
       "tier": 0,
       "last_tested": null
+    },
+    "skill_name": {
+      "tier": 0,
+      "last_tested": null
     }
   },
   "agents": {
