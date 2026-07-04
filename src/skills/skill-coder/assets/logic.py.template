@@ -1,0 +1,7 @@
+from google.adk.tools import ToolContext
+
+def process_message(tool_context: ToolContext):
+    """
+    ここにビジネスロジックを実装します。
+    """
+    pass

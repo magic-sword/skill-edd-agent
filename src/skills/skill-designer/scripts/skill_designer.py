@@ -63,6 +63,19 @@ def process_message(tool_context: ToolContext):
     if scan_target:
         ref_root = output_dir if output_dir else os.path.dirname(scan_target)
         builder.add_dir(scan_target, ref_root=ref_root, file_filter=lambda p: p.endswith(".py"))
+        
+    # プロジェクト共通規約（README.md）をコンテキストに添付
+    from edd_agent_tools.docs import LibraryDocumentationReader
+    try:
+        reader = LibraryDocumentationReader(library_name="edd_agent_tools")
+        docs_content = reader.read_documentation()
+        builder.add_text_part(
+            text=f"=== プロジェクト共通開発規約 ===\n{docs_content}",
+            display_name="README.md"
+        )
+    except Exception as e:
+        print(f"Info: Could not load README.md in designer: {e}")
+        
     contents = builder.build()
 
     # Gemini API の呼び出し

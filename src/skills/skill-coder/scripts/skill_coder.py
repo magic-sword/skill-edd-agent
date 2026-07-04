@@ -133,15 +133,9 @@ def process_message(tool_context: ToolContext):
     # 4. logic.py のプレースホルダー配置（存在しない場合のみ）
     logic_path = os.path.join(scripts_dir, "logic.py")
     if not os.path.exists(logic_path):
+        logic_tmpl = coder_directory.load_asset("logic.py.template")
         with open(logic_path, "w", encoding="utf-8") as f:
-            f.write("""from google.adk.tools import ToolContext
-
-def process_message(tool_context: ToolContext):
-    \"\"\"
-    ここにビジネスロジックを実装します。
-    \"\"\"
-    pass
-""")
+            f.write(logic_tmpl)
             
     # 5. システムプロンプト (system_instruction.txt) のロードとプレースホルダー置換
     system_instruction_tmpl = coder_directory.load_asset("system_instruction.txt")
