@@ -7,128 +7,130 @@ from .writer.factory import SpecWriterFactory
 def process_message(tool_context: ToolContext):
     """
     spec-writer のメインビジネスロジック。
-    入力パラメータに基づいて適切なライター（Skill / Workflow）を選択し、
     仕様書 (SKILL.md) を自動生成します。
     """
-    target_type = tool_context.state.get("target_type") # "skill" or "workflow"
-    name = tool_context.state.get("name")
     design_path = tool_context.state.get("design_path")
-    source_code_path = tool_context.state.get("source_code_path")
+    name = tool_context.state.get("name")
     output_dir = tool_context.state.get("output_dir")
+    source_code_dir = tool_context.state.get("source_code_dir")
 
-    if not target_type or not name or not design_path or not output_dir:
-        raise ValueError("Error: 'target_type', 'name', 'design_path', and 'output_dir' are all required parameters.")
+    from edd_agent_tools.models import SkillDesign
+    from edd_agent_tools.registry import SkillRegistry
 
-    # パスの補正
+    # スキルレジストリのロード
+    registry = SkillRegistry()
+    registry.load()
+
+    # 1. コンポーネントルートの特定と design_path の解決
+    component_root = None
+    if name:
+        component_root = registry.get_skill_dir(name)
+
+    if not design_path:
+        # design_path 省略時は、既存スキルの assets/design.json を自動探索
+        if not component_root:
+            raise ValueError(f"Error: Could not locate existing directory for skill '{name}' to find design.json.")
+        design_path = os.path.join(component_root, "assets", "design.json")
+
+    # design_path 絶対パス解決
     if not os.path.isabs(design_path):
         design_path = os.path.abspath(os.path.join("/workspace", design_path))
-        
+
+    if not os.path.exists(design_path) or os.path.isdir(design_path):
+        raise FileNotFoundError(f"Error: design.json file not found at '{design_path}'.")
+
+    # design.json ファイルから直接 SkillDesign をロード
+    try:
+        with open(design_path, "r", encoding="utf-8") as f:
+            design_data = SkillDesign.model_validate_json(f.read())
+    except Exception as e:
+        raise ValueError(f"Error loading and validating design.json: {e}")
+
+    # ロードした真のスキル名を用いてルートディレクトリを再特定（name引数が未指定だった場合のフォールバック）
+    if not component_root:
+        component_root = registry.get_skill_dir(design_data.name)
+        if not component_root:
+            # 新規スキルなどでレジストリ未登録の場合、design_path の親階層からコンポーネントルートを特定
+            dir_name = os.path.dirname(design_path)
+            if os.path.basename(dir_name) == "assets":
+                component_root = os.path.dirname(dir_name)
+            else:
+                component_root = dir_name
+
+    # 対象スキルの handler.py から Pydantic バリデータ情報を動的解析
+    from edd_agent_tools.parser import PydanticModelParser
+    try:
+        handler_module = registry.load_handler(design_data.name)
+        InputSchema = getattr(handler_module, "Input", None)
+        if InputSchema:
+            extracted_constraints = PydanticModelParser.parse_constraints(InputSchema)
+            if extracted_constraints:
+                # 既存の constraints にマージして重複を排除
+                design_data.constraints = list(set(design_data.constraints + extracted_constraints))
+    except Exception as e:
+        print(f"Info: Could not load handler.py for validator constraint parsing: {e}")
+
+    # 2. output_dir の解決
+    if not output_dir:
+        # output_dir 省略時は、対象スキルのディレクトリに自動出力
+        output_dir = component_root
+
     if not os.path.isabs(output_dir):
         output_dir = os.path.abspath(os.path.join("/workspace", output_dir))
 
-    import importlib
-    from edd_agent_tools.models import Parameter, SkillDesign
-    from edd_agent_tools.registry import SkillRegistry
-
-    # スキル/ワークフローのルートディレクトリを特定
-    registry = SkillRegistry()
-    registry.load()
-    component_root = registry.get_skill_dir(name)
-    
-    if not component_root:
-        if design_path and os.path.exists(design_path):
-            if os.path.isdir(design_path):
-                component_root = design_path
-            else:
-                component_root = os.path.dirname(os.path.dirname(design_path))
-        else:
-            raise ValueError(f"Error: Could not locate directory for skill: {name}")
-            
-    try:
-        handler_module = registry.load_handler(name)
-        print(f"DEBUG spec_writer: Loaded module {handler_module.__name__} from {getattr(handler_module, '__file__', 'unknown')}")
-        print(f"DEBUG spec_writer: SKILL_METADATA = {getattr(handler_module, 'SKILL_METADATA', {})}")
-    except Exception as e:
-        raise ValueError(f"Error loading handler.py for '{name}': {e}")
-        
-    metadata = getattr(handler_module, "SKILL_METADATA", {})
-    InputSchema = getattr(handler_module, "Input", None)
-    
-    # Input から Parameter のリストを生成
-    params = []
-    if InputSchema:
-        for f_name, f_info in InputSchema.model_fields.items():
-            f_type = f_info.annotation
-            
-            from typing import get_args, get_origin, Union
-            origin = get_origin(f_type)
-            if origin is Union:
-                args_types = [a for a in get_args(f_type) if a is not type(None)]
-                if args_types:
-                    f_type = args_types[0]
-                    
-            type_str = getattr(f_type, "__name__", str(f_type))
-            required = f_info.is_required()
-            default_val = str(f_info.default) if (not required and f_info.default is not None) else None
-            
-            params.append(Parameter(
-                name=f_name,
-                type=type_str,
-                description=f_info.description or "",
-                required=required,
-                default=default_val
-            ))
-            
-    design_data = SkillDesign(
-        name=metadata.get("name", name),
-        description=metadata.get("description", ""),
-        execution_type=metadata.get("execution_type", "tool"),
-        output_mode=metadata.get("output_mode", "VALUE_ONLY"),
-        parameters=params,
-        dependencies=metadata.get("dependencies", [])
-    )
-
-    # 実装コードのロード (オプション、未指定時は自動検知)
+    # 3. 実装コードのロード (ディレクトリ内の全Pythonファイルの結合スキャン、または単一ファイル)
     source_code = ""
-    
-    if not source_code_path and component_root:
-        scripts_dir = os.path.join(component_root, "scripts")
-        
-        if os.path.exists(scripts_dir):
-            py_files = [f for f in os.listdir(scripts_dir) if f.endswith(".py") and f != "__init__.py"]
+    scan_target = None
+
+    if source_code_dir:
+        if not os.path.isabs(source_code_dir):
+            source_code_dir = os.path.abspath(os.path.join("/workspace", source_code_dir))
+        scan_target = source_code_dir
+    elif component_root:
+        scan_target = os.path.join(component_root, "scripts")
+
+    if scan_target and os.path.exists(scan_target):
+        if os.path.isdir(scan_target):
+            py_files = []
+            for root, dirs, files in os.walk(scan_target):
+                for f in files:
+                    if f.endswith(".py"):
+                        py_files.append(os.path.join(root, f))
             
-            if "main.py" in py_files:
-                source_code_path = os.path.join(scripts_dir, "main.py")
-            else:
-                expected_name = f"{name.replace('-', '_')}.py"
-                if expected_name in py_files:
-                    source_code_path = os.path.join(scripts_dir, expected_name)
-                elif len(py_files) == 1:
-                    source_code_path = os.path.join(scripts_dir, py_files[0])
-                elif len(py_files) > 1:
-                    # 特定できない場合は最初の候補を選択
-                    source_code_path = os.path.join(scripts_dir, py_files[0])
+            if py_files:
+                print(f"Detected {len(py_files)} source files for scanning under {scan_target}.")
+                combined_code = []
+                # 相対パス記述用の基準ルート
+                ref_root = component_root if component_root else os.path.dirname(scan_target)
+                for file_path in sorted(py_files):
+                    rel_path = os.path.relpath(file_path, ref_root)
+                    try:
+                        with open(file_path, "r", encoding="utf-8") as f:
+                            content = f.read()
+                        combined_code.append(f"# --- File: {rel_path} ---\n{content}")
+                    except Exception as e:
+                        print(f"Warning: Failed to read {file_path}: {e}")
+                source_code = "\n\n".join(combined_code)
+        else:
+            # 単一ファイル直接ロードの場合
+            print(f"Loading specified single source file: {scan_target}")
+            try:
+                with open(scan_target, "r", encoding="utf-8") as f:
+                    source_code = f.read()
+            except Exception as e:
+                print(f"Warning: Failed to read {scan_target}: {e}")
 
-    if source_code_path:
-        if not os.path.isabs(source_code_path):
-            source_code_path = os.path.abspath(os.path.join("/workspace", source_code_path))
-        if os.path.exists(source_code_path):
-            print(f"Automatically detected source code path: {source_code_path}")
-            with open(source_code_path, "r", encoding="utf-8") as f:
-                source_code = f.read()
-
-    print(f"Starting specification generation for {target_type}: {name}")
+    print(f"Starting specification generation for skill: {design_data.name}")
     print(f"Design Path: {design_path}")
     print(f"Output Directory: {output_dir}")
 
-    # ファクトリパターンによる具象ライターの構築と実行
+    # execution_type に基づいて適切な具象ライターを構築して実行
     try:
         writer = SpecWriterFactory.create(
-            target_type=target_type,
-            name=name,
+            execution_type=design_data.execution_type,
             design_data=design_data,
             source_code=source_code,
-            source_code_path=source_code_path,
+            source_code_dir=source_code_dir,
             tool_context=tool_context
         )
         

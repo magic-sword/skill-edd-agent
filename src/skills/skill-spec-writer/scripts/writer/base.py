@@ -11,11 +11,11 @@ from google.genai import types
 from edd_agent_tools.models import SkillDesign
 
 class BaseSpecWriter(ABC):
-    def __init__(self, name: str, design_data: SkillDesign, source_code: str, source_code_path: str, tool_context: ToolContext):
-        self.name = name
+    def __init__(self, design_data: SkillDesign, source_code: str, source_code_dir: str, tool_context: ToolContext):
         self.design_data = design_data
+        self.name = design_data.name
         self.source_code = source_code
-        self.source_code_path = source_code_path
+        self.source_code_dir = source_code_dir
         self.tool_context = tool_context
         
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -68,9 +68,9 @@ class BaseSpecWriter(ABC):
 
     def generate(self, output_dir: str):
         """【共通フロー】仕様書の生成を実行する（テンプレートメソッド）"""
-        # プロンプトテンプレートをロード
+        # 共通プロンプトテンプレートをロード
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        prompt_path = os.path.join(script_dir, "..", "assets", "prompt.txt")
+        prompt_path = os.path.join(script_dir, "..", "assets", "prompt_common.txt")
         if not os.path.exists(prompt_path):
             raise FileNotFoundError(f"Prompt template not found at {prompt_path}")
             

@@ -1,0 +1,17 @@
+## 共通指示
+あなたは Google ADK 2.0 互換の仕様書（SKILL.md）に必要な情報を抽出・要約する、優秀なテクニカルライターです。
+与えられた設計パラメータ（Parameters, Dependencies）および添付された実装コードを解析し、以下の指示要件に従って詳細な日本語説明を抽出してください。
+
+【対象名】
+name: {name}
+
+【入力情報】
+設計パラメータ:
+{parameters_json}
+
+依存関係:
+{dependencies_json}
+
+【個別タイプ指示要件】
+{type_specific_instruction}
+

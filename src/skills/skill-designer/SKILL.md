@@ -7,26 +7,22 @@ description: スキル設計要件に基づいて新しいスキルを設計し�
 
 ## 概要
 
-このスキルは、Google ADK 2.0 互換の `design.json` ファイルを自動的に設計・生成することを目的としています。ユーザーが自然言語で記述した機能要件（`requirement`）と、`design.json` を保存する出力ディレクトリ（`output_dir`）を必須パラメータとして受け取ります。オプションで、既存のスキル実装コードのファイルパス（`source_code_path`）を指定することで、そのコードをベースにした再設計も可能です。
+このスキルは、Google ADK 2.0 互換の `design.json` を設計・生成するためのツールです。ユーザーが指定する自然言語の機能要件や、既存のスキル実装コードを基に、Generative AI (Gemini) を利用して `design.json` を自動的に作成します。主な機能は以下の通りです。
 
-**主な機能と動作フロー:**
-1.  **パラメータの取得と検証**: `requirement` と `output_dir` が指定されているかを確認します。
-2.  **パスの正規化と自動検出**: `output_dir` および `source_code_path` を絶対パスに変換します。`source_code_path` が指定されていない場合、`output_dir/scripts` 内の `main.py` や唯一のPythonファイルを自動的に検出します。
-3.  **既存スキル名の特定**: 再設計の際に、既存のソースコードパス、既存の `design.json`、または出力ディレクトリ名からスキルの名前を特定しようと試みます。
-4.  **ソースコードの読み込み**: `source_code_path` が存在する場合、その内容を読み込みます。
-5.  **プロンプトの構築**: 内部に定義されたプロンプトテンプレートに、機能要件と既存スキル名を組み込みます。既存のソースコードは、Gemini APIへの独立したコンテンツとして添付されます。
-6.  **Gemini APIの呼び出し**: 構築されたプロンプトとソースコード（存在する場合）を `gemini-2.5-flash` モデルに送信し、ADK 2.0 の `SkillDesign` スキーマに準拠した `design.json` の内容を生成させます。
-7.  **design.jsonの保存**: Gemini APIから返されたJSONデータをパースし、指定された `output_dir` 内に `design.json` として保存します。
+1.  **要件に基づく設計**: 自然言語で記述されたスキルの機能要件 (`requirement`) を入力として受け取り、それに基づいて `design.json` の内容を生成します。
+2.  **既存スキルの再設計**: 既存のスキル実装コードのファイルパス (`source_code_path`) を指定することで、そのコードを解析し、より洗練された `design.json` を再設計・出力できます。`source_code_path` が指定されない場合でも、`output_dir` 内の `scripts` ディレクトリから `main.py` やその他のPythonファイルを自動的に検出し、既存コードとして利用を試みます。
+3.  **スキル名の自動特定**: 再設計時には、既存のソースコードパス、既存の `design.json`、または出力ディレクトリ名から、元のスキル名を決定論的に特定し、設計に反映させます。
+4.  **出力管理**: 生成された `design.json` は、指定された出力ディレクトリ (`output_dir`) に保存されます。必要に応じてディレクトリが自動的に作成されます。
 
-このスキルを利用することで、開発者は自然言語の要件から迅速にスキルの設計書を生成し、開発プロセスを効率化できます。
+このスキルは、開発者が手動で `design.json` を作成する手間を省き、効率的なスキル開発を支援することを目的としています。
 
 ## トリガー条件
 
 - スキルを設計して
-- design.json を生成して
-- この要件でスキルをデザインして
-- 既存のスキルを再設計して
 - 新しいスキルを作成して
+- 既存のスキルを再設計して
+- design.json を生成して
+- この要件でスキルを設計して
 
 ## AIエージェント向け使用方法
 
@@ -48,15 +44,14 @@ description: スキル設計要件に基づいて新しいスキルを設計し�
 
 * **ロード関数名**: `process_message`
 * **入力状態 (`tool_context.state`)**:
-  * スキルのパラメータが直接状態（キー/値）として設定されます。
+  * `tool_context.state["validated_input"]` に、`Input` スキーマのインスタンス（検証済みオブジェクト）が設定されます。
 * **出力状態 (`tool_context.state`)**:
-  * 処理の成否や結果データが直接状態に書き込まれます。
+  * 処理結果データが状態に直接書き込まれます。
 
 #### サブプロセス呼び出し (CLI)
-* **実行ファイル**: `scripts/skill_designer.py`
+* **起動方法**: `python3 -m edd_agent_tools.cli.run --skill_name skill-designer <引数>`
 * **引数 (`args`)**:
-  * `input_json`: パラメータ情報を含む JSON 文字列
-  * `output_json`: 結果を一時保存するファイルパス
+  * Pydantic スキーマで定義されているパラメータをフラットなオプション引数として直接渡します（例: `--param_name value`）。
 
 #### 出力形式の要件 (Output Mode)
 - **Output Mode: STRUCTURED_JSON**
@@ -74,10 +69,11 @@ description: スキル設計要件に基づいて新しいスキルを設計し�
 
 ```python
 run_skill_script(
-    file_path="scripts/skill_designer.py",
+    file_path="/workspace/edd-agent-tools/src/edd_agent_tools/cli/run.py",
     args={
-        "input_json": "{\"param\": \"value\"}",
-        "output_json": "/workspace/src/.workflow_tmp/output.json"
+        "--skill_name": "skill-designer",
+        # Pydantic schema に定義された引数を指定します:
+        # "--param_name": "value"
     }
 )
 ```

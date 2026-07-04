@@ -127,10 +127,11 @@ def process_message(tool_context: ToolContext):
     design_data = json.loads(response.text)
 
 
-    output_file_path = os.path.join(output_dir, "design.json")
+    assets_output_dir = os.path.join(output_dir, "assets")
+    output_file_path = os.path.join(assets_output_dir, "design.json")
     
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    if not os.path.exists(assets_output_dir):
+        os.makedirs(assets_output_dir)
 
     with open(output_file_path, "w", encoding="utf-8") as f:
         json.dump(design_data, f, indent=2, ensure_ascii=False)

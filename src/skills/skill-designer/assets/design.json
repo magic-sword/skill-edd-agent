@@ -1,0 +1,28 @@
+{
+  "name": "skill-designer",
+  "description": "自然言語の要件や既存のソースコードからADK 2.0互換のdesign.jsonを設計して出力します。",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "parameters": [
+    {
+      "name": "requirement",
+      "type": "str",
+      "description": "設計するdesign.jsonの要件やプロンプト。自然言語で記述します。",
+      "required": true
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "生成されたdesign.jsonを保存するディレクトリのパス。",
+      "required": true
+    },
+    {
+      "name": "source_code_path",
+      "type": "str",
+      "description": "既存の実装コードのパス。指定しない場合、output_dirから自動検出を試みます。",
+      "required": false,
+      "default": null
+    }
+  ],
+  "dependencies": []
+}
