@@ -20,12 +20,11 @@ class SchemaArgumentParser:
 
     def _build_parser(self):
         # 共通引数の登録
-        self.parser.add_argument("--skill_name", required=True, help="Name of the skill to run")
         self.parser.add_argument("--output_json", help="Path to save the output JSON data")
 
         # Pydanticモデルから動的に引数を登録
         for field_name, field_info in self.InputSchema.model_fields.items():
-            if field_name in ["skill_name", "output_json"]:
+            if field_name in ["output_json"]:
                 continue
             opt_name = f"--{field_name}"
             field_type = field_info.annotation

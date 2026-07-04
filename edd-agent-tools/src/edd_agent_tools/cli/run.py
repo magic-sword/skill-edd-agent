@@ -35,7 +35,7 @@ class SkillRunner:
         # 2. Pydanticから引数パーサーを構築・実行
         arg_parser = SchemaArgumentParser(InputSchema, description)
         try:
-            validated_input, parsed_args = arg_parser.parse_and_validate(sys.argv[1:])
+            validated_input, parsed_args = arg_parser.parse_and_validate(sys.argv[2:])
         except Exception as e:
             print(f"Validation Error: {e}", file=sys.stderr)
             sys.exit(1)
@@ -75,18 +75,13 @@ class SkillRunner:
                 sys.exit(1)
 
 def run_cli():
-    # 予備パースで最初の --skill_name のみを取得 (どのローダーを初期化するか決定するため)
-    skill_name = None
-    try:
-        idx = sys.argv.index("--skill_name")
-        if idx + 1 < len(sys.argv):
-            skill_name = sys.argv[idx + 1]
-    except ValueError:
-        pass
-
-    if not skill_name:
-        print("Error: --skill_name is required.", file=sys.stderr)
+    # 最初の引数を位置引数としてスキル名を取得
+    if len(sys.argv) < 2 or sys.argv[1].startswith("-"):
+        print("Error: Skill name is required as the first argument.", file=sys.stderr)
+        print("Usage: python3 -m edd_agent_tools.cli.run <skill_name> [options]", file=sys.stderr)
         sys.exit(1)
+
+    skill_name = sys.argv[1]
 
     runner = SkillRunner(skill_name)
     runner.run()

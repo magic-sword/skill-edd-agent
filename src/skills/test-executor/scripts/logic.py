@@ -125,7 +125,7 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
     # 共通ランナー（edd-run）を用いたスキル CLI サブプロセス実行
     cmd_args = [
         sys.executable, "-m", "edd_agent_tools.cli.run",
-        "--skill_name", "test-executor",
+        "test-executor",
         "--skill_name", skill_name,
         "--eval_set_path", eval_set_path,
         "--threshold_accuracy", str(threshold_accuracy),
