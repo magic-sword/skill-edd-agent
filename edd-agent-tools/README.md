@@ -151,8 +151,6 @@ ADK 2.0 のデフォルト評価器（Rouge-1）はスペース区切り前提�
     *   指示プロンプトとソースコード、各種ドキュメント等の添付テキストを分離し、マルチパーツ（Gemini Content）として構成する処理。
 *   **Gemini API クライアント初期化 (`get_gemini_client`)**
     *   環境変数 `GEMINI_API_KEY` の設定に基づき、`google-genai` 互換クライアントを簡潔に初期化。
-*   **Pydanticスキーマ調整 (`remove_additional_properties`)**
-    *   Gemini APIの構造化出力（`response_schema`）でエラーの原因となる `additionalProperties: false` 属性などをスキーマ定義から自動除去する処理。
 *   **日本語ROUGE評価の正常化（多言語対応パッチ）**
     *   ADK標準評価器の日本語文字分割問題を解決するため、`bert-base-multilingual-cased` による多言語トークナイズパッチを適用。
 *   **ドキュメント読込 (`LibraryDocumentationReader`)**

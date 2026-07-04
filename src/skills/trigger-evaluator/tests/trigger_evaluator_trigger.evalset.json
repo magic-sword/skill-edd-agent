@@ -10,7 +10,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorスキルのトリガー条件を評価してください。"
+                "text": "\"my-skill\" スキルのトリガー条件を評価して"
               }
             ],
             "role": "user"
@@ -48,7 +48,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorスキルのトリガー評価用テストケースを生成してほしい。"
+                "text": "\"sample-skill\" スキルのトリガー評価用テストケースを生成してほしい"
               }
             ],
             "role": "user"
@@ -86,7 +86,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorのSKILL.mdのトリガー部分を静的に評価してください。"
+                "text": "\"another-skill\" のSKILL.mdのトリガー部分を静的に評価してください"
               }
             ],
             "role": "user"
@@ -124,7 +124,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorのトリガーアセットを作成してください。"
+                "text": "\"target-skill\" のトリガーアセットを作成して"
               }
             ],
             "role": "user"
@@ -162,7 +162,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorスキルのトリガーの具体性と明確性をチェックしてください。"
+                "text": "\"test-skill\" スキルのトリガーの具体性と明確性をチェックして"
               }
             ],
             "role": "user"
@@ -200,7 +200,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorのトリガーテストを自動生成してください。"
+                "text": "\"new-skill\" のトリガーテストを自動生成して"
               }
             ],
             "role": "user"
@@ -238,7 +238,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorのトリガー評価に必要なアセットを生成してください。"
+                "text": "あるスキルのトリガー条件を評価してほしい"
               }
             ],
             "role": "user"
@@ -276,7 +276,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorの陽性プロンプトと陰性プロンプトを作成してほしい。"
+                "text": "このスキルのトリガー評価用テストケースを作って"
               }
             ],
             "role": "user"
@@ -314,7 +314,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorのトリガー条件の品質を評価してレポートを出力してください。"
+                "text": "SKILL.mdのトリガー部分を静的に評価してくれますか？"
               }
             ],
             "role": "user"
@@ -352,7 +352,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "trigger-evaluatorの評価セットと設定ファイルを生成してください。"
+                "text": "スキルのトリガーアセットを生成してください"
               }
             ],
             "role": "user"
@@ -421,7 +421,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "256に128を足すといくつになりますか？"
+                "text": "数学の問題を解いてください。256に128を足すといくつになりますか？"
               }
             ],
             "role": "user"
@@ -452,7 +452,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "最近読んだ本でおすすめはありますか？"
+                "text": "最近のニュースについて教えてください。"
               }
             ],
             "role": "user"
@@ -483,7 +483,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "Javaでクラスを定義する方法を教えてください。"
+                "text": "Pythonでファイルを読み込むコードを書いてください。"
               }
             ],
             "role": "user"
@@ -514,7 +514,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "週末は何をして過ごしましたか？"
+                "text": "おすすめのレストランはどこですか？"
               }
             ],
             "role": "user"
@@ -545,7 +545,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "AIの未来についてどう思いますか？"
+                "text": "週末の予定は何ですか？"
               }
             ],
             "role": "user"
@@ -576,7 +576,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "美味しいラーメン屋さんを知っていますか？"
+                "text": "健康的な食事についてアドバイスをください。"
               }
             ],
             "role": "user"
@@ -607,7 +607,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "地球の平均気温は何度ですか？"
+                "text": "世界で一番高い山は何ですか？"
               }
             ],
             "role": "user"
@@ -638,7 +638,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "C++でポインタを使う際の注意点は何ですか？"
+                "text": "面白いジョークを教えてください。"
               }
             ],
             "role": "user"
@@ -669,7 +669,7 @@
           "user_content": {
             "parts": [
               {
-                "text": "こんにちは、元気ですか？"
+                "text": "宇宙旅行についてどう思いますか？"
               }
             ],
             "role": "user"

@@ -7,11 +7,9 @@ class StaticEvalResult(BaseModel):
 class TriggerTestCases(BaseModel):
     positive_prompts: list[str] = Field(
         ...,
-        description="このスキルがトリガーされるべき陽性プロンプト（10件）",
-        examples=[["このスキルを起動して", "対象スキルを実行して"]]
+        description="このスキルがトリガーされるべき陽性プロンプト（10件）"
     )
     negative_prompts: list[str] = Field(
         ...,
-        description="このスキルとは関係のない一般的な雑談などの陰性プロンプト（10件）",
-        examples=[["こんにちは", "今日の天気は？"]]
+        description="このスキルとは関係のない一般的な雑談などの陰性プロンプト（10件）"
     )

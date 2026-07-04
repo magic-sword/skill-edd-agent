@@ -1,11 +1,11 @@
 {
   "skill_name": "trigger-evaluator",
   "static_evaluation": {
-    "specificity": 4,
+    "specificity": 5,
     "clarity": 5,
     "passed": true
   },
   "generated_cases_file": "/workspace/src/skills/trigger-evaluator/tests/trigger_evaluator_trigger.evalset.json",
   "status": "PASSED",
-  "evaluation_date": "2026-07-04T16:54:09.574955Z"
+  "evaluation_date": "2026-07-04T17:23:19.938931Z"
 }

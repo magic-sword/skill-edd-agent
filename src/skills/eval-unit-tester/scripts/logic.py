@@ -5,40 +5,27 @@ from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
 from pydantic import BaseModel, Field, create_model
-from edd_agent_tools.utils.schema import remove_additional_properties
 from edd_agent_tools.registry import SkillRegistry
 from .strategy import get_output_mode_strategy
 
 class TestParameterCase(BaseModel):
     user_instruction: str = Field(
         ...,
-        description="ユーザーからの自然言語での指示（例: 『hello worldを大文字にしてください』など）",
-        examples=["「hello world」を大文字に変換し、結果のテキストのみを出力してください。"]
+        description="ユーザーからの自然言語での指示（例: 『hello worldを大文字にしてください』など）"
     )
     input_parameters: dict = Field(
         ...,
-        description="ツールに渡す引数（args）の辞書。キー名は仕様書（SKILL.md）の引数に従ってください。",
-        examples=[{"text": "hello world"}]
+        description="ツールに渡す引数（args）の辞書。キー名は仕様書（SKILL.md）の引数に従ってください。"
     )
     expected_output: str = Field(
         ...,
-        description="ツールまたはエージェントからの期待される最終的なテキスト応答（例: 'HELLO WORLD'）",
-        examples=["HELLO WORLD"]
+        description="ツールまたはエージェントからの期待される最終的なテキスト応答（例: 'HELLO WORLD'）"
     )
 
 class TestParameterSet(BaseModel):
     cases: list[TestParameterCase] = Field(
         ...,
-        description="生成されたテストパラメータケースのリスト",
-        examples=[
-            [
-                {
-                    "user_instruction": "「hello world」を大文字に変換し、結果のテキストのみを出力してください。",
-                    "input_parameters": {"text": "hello world"},
-                    "expected_output": "HELLO WORLD"
-                }
-            ]
-        ]
+        description="生成されたテストパラメータケースのリスト"
     )
 
 
@@ -116,15 +103,12 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
             print(f"Warning: Could not create dynamic response schema: {e}")
             TargetSetClass = TestParameterSet
 
-    schema_dict = TargetSetClass.model_json_schema()
-    clean_schema = remove_additional_properties(schema_dict)
-
     response = client.models.generate_content(
         model='gemini-2.5-flash',
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
-            response_schema=clean_schema,
+            response_schema=TargetSetClass,
             temperature=0.2
         )
     )

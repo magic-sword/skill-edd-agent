@@ -37,16 +37,12 @@ class BaseSpecWriter(ABC):
 
     def _call_gemini_api(self, contents: list[str], schema):
         """Gemini API を使って構造化 JSON を取得しパースする共通メソッド"""
-        from edd_agent_tools.utils.schema import remove_additional_properties
-        schema_dict = schema.model_json_schema()
-        clean_schema = remove_additional_properties(schema_dict)
-        
         response = self.client.models.generate_content(
             model="gemini-2.5-flash",
             contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=clean_schema,
+                response_schema=schema,
                 temperature=0.2
             )
         )

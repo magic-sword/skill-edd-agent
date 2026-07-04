@@ -4,7 +4,6 @@ import sys
 from datetime import datetime
 from google.adk.tools import ToolContext
 from google.genai import types
-from edd_agent_tools.utils.schema import remove_additional_properties
 from edd_agent_tools.registry import SkillRegistry
 from edd_agent_tools.gemini import get_gemini_client
 from .models import StaticEvalResult, TriggerTestCases
@@ -99,15 +98,12 @@ class TriggerEvaluator:
         )
 
         try:
-            schema_dict = StaticEvalResult.model_json_schema()
-            clean_schema = remove_additional_properties(schema_dict)
-
             response = self.genai_client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    response_schema=clean_schema,
+                    response_schema=StaticEvalResult,
                     temperature=0.1
                 )
             )
@@ -141,15 +137,12 @@ class TriggerEvaluator:
         )
 
         try:
-            schema_dict = TriggerTestCases.model_json_schema()
-            clean_schema = remove_additional_properties(schema_dict)
-
             response = self.genai_client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    response_schema=clean_schema,
+                    response_schema=TriggerTestCases,
                     temperature=0.2
                 )
             )

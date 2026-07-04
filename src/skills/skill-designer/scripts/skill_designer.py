@@ -3,7 +3,6 @@ import json
 from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
-from edd_agent_tools.utils.schema import remove_additional_properties
 from edd_agent_tools.models import SkillDesign
 
 def process_message(tool_context: ToolContext):
@@ -81,15 +80,12 @@ def process_message(tool_context: ToolContext):
     from edd_agent_tools.gemini import get_gemini_client
     client = get_gemini_client()
     
-    schema_dict = SkillDesign.model_json_schema()
-    clean_schema = remove_additional_properties(schema_dict)
-
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=contents,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
-            response_schema=clean_schema,
+            response_schema=SkillDesign,
             temperature=0.1
         )
     )
