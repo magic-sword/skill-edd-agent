@@ -33,6 +33,10 @@
     "skill-spec-writer": {
       "tier": 1,
       "last_tested": null
+    },
+    "skill-designer": {
+      "tier": 1,
+      "last_tested": null
     }
   },
   "agents": {
