@@ -1,0 +1,39 @@
+{
+  "name": "skill-coder",
+  "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コード(scripts/handler.py, scripts/logic.py等)を自動生成・更新するスキル",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "parameters": [
+    {
+      "name": "prompt",
+      "type": "str",
+      "description": "実装したいビジネスロジックの機能要件や詳細な指示。",
+      "required": true
+    },
+    {
+      "name": "name",
+      "type": "str",
+      "description": "対象のスキル名。design_pathが省略された場合の探索キー。",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "design_path",
+      "type": "str",
+      "description": "対象スキルの design.json への絶対/相対パス。",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "ソースコードを出力するディレクトリ。省略時は対象スキルのルートディレクトリ。",
+      "required": false,
+      "default": null
+    }
+  ],
+  "dependencies": [],
+  "constraints": [
+    "対象スキルを特定するために、'name' または 'design_path' のいずれか一方は必ず指定する必要があります。"
+  ]
+}

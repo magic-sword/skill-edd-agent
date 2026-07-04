@@ -238,4 +238,3 @@ def process_message(tool_context: ToolContext):
     tool_context.state["status"] = "success"
     tool_context.state["generated_files"] = generated_files
     tool_context.state["result_message"] = f"スキルコードの実装が完了しました。生成/更新ファイル: {', '.join(generated_files)}"
-
