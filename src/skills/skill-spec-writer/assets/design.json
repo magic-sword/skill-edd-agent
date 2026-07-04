@@ -1,6 +1,6 @@
 {
   "name": "skill-spec-writer",
-  "description": "ADK 2.0仕様に準拠したSKILL.mdを、設計情報とソースコードから自動生成します。",
+  "description": "仕様書(SKILL.md)を自動生成するスキル。",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
   "parameters": [

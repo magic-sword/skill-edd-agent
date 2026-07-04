@@ -108,3 +108,60 @@ tool_context.state["timeout_seconds"] = 180
 output_message = run_system_command(tool_context)
 print(output_message)
 ```
+
+---
+
+## 6. スキルのディレクトリ構造とアセットロード: `SkillDirectory`
+
+パスの解決（`design.json` や `scripts/` の位置）や、アセットファイルのロード（`prompt.txt` 等の読み込み）を手続き的に記述することは避けてください。すべてのフォルダアクセスとアセットロードは **`SkillDirectory`** オブジェクトを介してカプセル化して行います。
+
+### 基本的な構成・アセットロード例
+```python
+from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.models import SkillDesign
+
+registry = SkillRegistry()
+registry.load()
+
+# 1. name または design_path から SkillDirectory インスタンスを取得
+directory = registry.get_skill_directory(name="skill-spec-writer")
+
+# 2. 主要アセットファイル（プロンプトなど）のロード (open処理は全廃)
+prompt_tmpl = directory.load_asset("prompt.txt")
+
+# 3. 設計メタデータ (design.json) の安全なロード (Pydanticインスタンスとして返却)
+design_data: SkillDesign = directory.load_design()
+```
+
+---
+
+## 7. コンテキスト汚染を防ぐマルチパーツ送信: `GeminiContentBuilder`
+
+ソースコードなどをプロンプト指示の文字列内に直接埋め込むことは、コンテキストの汚染とハルシネーションを招く原因になります。
+GenAI SDK のマルチパーツメッセージ（`contents` リスト）を利用し、プロンプト指示（指示パーツ）とは分離された独立した「添付テキストパーツ」として各ファイルをGemini APIに送信してください。この構築には **`GeminiContentBuilder`** クラスを使用します。
+
+### 基本的なマルチパーツ構築・送信例
+```python
+from edd_agent_tools.gemini import GeminiContentBuilder
+from google import genai
+
+# 1. 指示プロンプトで初期化
+builder = GeminiContentBuilder("設計または要約指示...")
+
+# 2. 指定されたディレクトリ配下のPythonファイルを個別のパーツとして添付
+# ※ 添付ファイルを判定する file_filter デリゲートを指定できます
+builder.add_dir(
+    directory="/workspace/src/skills/my-skill/scripts",
+    ref_root="/workspace/src/skills/my-skill",
+    file_filter=lambda path: path.endswith(".py")
+)
+
+contents = builder.build()
+
+# 3. Gemini APIの呼び出し
+client = genai.Client()
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=contents
+)
+```

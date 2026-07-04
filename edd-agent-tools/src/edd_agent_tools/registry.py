@@ -4,6 +4,7 @@ import json
 import hashlib
 import datetime
 import importlib.util
+from .directory import SkillDirectory
 
 class SkillRegistry:
     """skills_registry.json のデータ構造をカプセル化し、読み込み・保存・更新・動的ツールロードを管理するクラス"""
@@ -267,37 +268,5 @@ class SkillRegistry:
         return SkillDirectory(root_dir)
 
 
-class SkillDirectory:
-    """
-    特定のスキルのフォルダ構造と各主要ファイルのパスを一元管理するオブジェクト指向クラス。
-    """
-    def __init__(self, root_dir: str):
-        self.root_dir = os.path.abspath(root_dir)
 
-    @property
-    def name(self) -> str:
-        from edd_agent_tools.models import SkillDesign
-        try:
-            return SkillDesign.load_from_file(self.design_path).name
-        except Exception:
-            return os.path.basename(self.root_dir)
-
-    @property
-    def design_path(self) -> str:
-        """design.json の絶対パス"""
-        return os.path.join(self.root_dir, "assets", "design.json")
-
-    @property
-    def source_code_dir(self) -> str:
-        """scripts の絶対パス"""
-        return os.path.join(self.root_dir, "scripts")
-
-    @property
-    def spec_path(self) -> str:
-        """SKILL.md の絶対パス"""
-        return os.path.join(self.root_dir, "SKILL.md")
-
-    def load_design(self) -> "SkillDesign":
-        from edd_agent_tools.models import SkillDesign
-        return SkillDesign.load_from_file(self.design_path)
 

@@ -45,20 +45,9 @@ def process_message(tool_context: ToolContext):
         except Exception as e:
             print(f"Info: Could not load handler.py for validator constraint parsing in designer: {e}")
 
-    # プロンプトアセットのロード
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    prompt_path = os.path.join(script_dir, "..", "assets", "prompt.txt")
-    
-    assets_dir = os.path.join(script_dir, "..", "assets")
-    if not os.path.exists(assets_dir):
-        os.makedirs(assets_dir)
-
-    if not os.path.exists(prompt_path):
-        with open(prompt_path, "w", encoding="utf-8") as f:
-            f.write("あなたは優秀なスキルデザイナーです。以下の情報に基づき、ADK 2.0互換のdesign.jsonを設計してください。\n\n既存のスキル名:\n{existing_name}\n\n要件詳細:\n{requirement}\n\n既存の制約事項:\n{existing_constraints}")
-            
-    with open(prompt_path, "r", encoding="utf-8") as f:
-        prompt_tmpl = f.read()
+    # 3. プロンプトアセットのロード
+    designer_dir = registry.get_skill_directory("skill-designer")
+    prompt_tmpl = designer_dir.load_asset("prompt.txt")
 
     # プロンプトの整形
     existing_name_str = existing_name or "なし"

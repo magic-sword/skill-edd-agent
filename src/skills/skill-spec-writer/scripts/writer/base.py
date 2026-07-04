@@ -63,13 +63,10 @@ class BaseSpecWriter(ABC):
     def generate(self, output_dir: str):
         """【共通フロー】仕様書の生成を実行する（テンプレートメソッド）"""
         # 共通プロンプトテンプレートをロード
-        script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        prompt_path = os.path.join(script_dir, "..", "assets", "prompt_common.txt")
-        if not os.path.exists(prompt_path):
-            raise FileNotFoundError(f"Prompt template not found at {prompt_path}")
-            
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            prompt_tmpl = f.read()
+        from edd_agent_tools.registry import SkillRegistry
+        registry = SkillRegistry()
+        writer_dir = registry.get_skill_directory("skill-spec-writer")
+        prompt_tmpl = writer_dir.load_asset("prompt_common.txt")
             
         prompt = self.build_prompt(prompt_tmpl)
         schema = self.get_pydantic_schema()

@@ -8,8 +8,12 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
   各スキルの `Input`（Pydanticモデル）から引数を自動的に構築し、型検証および実行結果の保存までを制御する統合CLIエントリーポイント。
 * **スキルレジストリ (`edd_agent_tools.registry.SkillRegistry`)**:
   プロジェクト内のスキル/エージェントを `skills_registry.json` にベースに動的に検索・ロード・カプセル化するモジュール。
+* **スキルディレクトリモデル (`edd_agent_tools.registry.SkillDirectory`)**:
+  特定のスキルのフォルダ構造と各主要ファイルのパスを一元管理し、`load_asset` によるプロンプト等のロード処理をカプセル化するドメインモデル。
 * **モックコンテキスト (`edd_agent_tools.testing.mock_context`)**:
   テスト・デバッグ用の `MockInvocationContext` を提供。
+* **Geminiコンテンツビルダー (`edd_agent_tools.gemini.GeminiContentBuilder`)**:
+  Gemini APIへのソースコードやアセット等のマルチパーツ添付を管理し、プロンプト直書きによるコンテキスト汚染を防ぐ支援ツール。
 
 ---
 
@@ -89,6 +93,49 @@ PYTHONPATH=/workspace/edd-agent-tools/src python3 -m edd_agent_tools.cli.run \
   --skill_name my-sample-skill \
   --requirement "新しい仕様の設計" \
   --output_dir "/tmp/my_output"
+```
+
+### 3. オブジェクト指向パス解決とアセットロード (SkillDirectory)
+パス解決やアセットファイル（`prompt.txt`等）のロード処理が手続き的に散らばるのを防ぐため、スキルのディレクトリ構造とファイルの知識はすべて `SkillDirectory` クラスにカプセル化されます。
+`SkillRegistry` は、`name` または `design_path` のいずれかから解決された `SkillDirectory` オブジェクトを構築して返すファクトリとして機能します。
+
+```python
+from edd_agent_tools.registry import SkillRegistry
+
+registry = SkillRegistry()
+
+# スキル名、またはdesign_pathから、対応するSkillDirectoryオブジェクトを一元特定
+directory = registry.get_skill_directory(name="skill-spec-writer")
+
+# フォルダ構造の主要パスへのアクセス (os.path.joinのハードコード全廃)
+design_path = directory.design_path         # .../assets/design.json
+source_code_dir = directory.source_code_dir # .../scripts
+spec_path = directory.spec_path             # .../SKILL.md
+
+# アセットファイル（プロンプトなど）の安全なロード (open処理の全廃)
+prompt_content = directory.load_asset("prompt.txt")
+```
+
+### 4. コンテキスト汚染を防ぐマルチパーツ添付 (GeminiContentBuilder)
+ソースコード全体をプロンプト指示の文字列内に直接埋め込む（結合する）と、プロンプトが巨大化してコンテキスト汚染を招き、ハルシネーションが発生しやすくなります。
+`GeminiContentBuilder` を使用することで、指示プロンプトとは分離された独立した「添付テキストパーツ」として各ファイルをGemini APIに送信できます。
+また、任意のファイルを判定・抽出するための「フィルタ用デリゲート（`Callable` コールバック）」をサポートしています。
+
+```python
+from edd_agent_tools.gemini import GeminiContentBuilder
+
+# メインの指示プロンプトでビルダーを初期化
+builder = GeminiContentBuilder("設計要件: ...")
+
+# フィルタデリゲートを指定し、Pythonソースコード（.py）のみを個別の添付ファイルとして追加
+builder.add_dir(
+    directory="/workspace/src/skills/my-skill/scripts",
+    ref_root="/workspace/src/skills/my-skill",
+    file_filter=lambda path: path.endswith(".py")
+)
+
+# Gemini APIの generate_content にそのまま渡せるマルチパーツ（list[str]）を取得
+contents = builder.build()
 ```
 
 ---
