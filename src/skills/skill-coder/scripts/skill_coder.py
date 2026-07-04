@@ -183,13 +183,25 @@ def process_message(tool_context: ToolContext):
                 skill_name=skill_name,
                 prompt=prompt
             )
+            
+            # GeminiContentBuilder を使って、指示と既存ソースコード、規約をマルチパーツ化
+            from edd_agent_tools.gemini import GeminiContentBuilder
+            builder = GeminiContentBuilder(user_prompt)
+            
+            # 既存の scripts ディレクトリ内の全 python ファイル (handler.py 含む) を添付
+            if os.path.exists(scripts_dir):
+                builder.add_dir(
+                    directory=scripts_dir,
+                    ref_root=target_root,
+                    file_filter=lambda p: p.endswith(".py")
+                )
+                
             docs_content = reader.read_documentation()
+            builder.parts.append(f"=== 開発規約（edd-agent-tools 仕様書） ===\n{docs_content}")
+            
             user_message = types.Content(
                 role='user',
-                parts=[
-                    types.Part(text=user_prompt),
-                    types.Part(text=f"=== 開発規約（edd-agent-tools 仕様書） ===\n{docs_content}")
-                ]
+                parts=[types.Part(text=p) for p in builder.build()]
             )
             
             async for event in runner.run_async(

@@ -4,8 +4,8 @@
 - スキル名: {skill_name}
 
 【重要な作業環境ルール】
-あなたの作業ディレクトリ（Cwd）は、対象スキルのルートディレクトリ（ {output_dir} ）に固定されています。
-ファイル操作は、作業ディレクトリを基準としたシンプルな相対パス（例: `scripts/logic.py`）で行ってください。
+- 作業ディレクトリ（Cwd）: {output_dir} （対象スキルのルートディレクトリ）
+- ファイル操作は、作業ディレクトリを基準とした相対パス（例: `scripts/logic.py`）で行ってください。
 
 【インプット情報】
 - 設計定義（design.json の内容）:
@@ -14,79 +14,24 @@
 - 開発要件（実装すべき機能・指示）:
 {prompt}
 
-あなたのタスクは、上記の「設計定義」および「開発要件」を満たすスキル実装コードをオブジェクト指向の設計原則に従って実装することです。
-
-以下の【コーディング規約】および【段階的実装フロー】を厳格に遵守してください。
-
----
-
-### 【重要】コーディング規約
-
-1. **薄いハンドラーの尊重（handler.py の編集禁止）**:
-   配置されている `scripts/handler.py` を変更または削除することは**絶対に禁止**します。これは自動生成された薄いインターフェース層です。ビジネスロジックはすべて `scripts/logic.py` から開始してください。
-
-2. **`ToolContext` および状態管理規約（最重要）**:
-   * **`ToolContext` のインポート**:
-     `ToolContext` をインポートする際は、**必ず** `from google.adk.tools import ToolContext` を使用してください。`edd_agent_tools` パッケージ配下からインポートしてはなりません。
-   * **入力パラメータの取得**:
-     入力パラメータは `tool_context.params` ではなく、**必ず `tool_context.state.get("パラメータ名")`** を使って `state` から直接取得してください。
-   * **出力パラメータの書き込み**:
-     ビジネスロジックの処理結果は、関数から `return` するのではなく、**必ず `tool_context.state["キー名"] = 値` または `tool_context.state.update(結果辞書)`** を使用して `tool_context.state` に直接書き込んでください。関数の戻り値は通常無視されます。
-   * **記述例 (`scripts/logic.py`)**:
-     ```python
-     from google.adk.tools import ToolContext
-     from .client import WeatherClient
-     
-     def process_message(tool_context: ToolContext):
-         # stateから値を取得
-         city = tool_context.state.get("city")
-         
-         # ロジックの実行
-         client = WeatherClient()
-         data = client.fetch(city)
-         
-         # 処理結果は直接 state に書き込む
-         tool_context.state["celsius"] = data["temp_c"]
-         tool_context.state["fahrenheit"] = data["temp_f"]
-     ```
-
-3. **オブジェクト指向と単一責任の原則**:
-   1つのファイルにすべてのロジックを詰め込む（肥大化させる）ことは厳禁です。
-   処理の役割に応じて適切にモジュールを分割してください。
-   * 外部とのAPI通信を行う場合: `scripts/client.py` などのモジュールに分離
-   * データのパースやユーティリティ処理: `scripts/parser.py` や `scripts/utils.py` に分離
-   * メインロジックの統括: `scripts/logic.py` 内に `process_message` を実装し、各モジュールを呼び出す
-
-4. **アセットの外部化**:
-   Gemini API 等を呼び出すためのプロンプトテンプレートや、大規模な設定用テキストデータなどは、Pythonコード内に文字列リテラルとして直書きしてはなりません。
-   必ず `assets/` ディレクトリ配下に `prompt.txt` 等のテキストファイルとして書き出し、コード内からは `SkillDirectory` オブジェクトの `load_asset("prompt.txt")` メソッドを使ってロードする設計にしてください。
-   * **アセットロードのコード例**:
-     ```python
-     from edd_agent_tools.registry import SkillRegistry
-     
-     registry = SkillRegistry()
-     registry.load()
-     directory = registry.get_skill_directory(name="{skill_name}")
-     prompt_tmpl = directory.load_asset("prompt.txt")
-     ```
-
-5. **相対インポートの使用**:
-   同じ `scripts/` ディレクトリ内のファイルをインポートする際は、動的なパス追加（`sys.path.insert`など）を一切使用せず、必ず「相対インポート」（例: `from .client import WeatherClient`）を使用してください。
-
-6. **エラーハンドリング**:
-   ビジネスロジック内で異常（要件の違反、実行時エラー等）を検知した場合は、`ValueError` や `RuntimeError` などの例外（Exception）をスローしてください。自前で `sys.exit` を呼んではいけません。
+- 開発規約: 添付されている公式仕様書（README.md）を読み込み、そこに定義された規約（インポート先、状態管理、アセットの外部化など）を厳格に遵守してください。
 
 ---
 
 ### 【重要】段階的実装フロー
 
+添付の公式仕様書（README.md）に定義された「コア設計思想（関心の分離、状態駆動、戻り値なし）」を厳格に遵守し、以下のフローに従って段階的に実装を進めてください。
+
 1. **ステップ1: モジュール分割計画の策定（思考・設計フェーズ）**:
    コーディングを始める前に、要件を満たすために「どのようなモジュール（ファイル）が必要か」「アセットファイルは何が必要か」を検討し、まずはモジュール分割計画とファイルの役割分担を明確に宣言してください。
+   * **既存コードがある場合**: 既存のファイル構成をベースとし、どのファイルをどう修正するか、または新たに何のファイルを追加するかの「改修計画」を立ててください。
 
-2. **ステップ2: 外部アセットおよび下流モジュールの作成**:
-   モジュール分割計画に基づき、まずは `assets/` 配下のアセットファイルや、依存関係の下流にあたるユーティリティ、APIクライアントなどのサブモジュールを順次作成（`WriteFile`）してください。
+2. **ステップ2: 外部アセットおよび下流モジュールの作成・修正**:
+   モジュール分割計画に基づき、まずは `assets/` 配下のアセットファイルや、依存関係の下流にあたるユーティリティ、APIクライアントなどのサブモジュールを順次作成・修正してください。
 
-3. **ステップ3: メインロジック（`scripts/logic.py`）の実装**:
-   最後に `scripts/logic.py` を作成（または更新）し、作成したサブモジュールや外部アセットを呼び出す形で `process_message(tool_context: ToolContext)` 関数内のビジネスロジックを統合・完成させてください。
+3. **ステップ3: メインロジック（`scripts/logic.py`）の実装・統合**:
+   最後に `scripts/logic.py` を作成（または更新）し、作成・修正したサブモジュールや外部アセットを呼び出す形で `process_message(tool_context: ToolContext)` 関数内のビジネスロジックを統合・完成させてください。
+
+※自動生成された `scripts/handler.py` を手動で編集・変更することは**絶対に禁止**します。
 
 それでは、ステップ1（モジュール分割計画の策定）からタスクを開始してください。
