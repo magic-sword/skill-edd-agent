@@ -1,0 +1,696 @@
+{
+  "eval_set_id": "trigger-evaluator_trigger_eval_set",
+  "name": "trigger-evaluator Trigger Evaluation Set",
+  "eval_cases": [
+    {
+      "eval_id": "positive_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorスキルのトリガー条件を評価してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_2",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorスキルのトリガー評価用テストケースを生成してほしい。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_3",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorのSKILL.mdのトリガー部分を静的に評価してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_4",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_4",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorのトリガーアセットを作成してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_5",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_5",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorスキルのトリガーの具体性と明確性をチェックしてください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_6",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_6",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorのトリガーテストを自動生成してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_7",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_7",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorのトリガー評価に必要なアセットを生成してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_8",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_8",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorの陽性プロンプトと陰性プロンプトを作成してほしい。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_9",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_9",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorのトリガー条件の品質を評価してレポートを出力してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_10",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_10",
+          "user_content": {
+            "parts": [
+              {
+                "text": "trigger-evaluatorの評価セットと設定ファイルを生成してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "trigger-evaluator"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "今日の天気は晴れですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_2",
+          "user_content": {
+            "parts": [
+              {
+                "text": "256に128を足すといくつになりますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_3",
+          "user_content": {
+            "parts": [
+              {
+                "text": "最近読んだ本でおすすめはありますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_4",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_4",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Javaでクラスを定義する方法を教えてください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_5",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_5",
+          "user_content": {
+            "parts": [
+              {
+                "text": "週末は何をして過ごしましたか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_6",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_6",
+          "user_content": {
+            "parts": [
+              {
+                "text": "AIの未来についてどう思いますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_7",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_7",
+          "user_content": {
+            "parts": [
+              {
+                "text": "美味しいラーメン屋さんを知っていますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_8",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_8",
+          "user_content": {
+            "parts": [
+              {
+                "text": "地球の平均気温は何度ですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_9",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_9",
+          "user_content": {
+            "parts": [
+              {
+                "text": "C++でポインタを使う際の注意点は何ですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_10",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_10",
+          "user_content": {
+            "parts": [
+              {
+                "text": "こんにちは、元気ですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    }
+  ]
+}

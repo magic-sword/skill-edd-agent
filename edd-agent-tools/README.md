@@ -137,3 +137,23 @@ handler_module = registry.load_handler("my-sample-skill")
 ## 4. 日本語テスト実行パッチ (Monkey Patch)
 ADK 2.0 のデフォルト評価器（Rouge-1）はスペース区切り前提のため、日本語でテストすり抜けバグが発生します。
 本パッケージは、`adk eval` の実行時に自動的に `PYTHONPATH` にパッチを差し込み、`rouge_score` のトークナイザーを多言語モデル（`bert-base-multilingual-cased`）に差し替えることで、日本語の評価精度を担保します。
+
+---
+
+## 5. パッケージ共通化処理一覧 (Summary of Shared Processes)
+
+本パッケージ `edd-agent-tools` で共通化されている主要な処理は以下の通りです。
+
+*   **パス・ディレクトリ管理 (`SkillDirectory` / `SkillRegistry`)**
+    *   スキルのルート、アセット、ソースコードパスの自動解決。
+    *   テスト用の評価データ（`.evalset.json`、`.evalset.config.json`）の規定フォルダへの一貫した保存。
+*   **LLM送信の最適化 (`GeminiContentBuilder`)**
+    *   指示プロンプトとソースコード、各種ドキュメント等の添付テキストを分離し、マルチパーツ（Gemini Content）として構成する処理。
+*   **Gemini API クライアント初期化 (`get_gemini_client`)**
+    *   環境変数 `GEMINI_API_KEY` の設定に基づき、`google-genai` 互換クライアントを簡潔に初期化。
+*   **Pydanticスキーマ調整 (`remove_additional_properties`)**
+    *   Gemini APIの構造化出力（`response_schema`）でエラーの原因となる `additionalProperties: false` 属性などをスキーマ定義から自動除去する処理。
+*   **日本語ROUGE評価の正常化（多言語対応パッチ）**
+    *   ADK標準評価器の日本語文字分割問題を解決するため、`bert-base-multilingual-cased` による多言語トークナイズパッチを適用。
+*   **ドキュメント読込 (`LibraryDocumentationReader`)**
+    *   プロジェクト内の共通規約やドキュメントを読み出し、LLMのコンテキストとして動的に添付可能にする処理。
