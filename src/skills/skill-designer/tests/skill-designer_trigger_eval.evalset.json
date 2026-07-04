@@ -1,0 +1,696 @@
+{
+  "eval_set_id": "skill-designer_trigger_eval_set",
+  "name": "skill-designer Trigger Evaluation Set",
+  "eval_cases": [
+    {
+      "eval_id": "positive_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "新しいスキルを設計したいのですが、この機能要件でdesign.jsonを作成してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_2",
+          "user_content": {
+            "parts": [
+              {
+                "text": "既存の「my-awesome-skill」を再設計して、最新のADK 2.0形式に更新してほしい。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_3",
+          "user_content": {
+            "parts": [
+              {
+                "text": "このソースコードを基に、新しいスキル設計ファイル（design.json）を生成してくれますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_4",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_4",
+          "user_content": {
+            "parts": [
+              {
+                "text": "特定の機能要件「ユーザーの入力を解析して応答する」に基づいて、スキル定義を設計してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_5",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_5",
+          "user_content": {
+            "parts": [
+              {
+                "text": "output_dirにdesign.jsonを出力する形で、新しいスキルを設計してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_6",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_6",
+          "user_content": {
+            "parts": [
+              {
+                "text": "既存のスキルdata-processorの設計を、提供されたソースコードを考慮して更新してほしい。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_7",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_7",
+          "user_content": {
+            "parts": [
+              {
+                "text": "ADK 2.0互換のdesign.jsonを、以下の要件で作成してください：「天気予報を提供するスキル」。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_8",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_8",
+          "user_content": {
+            "parts": [
+              {
+                "text": "私の書いたPythonコードから、自動的にスキル設計を生成できますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_9",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_9",
+          "user_content": {
+            "parts": [
+              {
+                "text": "この要件「特定のAPIを呼び出す」を満たすスキル設計ファイルを作成してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "positive_10",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_10",
+          "user_content": {
+            "parts": [
+              {
+                "text": "skill-calculatorのdesign.jsonを、新しい機能要件に合わせて再設計してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "load_skill",
+                "args": {
+                  "skill_name": "skill-designer"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_1",
+          "user_content": {
+            "parts": [
+              {
+                "text": "今日の天気はどうですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_2",
+          "user_content": {
+            "parts": [
+              {
+                "text": "12345 + 67890 はいくつになりますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_3",
+          "user_content": {
+            "parts": [
+              {
+                "text": "Pythonでリストを逆順にするにはどうすればいいですか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_4",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_4",
+          "user_content": {
+            "parts": [
+              {
+                "text": "こんにちは、何かお手伝いできることはありますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_5",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_5",
+          "user_content": {
+            "parts": [
+              {
+                "text": "最近面白いニュースはありましたか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_6",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_6",
+          "user_content": {
+            "parts": [
+              {
+                "text": "JavaScriptのforループの書き方を教えてください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_7",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_7",
+          "user_content": {
+            "parts": [
+              {
+                "text": "おすすめの映画を教えてください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_8",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_8",
+          "user_content": {
+            "parts": [
+              {
+                "text": "宇宙の果てはどうなっていると思いますか？"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_9",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_9",
+          "user_content": {
+            "parts": [
+              {
+                "text": "明日の予定を教えてください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    },
+    {
+      "eval_id": "negative_10",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_10",
+          "user_content": {
+            "parts": [
+              {
+                "text": "データベースのインデックスについて説明してください。"
+              }
+            ],
+            "role": "user"
+          },
+          "final_response": {
+            "parts": [
+              {
+                "text": "Dummy"
+              }
+            ],
+            "role": "model"
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "evaluation_driven_development_agent",
+        "user_id": "user"
+      }
+    }
+  ]
+}

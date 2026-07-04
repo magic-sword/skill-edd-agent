@@ -13,6 +13,8 @@ from pydantic import BaseModel, Field
 from edd_agent_tools.utils.schema import remove_additional_properties
 from edd_agent_tools.registry import SkillRegistry
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 class StaticEvalResult(BaseModel):
     specificity: int = Field(..., description="トリガー条件の具体性を1-5の整数で評価したもの")
     clarity: int = Field(..., description="トリガー条件の明確性を1-5の整数で評価したもの")
@@ -32,11 +34,8 @@ class TriggerTestCases(BaseModel):
 
 
 # Gemini API の初期化
-api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key:
-    print("エラー: 環境変数 GEMINI_API_KEY が設定されていません。", file=sys.stderr)
-    sys.exit(1)
-genai_client = genai.Client(api_key=api_key)
+from edd_agent_tools.gemini import get_gemini_client
+genai_client = get_gemini_client()
 
 def load_file_content(filepath):
     if not os.path.exists(filepath):
@@ -195,12 +194,10 @@ def generate_trigger_test_cases(skill_name, skill_md_content):
         # 保存先は対象スキルの tests/ ディレクトリ
         registry = SkillRegistry()
         registry.load()
-        skill_dir = registry.get_skill_dir(skill_name)
-        skill_tests_dir = os.path.join(skill_dir, "tests")
-        os.makedirs(skill_tests_dir, exist_ok=True)
+        skill_dir_obj = registry.get_skill_directory(name=skill_name)
         
-        eval_set_filepath = os.path.join(skill_tests_dir, f"{skill_name}_trigger_eval.evalset.json")
-        config_filepath = os.path.join(skill_tests_dir, f"{skill_name}_trigger_eval.evalset.config.json")
+        eval_set_filepath = skill_dir_obj.get_test_filepath(f"{skill_name}_trigger_eval.evalset.json")
+        config_filepath = skill_dir_obj.get_test_filepath(f"{skill_name}_trigger_eval.evalset.config.json")
         
         save_json_file(eval_set_filepath, eval_set_data)
         save_json_file(config_filepath, config_data)
@@ -238,8 +235,7 @@ def execute_trigger_logic(tool_context: ToolContext):
         
     registry = SkillRegistry()
     registry.load()
-    skill_dir = registry.get_skill_dir(skill_name)
-    skill_md_filepath = os.path.join(skill_dir, "SKILL.md")
+    skill_dir_obj = registry.get_skill_directory(name=skill_name)
     
     print(f"スキル '{skill_name}' のトリガーアセット生成を開始します。\n")
 
@@ -249,9 +245,9 @@ def execute_trigger_logic(tool_context: ToolContext):
 
     try:
         try:
-            skill_md_content = load_file_content(skill_md_filepath)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"対象スキル '{skill_name}' のSKILL.mdファイルが見つかりません: {skill_md_filepath}")
+            skill_md_content = skill_dir_obj.load_spec()
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"対象スキル '{skill_name}' のSKILL.mdファイルが見つかりません: {e}")
 
         # 第1ゲート: 静的評価
         static_eval_result = static_evaluate_skill_md(skill_name, skill_md_content)

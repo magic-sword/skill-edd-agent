@@ -36,8 +36,7 @@ def process_message(tool_context: ToolContext):
     if existing_name:
         from edd_agent_tools.parser import PydanticModelParser
         try:
-            handler_module = registry.load_handler(existing_name)
-            InputSchema = getattr(handler_module, "Input", None)
+            InputSchema = registry.load_input_schema(existing_name)
             if InputSchema:
                 extracted = PydanticModelParser.parse_constraints(InputSchema)
                 if extracted:
@@ -79,11 +78,8 @@ def process_message(tool_context: ToolContext):
     contents = builder.build()
 
     # Gemini API の呼び出し
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("GEMINI_API_KEY が環境変数に設定されていません。")
-    
-    client = genai.Client(api_key=api_key)
+    from edd_agent_tools.gemini import get_gemini_client
+    client = get_gemini_client()
     
     schema_dict = SkillDesign.model_json_schema()
     clean_schema = remove_additional_properties(schema_dict)

@@ -43,3 +43,28 @@ class SkillDirectory:
             raise FileNotFoundError(f"Error: Required asset file not found at: {asset_path}")
         with open(asset_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    @property
+    def tests_dir(self) -> str:
+        """tests ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "tests")
+
+    def get_test_filepath(self, filename: str) -> str:
+        """
+        tests ディレクトリ配下のテスト用ファイルの絶対パスを取得し、
+        tests ディレクトリが存在しない場合は自動で作成します。
+        """
+        tests_dir = self.tests_dir
+        os.makedirs(tests_dir, exist_ok=True)
+        return os.path.join(tests_dir, filename)
+
+    def load_spec(self) -> str:
+        """
+        仕様書（SKILL.md）のファイル内容を読み込み、テキストとして返します。
+        ファイルが存在しない場合は FileNotFoundError をスローします。
+        """
+        spec_path = self.spec_path
+        if not os.path.exists(spec_path):
+            raise FileNotFoundError(f"Error: Skill specification not found at: {spec_path}")
+        with open(spec_path, "r", encoding="utf-8") as f:
+            return f.read()

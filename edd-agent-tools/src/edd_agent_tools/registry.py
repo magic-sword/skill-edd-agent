@@ -298,6 +298,17 @@ class SkillRegistry:
             )
         return tools
 
+    def load_input_schema(self, skill_name: str):
+        """
+        指定されたスキルの handler.py から Input スキーマ（Pydanticモデル）を動的ロードします。
+        スキーマが存在しない、またはロードに失敗した場合は None を返します。
+        """
+        try:
+            handler_module = self.load_handler(skill_name)
+            return getattr(handler_module, "Input", None)
+        except Exception:
+            return None
+
 
 
 

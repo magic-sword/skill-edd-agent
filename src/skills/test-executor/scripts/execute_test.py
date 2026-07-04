@@ -37,15 +37,22 @@ def execute_test_logic(tool_context: ToolContext):
         "ADK_EVAL_MODE": str(eval_mode)
     }
     
-    # テストディレクトリに eval_config.json または test_config.json があればそれを指定する
-    eval_dir = os.path.dirname(eval_set_path)
+    # テストファイルに対応する config ファイル (例: [test_name].evalset.config.json) を確認する
     config_file = None
-    for cf in ["eval_config.json", "test_config.json"]:
-        p = os.path.join(eval_dir, cf)
-        if os.path.exists(p):
-            config_file = p
-            break
+    if eval_set_path.endswith(".evalset.json"):
+        possible_config = eval_set_path.replace(".evalset.json", ".evalset.config.json")
+        if os.path.exists(possible_config):
+            config_file = possible_config
             
+    # フォールバック: ディレクトリ配下の一般的な設定名
+    if not config_file:
+        eval_dir = os.path.dirname(eval_set_path)
+        for cf in ["eval_config.json", "test_config.json"]:
+            p = os.path.join(eval_dir, cf)
+            if os.path.exists(p):
+                config_file = p
+                break
+                
     # なければ、test-executor用のデフォルト設定 (response_match_scoreのみで判定し、軌跡評価を除外する) を使用
     if not config_file:
         default_config_dir = "/workspace/src/skills/test-executor/assets"

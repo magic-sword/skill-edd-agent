@@ -17,10 +17,8 @@ class BaseSpecWriter(ABC):
         self.source_code_dir = source_code_dir
         self.tool_context = tool_context
         
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("Error: GEMINI_API_KEY environment variable is not set.")
-        self.client = genai.Client(api_key=api_key)
+        from edd_agent_tools.gemini import get_gemini_client
+        self.client = get_gemini_client()
 
     @abstractmethod
     def get_pydantic_schema(self):

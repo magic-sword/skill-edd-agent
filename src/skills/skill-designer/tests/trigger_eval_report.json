@@ -1,0 +1,11 @@
+{
+  "skill_name": "skill-designer",
+  "static_evaluation": {
+    "specificity": 5,
+    "clarity": 5,
+    "passed": true
+  },
+  "generated_cases_file": "/workspace/src/skills/skill-designer/tests/skill-designer_trigger_eval.evalset.json",
+  "status": "PASSED",
+  "evaluation_date": "2026-07-04T15:19:05.715697Z"
+}

@@ -44,21 +44,12 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
     """
     指定されたスキルに対して評価用の単体テストスイートを生成し、パスを返します。
     """
-    skill_dir = registry.get_skill_dir(skill_name)
-    skill_md_path = os.path.join(skill_dir, "SKILL.md")
-    
-    if not os.path.exists(skill_md_path):
-        raise FileNotFoundError(f"Error: Skill specification {skill_md_path} not found.")
+    skill_dir_obj = registry.get_skill_directory(name=skill_name)
+    skill_dir = skill_dir_obj.root_dir
+    skill_content = skill_dir_obj.load_spec()
         
-    print(f"Loading skill specification from {skill_md_path}")
-    with open(skill_md_path, "r", encoding="utf-8") as f:
-        skill_content = f.read()
-        
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("Error: GEMINI_API_KEY environment variable is not set.")
-        
-    client = genai.Client(api_key=api_key)
+    from edd_agent_tools.gemini import get_gemini_client
+    client = get_gemini_client()
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
     assets_dir = os.path.join(script_dir, "..", "assets")
@@ -94,14 +85,12 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
         )
 
     pydantic_schema_str = ""
-    InputSchema = None
-    try:
-        handler_module = registry.load_handler(skill_name)
-        InputSchema = getattr(handler_module, "Input", None)
-        if InputSchema:
+    InputSchema = registry.load_input_schema(skill_name)
+    if InputSchema:
+        try:
             pydantic_schema_str = json.dumps(InputSchema.model_json_schema(), ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Warning: Could not extract Pydantic schema for {skill_name}: {e}")
+        except Exception as e:
+            print(f"Warning: Could not extract Pydantic schema for {skill_name}: {e}")
     print(f"DEBUG: Pydantic Schema = {pydantic_schema_str}")
 
     prompt = prompt_template.replace(
@@ -235,11 +224,7 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
         "eval_cases": eval_cases
     }
 
-    tests_dir = os.path.join(skill_dir, "tests")
-    os.makedirs(tests_dir, exist_ok=True)
-    
-    eval_set_filename = f"{skill_name_underscore}_eval_set.evalset.json"
-    eval_set_path = os.path.join(tests_dir, eval_set_filename)
+    eval_set_path = skill_dir_obj.get_test_filepath(f"{skill_name_underscore}_eval_set.evalset.json")
     
     with open(eval_set_path, "w", encoding="utf-8") as f:
         json.dump(eval_set_data, f, indent=2, ensure_ascii=False)
@@ -247,8 +232,7 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
     print(f"Successfully generated and saved test cases: {eval_set_path}")
     
     # テスト構成ファイルの保存名を変更
-    config_filename = f"{skill_name_underscore}_eval_set.evalset.config.json"
-    config_path = os.path.join(tests_dir, config_filename)
+    config_path = skill_dir_obj.get_test_filepath(f"{skill_name_underscore}_eval_set.evalset.config.json")
     config_data = {
         "eval_set_path": eval_set_path, # ここは既存コードで既に含まれていることを確認済み
         "threshold_accuracy": 1.0,
