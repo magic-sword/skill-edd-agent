@@ -103,7 +103,4 @@ def workflow_logic(tool_context: ToolContext):
         "message": result
     })
 
-if __name__ == "__main__":
-    cmd = SkillCommand.from_argv("initial_skill_evaluator", sys.argv[1:])
-    runner = CommandLineRunner(cmd)
-    runner.run(workflow_logic)
+

@@ -75,16 +75,20 @@ class SkillRunner:
                 sys.exit(1)
 
 def run_cli():
-    # 予備パースで --skill_name のみを取得 (どのローダーを初期化するか決定するため)
-    pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("--skill_name", required=True)
+    # 予備パースで最初の --skill_name のみを取得 (どのローダーを初期化するか決定するため)
+    skill_name = None
     try:
-        args, unknown = pre_parser.parse_known_args()
-    except Exception as e:
-        print(f"Error parsing --skill_name: {e}", file=sys.stderr)
+        idx = sys.argv.index("--skill_name")
+        if idx + 1 < len(sys.argv):
+            skill_name = sys.argv[idx + 1]
+    except ValueError:
+        pass
+
+    if not skill_name:
+        print("Error: --skill_name is required.", file=sys.stderr)
         sys.exit(1)
 
-    runner = SkillRunner(args.skill_name)
+    runner = SkillRunner(skill_name)
     runner.run()
 
 if __name__ == "__main__":

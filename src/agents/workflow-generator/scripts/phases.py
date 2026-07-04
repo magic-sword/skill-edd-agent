@@ -211,11 +211,11 @@ async def execute_phase5(output_dir: str, workflow_name: str, model: str, sessio
     def load_instruction(filename: str):
         with open(os.path.join(assets_dir, filename), "r", encoding="utf-8") as f:
             template = f.read()
-        return template.replace("{workflow_name}", workflow_name).replace("{output_dir}", output_dir).replace("{runner_name}", "main.py").replace("{workflow_module_name}", workflow_name.replace("-", "_"))
+        return template.replace("{workflow_name}", workflow_name).replace("{output_dir}", output_dir).replace("{runner_name}", "handler.py").replace("{workflow_module_name}", workflow_name.replace("-", "_"))
 
     loader_inst = load_instruction("loader_instruction.txt")
     dag_inst = load_instruction("dag_instruction.txt")
-    runner_inst = load_instruction("main_instruction.txt")
+    runner_inst = load_instruction("handler_instruction.txt")
     doc_inst = load_instruction("doc_instruction.txt")
     
     loader_agent = Agent(model=model, name='ToolLoaderAgent', instruction=loader_inst, tools=[ReadFileTool(local_env), EditFileTool(local_env), WriteFileTool(local_env), reader.read_documentation, skill_toolset])

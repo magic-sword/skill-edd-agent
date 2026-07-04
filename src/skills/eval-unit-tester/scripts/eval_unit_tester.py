@@ -47,20 +47,8 @@ class TestParameterSet(BaseModel):
 
 
 def get_skill_main_function(skill_dir: str) -> str:
-    """スキルの main.py から runner.run にバインドされているエントリーポイント関数名を決定論的に抽出します。"""
-    main_py_path = os.path.join(skill_dir, "scripts", "main.py")
-    if not os.path.exists(main_py_path):
-        main_py_path = os.path.join(skill_dir, "main.py")
-        
-    if os.path.exists(main_py_path):
-        with open(main_py_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        match = re.search(r'runner\.run\(([^)]+)\)', content)
-        if match:
-            return match.group(1).strip()
-            
-    # フォールバック: スキル名のハイフンをアンダースコアにしたもの
-    return os.path.basename(skill_dir).replace("-", "_")
+    """スキルのエントリーポイント関数名を返します（handler.py規約により常に process_message です）。"""
+    return "process_message"
 
 
 def generate_test_cases(skill_name: str):
@@ -119,9 +107,22 @@ def generate_test_cases(skill_name: str):
             "のみとし、自然言語テキストは絶対に含めないでください。"
         )
 
+    # Input スキーマの動的ロード
+    pydantic_schema_str = ""
+    try:
+        handler_module = registry.load_handler(skill_name)
+        InputSchema = getattr(handler_module, "Input", None)
+        if InputSchema:
+            pydantic_schema_str = json.dumps(InputSchema.model_json_schema(), ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Warning: Could not extract Pydantic schema for {skill_name}: {e}")
+    print(f"DEBUG: Pydantic Schema = {pydantic_schema_str}")
+
     # プロンプトの組み立て
     prompt = prompt_template.replace(
         "{skill_content}", skill_content
+    ).replace(
+        "{pydantic_schema}", pydantic_schema_str
     ).replace(
         "{instruction_override}", instruction_override
     )
@@ -129,8 +130,41 @@ def generate_test_cases(skill_name: str):
 
     print("Generating unit test cases using Gemini API...")
     
+    # 対象スキルの InputSchema を使って、動的にレスポンススキーマを構築
+    from pydantic import create_model
+    TargetSetClass = TestParameterSet
+    
+    if InputSchema:
+        try:
+            DynamicTestParameterCase = create_model(
+                'DynamicTestParameterCase',
+                user_instruction=(str, Field(
+                    ...,
+                    description="ユーザーからの自然言語での指示（例: 『hello worldを大文字にしてください』など）"
+                )),
+                input_parameters=(InputSchema, Field(
+                    ...,
+                    description="ツールに渡す引数のオブジェクト。定義されたスキーマに厳密に従ってください。"
+                )),
+                expected_output=(str, Field(
+                    ...,
+                    description="ツールまたはエージェントからの期待される最終的なテキスト応答（例: 'HELLO WORLD'）"
+                ))
+            )
+            DynamicTestParameterSet = create_model(
+                'DynamicTestParameterSet',
+                cases=(list[DynamicTestParameterCase], Field(
+                    ...,
+                    description="生成されたテストパラメータケースのリスト"
+                ))
+            )
+            TargetSetClass = DynamicTestParameterSet
+        except Exception as e:
+            print(f"Warning: Could not create dynamic response schema: {e}")
+            TargetSetClass = TestParameterSet
+
     # response_schema のクレンジング
-    schema_dict = TestParameterSet.model_json_schema()
+    schema_dict = TargetSetClass.model_json_schema()
     clean_schema = remove_additional_properties(schema_dict)
 
     response = client.models.generate_content(
@@ -144,9 +178,10 @@ def generate_test_cases(skill_name: str):
     )
     
     # 応答をパース
+    print(f"DEBUG: Gemini Response = {response.text}")
     try:
         parameter_data = json.loads(response.text)
-        param_set = TestParameterSet.model_validate(parameter_data)
+        param_set = TargetSetClass.model_validate(parameter_data)
     except Exception as e:
         print(f"Error parsing Gemini response: {e}")
         print(response.text)

@@ -16,26 +16,17 @@ class SkillLoader:
         self.handler_module = None
 
     def load(self) -> Tuple[Dict[str, Any], Type[BaseModel], Any]:
-        # 1. スキルのルートディレクトリを特定
+        # 1. レジストリを介して対象モジュールを安全にロード
         registry = SkillRegistry()
         registry.load()
         self.skill_dir = registry.get_skill_dir(self.skill_name)
-        if not self.skill_dir:
-            raise ValueError(f"Skill '{self.skill_name}' not found in registry.")
-            
-        abs_skill_dir = os.path.abspath(self.skill_dir)
         
-        # 2. sys.path を調整して対象モジュールをインポート可能にする
-        if abs_skill_dir not in sys.path:
-            sys.path.insert(0, abs_skill_dir)
-            
-        # 3. インポート実行
         try:
-            self.handler_module = importlib.import_module("scripts.handler")
-        except ModuleNotFoundError as e:
-            raise ModuleNotFoundError(f"Failed to load handler for skill '{self.skill_name}': {e}")
+            self.handler_module = registry.load_handler(self.skill_name)
+        except Exception as e:
+            raise ImportError(f"Failed to load handler for skill '{self.skill_name}': {e}")
             
-        # 4. 必要なモジュール定義の存在確認と抽出
+        # 2. 必要なモジュール定義の存在確認と抽出
         if not hasattr(self.handler_module, "Input"):
             raise AttributeError(f"'Input' schema class not defined in scripts/handler.py of '{self.skill_name}'.")
         if not hasattr(self.handler_module, "process_message"):

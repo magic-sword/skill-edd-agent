@@ -4,7 +4,7 @@ import os
 import sys
 import re
 from google.adk.tools import ToolContext
-from edd_agent_tools.testing import SkillCommand, SystemCommand, SubprocessRunner
+import subprocess
 
 
 
@@ -64,14 +64,34 @@ def execute_test_logic(tool_context: ToolContext):
     
     print(f"Executing: adk {' '.join(args)}")
     
+    # 評価エンジンのための多言語パッチ環境変数の構成
+    patched_env = os.environ.copy() if env is None else env.copy()
+    patch_dir = os.path.abspath(os.path.join("/workspace/edd-agent-tools/src/edd_agent_tools/testing/patch"))
+    current_pythonpath = patched_env.get("PYTHONPATH", "")
+    if current_pythonpath:
+        patched_env["PYTHONPATH"] = f"{patch_dir}:{current_pythonpath}"
+    else:
+        patched_env["PYTHONPATH"] = patch_dir
+        
+    edd_tools_path = os.path.abspath("/workspace/edd-agent-tools/src")
+    patched_env["PYTHONPATH"] = f"{edd_tools_path}:{patched_env['PYTHONPATH']}"
+
     try:
-        # SystemCommand と SubprocessRunner を用いた外部コマンド実行 (自動多言語パッチ適用)
-        cmd = SystemCommand("adk", args=args)
-        runner = SubprocessRunner(cmd)
-        result = runner.run(
-            env=env,
-            timeout=timeout_seconds
+        cmd_args = ["adk"] + args
+        result = subprocess.run(
+            cmd_args,
+            env=patched_env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout_seconds,
+            cwd="/workspace"
         )
+        if result.returncode != 0:
+            print(f"Subprocess 'adk' failed with exit code {result.returncode}.", file=sys.stderr)
+            if result.stderr:
+                print(result.stderr, file=sys.stderr)
+            sys.exit(1)
     except subprocess.TimeoutExpired as e:
         print(f"\n❌ エラー: テスト実行がタイムアウト（{timeout_seconds}秒）しました。デッドロック防止のため終了します。", file=sys.stderr)
         if e.stdout:
@@ -163,21 +183,38 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
         
     output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/{step_name}_out.json"
     
-    # SkillCommand と SubprocessRunner を用いたスキル CLI サブプロセス実行
-    cmd = SkillCommand(
-        "test-executor",
-        args=[
-            "--skill_name", skill_name,
-            "--eval_set_path", eval_set_path,
-            "--threshold_accuracy", str(threshold_accuracy),
-            "--eval_mode", str(eval_mode),
-            "--output_json", output_json_path
-        ]
-    )
-    runner = SubprocessRunner(cmd)
+    # 共通ランナー（edd-run）を用いたスキル CLI サブプロセス実行
+    cmd_args = [
+        sys.executable, "-m", "edd_agent_tools.cli.run",
+        "--skill_name", "test-executor",
+        "--skill_name", skill_name,
+        "--eval_set_path", eval_set_path,
+        "--threshold_accuracy", str(threshold_accuracy),
+        "--eval_mode", str(eval_mode),
+        "--output_json", output_json_path
+    ]
     
-    print(f"Executing: python main.py via SubprocessRunner for test-executor")
-    result = runner.run()
+    # 評価エンジンのための多言語パッチ環境変数の構成
+    patched_env = os.environ.copy()
+    patch_dir = os.path.abspath(os.path.join("/workspace/edd-agent-tools/src/edd_agent_tools/testing/patch"))
+    current_pythonpath = patched_env.get("PYTHONPATH", "")
+    if current_pythonpath:
+        patched_env["PYTHONPATH"] = f"{patch_dir}:{current_pythonpath}"
+    else:
+        patched_env["PYTHONPATH"] = patch_dir
+        
+    edd_tools_path = os.path.abspath("/workspace/edd-agent-tools/src")
+    patched_env["PYTHONPATH"] = f"{edd_tools_path}:{patched_env['PYTHONPATH']}"
+        
+    print(f"Executing: {' '.join(cmd_args)}")
+    result = subprocess.run(
+        cmd_args,
+        env=patched_env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd="/workspace"
+    )
     
     print("--- SUBPROCESS OUTPUT ---")
     if result.stdout:

@@ -44,12 +44,10 @@ def process_message(tool_context: ToolContext):
         else:
             raise ValueError(f"Error: Could not locate directory for skill: {name}")
             
-    abs_component_root = os.path.abspath(component_root)
-    if abs_component_root not in sys.path:
-        sys.path.insert(0, abs_component_root)
-        
     try:
-        handler_module = importlib.import_module("scripts.handler")
+        handler_module = registry.load_handler(name)
+        print(f"DEBUG spec_writer: Loaded module {handler_module.__name__} from {getattr(handler_module, '__file__', 'unknown')}")
+        print(f"DEBUG spec_writer: SKILL_METADATA = {getattr(handler_module, 'SKILL_METADATA', {})}")
     except Exception as e:
         raise ValueError(f"Error loading handler.py for '{name}': {e}")
         

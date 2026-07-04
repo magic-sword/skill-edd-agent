@@ -1,0 +1,25 @@
+from pydantic import BaseModel, Field
+from google.adk.tools import ToolContext
+from .workflow_logic import workflow_logic as run_workflow_logic
+
+SKILL_METADATA = {
+    "name": "{workflow_name}",
+    "description": "自律的に実行されるワークフローエージェント。",
+    "execution_type": "workflow",
+    "output_mode": "VALUE_ONLY",
+    "dependencies": []
+}
+
+class Input(BaseModel):
+    # TODO: 必要に応じてスキーマパラメータを追加・カスタマイズしてください
+    prompt: str = Field(..., description="実行パラメータ")
+
+def process_message(tool_context: ToolContext):
+    # バリデーション済みのオブジェクトを取得
+    params: Input = tool_context.state.get("validated_input")
+    
+    # Stateパラメータを移行
+    tool_context.state["prompt"] = params.prompt
+    
+    # 既存のビジネスロジックを実行
+    run_workflow_logic(tool_context)

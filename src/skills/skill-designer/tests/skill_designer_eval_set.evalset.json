@@ -1,0 +1,252 @@
+{
+  "eval_set_id": "skill_designer_eval_set",
+  "name": "skill-designer evaluation set",
+  "description": "skill-designer skill unit tests",
+  "eval_cases": [
+    {
+      "eval_id": "skill_designer_happy_path_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "ユーザーの挨拶に応答する新しいスキルを設計してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/tmp/new_greeting_skill/design.jsonに保存されました。\"}"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "process_message",
+                "args": {
+                  "text": "requirement='ユーザーが『こんにちは』と話しかけたら、『こんにちは！何かお手伝いできることはありますか？』と応答するスキルを設計してください。' output_dir='/tmp/new_greeting_skill' source_code_path=None"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "process_message",
+                "response": {
+                  "result": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/tmp/new_greeting_skill/design.jsonに保存されました。\"}"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "text": "requirement='ユーザーが『こんにちは』と話しかけたら、『こんにちは！何かお手伝いできることはありますか？』と応答するスキルを設計してください。' output_dir='/tmp/new_greeting_skill' source_code_path=None"
+        }
+      }
+    },
+    {
+      "eval_id": "skill_designer_happy_path_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "今日の天気予報を伝えるスキルを設計してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/tmp/weather_forecast_skill/design.jsonに保存されました。\"}"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "process_message",
+                "args": {
+                  "text": "requirement='ユーザーが『今日の天気は？』と尋ねたら、現在地の天気予報をインターネットから取得し、読み上げるスキルを設計してください。都市名を指定された場合はその都市の天気を伝えます。' output_dir='/tmp/weather_forecast_skill' source_code_path=None"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "process_message",
+                "response": {
+                  "result": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/tmp/weather_forecast_skill/design.jsonに保存されました。\"}"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "text": "requirement='ユーザーが『今日の天気は？』と尋ねたら、現在地の天気予報をインターネットから取得し、読み上げるスキルを設計してください。都市名を指定された場合はその都市の天気を伝えます。' output_dir='/tmp/weather_forecast_skill' source_code_path=None"
+        }
+      }
+    },
+    {
+      "eval_id": "skill_designer_happy_path_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "既存の挨拶スキルを更新して、時刻によって応答を変えるように再設計してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/tmp/updated_greeting_skill/design.jsonに保存されました。\"}"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "process_message",
+                "args": {
+                  "text": "requirement='既存の挨拶スキルを更新し、朝（午前中）は『おはようございます！』、昼（午後）は『こんにちは！』、夜（夕方以降）は『こんばんは！』と応答するように変更してください。' output_dir='/tmp/updated_greeting_skill' source_code_path='/path/to/existing_greeting_skill/scripts/main.py'"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "process_message",
+                "response": {
+                  "result": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/tmp/updated_greeting_skill/design.jsonに保存されました。\"}"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "text": "requirement='既存の挨拶スキルを更新し、朝（午前中）は『おはようございます！』、昼（午後）は『こんにちは！』、夜（夕方以降）は『こんばんは！』と応答するように変更してください。' output_dir='/tmp/updated_greeting_skill' source_code_path='/path/to/existing_greeting_skill/scripts/main.py'"
+        }
+      }
+    },
+    {
+      "eval_id": "skill_designer_happy_path_004",
+      "conversation": [
+        {
+          "invocation_id": "inv_004",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "簡単な計算スキルを設計し、特定のプロジェクトディレクトリに保存してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/home/user/projects/calculator_app/skill_design/design.jsonに保存されました。\"}"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "process_message",
+                "args": {
+                  "text": "requirement='2つの数字の足し算、引き算、掛け算、割り算ができるシンプルな計算スキルを設計してください。' output_dir='/home/user/projects/calculator_app/skill_design' source_code_path=None"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "process_message",
+                "response": {
+                  "result": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/home/user/projects/calculator_app/skill_design/design.jsonに保存されました。\"}"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "text": "requirement='2つの数字の足し算、引き算、掛け算、割り算ができるシンプルな計算スキルを設計してください。' output_dir='/home/user/projects/calculator_app/skill_design' source_code_path=None"
+        }
+      }
+    },
+    {
+      "eval_id": "skill_designer_happy_path_005",
+      "conversation": [
+        {
+          "invocation_id": "inv_005",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "既存のタイマースキルに一時停止機能を追加して再設計してください。"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/tmp/timer_skill_v2/design.jsonに保存されました。\"}"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "process_message",
+                "args": {
+                  "text": "requirement='既存のタイマースキルに、実行中のタイマーを一時停止し、後で再開できる機能を追加してください。' output_dir='/tmp/timer_skill_v2' source_code_path=None"
+                }
+              }
+            ],
+            "tool_responses": [
+              {
+                "name": "process_message",
+                "response": {
+                  "result": "{\"status\": \"success\", \"message\": \"design.jsonが正常に生成され、/tmp/timer_skill_v2/design.jsonに保存されました。\"}"
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "session_input": {
+        "appName": "src",
+        "userId": "test_user",
+        "state": {
+          "text": "requirement='既存のタイマースキルに、実行中のタイマーを一時停止し、後で再開できる機能を追加してください。' output_dir='/tmp/timer_skill_v2' source_code_path=None"
+        }
+      }
+    }
+  ]
+}

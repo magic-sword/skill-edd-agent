@@ -1,0 +1,4 @@
+{
+  "skill_name": "skill-designer",
+  "eval_set_path": "/workspace/src/skills/skill-designer/tests/skill_designer_eval_set.evalset.json"
+}

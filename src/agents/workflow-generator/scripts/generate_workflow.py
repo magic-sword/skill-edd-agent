@@ -47,7 +47,8 @@ async def run_workflow_developer_agent(
     # テンプレートファイルをコピー・展開
     skill_md_tmpl_path = os.path.join(assets_dir, "SKILL.md.template")
     workflow_tmpl_path = os.path.join(assets_dir, "workflow.py.template")
-    runner_tmpl_path = os.path.join(assets_dir, "main.py.template")
+    handler_tmpl_path = os.path.join(assets_dir, "handler.py.template")
+    logic_tmpl_path = os.path.join(assets_dir, "workflow_logic.py.template")
     
     if os.path.exists(skill_md_tmpl_path):
         with open(skill_md_tmpl_path, "r", encoding="utf-8") as f:
@@ -63,11 +64,18 @@ async def run_workflow_developer_agent(
         with open(os.path.join(output_dir, "scripts", "workflow.py"), "w", encoding="utf-8") as f:
             f.write(content)
 
-    if os.path.exists(runner_tmpl_path):
-        with open(runner_tmpl_path, "r", encoding="utf-8") as f:
+    if os.path.exists(handler_tmpl_path):
+        with open(handler_tmpl_path, "r", encoding="utf-8") as f:
             tmpl_content = f.read()
         content = tmpl_content.replace("{workflow_name}", workflow_name).replace("{workflow_module_name}", workflow_module_name)
-        with open(os.path.join(output_dir, "scripts", runner_name), "w", encoding="utf-8") as f:
+        with open(os.path.join(output_dir, "scripts", "handler.py"), "w", encoding="utf-8") as f:
+            f.write(content)
+            
+    if os.path.exists(logic_tmpl_path):
+        with open(logic_tmpl_path, "r", encoding="utf-8") as f:
+            tmpl_content = f.read()
+        content = tmpl_content.replace("{workflow_name}", workflow_name).replace("{workflow_module_name}", workflow_module_name)
+        with open(os.path.join(output_dir, "scripts", "workflow_logic.py"), "w", encoding="utf-8") as f:
             f.write(content)
     
     session_service = InMemorySessionService()

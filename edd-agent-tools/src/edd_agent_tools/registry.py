@@ -141,55 +141,75 @@ class SkillRegistry:
             
         print(f"Updated metadata for {cat[:-1]} '{skill_name}' (hashes removed).")
 
-    def load_tool(self, skill_name: str, function_name: str):
-        """指定されたスキル/エージェントと関数名から Python スクリプトを動的ロードし、関数オブジェクトを返します。"""
+    def load_handler(self, skill_name: str):
+        """
+        指定されたスキルまたはエージェントの scripts/handler.py を、
+        一意の名前空間の下でキャッシュの干渉なくロードし、モジュールオブジェクトを返します。
+        """
         if self.data is None:
             self.load()
             
         search_paths = self.data.get("search_paths", ["src/skills"])
-        
         cat, skill_meta = self._get_category_and_info(skill_name)
         if not cat:
             raise ValueError(f"エラー: スキル/エージェント '{skill_name}' がレジストリに登録されていません。")
             
-        # 統一ルール: entry_point は常に scripts/handler.py となる
-        script_rel_path = "scripts/handler.py"
-            
-        # search_paths からディレクトリを動的特定
         skill_dir = self.get_skill_dir(skill_name)
-                
         if not skill_dir:
             raise FileNotFoundError(
                 f"エラー: '{skill_name}' の実体ディレクトリが探索パス {search_paths} 内に見つかりません。"
             )
             
-        script_abs_path = os.path.join(skill_dir, script_rel_path)
-        
-        # 相対インポートを機能させるため、sys.path に対象スキルのパスを追加
         abs_skill_dir = os.path.abspath(skill_dir)
+        script_abs_path = os.path.join(abs_skill_dir, "scripts", "handler.py")
+        
+        if not os.path.exists(script_abs_path):
+            raise FileNotFoundError(f"エラー: scripts/handler.py が存在しません: {script_abs_path}")
+
+        # 一意の名前空間（仮想FQDN）の組み立て
+        # 一意の名前空間（仮想FQDN）の組み立て
+        skill_name_under = skill_name.replace('-', '_')
+        parent_pkg = f"edd_agent_tools.dynamic_skills.{skill_name_under}"
+        package_name = f"{parent_pkg}.scripts"
+        module_name = f"{package_name}.handler"
+
+        # すでにロードされている場合はキャッシュを返す
+        if module_name in sys.modules:
+            return sys.modules[module_name]
+
+        # 相対インポートを正常に解決するため sys.path を調整
         if abs_skill_dir not in sys.path:
             sys.path.insert(0, abs_skill_dir)
-        if not os.path.exists(script_abs_path):
-            raise FileNotFoundError(f"エラー: 特定されたスクリプトファイルが存在しません: {script_abs_path}")
+
+        # 仮想パッケージモジュールの動的登録 (相対インポート解決用)
+        import types
+        if parent_pkg not in sys.modules:
+            sys.modules[parent_pkg] = types.ModuleType(parent_pkg)
+        if package_name not in sys.modules:
+            pkg_module = types.ModuleType(package_name)
+            pkg_module.__path__ = [os.path.join(abs_skill_dir, "scripts")]
+            pkg_module.__package__ = package_name
+            sys.modules[package_name] = pkg_module
+
+        # ロード実行
+        spec = importlib.util.spec_from_file_location(module_name, script_abs_path)
+        if spec is None:
+            raise ImportError(f"Could not load spec for {script_abs_path}")
             
-        # 動的インポート
-        # モジュール名に単にスキル名を使用すると、ロードされた main.py 内部で
-        # 同名モジュール（例: eval_unit_tester.py）をインポートしようとした際に、
-        # sys.modules 内に既に自身が登録されているため循環参照してしまい、
-        # ImportError が発生します。
-        # これを回避するために、専用の名前空間（FQDN）の配下に階層化して登録します。
-        module_name = f"edd_agent_tools.dynamic_skills.{skill_name.replace('-', '_')}"
+        module = importlib.util.module_from_spec(spec)
+        module.__package__ = package_name  # 相対インポートに必須
+        sys.modules[module_name] = module
         
-        if module_name in sys.modules:
-            module = sys.modules[module_name]
-        else:
-            spec = importlib.util.spec_from_file_location(module_name, script_abs_path)
-            module = importlib.util.module_from_spec(spec)
-            sys.modules[module_name] = module
-            spec.loader.exec_module(module)
+        spec.loader.exec_module(module)
+        return module
+
+    def load_tool(self, skill_name: str, function_name: str):
+        """指定されたスキル/エージェントと関数名から Python スクリプトを動的ロードし、関数オブジェクトを返します。"""
+        # load_handler を用いて安全にロード
+        module = self.load_handler(skill_name)
         
         if not hasattr(module, function_name):
-            raise AttributeError(f"エラー: モジュール '{module_name}' に関数 '{function_name}' が定義されていません。")
+            raise AttributeError(f"エラー: モジュール '{module.__name__}' に関数 '{function_name}' が定義されていません。")
             
         return getattr(module, function_name)
 

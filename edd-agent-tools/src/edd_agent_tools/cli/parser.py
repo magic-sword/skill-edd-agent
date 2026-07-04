@@ -25,6 +25,8 @@ class SchemaArgumentParser:
 
         # Pydanticモデルから動的に引数を登録
         for field_name, field_info in self.InputSchema.model_fields.items():
+            if field_name in ["skill_name", "output_json"]:
+                continue
             opt_name = f"--{field_name}"
             field_type = field_info.annotation
 
@@ -49,6 +51,7 @@ class SchemaArgumentParser:
                 help_text = f"(必須) {help_text}"
             elif default is not None:
                 help_text = f"{help_text} (デフォルト: {default})"
+            help_text = help_text.replace("%", "%%")
 
             self.parser.add_argument(
                 opt_name,
