@@ -26,11 +26,18 @@ def process_message(tool_context: ToolContext):
     if not os.path.isabs(output_dir):
         output_dir = os.path.abspath(os.path.join("/workspace", output_dir))
 
-    # 設計データのロード
+    from edd_agent_tools.models import SkillDesign
+
+    # 設計データのロード & バリデーション
     if not os.path.exists(design_path):
         raise FileNotFoundError(f"Error: Design JSON not found at {design_path}")
     with open(design_path, "r", encoding="utf-8") as f:
-        design_data = json.load(f)
+        design_json_data = json.load(f)
+        
+    try:
+        design_data = SkillDesign.model_validate(design_json_data)
+    except Exception as e:
+        raise ValueError(f"Error validating design.json: {e}")
 
     # 実装コードのロード (オプション、未指定時は自動検知)
     source_code = ""

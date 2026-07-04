@@ -15,8 +15,10 @@ class WorkflowSpecWriter(BaseSpecWriter):
         return WorkflowTextParts
 
     def build_prompt(self, prompt_tmpl: str) -> str:
-        parameters_json = json.dumps(self.design_data.get("parameters", []), indent=2, ensure_ascii=False)
-        dependencies_json = json.dumps(self.design_data.get("dependencies", []), indent=2, ensure_ascii=False)
+        # パラメータや依存関係の情報を渡す (Pydantic 属性から JSON 化)
+        parameters_dict = [p.model_dump() for p in self.design_data.parameters]
+        parameters_json = json.dumps(parameters_dict, indent=2, ensure_ascii=False)
+        dependencies_json = json.dumps(self.design_data.dependencies, indent=2, ensure_ascii=False)
         
         return prompt_tmpl.format(
             target_type="workflow",
@@ -27,35 +29,24 @@ class WorkflowSpecWriter(BaseSpecWriter):
         )
 
     def render_markdown(self, text_parts: WorkflowTextParts) -> str:
-        # パラメータテーブルの作成
+        # パラメータテーブルの作成 (Pydantic 属性アクセス)
         param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
-        parameters = self.design_data.get("parameters", [])
-        for param in parameters:
-            req = "はい" if param.get("required", False) else "いいえ"
-            desc = param.get("help" if "help" in param else "description", "")
-            param_table.append(f"| {param.get('name')} | {param.get('type')} | {req} | {desc} |")
+        for param in self.design_data.parameters:
+            req = "はい" if param.required else "いいえ"
+            param_table.append(f"| {param.name} | {param.type} | {req} | {param.description} |")
             
         params_str = "\n".join(param_table)
         
-        # dependencies のクレンジング（文字列のリストにする）
-        dependencies = []
-        for dep in self.design_data.get("dependencies", []):
-            if isinstance(dep, dict):
-                skill_name = dep.get("skill")
-                if skill_name:
-                    dependencies.append(skill_name)
-            elif isinstance(dep, str):
-                dependencies.append(dep)
+        # dependencies のクレンジング (Pydantic から取得)
+        dependencies = self.design_data.dependencies
 
         # dependencies の YAML リスト
         dependencies_yaml = "\n".join([f"  - {dep}" for dep in dependencies])
         
         # 実行コマンドの引数例の組み立て
         args_list = []
-        for param in parameters:
-            name = param.get("name")
-            desc = param.get("help" if "help" in param else "description", "値")
-            args_list.append(f"  --{name} \"<{desc}>\" \\")
+        for param in self.design_data.parameters:
+            args_list.append(f"  --{param.name} \"<{param.description}>\" \\")
         # 最後のバックスラッシュを除去
         execution_arguments = "\n".join(args_list).rstrip(" \\")
         

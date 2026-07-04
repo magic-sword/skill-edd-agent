@@ -8,8 +8,10 @@ from google import genai
 from google.genai import types
 
 
+from edd_agent_tools.models import SkillDesign
+
 class BaseSpecWriter(ABC):
-    def __init__(self, name: str, design_data: dict, source_code: str, source_code_path: str, tool_context: ToolContext):
+    def __init__(self, name: str, design_data: SkillDesign, source_code: str, source_code_path: str, tool_context: ToolContext):
         self.name = name
         self.design_data = design_data
         self.source_code = source_code

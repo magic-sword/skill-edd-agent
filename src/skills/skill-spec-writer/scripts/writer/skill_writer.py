@@ -17,9 +17,10 @@ class SkillSpecWriter(BaseSpecWriter):
         return SkillTextParts
 
     def build_prompt(self, prompt_tmpl: str) -> str:
-        # パラメータや依存関係の情報を渡す
-        parameters_json = json.dumps(self.design_data.get("parameters", []), indent=2, ensure_ascii=False)
-        dependencies_json = json.dumps(self.design_data.get("dependencies", []), indent=2, ensure_ascii=False)
+        # パラメータや依存関係の情報を渡す (Pydantic 属性から JSON 化)
+        parameters_dict = [p.model_dump() for p in self.design_data.parameters]
+        parameters_json = json.dumps(parameters_dict, indent=2, ensure_ascii=False)
+        dependencies_json = json.dumps(self.design_data.dependencies, indent=2, ensure_ascii=False)
         
         return prompt_tmpl.format(
             target_type="skill",
@@ -30,12 +31,11 @@ class SkillSpecWriter(BaseSpecWriter):
         )
 
     def render_markdown(self, text_parts: SkillTextParts) -> str:
-        # パラメータテーブルの作成
+        # パラメータテーブルの作成 (Pydantic 属性アクセス)
         param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
-        parameters = self.design_data.get("parameters", [])
-        for param in parameters:
-            req = "はい" if param.get("required", False) else "いいえ"
-            param_table.append(f"| {param.get('name')} | {param.get('type')} | {req} | {param.get('description')} |")
+        for param in self.design_data.parameters:
+            req = "はい" if param.required else "いいえ"
+            param_table.append(f"| {param.name} | {param.type} | {req} | {param.description} |")
             
         params_str = "\n".join(param_table)
         
