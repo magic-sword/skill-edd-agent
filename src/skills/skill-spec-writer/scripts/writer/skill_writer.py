@@ -6,10 +6,7 @@ from pydantic import BaseModel, Field
 from .base import BaseSpecWriter
 
 class SkillTextParts(BaseModel):
-    mechanical_description: str = Field(..., description="YAMLフロントマター用の1文の簡潔な要約。機械（LLM）のコンテキストを汚染しない短いもの。")
     human_overview: str = Field(..., description="## 概要 セクションに記述する、人間向けの詳細な機能や動作説明。")
-    output_mode: str = Field(..., description="ビジネスロジックに合致する Output Mode。VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON のいずれか。")
-    output_mode_description: str = Field(..., description="選択された Output Mode に応じた具体的な応答形式の指示説明。")
     trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
 class SkillSpecWriter(BaseSpecWriter):
@@ -32,17 +29,41 @@ class SkillSpecWriter(BaseSpecWriter):
     def render_markdown(self, text_parts: SkillTextParts) -> str:
         # パラメータテーブルの作成 (Pydantic 属性アクセス)
         param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
+        required_params = []
         for param in self.design_data.parameters:
             req = "はい" if param.required else "いいえ"
             param_table.append(f"| {param.name} | {param.type} | {req} | {param.description} |")
+            if param.required:
+                required_params.append(f"`{param.name}`")
             
         params_str = "\n".join(param_table)
         
         # トリガー条件の箇条書き
         triggers = "\n".join([f"- {cond}" for cond in text_parts.trigger_conditions])
         
-        # テンプレートファイルのロード
+        # 決定論的な説明文の構築
+        out_mode = self.design_data.output_mode
+        if out_mode == "VALUE_ONLY":
+            out_mode_desc = "出力は単純なプレーンテキストの値のみとなります。"
+        elif out_mode == "CONVERSATIONAL":
+            out_mode_desc = "ユーザーとの対話を継続する会話形式の応答を出力します。"
+        else: # STRUCTURED_JSON
+            out_mode_desc = f"特定のJSONスキーマ構造に厳密に従った構造化データを出力します。生成結果のパース成功時に生成されたファイルのパスや、エラー時にはエラーメッセージと詳細情報が含まれます。"
+
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        exec_type = self.design_data.execution_type
+        if exec_type == "tool":
+            inst_path = os.path.join(script_dir, "..", "assets", "execution_instructions_tool.txt")
+            with open(inst_path, "r", encoding="utf-8") as f:
+                inst_tmpl = f.read()
+            param_list_str = ", ".join(required_params) if required_params else "パラメータ"
+            exec_instructions = Template(inst_tmpl).substitute(param_list=param_list_str)
+        else: # agent
+            inst_path = os.path.join(script_dir, "..", "assets", "execution_instructions_agent.txt")
+            with open(inst_path, "r", encoding="utf-8") as f:
+                exec_instructions = f.read()
+
+        # テンプレートファイルのロード
         tmpl_path = os.path.join(script_dir, "..", "assets", "skill_spec.md.template")
         
         with open(tmpl_path, "r", encoding="utf-8") as f:
@@ -59,11 +80,12 @@ class SkillSpecWriter(BaseSpecWriter):
         
         return t.substitute(
             workflow_name=self.name,
-            mechanical_description=text_parts.mechanical_description,
+            mechanical_description=self.design_data.description,
             human_overview=text_parts.human_overview,
             trigger_conditions=triggers,
-            output_mode=text_parts.output_mode,
-            output_mode_description=text_parts.output_mode_description,
+            execution_instructions=exec_instructions,
+            output_mode=out_mode,
+            output_mode_description=out_mode_desc,
             script_module_name=script_module_name,
             input_parameters=params_str
         )

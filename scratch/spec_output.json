@@ -1,0 +1,11 @@
+{
+  "target_type": "skill",
+  "name": "skill-designer",
+  "design_path": "/workspace/src/skills/skill-designer/assets/design.json",
+  "source_code_path": "/workspace/src/skills/skill-designer/scripts/main.py",
+  "output_dir": "/workspace/src/skills/skill-designer",
+  "output_json": "/workspace/scratch/spec_output.json",
+  "status": "success",
+  "message": "Successfully generated specification at: /workspace/src/skills/skill-designer/SKILL.md",
+  "output_file_path": "/workspace/src/skills/skill-designer/SKILL.md"
+}

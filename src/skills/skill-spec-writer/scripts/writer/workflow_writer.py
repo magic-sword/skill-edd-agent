@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 from .base import BaseSpecWriter
 
 class WorkflowTextParts(BaseModel):
-    mechanical_description: str = Field(..., description="YAMLフロントマター用の1文の簡潔な要約。機械（LLM）のコンテキストを汚染しない短いもの。")
     human_overview: str = Field(..., description="## 概要 セクションに記述する、人間向けの詳細なワークフロー機能や動作説明。")
     dependency_explanations: dict[str, str] = Field(..., description="依存関係セクションにおける、各依存スキルの本ワークフロー内での具体的な役割についての解説。キーは依存スキル名。")
 
@@ -67,7 +66,7 @@ class WorkflowSpecWriter(BaseSpecWriter):
         
         return t.substitute(
             workflow_name=self.name,
-            mechanical_description=text_parts.mechanical_description,
+            mechanical_description=self.design_data.description,
             dependencies_yaml=dependencies_yaml,
             human_overview=text_parts.human_overview,
             input_parameters=params_str,

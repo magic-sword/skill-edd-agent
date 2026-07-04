@@ -1,5 +1,8 @@
 {
   "name": "skill-designer",
+  "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
   "parameters": [
     {
       "name": "requirement",
