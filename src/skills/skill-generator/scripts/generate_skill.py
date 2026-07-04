@@ -87,7 +87,7 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
     
     skill_md_tmpl_path = os.path.join(templates_dir, "SKILL.md.template")
     skill_script_tmpl_path = os.path.join(templates_dir, "skill_script.py.template")
-    main_tmpl_path = os.path.join(templates_dir, "main.py.template")
+    handler_tmpl_path = os.path.join(templates_dir, "handler.py.template")
     
     if os.path.exists(skill_md_tmpl_path):
         with open(skill_md_tmpl_path, "r", encoding="utf-8") as f:
@@ -101,12 +101,14 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
             tmpl_content = f.read()
         with open(os.path.join(output_dir, "scripts", script_name), "w", encoding="utf-8") as f:
             f.write(tmpl_content)
-
-    if os.path.exists(main_tmpl_path):
-        with open(main_tmpl_path, "r", encoding="utf-8") as f:
+ 
+    if os.path.exists(handler_tmpl_path):
+        with open(handler_tmpl_path, "r", encoding="utf-8") as f:
             tmpl_content = f.read()
-        content = tmpl_content.replace("{skill_name}", skill_name).replace("{script_module_name}", script_module_name)
-        with open(os.path.join(output_dir, "scripts", "main.py"), "w", encoding="utf-8") as f:
+        skill_desc_preview = prompt.split("。")[0] if "。" in prompt else prompt
+        skill_desc_preview = skill_desc_preview.replace("\n", " ").strip()
+        content = tmpl_content.replace("{skill_name}", skill_name).replace("{script_module_name}", script_module_name).replace("{skill_description}", skill_desc_preview)
+        with open(os.path.join(output_dir, "scripts", "handler.py"), "w", encoding="utf-8") as f:
             f.write(content)
     
     session_service = InMemorySessionService()

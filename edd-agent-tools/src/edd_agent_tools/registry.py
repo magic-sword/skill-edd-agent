@@ -152,8 +152,8 @@ class SkillRegistry:
         if not cat:
             raise ValueError(f"エラー: スキル/エージェント '{skill_name}' がレジストリに登録されていません。")
             
-        # 統一ルール: entry_point は常に scripts/main.py となる
-        script_rel_path = "scripts/main.py"
+        # 統一ルール: entry_point は常に scripts/handler.py となる
+        script_rel_path = "scripts/handler.py"
             
         # search_paths からディレクトリを動的特定
         skill_dir = self.get_skill_dir(skill_name)
@@ -164,6 +164,11 @@ class SkillRegistry:
             )
             
         script_abs_path = os.path.join(skill_dir, script_rel_path)
+        
+        # 相対インポートを機能させるため、sys.path に対象スキルのパスを追加
+        abs_skill_dir = os.path.abspath(skill_dir)
+        if abs_skill_dir not in sys.path:
+            sys.path.insert(0, abs_skill_dir)
         if not os.path.exists(script_abs_path):
             raise FileNotFoundError(f"エラー: 特定されたスクリプトファイルが存在しません: {script_abs_path}")
             

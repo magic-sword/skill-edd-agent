@@ -26,25 +26,74 @@ def process_message(tool_context: ToolContext):
     if not os.path.isabs(output_dir):
         output_dir = os.path.abspath(os.path.join("/workspace", output_dir))
 
-    from edd_agent_tools.models import SkillDesign
+    import importlib
+    from edd_agent_tools.models import Parameter, SkillDesign
+    from edd_agent_tools.registry import SkillRegistry
 
-    # 設計データのロード & バリデーション
-    if not os.path.exists(design_path):
-        raise FileNotFoundError(f"Error: Design JSON not found at {design_path}")
-    with open(design_path, "r", encoding="utf-8") as f:
-        design_json_data = json.load(f)
+    # スキル/ワークフローのルートディレクトリを特定
+    registry = SkillRegistry()
+    registry.load()
+    component_root = registry.get_skill_dir(name)
+    
+    if not component_root:
+        if design_path and os.path.exists(design_path):
+            if os.path.isdir(design_path):
+                component_root = design_path
+            else:
+                component_root = os.path.dirname(os.path.dirname(design_path))
+        else:
+            raise ValueError(f"Error: Could not locate directory for skill: {name}")
+            
+    abs_component_root = os.path.abspath(component_root)
+    if abs_component_root not in sys.path:
+        sys.path.insert(0, abs_component_root)
         
     try:
-        design_data = SkillDesign.model_validate(design_json_data)
+        handler_module = importlib.import_module("scripts.handler")
     except Exception as e:
-        raise ValueError(f"Error validating design.json: {e}")
+        raise ValueError(f"Error loading handler.py for '{name}': {e}")
+        
+    metadata = getattr(handler_module, "SKILL_METADATA", {})
+    InputSchema = getattr(handler_module, "Input", None)
+    
+    # Input から Parameter のリストを生成
+    params = []
+    if InputSchema:
+        for f_name, f_info in InputSchema.model_fields.items():
+            f_type = f_info.annotation
+            
+            from typing import get_args, get_origin, Union
+            origin = get_origin(f_type)
+            if origin is Union:
+                args_types = [a for a in get_args(f_type) if a is not type(None)]
+                if args_types:
+                    f_type = args_types[0]
+                    
+            type_str = getattr(f_type, "__name__", str(f_type))
+            required = f_info.is_required()
+            default_val = str(f_info.default) if (not required and f_info.default is not None) else None
+            
+            params.append(Parameter(
+                name=f_name,
+                type=type_str,
+                description=f_info.description or "",
+                required=required,
+                default=default_val
+            ))
+            
+    design_data = SkillDesign(
+        name=metadata.get("name", name),
+        description=metadata.get("description", ""),
+        execution_type=metadata.get("execution_type", "tool"),
+        output_mode=metadata.get("output_mode", "VALUE_ONLY"),
+        parameters=params,
+        dependencies=metadata.get("dependencies", [])
+    )
 
     # 実装コードのロード (オプション、未指定時は自動検知)
     source_code = ""
     
-    if not source_code_path and design_path:
-        # design_path (例: src/skills/<name>/assets/design.json) からコンポーネントルートを導出
-        component_root = os.path.dirname(os.path.dirname(design_path))
+    if not source_code_path and component_root:
         scripts_dir = os.path.join(component_root, "scripts")
         
         if os.path.exists(scripts_dir):
