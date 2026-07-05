@@ -17,78 +17,9 @@ from edd_agent_tools.registry import SkillRegistry
 from edd_agent_tools.models import SkillDesign
 from edd_agent_tools.docs import LibraryDocumentationReader
 from .models import Input
+from .writer import PydanticModelWriter, HandlerWriter
 
-def generate_models_code(design: SkillDesign, template_str: str) -> str:
-    """
-    SkillDesignメタデータから、Pydantic Inputクラス定義を含む
-    scripts/models.py のソースコードを決定論的に自動生成します。
-    """
-    fields = []
-    has_any = False
-    
-    for param in design.parameters:
-        t_str = param.type.strip().lower()
-        if t_str == "str":
-            python_type = "str"
-        elif t_str == "int":
-            python_type = "int"
-        elif t_str == "bool":
-            python_type = "bool"
-        elif t_str == "float":
-            python_type = "float"
-        elif t_str == "list":
-            python_type = "list"
-        else:
-            python_type = "Any"
-            has_any = True
-            
-        if param.required:
-            default_expr = "..."
-            annotated_type = python_type
-        else:
-            if param.default is None:
-                default_expr = "None"
-                annotated_type = f"{python_type} | None"
-            else:
-                annotated_type = python_type
-                if t_str == "str":
-                    default_expr = repr(param.default)
-                elif t_str == "bool":
-                    default_expr = "True" if str(param.default).lower() in ("true", "1", "yes") else "False"
-                elif t_str in ("int", "float"):
-                    default_expr = str(param.default)
-                else:
-                    default_expr = repr(param.default)
-                    
-        field_str = f"    {param.name}: {annotated_type} = Field({default_expr}, description={repr(param.description)})"
-        fields.append(field_str)
-        
-    fields_str = "\n".join(fields) if fields else "    pass"
-    
-    any_import = "from typing import Any\n" if has_any else ""
-    return template_str.format(fields_str=fields_str)
-
-def generate_handler_code(design: SkillDesign, template_str: str) -> str:
-    """
-    SkillDesignメタデータから、薄いルーティング処理を含む
-    scripts/handler.py のソースコードを決定論的に自動生成します。
-    """
-    metadata = {
-        "name": design.name,
-        "description": design.description,
-        "execution_type": design.execution_type,
-        "output_mode": design.output_mode,
-        "dependencies": design.dependencies
-    }
-    metadata_str = json.dumps(metadata, indent=4, ensure_ascii=False)
-    
-    any_import = ""
-    return template_str.format(
-        any_import=any_import,
-        metadata_str=metadata_str
-    )
-
-def process_message(params: "Input", tool_context: ToolContext) -> str:
+def process_message(params: Input, tool_context: ToolContext) -> str:
     """
     skill-coder のメインビジネスロジック。
     - design.json をロードし、scripts/handler.py を決定論的に自動生成。
@@ -132,7 +63,7 @@ def process_message(params: "Input", tool_context: ToolContext) -> str:
     
     # 3-1. models.py の自動生成
     models_tmpl = coder_directory.load_asset("models.py.template")
-    models_code = generate_models_code(design_data, models_tmpl)
+    models_code = PydanticModelWriter(design_data, models_tmpl).write()
     models_path = os.path.join(scripts_dir, "models.py")
     with open(models_path, "w", encoding="utf-8") as f:
         f.write(models_code)
@@ -140,7 +71,7 @@ def process_message(params: "Input", tool_context: ToolContext) -> str:
     
     # 3-2. handler.py の自動生成
     handler_tmpl = coder_directory.load_asset("handler.py.template")
-    handler_code = generate_handler_code(design_data, handler_tmpl)
+    handler_code = HandlerWriter(design_data, handler_tmpl).write()
     handler_path = os.path.join(scripts_dir, "handler.py")
     with open(handler_path, "w", encoding="utf-8") as f:
         f.write(handler_code)
