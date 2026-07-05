@@ -11,5 +11,5 @@ __version__ = "0.1.0"
 from .models import Parameter, SkillDesign, EvalRunResult
 from .registry import SkillRegistry
 from .directory import SkillDirectory
-from .execution.eval_runner import ADKEvalRunner
+from .run.eval import ADKEvalRunner
 

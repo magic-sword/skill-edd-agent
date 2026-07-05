@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 from edd_agent_tools.models import EvalRunResult
-from edd_agent_tools.execution.env import get_patched_env
+from edd_agent_tools.run.env import get_patched_env
 
 class ADKEvalRunner:
     """
@@ -18,11 +18,11 @@ class ADKEvalRunner:
         env_vars: dict = None,
         cwd: str = "/workspace"
     ) -> EvalRunResult:
-        # env.py を使って環境変数を構成（重複コードの一元共通化）
+        # env.py を使って環境変数を構成
         patched_env = get_patched_env(env_vars)
 
-        # コマンドの組み立て (adk eval の代わりに eval_launcher スクリプトを Python 起動)
-        cmd_args = [sys.executable, "-m", "edd_agent_tools.execution.eval_launcher", agent_dir, eval_set_path]
+        # コマンドの組み立て (adk eval の代わりに launcher スクリプトを Python 起動)
+        cmd_args = [sys.executable, "-m", "edd_agent_tools.run.launcher", agent_dir, eval_set_path]
         if config_file_path:
             cmd_args.extend(["--config_file_path", config_file_path])
             

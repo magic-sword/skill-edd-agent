@@ -74,7 +74,7 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
 
 ## 4. 共通ランナー（edd-run）によるスキーマ駆動CLI
 
-開発者がコマンドラインから直接デバッグ・実行できるように、`edd-agent-tools` 側で**共通CLIランナー（`edd_agent_tools.execution.cli_runner`）**を提供します。
+開発者がコマンドラインから直接デバッグ・実行できるように、`edd-agent-tools` 側で**共通CLIランナー（`edd_agent_tools.run`）**を提供します。
 
 ### 仕組み
 1. 指定された引数の第一位置引数から `handler.py` をロードし、`Input` スキーマと `SKILL_METADATA` を動的にインポート。
@@ -83,5 +83,5 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
 
 ### メリット
 * **JSONエスケープ地獄の排除**: 引数はすべて通常のフラットなオプション（`--param_a value`）で書けます。
-* **自動 `--help`**: `python3 -m edd_agent_tools.execution.cli_runner my-skill --help` と打つだけで、Pydanticの定義に基づいた引数説明が自動出力されます。
+* **自動 `--help`**: `python3 -m edd_agent_tools.run my-skill --help` と打つだけで、Pydanticの定義に基づいた引数説明が自動出力されます。
 * **バリデーションの即時性**: 不正な引数や型の間違いは、ビジネスロジック実行前にCLIレベルでエラーになります。
