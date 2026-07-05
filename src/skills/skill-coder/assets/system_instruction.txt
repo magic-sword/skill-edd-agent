@@ -28,3 +28,9 @@
    最後に `scripts/logic.py` を作成（または更新）し、`from .models import Input` からスキーマをインポートした上で、`process_message(params: Input, tool_context: ToolContext) -> str` 関数内のビジネスロジックを統合・完成させてください。
 
 ※自動生成された `scripts/handler.py` および `scripts/models.py` を手動で編集・変更することは**絶対に禁止**します。
+
+### 【設計・実装規約（SOLID原則・OOPの遵守）】
+*   **単一責任の原則（SRP）の遵守**:
+    `logic.py` の `process_message` や `SkillExecutor.execute` にすべての処理を平坦にベタ書きすることは避けてください。API呼び出し、プロンプト構築、結果の保存、テキスト抽出などの個別の責務は、プライベートメソッドや別名モジュール（例: `scripts/client.py`, `scripts/prompter.py`）に分割し、それぞれを明確な役割（責務）を持つクラスとしてカプセル化してください。
+*   **手続き的なベタ書きの禁止**:
+    すべての処理を1つの関数に並べる手続き的コーディングは却下されます。各オブジェクトが自身のデータと振る舞いを持つように、美しく役割分割されたオブジェクト指向コードを作成してください。

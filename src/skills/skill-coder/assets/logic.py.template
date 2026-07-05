@@ -1,9 +1,18 @@
 from google.adk.tools import ToolContext
-from .models import Input
+from .models import Input, Output
 
-def process_message(params: Input, tool_context: ToolContext) -> str:
+class SkillExecutor:
     """
-    ここにビジネスロジックを実装します。
+    ビジネスロジックを責務ごとに分割して実行するオブジェクト指向エグゼキューター。
     """
-    # TODO: ビジネスロジックを実装してください。
-    return "Success"
+    def __init__(self, params: Input, tool_context: ToolContext):
+        self.params = params
+        self.tool_context = tool_context
+
+    def execute(self) -> Output:
+        # TODO: 責務ごとにメソッドや別クラスに処理を分割して実行します
+        raise NotImplementedError()
+
+def process_message(params: Input, tool_context: ToolContext) -> Output:
+    executor = SkillExecutor(params, tool_context)
+    return executor.execute()
