@@ -8,7 +8,8 @@
       "name": "command",
       "type": "str",
       "description": "実行するコマンド ('register', 'get-tier', 'set-tier', 'list', 'update-meta')",
-      "required": true
+      "required": true,
+      "choices": ["register", "get-tier", "set-tier", "list", "update-meta"]
     },
     {
       "name": "skill",
@@ -22,7 +23,8 @@
       "type": "int",
       "description": "設定するTier (0, 1, 2, 3)",
       "required": false,
-      "default": null
+      "default": null,
+      "choices": [0, 1, 2, 3]
     },
     {
       "name": "registry_path",

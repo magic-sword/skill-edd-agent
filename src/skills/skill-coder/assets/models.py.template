@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+{imports_str}
 
 class Input(BaseModel):
 {fields_str}

@@ -36,7 +36,9 @@
       "type": "float",
       "description": "合格に必要な精度の閾値（0.0 から 1.0 の浮動小数点）。デフォルトは 1.0。",
       "required": false,
-      "default": "1.0"
+      "default": "1.0",
+      "ge": 0.0,
+      "le": 1.0
     }
   ],
   "dependencies": [],

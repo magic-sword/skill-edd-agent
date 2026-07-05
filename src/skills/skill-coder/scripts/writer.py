@@ -1,5 +1,91 @@
 import json
-from edd_agent_tools.models import SkillDesign
+from edd_agent_tools.models import SkillDesign, Parameter
+
+class PydanticFieldWriter:
+    """
+    1つの Parameter 情報から、Pydantic のフィールド定義コード行を生成するライター。
+    """
+    def __init__(self, param: Parameter):
+        self.param = param
+        self.typing_imports = set()
+
+    def to_code(self) -> str:
+        """Pydanticの属性定義のコード文字列（例: 'prompt: str = Field(...)'）を返します。"""
+        type_expr = self._resolve_type()
+        # 非必須かつデフォルト値が明示されていない場合は Union 型にマージ (| None)
+        if not self.param.required and self.param.default is None:
+            type_expr = f"{type_expr} | None"
+            
+        args_expr = self._resolve_field_args()
+        return f"    {self.param.name}: {type_expr} = Field({args_expr})"
+
+    def _resolve_type(self) -> str:
+        # 1. 選択肢指定 (Literal)
+        if self.param.choices:
+            self.typing_imports.add("Literal")
+            choices_expr = ", ".join(repr(c) if isinstance(c, str) else str(c) for c in self.param.choices)
+            return f"Literal[{choices_expr}]"
+
+        # 2. リスト型 (items_type による要素型指定の解決)
+        t_str = self.param.type.strip().lower()
+        if t_str == "list":
+            if self.param.items_type:
+                inner_type = self.param.items_type.strip().lower()
+                if inner_type == "str":
+                    return "list[str]"
+                elif inner_type == "int":
+                    return "list[int]"
+                elif inner_type == "bool":
+                    return "list[bool]"
+                elif inner_type == "float":
+                    return "list[float]"
+                else:
+                    self.typing_imports.add("Any")
+                    return "list[Any]"
+            return "list"
+
+        # 3. 基本型
+        if t_str == "str":
+            return "str"
+        elif t_str == "int":
+            return "int"
+        elif t_str == "bool":
+            return "bool"
+        elif t_str == "float":
+            return "float"
+        else:
+            self.typing_imports.add("Any")
+            return "Any"
+
+    def _resolve_field_args(self) -> str:
+        # 必須・非必須に基づくデフォルト値表現
+        if self.param.required:
+            default_expr = "..."
+        else:
+            if self.param.default is None:
+                default_expr = "None"
+            else:
+                t_str = self.param.type.strip().lower() if not self.param.choices else "choices"
+                if t_str == "str":
+                    default_expr = repr(self.param.default)
+                elif t_str == "bool":
+                    default_expr = "True" if str(self.param.default).lower() in ("true", "1", "yes") else "False"
+                elif t_str in ("int", "float"):
+                    default_expr = str(self.param.default)
+                else:
+                    default_expr = repr(self.param.default)
+
+        # オプションパラメータ（数値制約、説明）の組み立て
+        field_args = []
+        if self.param.ge is not None:
+            field_args.append(f"ge={self.param.ge}")
+        if self.param.le is not None:
+            field_args.append(f"le={self.param.le}")
+
+        desc_val = self.param.description or ""
+        field_args.append(f"description={repr(desc_val)}")
+
+        return ", ".join([default_expr] + field_args)
 
 class PydanticModelWriter:
     """
@@ -12,47 +98,24 @@ class PydanticModelWriter:
 
     def write(self) -> str:
         fields = []
-        has_any = False
+        imports = ["from pydantic import BaseModel, Field"]
+        all_typing_imports = set()
         
         for param in self.design.parameters:
-            t_str = param.type.strip().lower()
-            if t_str == "str":
-                python_type = "str"
-            elif t_str == "int":
-                python_type = "int"
-            elif t_str == "bool":
-                python_type = "bool"
-            elif t_str == "float":
-                python_type = "float"
-            elif t_str == "list":
-                python_type = "list"
-            else:
-                python_type = "Any"
-                has_any = True
-                
-            if param.required:
-                default_expr = "..."
-                annotated_type = python_type
-            else:
-                if param.default is None:
-                    default_expr = "None"
-                    annotated_type = f"{python_type} | None"
-                else:
-                    annotated_type = python_type
-                    if t_str == "str":
-                        default_expr = repr(param.default)
-                    elif t_str == "bool":
-                        default_expr = "True" if str(param.default).lower() in ("true", "1", "yes") else "False"
-                    elif t_str in ("int", "float"):
-                        default_expr = str(param.default)
-                    else:
-                        default_expr = repr(param.default)
-                        
-            field_str = f"    {param.name}: {annotated_type} = Field({default_expr}, description={repr(param.description)})"
-            fields.append(field_str)
+            # パラメータ行生成を PydanticFieldWriter に完全委譲 (オブジェクト指向化)
+            field_writer = PydanticFieldWriter(param)
+            fields.append(field_writer.to_code())
+            all_typing_imports.update(field_writer.typing_imports)
             
+        # 必要なタイピングインポートを追加
+        if all_typing_imports:
+            unique_imports = sorted(list(all_typing_imports))
+            imports.append(f"from typing import {', '.join(unique_imports)}")
+            
+        imports_str = "\n".join(imports)
         fields_str = "\n".join(fields) if fields else "    pass"
-        return self.template_str.format(fields_str=fields_str)
+        
+        return self.template_str.format(imports_str=imports_str, fields_str=fields_str)
 
 class HandlerWriter:
     """

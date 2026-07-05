@@ -6,6 +6,10 @@ class Parameter(BaseModel):
     description: str = Field(..., description="パラメータの説明")
     required: bool = Field(False, description="このパラメータが必須かどうか")
     default: str | None = Field(None, description="パラメータのデフォルト値（任意、文字列等として表現）")
+    choices: list[str] | None = Field(None, description="パラメータの有効な選択肢（Literal型アノテーションの生成に使用します）")
+    ge: float | None = Field(None, description="数値パラメータの最小値（ge制約の生成に使用します）")
+    le: float | None = Field(None, description="数値パラメータの最大値（le制約の生成に使用します）")
+    items_type: str | None = Field(None, description="リスト型パラメータの要素の型（例: 'str', 'int'。list[items_type] の生成に使用します）")
 
 class SkillDesign(BaseModel):
     """
