@@ -17,8 +17,8 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
     *   **薄いハンドラーとロジックの分離**: インターフェース定義を行う `handler.py` は自動生成されるため、手動編集は禁止です。実処理は `logic.py` 等に完全に分離します。
     *   **オブジェクト指向とモジュール分割 (単一責任の原則)**: コードの肥大化を防ぐため、役割に応じてモジュール（`client.py`, `parser.py` 等）を分割してください。
     *   **アセットの外部化**: プロンプト等はコード内に直書きせず、`assets/` ディレクトリに外部ファイル化し、`SkillDirectory` 経由でロードします。
-*   **状態駆動・戻り値なし (State-Driven, Returnless)**:
-    ビジネスロジック関数の戻り値は無視されます。結果は必ず `tool_context.state` に直接書き込んでください。
+*   **明示的な入力とテキストフィードバック (Explicit Input & Text Feedback)**:
+    パラメータの受け渡しは Pydantic モデルを用いて関数の引数レベルで明示的に行います。また、AIツールとしての実行成否や実行結果のサマリーは関数の戻り値（`str`）として返してください。
 *   **コンテキストのクリーン化 (Clean Context)**:
     プロンプト内に巨大データを直接埋め込んで結合することを禁止します。ハルシネーションを防ぐため、`GeminiContentBuilder` で添付テキストパーツとして分離送信します。
 
@@ -30,10 +30,10 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
 エントリーポイントは `scripts/handler.py` に統一し、以下の3つを定義します。
 1.  **`SKILL_METADATA`** (dict): 名前、説明、実行形式、出力モードなどの基本メタデータ。
 2.  **`Input`** (Pydantic `BaseModel`): パラメータ検証スキーマ。
-3.  **`process_message(tool_context: ToolContext)`**: `tool_context.state["validated_input"]` から検証済み引数を取り出し、ビジネスロジックを呼び出す。
+3.  **`process_message(params: Input, tool_context: ToolContext) -> str`**: 第1引数に `Input` インスタンスを受け取り、第2引数に `ToolContext` を受け取ります。戻り値として実行結果のサマリー（str）を返します。
 
 ### ② ビジネスロジック実装規約 (`scripts/logic.py`)
-*   パラメータの取得および処理結果の保存は、すべて `tool_context.state` に対し直接行います。
+*   パラメータの取得は第1引数 `params` から行います。実行結果の永続化等は `tool_context.state` に対し行いますが、完了のサマリーメッセージは戻り値（str）として返します。
 
 ### ③ 実行形式の分類規約 (`execution_type`)
 `design.json` で定義される `execution_type` は、スキルの動作モデルおよびアセット設計の方針を決定する極めて重要なパラメータです。必ず以下の規約に従って適切に分類・指定してください。

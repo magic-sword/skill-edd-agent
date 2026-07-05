@@ -23,19 +23,10 @@ SKILL_METADATA = {
 class Input(BaseModel):
     city: str = Field(..., description="対象都市の名前")
 
-# エントリーポイント
-def process_message(tool_context: ToolContext):
-    # 1. バリデーション済みのオブジェクトを取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # 2. 引数を state に移行
-    if params:
-        for key, value in params.model_dump().items():
-            if value is not None:
-                tool_context.state[key] = value
-                
-    # 3. ビジネスロジックを呼び出す
-    run_logic(tool_context)
+# エントリーポイント（Input インスタンスを受け取り、完了文字列を返す）
+def process_message(params: Input, tool_context: ToolContext) -> str:
+    # 1. 直接ビジネスロジックを呼び出し、その結果（str）を返却する
+    return run_logic(params, tool_context)
 ```
 
 ---
@@ -44,20 +35,24 @@ def process_message(tool_context: ToolContext):
 
 ```python
 from google.adk.tools import ToolContext
+from .handler import Input
 from .client import WeatherClient # 分割されたサブモジュール
 
-def process_message(tool_context: ToolContext):
-    city = tool_context.state.get("city")
+def process_message(params: Input, tool_context: ToolContext) -> str:
+    # 1. パラメータは params (Input) から型安全に取得
+    city = params.city
     if not city:
         raise ValueError("city is required")
         
     client = WeatherClient()
     temp_c, temp_f = client.fetch_temp(city)
     
-    # 結果は必ず state に直接書き込む (戻り値を return しない)
+    # 2. 状態の永続化が必要な値は tool_context.state に書き込む
     tool_context.state["celsius"] = temp_c
     tool_context.state["fahrenheit"] = temp_f
-```
+    
+    # 3. AI（LLM）へのテキストフィードバックとなる実行結果サマリーを返す
+    return f"Successfully fetched weather for {city}. Celsius: {temp_c}°C."
 
 ---
 
