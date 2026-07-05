@@ -38,68 +38,22 @@
   ],
   "response_parameters": [
     {
-      "name": "name",
-      "type": "string",
-      "description": "スキルの名前",
+      "name": "status",
+      "type": "str",
+      "description": "処理結果の成否ステータス（'success' / 'failed'）",
       "required": true
     },
     {
-      "name": "description",
-      "type": "string",
-      "description": "スキルの目的や役割を記述した簡潔な説明（L1 description用）",
+      "name": "message",
+      "type": "str",
+      "description": "処理結果のメッセージサマリー",
       "required": true
     },
     {
-      "name": "execution_type",
-      "type": "string",
-      "description": "実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)",
-      "required": true,
-      "choices": [
-        "tool",
-        "agent"
-      ]
-    },
-    {
-      "name": "output_mode",
-      "type": "string",
-      "description": "出力形式",
-      "required": true,
-      "choices": [
-        "VALUE_ONLY",
-        "CONVERSATIONAL",
-        "STRUCTURED_JSON"
-      ]
-    },
-    {
-      "name": "parameters",
-      "type": "array",
-      "description": "スキルが受け取るパラメータのリスト",
-      "required": true,
-      "items_type": "object"
-    },
-    {
-      "name": "dependencies",
-      "type": "array",
-      "description": "スキルが依存する他のスキルのリスト",
-      "required": false,
-      "default": null,
-      "items_type": "string"
-    },
-    {
-      "name": "constraints",
-      "type": "array",
-      "description": "モデルバリデータ等から抽出された制約条件のリスト",
-      "required": false,
-      "default": null,
-      "items_type": "string"
-    },
-    {
-      "name": "response_parameters",
-      "type": "array",
-      "description": "出力(戻り値)JSONのパラメータ構造定義。STRUCTURED_JSON時に使用されます",
-      "required": false,
-      "default": null,
-      "items_type": "object"
+      "name": "output_file_path",
+      "type": "str",
+      "description": "生成された design.json の絶対ファイルパス",
+      "required": true
     }
   ]
 }

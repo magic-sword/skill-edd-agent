@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 class OutputMode(StrEnum):
@@ -21,22 +22,6 @@ class Parameter(BaseModel):
     min_length: int | None = Field(None, description="文字列またはリストパラメータの最小長制約（min_length制約の生成に使用します）")
     max_length: int | None = Field(None, description="文字列またはリストパラメータの最大長制約（max_length制約の生成に使用します）")
 
-    @model_validator(mode="after")
-    def validate_parameter_field_constraints(self) -> "Parameter":
-        if self.name == "execution_type":
-            valid_execution_types = {"tool", "agent"}
-            if self.choices:
-                invalid_choices = set(self.choices) - valid_execution_types
-                if invalid_choices:
-                    raise ValueError(f"execution_type choices must only contain 'tool' or 'agent', got {self.choices}")
-        elif self.name == "output_mode":
-            valid_output_modes = {"VALUE_ONLY", "CONVERSATIONAL", "STRUCTURED_JSON"}
-            if self.choices:
-                invalid_choices = set(self.choices) - valid_output_modes
-                if invalid_choices:
-                    raise ValueError(f"output_mode choices must only contain {valid_output_modes}, got {self.choices}")
-        return self
-
 class SkillDesign(BaseModel):
     """
     スキルの設計定義を表すPydanticモデル。
@@ -56,7 +41,7 @@ class SkillDesign(BaseModel):
     """
     name: str = Field(..., description="スキルの名前")
     description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明（L1 description用）")
-    execution_type: str = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
+    execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
     output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
     parameters: list[Parameter] = Field(..., description="スキルが受け取るパラメータのリスト")
     dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
