@@ -10,6 +10,7 @@ task.md
 walkthrough.md
 tests/*.json
 src/.workflow_tmp/ 
+scratch/
 
 # edd-agent-tools build artifacts
 edd-agent-tools/dist/
