@@ -1,6 +1,8 @@
 {
   "name": "skill-coder",
   "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
+  "summary": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
+  "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
   "parameters": [
@@ -8,7 +10,11 @@
       "name": "prompt",
       "type": "str",
       "description": "実装したいビジネスロジックの機能要件や詳細な指示。",
-      "required": true
+      "required": false,
+      "default": "",
+      "is_prompt_parameter": true,
+      "prompt_instructions": "生成・修正したいビジネスロジック（例：APIクライアントの作成、バリデーションロジックの追加、ユーティリティ関数の実装など）の実装要件を指定できます。",
+      "prompt_constraints": "自動生成される handler.py, models.py, __init__.py は編集できません。また、エグゼキューター（scripts/executor.py）の全体的なクラス構造やインターフェース（execute() メソッド）は固定されているため、これを逸脱するシグネチャ変更はできません。"
     },
     {
       "name": "skill",
@@ -33,9 +39,7 @@
     }
   ],
   "dependencies": [],
-  "constraints": [
-    "パラメータ 'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。"
-  ],
+  "constraints": [],
   "response_parameters": [
     {
       "name": "status",

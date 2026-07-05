@@ -19,13 +19,11 @@ class SkillExecutor:
         self.registry = SkillRegistry()
 
     def execute(self) -> Output:
-        prompt = self.params.prompt
+        prompt = self.params.prompt or ""
         skill = self.params.skill
         design_path = self.params.design_path
         output_dir = self.params.output_dir
         
-        if not prompt:
-            raise ValueError("必須パラメータ 'prompt' が指定されていません。")
         if not skill and not design_path:
             raise ValueError("対象スキルを特定するために、'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。")
             
