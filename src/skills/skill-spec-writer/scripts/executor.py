@@ -13,5 +13,3 @@ class SkillExecutor:
     def execute(self) -> Output:
         generator = SpecGenerator(self.params, self.tool_context)
         return generator.generate()
-
-

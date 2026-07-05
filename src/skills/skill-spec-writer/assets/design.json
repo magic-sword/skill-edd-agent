@@ -1,7 +1,8 @@
 {
   "name": "skill-spec-writer",
-  "description": "設計定義ファイルや実装コードを解析し、エージェント向け指示ガイドラインを動的インジェクションした仕様書（SKILL.md）を自動生成するツール。",
-  "summary": "設計定義ファイル（design.json）やソースコードをロード・解析し、ADK 2.0互換の仕様書（SKILL.md）を全自動生成するツール。",
+  "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
+  "summary": "既存のスキル設計情報（design.json）を基に、ADK 2.0に準拠したSKILL.md仕様書を自動生成します。これにより、開発者はドキュメント作成の手間を省き、常に最新かつ正確なスキル仕様書を維持できます。",
+  "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
   "parameters": [
@@ -45,9 +46,7 @@
     }
   ],
   "dependencies": [],
-  "constraints": [
-    "'skill' または 'design_path' のいずれか一方は必須です。両方を省略することはできません。"
-  ],
+  "constraints": [],
   "response_parameters": [
     {
       "name": "status",
