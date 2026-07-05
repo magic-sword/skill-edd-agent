@@ -41,21 +41,24 @@
     {
       "name": "status",
       "type": "str",
-      "description": "スキルの実行結果ステータス ('success' または 'failed')",
-      "required": true
+      "description": "スキルの実行結果ステータス。'success' または 'failed'。",
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
+      ]
     },
     {
       "name": "message",
       "type": "str",
-      "description": "実行結果のサマリーメッセージ",
+      "description": "スキルの実行結果に関する詳細メッセージ。",
       "required": true
     },
     {
       "name": "output_file_path",
       "type": "str",
-      "description": "生成されたSKILL.mdファイルの絶対パス",
-      "required": false,
-      "default": null
+      "description": "生成されたSKILL.mdファイルの絶対パス。成功時にのみ存在します。",
+      "required": false
     }
   ]
 }

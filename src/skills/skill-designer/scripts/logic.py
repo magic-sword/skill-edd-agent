@@ -35,8 +35,10 @@ def process_message(params: Input, tool_context: ToolContext) -> Output:
     gemini_client = GeminiDesignClient()
 
     # 4. プロンプトコンテンツ (GeminiRequest) の構築
-    # DesignPrompterにskill_directoryを渡すように変更
-    design_prompter = DesignPrompter(skill_directory=skill_directory)
+    from edd_agent_tools.registry import SkillRegistry
+    registry = SkillRegistry()
+    designer_directory = registry.get_skill_directory("skill-designer")
+    design_prompter = DesignPrompter(designer_directory=designer_directory)
     request = design_prompter.build_request(
         client=gemini_client._client,
         requirement=requirement,

@@ -8,9 +8,9 @@ class DesignPrompter:
     """
     スキル設計のためのプロンプト構築ロジックを提供します。
     """
-    def __init__(self, skill_directory: SkillDirectory): # SkillDirectoryを受け取るように変更
-        self._skill_directory = skill_directory
-        self._prompt_tmpl = self._skill_directory.load_asset("prompt.txt")
+    def __init__(self, designer_directory: SkillDirectory):
+        self._designer_directory = designer_directory
+        self._prompt_tmpl = self._designer_directory.load_asset("design_instruction_template.txt")
 
     def build_request(
         self, 
