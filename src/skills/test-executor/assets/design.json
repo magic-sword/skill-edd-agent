@@ -14,7 +14,8 @@
       "name": "eval_set_path",
       "type": "str",
       "description": "テストケースファイル（*.evalset.json）の絶対パス、または src ディレクトリからの相対パス。",
-      "required": true
+      "required": false,
+      "default": null
     },
     {
       "name": "threshold_accuracy",

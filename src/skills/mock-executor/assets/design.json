@@ -14,7 +14,8 @@
       "name": "eval_set_path",
       "type": "str",
       "description": "テストデータセットファイルのパス",
-      "required": true
+      "required": false,
+      "default": null
     },
     {
       "name": "config_file_path",
