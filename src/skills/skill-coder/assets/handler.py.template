@@ -1,11 +1,8 @@
-from pydantic import BaseModel, Field
 from google.adk.tools import ToolContext
+from .models import Input
 {any_import}from .logic import process_message as run_logic
 
 SKILL_METADATA = {metadata_str}
-
-class Input(BaseModel):
-{fields_str}
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
     # ビジネスロジックを呼び出す

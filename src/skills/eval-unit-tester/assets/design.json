@@ -8,7 +8,8 @@
       "name": "skill",
       "type": "str",
       "description": "テストケースを生成する対象のスキル名",
-      "required": true
+      "required": true,
+      "default": null
     }
   ],
   "dependencies": [],

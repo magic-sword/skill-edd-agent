@@ -16,12 +16,12 @@ from google.genai import types
 from edd_agent_tools.registry import SkillRegistry
 from edd_agent_tools.models import SkillDesign
 from edd_agent_tools.docs import LibraryDocumentationReader
-from .handler import Input
+from .models import Input
 
-def generate_handler_code(design: SkillDesign, template_str: str) -> str:
+def generate_models_code(design: SkillDesign, template_str: str) -> str:
     """
-    SkillDesignメタデータから、Pydantic Inputクラス定義と薄いルーティング処理を含む
-    scripts/handler.py のソースコードを決定論的に自動生成します。
+    SkillDesignメタデータから、Pydantic Inputクラス定義を含む
+    scripts/models.py のソースコードを決定論的に自動生成します。
     """
     fields = []
     has_any = False
@@ -65,6 +65,14 @@ def generate_handler_code(design: SkillDesign, template_str: str) -> str:
         
     fields_str = "\n".join(fields) if fields else "    pass"
     
+    any_import = "from typing import Any\n" if has_any else ""
+    return template_str.format(fields_str=fields_str)
+
+def generate_handler_code(design: SkillDesign, template_str: str) -> str:
+    """
+    SkillDesignメタデータから、薄いルーティング処理を含む
+    scripts/handler.py のソースコードを決定論的に自動生成します。
+    """
     metadata = {
         "name": design.name,
         "description": design.description,
@@ -74,15 +82,13 @@ def generate_handler_code(design: SkillDesign, template_str: str) -> str:
     }
     metadata_str = json.dumps(metadata, indent=4, ensure_ascii=False)
     
-    any_import = "from typing import Any\n" if has_any else ""
-    
+    any_import = ""
     return template_str.format(
         any_import=any_import,
-        metadata_str=metadata_str,
-        fields_str=fields_str
+        metadata_str=metadata_str
     )
 
-def process_message(params: Input, tool_context: ToolContext) -> str:
+def process_message(params: "Input", tool_context: ToolContext) -> str:
     """
     skill-coder のメインビジネスロジック。
     - design.json をロードし、scripts/handler.py を決定論的に自動生成。
@@ -121,8 +127,18 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
     # 2. design.json のロード
     design_data: SkillDesign = directory.load_design()
     
-    # 3. handler.py の決定論的自動生成
+    # 3. models.py & handler.py の決定論的自動生成
     coder_directory = registry.get_skill_directory(name="skill-coder")
+    
+    # 3-1. models.py の自動生成
+    models_tmpl = coder_directory.load_asset("models.py.template")
+    models_code = generate_models_code(design_data, models_tmpl)
+    models_path = os.path.join(scripts_dir, "models.py")
+    with open(models_path, "w", encoding="utf-8") as f:
+        f.write(models_code)
+    print(f"決定論的モデルファイルを生成しました: {models_path}")
+    
+    # 3-2. handler.py の自動生成
     handler_tmpl = coder_directory.load_asset("handler.py.template")
     handler_code = generate_handler_code(design_data, handler_tmpl)
     handler_path = os.path.join(scripts_dir, "handler.py")

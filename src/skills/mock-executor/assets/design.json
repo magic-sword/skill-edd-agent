@@ -41,6 +41,6 @@
   ],
   "dependencies": [],
   "constraints": [
-    "threshold_accuracy は 0.0 から 1.0 の範囲である必要があります。"
+    "threshold_accuracy must be a float value between 0.0 and 1.0 (inclusive)."
   ]
 }

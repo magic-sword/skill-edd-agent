@@ -25,6 +25,6 @@
    モジュール分割計画に基づき、まずは `assets/` 配下のアセットファイルや、依存関係の下流にあたるユーティリティ、APIクライアントなどのサブモジュールを順次作成・修正してください。
 
 3. **ステップ3: メインロジック（`scripts/logic.py`）の実装・統合**:
-   最後に `scripts/logic.py` を作成（または更新）し、作成・修正したサブモジュールや外部アセットを呼び出す形で `process_message(params: Input, tool_context: ToolContext) -> str` 関数内のビジネスロジックを統合・完成させてください。
+   最後に `scripts/logic.py` を作成（または更新）し、`from .models import Input` からスキーマをインポートした上で、`process_message(params: Input, tool_context: ToolContext) -> str` 関数内のビジネスロジックを統合・完成させてください。
 
-※自動生成された `scripts/handler.py` を手動で編集・変更することは**絶対に禁止**します。
+※自動生成された `scripts/handler.py` および `scripts/models.py` を手動で編集・変更することは**絶対に禁止**します。

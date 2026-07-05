@@ -7,7 +7,7 @@ from google.adk.tools import ToolContext
 from pydantic import BaseModel, Field, create_model
 from edd_agent_tools.registry import SkillRegistry
 from .strategy import get_output_mode_strategy
-from .handler import Input
+from .models import Input
 
 class TestParameterCase(BaseModel):
     user_instruction: str = Field(

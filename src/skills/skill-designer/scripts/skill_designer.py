@@ -4,7 +4,7 @@ from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
 from edd_agent_tools.models import SkillDesign
-from .handler import Input
+from .models import Input
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
     """

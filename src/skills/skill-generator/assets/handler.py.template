@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
 from google.adk.tools import ToolContext
+from .models import Input
 from .{script_module_name} import process_message as run_logic
 
 SKILL_METADATA = {
@@ -9,10 +9,6 @@ SKILL_METADATA = {
     "output_mode": "VALUE_ONLY",
     "dependencies": []
 }
-
-class Input(BaseModel):
-    # TODO: 必要に応じてスキーマパラメータを追加・カスタマイズしてください
-    prompt: str = Field(..., description="実行パラメータ")
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
     # ビジネスロジックを呼び出す

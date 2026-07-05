@@ -20,6 +20,7 @@ from google.adk.tools.environment._read_file_tool import ReadFileTool
 from google.adk.tools.environment._edit_file_tool import EditFileTool
 from google.adk.tools.environment._write_file_tool import WriteFileTool
 from edd_agent_tools.docs import LibraryDocumentationReader
+from .models import Input
 
 
 
@@ -141,21 +142,21 @@ async def run_skill_developer_agent(output_dir: str, prompt: str, model: str, ma
                         fc = part.function_call
                         print(f"[{author} ツール実行]: {fc.name}({fc.args})")
 
-async def generate_skill_code(tool_context: ToolContext) -> str:
+async def process_message_async(params: "Input", tool_context: ToolContext) -> str:
     """
     指定された要件（prompt）に基づき、SkillDeveloperAgent を起動して
     新規スキルを自律生成します。
     """
-    skill = tool_context.state.get("skill")
-    prompt = tool_context.state.get("prompt")
+    output_dir = os.path.abspath(params.output_dir)
+    prompt = params.prompt
+    model = params.model
+    max_turns = params.max_attempts
     
-    if not skill or not prompt:
-        raise ValueError("セッション状態に 'skill' または 'prompt' が設定されていません。")
+    skill = os.path.basename(output_dir)
+    
+    if not output_dir or not prompt:
+        raise ValueError("'output_dir' または 'prompt' が指定されていません。")
         
-    output_dir = os.path.abspath(f"/workspace/src/skills/{skill}")
-    model = "gemini-2.5-flash"
-    max_turns = 15
-    
     # 開発者エージェントを実行
     await run_skill_developer_agent(
         output_dir=output_dir,
@@ -181,4 +182,7 @@ async def generate_skill_code(tool_context: ToolContext) -> str:
     tool_context.state["skill_dir"] = output_dir
     
     return f"Success: Generated skill '{skill}' at '{output_dir}'."
+
+def process_message(params: Input, tool_context: ToolContext) -> str:
+    return asyncio.run(process_message_async(params, tool_context))
 

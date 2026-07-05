@@ -3,7 +3,7 @@ import sys
 from google.adk.tools import ToolContext
 from edd_agent_tools import ADKEvalRunner, SkillRegistry, EvalRunResult
 
-from .handler import Input
+from .models import Input
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
     """

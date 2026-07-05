@@ -1,7 +1,7 @@
 import os
 import sys
 from google.adk.tools import ToolContext
-from .handler import Input
+from .models import Input
 
 # =============================================================================
 # 【設計思想：Pydanticを活用した構造化出力とプロンプトの簡素化】

@@ -7,7 +7,7 @@ from google.genai import types
 from edd_agent_tools.registry import SkillRegistry
 from edd_agent_tools.gemini import get_gemini_client
 from .models import StaticEvalResult, TriggerTestCases
-from .handler import Input
+from .models import Input
 
 class TriggerEvaluator:
     def __init__(self, tool_context: ToolContext, genai_client):

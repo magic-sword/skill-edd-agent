@@ -8,7 +8,7 @@ import sys
 import json
 from google.adk.tools import ToolContext
 from edd_agent_tools.registry import SkillRegistry
-from .handler import Input
+from .models import Input
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

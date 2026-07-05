@@ -3,7 +3,7 @@ import sys
 import json
 from google.adk.tools import ToolContext
 from .writer.factory import SpecWriterFactory
-from .handler import Input
+from .models import Input
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
     """

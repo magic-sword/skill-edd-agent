@@ -1,0 +1,5 @@
+from pydantic import BaseModel, Field
+
+class Input(BaseModel):
+    # TODO: 必要に応じてスキーマパラメータを追加・カスタマイズしてください
+    prompt: str = Field(..., description="実行パラメータ")
