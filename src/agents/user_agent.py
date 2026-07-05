@@ -1,12 +1,19 @@
 import sys
 import os
 from typing import Any
-from google.adk.tools.skill_toolset import LoadSkillTool
 from google.adk.tools import ToolContext
 
-# トリガー評価モード (ADK_EVAL_MODE == "0") の場合のみ、LoadSkillTool の挙動をモック化する
-if os.environ.get("ADK_EVAL_MODE") == "0":
-    async def mock_run_async(self, *, args: dict[str, Any], tool_context: ToolContext) -> Any:
+# 実行中のデータセットからトリガー評価モード (モック有効) であるかを自律判定
+is_trigger_eval_mode = False
+for arg in sys.argv:
+    if "_trigger.evalset" in arg:
+        is_trigger_eval_mode = True
+        break
+
+# ADK公式の before_tool_callback を使ってモック・シミュレーションを実行する
+async def before_tool_callback(tool: Any, args: dict[str, Any], tool_context: ToolContext) -> Any:
+    # トリガー評価モードかつ load_skill ツール呼び出しの場合
+    if is_trigger_eval_mode and tool.name == "load_skill":
         skill_name = args.get("skill_name")
         agent_name = tool_context.agent_name
         state_key = f"_adk_activated_skill_{agent_name}"
@@ -15,6 +22,7 @@ if os.environ.get("ADK_EVAL_MODE") == "0":
             activated_skills.append(skill_name)
             tool_context.state[state_key] = activated_skills
             
+        # 辞書を返すことで、実ツールの実行をスキップし、この返り値をツールコールの結果にする (モック実行)
         return {
             "skill_name": skill_name,
             "instructions": (
@@ -27,7 +35,7 @@ if os.environ.get("ADK_EVAL_MODE") == "0":
                 "description": f"Mock description for {skill_name}"
             }
         }
-    LoadSkillTool.run_async = mock_run_async
+    return None # その他の場合はそのまま実ツールを実行
 
 from google.adk import Agent
 from google.adk.tools import skill_toolset
@@ -63,5 +71,6 @@ user_agent = Agent(
         "あなたは自立的評価駆動開発エージェントです。\n"
         "ロードされたスキル（ツール）を用いて、ユーザーからの指示やタスクを正常に遂行してください。"
     ),
-    tools=agent_tools
+    tools=agent_tools,
+    before_tool_callback=before_tool_callback
 )

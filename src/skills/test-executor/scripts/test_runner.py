@@ -25,7 +25,6 @@ class TestRunner:
             "HOME": "/home/vscode",
             "PATH": os.environ.get("PATH", "/workspace/.venv/bin:/usr/local/bin:/usr/bin:/bin"),
             "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
-            "ADK_EVAL_MODE": str(eval_mode),
             "TARGET_EVAL_SKILL": skill
         }
         
