@@ -1,21 +1,17 @@
 import os
 import json
-from string import Template
-from pydantic import BaseModel, Field
-from .base import BaseSpecWriter
+from pydantic import Field
+from .base import BaseSpecWriter, BaseSkillTextParts
 
-class SkillTextParts(BaseModel):
-    purpose: str = Field(..., description="このスキルの本質的な目的と提供する価値を要約した簡潔な日本語の1〜2文。")
-    features: list[str] = Field(..., description="このスキルが提供する具体的な主要機能のリスト。")
+class AgentSkillTextParts(BaseSkillTextParts):
     workflow_steps: list[str] = Field(..., description="このスキルが呼び出されたときにエージェント（LLM）が辿る具体的な推論思考プロセスや処理ステップのリスト。")
-    trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
 class AgentSpecWriter(BaseSpecWriter):
     def __init__(self, design_data, source_code_dir: str, tool_context):
         super().__init__(design_data, source_code_dir, tool_context)
 
     def get_pydantic_schema(self):
-        return SkillTextParts
+        return AgentSkillTextParts
 
     def build_prompt(self, prompt_tmpl: str) -> str:
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,79 +29,8 @@ class AgentSpecWriter(BaseSpecWriter):
         )
         return full_tmpl
 
-    def render_markdown(self, text_parts: SkillTextParts) -> str:
-        # 決定論的な概要（Overview）の組み立て
-        overview_lines = [
-            text_parts.purpose,
-            "\n### 主な機能",
-            "\n".join([f"* {f}" for f in text_parts.features]),
-            "\n### 内部処理の流れ",
-            "\n".join([f"{i+1}. {step}" for i, step in enumerate(text_parts.workflow_steps)])
-        ]
-        overview_str = "\n".join(overview_lines)
-
-        # パラメータテーブルの作成
-        param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
-        for param in self.design_data.parameters:
-            req = "はい" if param.required else "いいえ"
-            formatted_type = self._format_parameter_type(param)
-            formatted_desc = self._format_parameter_description(param)
-            param_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
-            
-        params_str = "\n".join(param_table)
-        triggers = "\n".join([f"- {cond}" for cond in text_parts.trigger_conditions])
-        
-        # 出力パラメータテーブルの作成
-        output_params_section = ""
-        if getattr(self.design_data, "response_parameters", None):
-            output_table = ["### 出力パラメータ (構造化JSONの戻り値構造)\n", "| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
-            for param in self.design_data.response_parameters:
-                req = "はい" if param.required else "いいえ"
-                formatted_type = self._format_parameter_type(param)
-                formatted_desc = self._format_parameter_description(param)
-                output_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
-            output_params_section = "\n".join(output_table)
-        
-        # 決定論的な説明文の構築
-        out_mode = self.design_data.output_mode
-        if out_mode == "VALUE_ONLY":
-            out_mode_desc = "出力は単純なプレーンテキストの値のみとなります。"
-        elif out_mode == "CONVERSATIONAL":
-            out_mode_desc = "ユーザーとの対話を継続する会話形式の応答を出力します。"
-        else: # STRUCTURED_JSON
-            out_mode_desc = "特定のJSONスキーマ構造に厳密に従った構造化データを出力します。生成結果のパース成功時に生成されたファイルのパスや、エラー時にはエラーメッセージと詳細情報が含まれます。"
-
+    def _build_execution_instructions(self, required_params: list[str]) -> str:
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        
-        # execution_instructions_agent.txt をロード
         inst_path = os.path.join(script_dir, "..", "assets", "execution_instructions_agent.txt")
         with open(inst_path, "r", encoding="utf-8") as f:
-            exec_instructions = f.read()
-
-        # テンプレートのロード
-        tmpl_path = os.path.join(script_dir, "..", "assets", "skill_spec.md.template")
-        with open(tmpl_path, "r", encoding="utf-8") as f:
-            tmpl_content = f.read()
-            
-        t = Template(tmpl_content)
-        
-        # 制約事項のレンダリング
-        constraints_section = ""
-        if self.design_data.constraints:
-            lines = ["### 制約事項\n"]
-            for constraint in self.design_data.constraints:
-                lines.append(f"- {constraint}")
-            constraints_section = "\n".join(lines)
-        
-        return t.substitute(
-            skill_name=self.name,
-            mechanical_description=self.design_data.description,
-            human_overview=overview_str,
-            trigger_conditions=triggers,
-            execution_instructions=exec_instructions,
-            output_mode=out_mode,
-            output_mode_description=out_mode_desc,
-            input_parameters=params_str,
-            output_parameters_section=output_params_section,
-            constraints_section=constraints_section
-        )
+            return f.read()

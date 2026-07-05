@@ -51,14 +51,15 @@
     {
       "name": "message",
       "type": "str",
-      "description": "スキルの実行結果に関する詳細メッセージ。",
+      "description": "実行結果に関する詳細メッセージ。",
       "required": true
     },
     {
       "name": "output_file_path",
       "type": "str",
-      "description": "生成されたSKILL.mdファイルの絶対パス。成功時にのみ存在します。",
-      "required": false
+      "description": "生成されたSKILL.mdファイルの絶対パス。成功時にのみ存在し、失敗時はnull。",
+      "required": false,
+      "default": null
     }
   ]
 }

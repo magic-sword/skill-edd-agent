@@ -2,13 +2,19 @@ import os
 import sys
 import json
 from abc import ABC, abstractmethod
+from pydantic import BaseModel, Field
 from google.adk.tools import ToolContext
 
 from google import genai
 from google.genai import types
 
-
 from edd_agent_tools.models import SkillDesign
+from edd_agent_tools.gemini import GeminiRequest
+
+class BaseSkillTextParts(BaseModel):
+    purpose: str = Field(..., description="このスキルの本質的な目的と提供する価値を要約した簡潔な日本語の1〜2文。")
+    features: list[str] = Field(..., description="このスキルが提供する具体的な主要機能のリスト。")
+    trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
 class BaseSpecWriter(ABC):
     def __init__(self, design_data: SkillDesign, source_code_dir: str, tool_context: ToolContext):
@@ -66,14 +72,93 @@ class BaseSpecWriter(ABC):
         pass
 
     @abstractmethod
-    def render_markdown(self, text_parts) -> str:
-        """Markdown ドキュメントを構築する"""
+    def _build_execution_instructions(self, required_params: list[str]) -> str:
+        """具象クラスで実行手順書を構築して返す"""
         pass
 
-    def _call_gemini_api(self, contents: list[str], schema):
+    def render_markdown(self, text_parts) -> str:
+        """Markdown ドキュメントを構築する"""
+        from string import Template
+
+        # 決定論的な概要（Overview）の組み立て
+        overview_lines = [
+            text_parts.purpose,
+            "\n### 主な機能",
+            "\n".join([f"* {f}" for f in text_parts.features]),
+            "\n### 内部処理の流れ",
+            "\n".join([f"{i+1}. {step}" for i, step in enumerate(text_parts.workflow_steps)])
+        ]
+        overview_str = "\n".join(overview_lines)
+
+        # パラメータテーブルの作成
+        param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
+        required_params = []
+        for param in self.design_data.parameters:
+            req = "はい" if param.required else "いいえ"
+            formatted_type = self._format_parameter_type(param)
+            formatted_desc = self._format_parameter_description(param)
+            param_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
+            if param.required:
+                required_params.append(f"`{param.name}`")
+            
+        params_str = "\n".join(param_table)
+        triggers = "\n".join([f"- {cond}" for cond in text_parts.trigger_conditions])
+        
+        # 出力パラメータテーブルの作成
+        output_params_section = ""
+        if getattr(self.design_data, "response_parameters", None):
+            output_table = ["### 出力パラメータ (構造化JSONの戻り値構造)\n", "| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
+            for param in self.design_data.response_parameters:
+                req = "はい" if param.required else "いいえ"
+                formatted_type = self._format_parameter_type(param)
+                formatted_desc = self._format_parameter_description(param)
+                output_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
+            output_params_section = "\n".join(output_table)
+        
+        # 決定論的な説明文の構築
+        out_mode = self.design_data.output_mode
+        if out_mode == "VALUE_ONLY":
+            out_mode_desc = "出力は単純なプレーンテキストの値のみとなります。"
+        elif out_mode == "CONVERSATIONAL":
+            out_mode_desc = "ユーザーとの対話を継続する会話形式の応答を出力します。"
+        else: # STRUCTURED_JSON
+            out_mode_desc = "特定のJSONスキーマ構造に厳密に従った構造化データを出力します。生成結果のパース成功時に生成されたファイルのパスや、エラー時にはエラーメッセージと詳細情報が含まれます。"
+
+        # 各具象クラス固有の instructions 構築
+        exec_instructions = self._build_execution_instructions(required_params)
+
+        # テンプレートのロード
+        script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        tmpl_path = os.path.join(script_dir, "..", "assets", "skill_spec.md.template")
+        with open(tmpl_path, "r", encoding="utf-8") as f:
+            tmpl_content = f.read()
+            
+        t = Template(tmpl_content)
+        
+        # 制約事項のレンダリング
+        constraints_section = ""
+        if self.design_data.constraints:
+            lines = ["### 制約事項\n"]
+            for constraint in self.design_data.constraints:
+                lines.append(f"- {constraint}")
+            constraints_section = "\n".join(lines)
+        
+        return t.substitute(
+            skill_name=self.name,
+            mechanical_description=self.design_data.description,
+            human_overview=overview_str,
+            trigger_conditions=triggers,
+            execution_instructions=exec_instructions,
+            output_mode=out_mode,
+            output_mode_description=out_mode_desc,
+            input_parameters=params_str,
+            output_parameters_section=output_params_section,
+            constraints_section=constraints_section
+        )
+
+    def _call_gemini_api(self, request: GeminiRequest, schema):
         """Gemini API を使って構造化 JSON を取得しパースする共通メソッド"""
-        response = self.client.generate_content(
-            contents=contents,
+        response = request.execute(
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=schema,
@@ -100,13 +185,13 @@ class BaseSpecWriter(ABC):
         schema = self.get_pydantic_schema()
         
         # GeminiRequestを用いてマルチパーツ添付を構築
-        request = self.client.request(prompt)
+        gemini_request = self.client.request(prompt)
         if self.source_code_dir:
             ref_root = output_dir if output_dir else os.path.dirname(self.source_code_dir)
-            request.add_dir(self.source_code_dir, ref_root=ref_root, file_filter=lambda p: p.endswith(".py"))
+            gemini_request.add_dir(self.source_code_dir, ref_root=ref_root, file_filter=lambda p: p.endswith(".py"))
         
         # LLMから非決定論的情報の抽出
-        text_parts = self._call_gemini_api(request, schema)
+        text_parts = self._call_gemini_api(gemini_request, schema)
         
         # 決定論的な Markdown 合成
         markdown_content = self.render_markdown(text_parts)
