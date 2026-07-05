@@ -25,8 +25,7 @@ class TestRunner:
             "HOME": "/home/vscode",
             "PATH": os.environ.get("PATH", "/workspace/.venv/bin:/usr/local/bin:/usr/bin:/bin"),
             "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
-            "TARGET_EVAL_SKILL": skill,
-            "MOCK_TOOLS": "load_skill"  # モック実行を指示する環境変数
+            "TARGET_EVAL_SKILL": skill
         }
         
         # 評価エンジンのための多言語パッチ環境変数の構成
@@ -44,8 +43,8 @@ class TestRunner:
         edd_tools_path = os.path.abspath("/workspace/edd-agent-tools/src")
         patched_env["PYTHONPATH"] = f"{edd_tools_path}:{patched_env['PYTHONPATH']}"
 
-        # 評価対象としてエントリーポイント (/workspace/src) を指定
-        args = ["eval", "/workspace/src", eval_set_path]
+        # 評価対象としてモック専用エントリーポイントを指定
+        args = ["eval", "/workspace/src/mock_entry.py", eval_set_path]
         if config_file_path:
             args.extend(["--config_file_path", config_file_path])
         
