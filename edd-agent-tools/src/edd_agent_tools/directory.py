@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 from edd_agent_tools.models import SkillDesign
 
 class SkillDirectory:
@@ -69,23 +70,34 @@ class SkillDirectory:
         with open(spec_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    def get_eval_set_path(self, test_type: str = "unit") -> str:
+    def _get_filename(self, test_type: str, suffix: str) -> str:
+        """一貫した命名規則に従ってテストファイル名を生成します"""
+        skill_name_underscore = self.name.replace('-', '_')
+        return f"{skill_name_underscore}_{test_type}.{suffix}"
+
+    def get_eval_set_path(self, test_type: Literal["unit", "trigger"] | str = "unit") -> str:
         """
         評価用のテストケースファイル (*.evalset.json) の絶対パスを返します。
         """
-        skill_name_underscore = self.name.replace('-', '_')
-        filename = f"{skill_name_underscore}_{test_type}.evalset.json"
+        filename = self._get_filename(test_type, "evalset.json")
         return self.get_test_filepath(filename)
 
-    def get_eval_config_path(self, test_type: str = "unit") -> str:
+    def get_eval_config_path(self, test_type: Literal["unit", "trigger"] | str = "unit") -> str:
         """
         評価用の設定ファイル (*.evalset.config.json) の絶対パスを返します。
         """
-        skill_name_underscore = self.name.replace('-', '_')
-        filename = f"{skill_name_underscore}_{test_type}.evalset.config.json"
+        filename = self._get_filename(test_type, "evalset.config.json")
         return self.get_test_filepath(filename)
 
-    def save_eval_set(self, data: dict, test_type: str = "unit") -> str:
+    def resolve_eval_config_path(self, eval_set_path: str) -> str:
+        """
+        テストケースファイルの絶対/相対パスから、対応する設定ファイルの絶対パスを逆引き解決します。
+        """
+        basename = os.path.basename(eval_set_path)
+        test_type = "trigger" if "trigger" in basename else "unit"
+        return self.get_eval_config_path(test_type)
+
+    def save_eval_set(self, data: dict, test_type: Literal["unit", "trigger"] | str = "unit") -> str:
         """
         テストケースファイルを保存し、保存先パスを返します。
         """
@@ -95,7 +107,7 @@ class SkillDirectory:
             json.dump(data, f, indent=2, ensure_ascii=False)
         return path
 
-    def save_eval_config(self, data: dict, test_type: str = "unit") -> str:
+    def save_eval_config(self, data: dict, test_type: Literal["unit", "trigger"] | str = "unit") -> str:
         """
         テスト構成ファイルを保存し、保存先パスを返します。
         """

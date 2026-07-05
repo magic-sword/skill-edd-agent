@@ -30,6 +30,10 @@
       "tier": 1,
       "last_tested": null
     },
+    "mock-executor": {
+      "tier": 1,
+      "last_tested": null
+    },
     "skill-spec-writer": {
       "tier": 1,
       "last_tested": null
