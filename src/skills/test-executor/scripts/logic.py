@@ -18,18 +18,18 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
         raise ValueError("エラー: 'skill' は必須です。")
         
     registry = SkillRegistry()
-    target_skill_dir = registry.get_skill_directory(name=skill)
+    target_skill = registry.get_skill(name=skill)
 
     # eval_set_path が指定されていない場合は自動解決する（test-executorはユニットテストがデフォルト）
     if not eval_set_path:
-        eval_set_path = target_skill_dir.get_eval_set_path("unit")
+        eval_set_path = target_skill.get_eval_set_path("unit")
 
     try:
         # 1. 共通パッケージを用いて設定ファイルパスの取得・自動生成
-        config_file_path = target_skill_dir.resolve_eval_config_path(eval_set_path)
+        config_file_path = target_skill.resolve_eval_config_path(eval_set_path)
         if not os.path.exists(config_file_path):
             test_type = "trigger" if "trigger" in eval_set_path else "unit"
-            target_skill_dir.save_eval_config({"criteria": {"response_match_score": 0.8}}, test_type)
+            target_skill.save_eval_config({"criteria": {"response_match_score": 0.8}}, test_type)
             
         print(f"Using eval config file: {config_file_path}")
 

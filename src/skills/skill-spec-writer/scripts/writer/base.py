@@ -199,8 +199,8 @@ class BaseSpecWriter(ABC):
         # 共通プロンプトテンプレートをロード
         from edd_agent_tools.registry import SkillRegistry
         registry = SkillRegistry()
-        writer_dir = registry.get_skill_directory("skill-spec-writer")
-        prompt_tmpl = writer_dir.load_asset("prompt_common.txt")
+        writer_skill = registry.get_skill("skill-spec-writer")
+        prompt_tmpl = writer_skill.load_asset("prompt_common.txt")
             
         prompt = self.build_prompt(prompt_tmpl)
         if self.prompt:

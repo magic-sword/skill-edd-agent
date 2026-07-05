@@ -27,12 +27,12 @@ class SpecGenerator:
             if not skill and not design_path:
                 raise ValueError("Skill name or design path must be provided.")
 
-            directory = self.registry.get_skill_directory(name=skill, design_path=design_path)
-            design_data = directory.load_design()
+            skill_obj = self.registry.get_skill(name=skill, design_path=design_path)
+            design_data = skill_obj.load_design()
 
             # 2. オプションパラメータのフォールバック解決
-            output_dir = os.path.abspath(output_dir or directory.root_dir)
-            scan_target = os.path.abspath(source_code_dir or directory.source_code_dir)
+            output_dir = os.path.abspath(output_dir or skill_obj.root_dir)
+            scan_target = os.path.abspath(source_code_dir or skill_obj.source_code_dir)
 
             print(f"Starting specification generation for skill: {design_data.name}")
             print(f"Design Path: {design_path}")

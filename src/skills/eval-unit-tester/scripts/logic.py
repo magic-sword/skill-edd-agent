@@ -34,9 +34,9 @@ def _generate_test_cases(skill: str, registry: SkillRegistry) -> str:
     """
     指定されたスキルに対して評価用の単体テストスイートを生成し、パスを返します。
     """
-    skill_dir_obj = registry.get_skill_directory(name=skill)
-    skill_dir = skill_dir_obj.root_dir
-    skill_content = skill_dir_obj.load_spec()
+    skill_obj = registry.get_skill(name=skill)
+    skill_dir = skill_obj.root_dir
+    skill_content = skill_obj.load_spec()
         
     from edd_agent_tools import GeminiClient
     client = GeminiClient()
@@ -55,7 +55,12 @@ def _generate_test_cases(skill: str, registry: SkillRegistry) -> str:
     instruction_override = strategy.get_instruction_override()
 
     pydantic_schema_str = ""
-    InputSchema = registry.load_input_schema(skill)
+    InputSchema = None
+    try:
+        skill_module = skill_obj.load_module()
+        InputSchema = getattr(skill_module, "Input", None)
+    except Exception:
+        pass
     if InputSchema:
         try:
             pydantic_schema_str = json.dumps(InputSchema.model_json_schema(), ensure_ascii=False, indent=2)
