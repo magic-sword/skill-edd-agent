@@ -4,7 +4,7 @@
 
 ---
 
-## 1. 統一ハンドラー規約 (`scripts/handler.py`) の実装例
+## 1. 統一エントリーポイント規約 (`scripts/__init__.py`) の実装例
 
 ```python
 from pydantic import BaseModel, Field
@@ -58,19 +58,19 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
 
 ## 3. 主要モジュールの使用例
 
-### ① `SkillDirectory` (パス解決とアセットロード)
+### ① `Skill` クラス (パス解決とアセットロード)
 ```python
 from edd_agent_tools.registry import SkillRegistry
 
 registry = SkillRegistry()
-directory = registry.get_skill_directory(name="skill-spec-writer")
+skill = registry.get_skill(name="skill-spec-writer")
 
 # 主要パスへのアクセス
-design_path = directory.design_path         # assets/design.json の絶対パス
-source_code_dir = directory.source_code_dir # scripts/ の絶対パス
+design_path = skill.design_path         # assets/design.json の絶対パス
+source_code_dir = skill.source_code_dir # scripts/ の絶対パス
 
 # アセットファイル（プロンプト等）の安全ロード
-prompt_content = directory.load_asset("prompt.txt")
+prompt_content = skill.load_asset("prompt.txt")
 ```
 
 ### ② `GeminiRequest` (流れるようなマルチパーツ送信)
@@ -89,11 +89,25 @@ response = (client.request("指示プロンプト...")
                   .execute())
 ```
 
-### ③ `SkillRegistry` (インプロセス解決)
+### ③ `Skill` によるインプロセスモジュールロード
 ```python
 from edd_agent_tools.registry import SkillRegistry
 
 registry = SkillRegistry()
-# 相対インポートの競合なく、安全にスキルパッケージをロード
-handler_module = registry.load_skill("my-sample-skill")
+skill = registry.get_skill("my-sample-skill")
+
+# 相対インポートの競合なく、安全に scripts/__init__.py をロード
+handler_module = skill.load_module()
+```
+
+### ④ `SkillRegistry` によるスキルリストの取得
+```python
+from edd_agent_tools.registry import SkillRegistry
+
+registry = SkillRegistry()
+# 登録されている全スキル/エージェントのオブジェクトリストを取得
+skills = registry.list_skills()
+
+for skill in skills:
+    print(f"Name: {skill.name}, Tier: {skill.metadata.tier}")
 ```
