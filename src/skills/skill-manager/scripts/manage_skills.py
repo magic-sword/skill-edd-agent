@@ -35,11 +35,11 @@ def manage_skills_logic(params: Input, tool_context: ToolContext) -> str:
         if command == "register":
             if not skill:
                 raise ValueError("skill is required")
-            registered = registry.register_skill(skill)
+            skill_obj = registry.get_skill(skill)
+            registered = registry.register_skill(skill_obj)
             if registered:
                 message = f"Registered skill '{skill}' at Tier 0."
             else:
-                skill_obj = registry.get_skill(skill)
                 current_tier = skill_obj.metadata.tier if skill_obj else 0
                 message = f"Skill '{skill}' already registered at Tier {current_tier}."
         elif command == "get-tier":
@@ -57,15 +57,23 @@ def manage_skills_logic(params: Input, tool_context: ToolContext) -> str:
                 tier = int(tier)
             except ValueError:
                 pass
-            updated = registry.set_tier(skill, tier)
+            skill_obj = registry.get_skill(skill)
+            skill_obj.set_tier(tier)
+            updated = registry.register_skill(skill_obj)
             if updated:
                 message = f"Set tier of '{skill}' to {tier}."
             else:
-                skill_obj = registry.get_skill(skill)
                 current_tier = skill_obj.metadata.tier if skill_obj else 0
                 message = f"Skipped promotion to Tier {tier} for '{skill}' (current tier is {current_tier})."
         elif command == "list":
-            registry.list_skills()
+            skills = registry.list_skills()
+            print(f"{'Category':<10} | {'Name':<25} | {'Tier':<5} | {'Last Tested':<25}")
+            print("-" * 75)
+            from edd_agent_tools.models import ModuleType
+            for skill_obj in sorted(skills, key=lambda s: (s.metadata.module_type, s.name)):
+                cat = "Agent" if skill_obj.metadata.module_type == ModuleType.WORKFLOW else "Skill"
+                last_tested = skill_obj.metadata.last_tested or "Never"
+                print(f"{cat:<10} | {skill_obj.name:<25} | {skill_obj.metadata.tier:<5} | {last_tested:<25}")
             message = "Listed all skills."
         elif command == "update-meta":
             if not skill:

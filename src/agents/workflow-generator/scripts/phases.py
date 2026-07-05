@@ -18,17 +18,17 @@ def build_skill_toolset(workflow_name: str) -> SkillToolset:
     registry = SkillRegistry()
     skills_list = []
     try:
-        skills_data = registry.get_registered_skills()
-        for name in skills_data.keys():
-            if name in ["workflow-generator", workflow_name]:
+        skills = registry.list_skills()
+        for skill in skills:
+            if skill.name in ["workflow-generator", workflow_name]:
                 continue
-            skill_dir = registry.get_skill(name).root_dir
+            skill_dir = skill.root_dir
             if skill_dir:
                 try:
                     skill_obj = load_skill_from_dir(pathlib.Path(skill_dir))
                     skills_list.append(skill_obj)
                 except Exception as e:
-                    print(f"[System Warning]: スキル '{name}' のロードに失敗しました: {e}")
+                    print(f"[System Warning]: スキル '{skill.name}' のロードに失敗しました: {e}")
     except Exception as e:
         print(f"[System Warning]: 登録スキルの取得中にエラーが発生しました: {e}")
         

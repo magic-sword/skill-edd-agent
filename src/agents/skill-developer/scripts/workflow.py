@@ -112,9 +112,9 @@ execute_trigger_test_agent = Agent(
 set_tier_1_agent = Agent(
     model=DEFAULT_MODEL,
     name="set_tier_1_agent",
-    tools=[FunctionTool(func=set_skill_tier)],
+    tools=[skill_manager_tool],
     instruction=(
-        "あなたはスキル正式本登録の担当者です。`set_skill_tier` ツールを呼び出して、"
+        "あなたはスキル正式本登録の担当者です。`skill_manager` ツールを呼び出して、"
         "現在のスキルを Tier 1 に本登録してください。\n"
         "【ツール呼び出しパラメータ】\n"
         "- command: 'set-tier'\n"

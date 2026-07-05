@@ -25,8 +25,8 @@ class SkillRegistry:
             raise RuntimeError(f"エラー: レジストリの読み込みに失敗しました: {e}")
         return self.data
 
-    def save(self):
-        """レジストリファイルを保存します。"""
+    def _save(self):
+        """レジストリファイルを保存します。(内部用)"""
         if self.data is None:
             raise RuntimeError("エラー: レジストリがロードされていません。先に _load() を呼び出してください。")
             
@@ -46,106 +46,48 @@ class SkillRegistry:
                 return cat, self.data[cat][name]
         return None, None
 
-    # detect_category は廃止されました。Skill.metadata.module_type を参照して決定論的に判定してください。
-
-    def register_skill(self, skill_name: str) -> bool:
-        """スキルまたはエージェントを新規登録します（新規は常に Tier 0 から開始）。"""
+    def register_skill(self, skill: "Skill") -> bool:
+        """スキルまたはエージェントのオブジェクトをレジストリへ新規登録・更新（保存）します。"""
         if self.data is None:
             self._load()
             
+        skill_name = skill.name
         from edd_agent_tools.models import ModuleType
-        try:
-            skill_obj = self.get_skill(skill_name)
-            cat = "agents" if skill_obj.metadata.module_type == ModuleType.WORKFLOW else "skills"
-        except Exception:
-            # 物理フォルダ構成からの安全なフォールバック
-            cat = "skills"
+        cat = "agents" if skill.metadata.module_type == ModuleType.WORKFLOW else "skills"
 
         skills_info = self.data.setdefault(cat, {})
-        if skill_name in skills_info:
-            print(f"{cat[:-1].capitalize()} '{skill_name}' already registered. Current tier: {skills_info[skill_name].get('tier')}")
-            return False
-            
-        skills_info[skill_name] = {
-            "tier": 0,
-            "last_tested": None
-        }
-        self.save()
-        print(f"Registered {cat[:-1]} '{skill_name}' at Tier 0.")
-        return True
-
-    def set_tier(self, skill_name: str, tier: int) -> bool:
-        """指定されたスキルまたはエージェントの Tier を設定・更新します。"""
-        if tier not in [0, 1, 2, 3]:
-            raise ValueError("Error: Tier must be 0, 1, 2, or 3.")
-            
-        if self.data is None:
-            self._load()
-            
-        cat, info = self._get_category_and_info(skill_name)
-        if not cat:
-            from edd_agent_tools.models import ModuleType
-            try:
-                skill_obj = self.get_skill(skill_name)
-                cat = "agents" if skill_obj.metadata.module_type == ModuleType.WORKFLOW else "skills"
-            except Exception:
-                cat = "skills"
-            
-        skills_info = self.data.setdefault(cat, {})
-        now_str = datetime.datetime.now().isoformat() + "Z"
         
-        existing_info = info if info else {}
+        # 既存情報がある場合は取得
+        existing_info = skills_info.get(skill_name, {})
         current_tier = existing_info.get("tier")
         
         # Tier 1 への更新のとき、現在の Tier が 0 の場合のみ許可する。
         # すでに Tier 1 以上の既存スキルはダウングレードや不要な上書きを防ぐためスキップ。
-        if tier == 1:
+        if skill._tier == 1:
             if current_tier is not None and current_tier != 0:
                 print(f"Skipped promotion to Tier 1 for '{skill_name}': Current tier is {current_tier} (only Tier 0 can be promoted).")
                 return False
-            
+
         skills_info[skill_name] = {
-            **existing_info,
-            "tier": tier,
-            "last_tested": now_str
+            "tier": skill._tier,
+            "last_tested": skill._last_tested
         }
-        if "file_hashes" in skills_info[skill_name]:
-            del skills_info[skill_name]["file_hashes"]
-            
-        self.save()
-        print(f"Set tier of '{skill_name}' to {tier} ({cat}).")
+        self._save()
+        print(f"Saved/Registered {cat[:-1]} '{skill_name}' at Tier {skill._tier} ({cat}).")
         return True
 
-    def list_skills(self):
-        """登録されている全スキルおよびエージェントの一覧を表示します。"""
+    def list_skills(self) -> list[Skill]:
+        """登録されているすべてのスキルおよびエージェントの Skill オブジェクトリストを返します。"""
         if self.data is None:
             self._load()
-            
-        print(f"{'Category':<10} | {'Name':<25} | {'Tier':<5} | {'Last Tested':<25}")
-        print("-" * 75)
+        skills_list = []
         for cat in ["skills", "agents"]:
-            for name, info in sorted(self.data.get(cat, {}).items()):
-                last_tested = info.get("last_tested") or "Never"
-                print(f"{cat[:-1].capitalize():<10} | {name:<25} | {info['tier']:<5} | {last_tested:<25}")
-
-
-
-    # load_skill は廃止され、SkillDirectory.load() へ委譲されました。
-
-    # load_tool は廃止されました。load_skill を呼び出してモジュールから属性を直接取得してください。
-
-    def get_registered_skills(self) -> dict[str, dict]:
-        """登録されているすべてのスキルおよびエージェントの情報をマージして返します。"""
-        if self.data is None:
-            self._load()
-        skills = self.data.get("skills", {})
-        agents = self.data.get("agents", {})
-        merged = {}
-        merged.update(skills)
-        merged.update(agents)
-        return merged
-
-    # get_skill_info は廃止されました。get_skill(name).metadata を使用して一括で取得してください。
+            for name in self.data.get(cat, {}).keys():
+                try:
+                    skills_list.append(self.get_skill(name))
+                except Exception:
+                    pass
+        return skills_list
 
     def _get_skill_dir(self, skill_name: str) -> str | None:
         """指定されたスキルまたはエージェントの物理ディレクトリ絶対パスを探索して返します。(内部用ヘルパー)"""
@@ -197,11 +139,3 @@ class SkillRegistry:
                 last_tested = info.get("last_tested")
 
         return Skill(root_dir, tier=tier, last_tested=last_tested)
-
-
-
-    # load_input_schema は廃止されました。load_skill を呼び出して Input スキーマを直接取得してください。
-
-
-
-

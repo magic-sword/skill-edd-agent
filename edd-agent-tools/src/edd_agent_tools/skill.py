@@ -12,6 +12,15 @@ class Skill:
         self._last_tested = last_tested
         self._metadata = None
 
+    def set_tier(self, tier: int):
+        """このスキルの Tier を設定し、テスト時間を更新します。"""
+        if tier not in [0, 1, 2, 3]:
+            raise ValueError("Error: Tier must be 0, 1, 2, or 3.")
+        self._tier = tier
+        import datetime
+        self._last_tested = datetime.datetime.now().isoformat() + "Z"
+        self._metadata = None  # キャッシュクリア
+
     @property
     def metadata(self) -> "SkillMetadata":
         """
