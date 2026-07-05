@@ -30,20 +30,22 @@ def process_message(params: Input, tool_context: ToolContext) -> Output:
     constraint_parser = ConstraintParser()
     existing_constraints_str = constraint_parser.get_existing_constraints(existing_name)
 
-    # 3. プロンプトコンテンツの構築
+    # 3. Gemini API クライアントの初期化
+    gemini_client = GeminiDesignClient()
+
+    # 4. プロンプトコンテンツ (GeminiRequest) の構築
     design_prompter = DesignPrompter()
-    contents = design_prompter.build_contents(
+    request = design_prompter.build_request(
+        client=gemini_client._client,
         requirement=requirement,
         existing_name=existing_name,
         existing_constraints=existing_constraints_str,
         scan_target=scan_target,
-        output_dir=output_dir # 解決されたoutput_dirを渡す
+        output_dir=output_dir
     )
 
-    # 4. Gemini API の呼び出し
-    gemini_client = GeminiDesignClient()
     try:
-        response_text = gemini_client.generate_design(contents=contents)
+        response_text = gemini_client.generate_design(contents=request)
     except Exception as e:
         return Output(status="failed", message=f"Gemini API 呼び出しエラー: {e}", output_file_path="")
 

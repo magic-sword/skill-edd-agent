@@ -126,24 +126,24 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
             prompt=prompt
         )
         
-        # GeminiContentBuilder を使って、指示と既存ソースコード、規約をマルチパーツ化
-        from edd_agent_tools.gemini import GeminiContentBuilder
-        builder = GeminiContentBuilder(user_prompt)
+        # GeminiRequest を使って、指示と既存ソースコード、規約をマルチパーツ化
+        from edd_agent_tools.gemini import GeminiRequest
+        request = GeminiRequest(user_prompt)
         
         # 既存の scripts ディレクトリ内の全 python ファイル (handler.py 含む) を添付
         if os.path.exists(scripts_dir):
-            builder.add_dir(
+            request.add_dir(
                 directory=scripts_dir,
                 ref_root=target_root,
                 file_filter=lambda p: p.endswith(".py")
             )
             
         docs_content = reader.read_documentation()
-        builder.parts.append(f"=== 開発規約（edd-agent-tools 仕様書） ===\n{docs_content}")
+        request.add_text(f"=== 開発規約（edd-agent-tools 仕様書） ===\n{docs_content}")
         
         current_message = types.Content(
             role='user',
-            parts=[types.Part(text=p) for p in builder.build()]
+            parts=[types.Part(text=p) for p in request.build()]
         )
 
         async with Runner(

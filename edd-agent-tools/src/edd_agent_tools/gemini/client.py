@@ -4,16 +4,6 @@ from typing import Any
 from google import genai
 from google.genai import types
 
-def get_gemini_client() -> genai.Client:
-    """
-    環境変数 GEMINI_API_KEY を使用して genai.Client インスタンスを取得します。
-    環境変数が設定されていない場合は ValueError をスローします。
-    """
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("Error: GEMINI_API_KEY environment variable is not set.")
-    return genai.Client(api_key=api_key)
-
 class GeminiClient:
     """
     edd-agent-tools 共通の堅牢な Gemini API クライアント。
@@ -23,7 +13,19 @@ class GeminiClient:
         self.default_model = os.getenv("GEMINI_DEFAULT_MODEL", "gemini-2.5-flash")
         self.max_retries = int(os.getenv("GEMINI_MAX_RETRIES", "3"))
         self.initial_delay = float(os.getenv("GEMINI_RETRY_DELAY", "2.0"))
-        self._client = get_gemini_client()
+        self._client = self._get_genai_client()
+
+    def _get_genai_client(self) -> genai.Client:
+        """環境変数 GEMINI_API_KEY を使用して genai.Client を初期化します"""
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("Error: GEMINI_API_KEY environment variable is not set.")
+        return genai.Client(api_key=api_key)
+
+    def request(self, prompt: str = ""):
+        """流れるようなリクエストを構築するためのビルダー（GeminiRequest）を生成して返します"""
+        from .request import GeminiRequest
+        return GeminiRequest(prompt, client=self)
 
     def generate_content(
         self,
@@ -35,6 +37,12 @@ class GeminiClient:
         """
         堅牢な指数バックオフリトライとタイムアウト制御を備えた中央集約的なコンテンツ生成。
         """
+        from .request import GeminiRequest
+        if isinstance(contents, GeminiRequest):
+            actual_contents = contents.build()
+        else:
+            actual_contents = contents
+
         target_model = model or self.default_model
         delay = self.initial_delay
         
@@ -43,7 +51,7 @@ class GeminiClient:
             try:
                 response = self._client.models.generate_content(
                     model=target_model,
-                    contents=contents,
+                    contents=actual_contents,
                     config=config,
                     **kwargs
                 )

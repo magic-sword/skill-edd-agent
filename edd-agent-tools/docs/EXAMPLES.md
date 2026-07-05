@@ -73,19 +73,20 @@ source_code_dir = directory.source_code_dir # scripts/ の絶対パス
 prompt_content = directory.load_asset("prompt.txt")
 ```
 
-### ② `GeminiContentBuilder` (マルチパーツ送信)
+### ② `GeminiRequest` (流れるようなマルチパーツ送信)
 ```python
-from edd_agent_tools.gemini import GeminiContentBuilder
+from edd_agent_tools.gemini import GeminiClient
 
-builder = GeminiContentBuilder("指示プロンプト...")
-# 指定ディレクトリのPythonファイルを添付パーツとして追加
-builder.add_dir(
-    directory="/workspace/src/skills/my-skill/scripts",
-    ref_root="/workspace/src/skills/my-skill",
-    file_filter=lambda path: path.endswith(".py")
-)
-# generate_content に渡すマルチパーツのリストを取得
-contents = builder.build()
+client = GeminiClient()
+
+# クライアント起点でリクエストを作成し、ファイルをチェーン添付してそのまま実行
+response = (client.request("指示プロンプト...")
+                  .add_dir(
+                      directory="/workspace/src/skills/my-skill/scripts",
+                      ref_root="/workspace/src/skills/my-skill",
+                      file_filter=lambda path: path.endswith(".py")
+                  )
+                  .execute())
 ```
 
 ### ③ `SkillRegistry` (インプロセス解決)

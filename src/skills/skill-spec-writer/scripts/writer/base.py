@@ -99,16 +99,14 @@ class BaseSpecWriter(ABC):
         prompt = self.build_prompt(prompt_tmpl)
         schema = self.get_pydantic_schema()
         
-        # GeminiContentBuilderを用いてマルチパーツ添付を構築
-        from edd_agent_tools.gemini import GeminiContentBuilder
-        builder = GeminiContentBuilder(prompt)
+        # GeminiRequestを用いてマルチパーツ添付を構築
+        request = self.client.request(prompt)
         if self.source_code_dir:
             ref_root = output_dir if output_dir else os.path.dirname(self.source_code_dir)
-            builder.add_dir(self.source_code_dir, ref_root=ref_root, file_filter=lambda p: p.endswith(".py"))
-        contents = builder.build()
+            request.add_dir(self.source_code_dir, ref_root=ref_root, file_filter=lambda p: p.endswith(".py"))
         
         # LLMから非決定論的情報の抽出
-        text_parts = self._call_gemini_api(contents, schema)
+        text_parts = self._call_gemini_api(request, schema)
         
         # 決定論的な Markdown 合成
         markdown_content = self.render_markdown(text_parts)
