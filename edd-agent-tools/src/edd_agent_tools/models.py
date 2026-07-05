@@ -21,6 +21,22 @@ class Parameter(BaseModel):
     min_length: int | None = Field(None, description="文字列またはリストパラメータの最小長制約（min_length制約の生成に使用します）")
     max_length: int | None = Field(None, description="文字列またはリストパラメータの最大長制約（max_length制約の生成に使用します）")
 
+    @model_validator(mode="after")
+    def validate_parameter_field_constraints(self) -> "Parameter":
+        if self.name == "execution_type":
+            valid_execution_types = {"tool", "agent"}
+            if self.choices:
+                invalid_choices = set(self.choices) - valid_execution_types
+                if invalid_choices:
+                    raise ValueError(f"execution_type choices must only contain 'tool' or 'agent', got {self.choices}")
+        elif self.name == "output_mode":
+            valid_output_modes = {"VALUE_ONLY", "CONVERSATIONAL", "STRUCTURED_JSON"}
+            if self.choices:
+                invalid_choices = set(self.choices) - valid_output_modes
+                if invalid_choices:
+                    raise ValueError(f"output_mode choices must only contain {valid_output_modes}, got {self.choices}")
+        return self
+
 class SkillDesign(BaseModel):
     """
     スキルの設計定義を表すPydanticモデル。

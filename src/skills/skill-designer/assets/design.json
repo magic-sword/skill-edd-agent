@@ -55,9 +55,8 @@
       "description": "実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)",
       "required": true,
       "choices": [
-        "VALUE_ONLY",
-        "CONVERSATIONAL",
-        "STRUCTURED_JSON"
+        "tool",
+        "agent"
       ]
     },
     {
@@ -66,8 +65,9 @@
       "description": "出力形式",
       "required": true,
       "choices": [
-        "tool",
-        "agent"
+        "VALUE_ONLY",
+        "CONVERSATIONAL",
+        "STRUCTURED_JSON"
       ]
     },
     {
