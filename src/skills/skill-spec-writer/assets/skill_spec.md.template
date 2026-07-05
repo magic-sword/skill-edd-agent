@@ -29,4 +29,6 @@ ${execution_instructions}
 
 ${input_parameters}
 
+${output_parameters_section}
+
 ${constraints_section}

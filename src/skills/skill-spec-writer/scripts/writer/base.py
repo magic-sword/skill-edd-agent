@@ -20,6 +20,41 @@ class BaseSpecWriter(ABC):
         from edd_agent_tools.gemini import get_gemini_client
         self.client = get_gemini_client()
 
+    def _format_parameter_type(self, param) -> str:
+        """Pydanticの型表現に近いわかりやすい型名を返す"""
+        if getattr(param, "choices", None):
+            choices_expr = ", ".join(repr(c) if isinstance(c, str) else str(c) for c in param.choices)
+            return f"Literal[{choices_expr}]"
+        
+        t_str = param.type.strip().lower()
+        if t_str == "list" and getattr(param, "items_type", None):
+            return f"list[{param.items_type}]"
+            
+        return param.type
+
+    def _format_parameter_description(self, param) -> str:
+        """説明文に制約情報を付与して返す"""
+        constraints = []
+        if getattr(param, "ge", None) is not None:
+            constraints.append(f"最小値: {param.ge}")
+        if getattr(param, "le", None) is not None:
+            constraints.append(f"最大値: {param.le}")
+        if getattr(param, "pattern", None) is not None:
+            constraints.append(f"パターン: `{param.pattern}`")
+        if getattr(param, "min_length", None) is not None:
+            constraints.append(f"最小長: {param.min_length}")
+        if getattr(param, "max_length", None) is not None:
+            constraints.append(f"最大長: {param.max_length}")
+            
+        desc = param.description or ""
+        if constraints:
+            constraint_str = ", ".join(constraints)
+            if desc:
+                desc = f"{desc} *(制約: {constraint_str})*"
+            else:
+                desc = f"*(制約: {constraint_str})*"
+        return desc
+
     @abstractmethod
     def get_pydantic_schema(self):
         """抽出用の Pydantic モデルを返す"""

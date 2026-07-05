@@ -48,10 +48,23 @@ class AgentSpecWriter(BaseSpecWriter):
         param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
         for param in self.design_data.parameters:
             req = "はい" if param.required else "いいえ"
-            param_table.append(f"| {param.name} | {param.type} | {req} | {param.description} |")
+            formatted_type = self._format_parameter_type(param)
+            formatted_desc = self._format_parameter_description(param)
+            param_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
             
         params_str = "\n".join(param_table)
         triggers = "\n".join([f"- {cond}" for cond in text_parts.trigger_conditions])
+        
+        # 出力パラメータテーブルの作成
+        output_params_section = ""
+        if getattr(self.design_data, "response_parameters", None):
+            output_table = ["### 出力パラメータ (構造化JSONの戻り値構造)\n", "| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
+            for param in self.design_data.response_parameters:
+                req = "はい" if param.required else "いいえ"
+                formatted_type = self._format_parameter_type(param)
+                formatted_desc = self._format_parameter_description(param)
+                output_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
+            output_params_section = "\n".join(output_table)
         
         # 決定論的な説明文の構築
         out_mode = self.design_data.output_mode
@@ -93,5 +106,6 @@ class AgentSpecWriter(BaseSpecWriter):
             output_mode=out_mode,
             output_mode_description=out_mode_desc,
             input_parameters=params_str,
+            output_parameters_section=output_params_section,
             constraints_section=constraints_section
         )

@@ -24,6 +24,8 @@ classDiagram
         +get_pydantic_schema()*
         +build_prompt(prompt_tmpl)* str
         +render_markdown(text_parts)* str
+        #_format_parameter_type(param) str
+        #_format_parameter_description(param) str
     }
     class ToolSpecWriter {
         +get_pydantic_schema() SkillTextParts
