@@ -5,7 +5,7 @@ from datetime import datetime
 from google.adk.tools import ToolContext
 from google.genai import types
 from edd_agent_tools.registry import SkillRegistry
-from edd_agent_tools.gemini import get_gemini_client
+from edd_agent_tools import GeminiClient
 from .models import StaticEvalResult, TriggerTestCases
 from .models import Input
 
@@ -97,8 +97,7 @@ class TriggerEvaluator:
         )
 
         try:
-            response = self.genai_client.models.generate_content(
-                model="gemini-2.5-flash",
+            response = self.genai_client.generate_content(
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
@@ -136,8 +135,7 @@ class TriggerEvaluator:
         )
 
         try:
-            response = self.genai_client.models.generate_content(
-                model="gemini-2.5-flash",
+            response = self.genai_client.generate_content(
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
@@ -238,7 +236,7 @@ class TriggerEvaluator:
         print(f"  - 詳細レポートを '{report_filepath}' に保存しました。\n")
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
-    genai_client = get_gemini_client()
+    genai_client = GeminiClient()
     evaluator = TriggerEvaluator(tool_context, genai_client)
     evaluator.execute(params.skill)
     return tool_context.state.get("message", "Successfully generated trigger test assets.")

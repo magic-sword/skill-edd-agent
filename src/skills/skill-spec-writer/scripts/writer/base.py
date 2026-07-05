@@ -17,8 +17,8 @@ class BaseSpecWriter(ABC):
         self.source_code_dir = source_code_dir
         self.tool_context = tool_context
         
-        from edd_agent_tools.gemini import get_gemini_client
-        self.client = get_gemini_client()
+        from edd_agent_tools import GeminiClient
+        self.client = GeminiClient()
 
     def _format_parameter_type(self, param) -> str:
         """Pydanticの型表現に近いわかりやすい型名を返す"""
@@ -72,8 +72,7 @@ class BaseSpecWriter(ABC):
 
     def _call_gemini_api(self, contents: list[str], schema):
         """Gemini API を使って構造化 JSON を取得しパースする共通メソッド"""
-        response = self.client.models.generate_content(
-            model="gemini-2.5-flash",
+        response = self.client.generate_content(
             contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

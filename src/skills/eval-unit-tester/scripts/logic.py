@@ -38,8 +38,8 @@ def _generate_test_cases(skill: str, registry: SkillRegistry) -> str:
     skill_dir = skill_dir_obj.root_dir
     skill_content = skill_dir_obj.load_spec()
         
-    from edd_agent_tools.gemini import get_gemini_client
-    client = get_gemini_client()
+    from edd_agent_tools import GeminiClient
+    client = GeminiClient()
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
     assets_dir = os.path.join(script_dir, "..", "assets")
@@ -104,8 +104,7 @@ def _generate_test_cases(skill: str, registry: SkillRegistry) -> str:
             print(f"Warning: Could not create dynamic response schema: {e}")
             TargetSetClass = TestParameterSet
 
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
+    response = client.generate_content(
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json",
