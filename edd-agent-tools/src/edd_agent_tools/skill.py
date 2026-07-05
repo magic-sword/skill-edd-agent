@@ -6,8 +6,41 @@ class Skill:
     """
     特定のスキルパッケージ全体のモデル（フォルダ構造、アセット、動的ロード、ツール化など）を表現・管理するドメインクラス。
     """
-    def __init__(self, root_dir: str):
+    def __init__(self, root_dir: str, tier: int = 0, last_tested: str | None = None):
         self.root_dir = os.path.abspath(root_dir)
+        self._tier = tier
+        self._last_tested = last_tested
+        self._metadata = None
+
+    @property
+    def metadata(self) -> "SkillMetadata":
+        """
+        レジストリ JSON の登録情報と design.json の設計情報を統合した
+        型安全な SkillMetadata インスタンスをロードして返します。
+        """
+        if self._metadata is None:
+            # 1. design.json から設計データをロード
+            try:
+                design = self.load_design()
+                execution_type = design.execution_type
+                description = design.description
+                dependencies = design.dependencies
+            except Exception:
+                execution_type = "tool"
+                description = ""
+                dependencies = []
+
+            # 2. 統合
+            from edd_agent_tools.models import SkillMetadata
+            self._metadata = SkillMetadata(
+                name=self.name,
+                tier=self._tier,
+                last_tested=self._last_tested,
+                execution_type=execution_type,
+                description=description,
+                dependencies=dependencies
+            )
+        return self._metadata
 
     @property
     def name(self) -> str:

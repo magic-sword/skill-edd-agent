@@ -103,3 +103,13 @@ class EvalRunResult(BaseModel):
     accuracy: float = Field(..., description="テストの合格精度（0.0〜1.0）")
     detail_file_path: str | None = Field(None, description="ADKが生成した詳細結果JSONファイルの絶対パス")
 
+
+class SkillMetadata(BaseModel):
+    """レジストリ情報と設計仕様情報をマージした、スキルの統合メタデータ"""
+    name: str = Field(..., description="スキル名")
+    tier: int = Field(0, description="スキルのTier（0から3）", ge=0, le=3)
+    last_tested: str | None = Field(None, description="最後にテストされた時刻")
+    execution_type: Literal["tool", "agent"] = Field("tool", description="実行タイプ。'tool' または 'agent'")
+    description: str = Field("", description="スキルの目的や説明")
+    dependencies: list[str] = Field([], description="依存スキルのリスト")
+

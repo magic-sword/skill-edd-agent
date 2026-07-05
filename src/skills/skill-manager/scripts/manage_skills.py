@@ -39,14 +39,14 @@ def manage_skills_logic(params: Input, tool_context: ToolContext) -> str:
             if registered:
                 message = f"Registered skill '{skill}' at Tier 0."
             else:
-                skill_info = registry.get_skill_info(skill)
-                current_tier = skill_info.tier if skill_info else 0
+                skill_obj = registry.get_skill(skill)
+                current_tier = skill_obj.metadata.tier if skill_obj else 0
                 message = f"Skill '{skill}' already registered at Tier {current_tier}."
         elif command == "get-tier":
             if not skill:
                 raise ValueError("skill is required")
-            skill_info = registry.get_skill_info(skill)
-            current_tier = skill_info.tier if skill_info else 1
+            skill_obj = registry.get_skill(skill)
+            current_tier = skill_obj.metadata.tier if skill_obj else 1
             print(current_tier)
             result_data["tier"] = current_tier
             message = f"Got tier {current_tier} for skill/agent '{skill}'."
@@ -61,8 +61,8 @@ def manage_skills_logic(params: Input, tool_context: ToolContext) -> str:
             if updated:
                 message = f"Set tier of '{skill}' to {tier}."
             else:
-                skill_info = registry.get_skill_info(skill)
-                current_tier = skill_info.tier if skill_info else 0
+                skill_obj = registry.get_skill(skill)
+                current_tier = skill_obj.metadata.tier if skill_obj else 0
                 message = f"Skipped promotion to Tier {tier} for '{skill}' (current tier is {current_tier})."
         elif command == "list":
             registry.list_skills()

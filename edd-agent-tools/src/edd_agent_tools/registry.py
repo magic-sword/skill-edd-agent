@@ -143,13 +143,7 @@ class SkillRegistry:
         merged.update(agents)
         return merged
 
-    def get_skill_info(self, name: str) -> RegisteredSkillInfo | None:
-        """指定されたスキルまたはエージェントの登録メタデータを取得します。"""
-        from .models import RegisteredSkillInfo
-        cat, info = self._get_category_and_info(name)
-        if info is not None:
-            return RegisteredSkillInfo.model_validate(info)
-        return None
+    # get_skill_info は廃止されました。get_skill(name).metadata を使用して一括で取得してください。
 
     def _get_skill_dir(self, skill_name: str) -> str | None:
         """指定されたスキルまたはエージェントの物理ディレクトリ絶対パスを探索して返します。(内部用ヘルパー)"""
@@ -191,7 +185,16 @@ class SkillRegistry:
         if not root_dir:
             raise ValueError("Error: Could not resolve skill directory path.")
 
-        return Skill(root_dir)
+        # レジストリ情報（Tier, テスト日時）を抽出して依存注入する
+        tier = 0
+        last_tested = None
+        if target_name:
+            cat, info = self._get_category_and_info(target_name)
+            if info is not None:
+                tier = info.get("tier", 0)
+                last_tested = info.get("last_tested")
+
+        return Skill(root_dir, tier=tier, last_tested=last_tested)
 
 
 
