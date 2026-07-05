@@ -16,7 +16,6 @@ class Input(BaseModel):
     eval_set_path: str = Field(..., description='テストケースファイル（*.evalset.json）の絶対パス、または src ディレクトリからの相対パス。')
     threshold_accuracy: float = Field(1.0, description='合格に必要な精度の閾値（0.0 から 1.0 の浮動小数点）。デフォルトは 1.0 (100%合格)。')
     timeout_seconds: int = Field(180, description='テスト実行のタイムアウト制限（秒）。デフォルトは 180 秒。')
-    eval_mode: int = Field(1, description='評価モード。デフォルトは 1。')
 
 def process_message(tool_context: ToolContext):
     # バリデーション済みのオブジェクトを取得

@@ -29,18 +29,10 @@
       "description": "テスト実行のタイムアウト制限（秒）。デフォルトは 180 秒。",
       "required": false,
       "default": "180"
-    },
-    {
-      "name": "eval_mode",
-      "type": "int",
-      "description": "評価モード。デフォルトは 1。",
-      "required": false,
-      "default": "1"
     }
   ],
   "dependencies": [],
   "constraints": [
-    "threshold_accuracy は 0.0 から 1.0 の範囲である必要があります。",
-    "eval_mode は 0 または 1 のいずれかである必要があります。"
+    "threshold_accuracy は 0.0 から 1.0 の範囲である必要があります。"
   ]
 }

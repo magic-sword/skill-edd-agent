@@ -8,7 +8,7 @@ from .test_runner import TestRunner
 
 def process_message(tool_context: ToolContext):
     """
-    ADK eval テストを実行し、結果を ToolContext.state に格納します。
+    ADK eval のモックシミュレーションテストを実行し、結果を ToolContext.state に格納します。
     """
     skill = tool_context.state.get("skill")
     eval_set_path = tool_context.state.get("eval_set_path")
@@ -79,8 +79,6 @@ def process_message(tool_context: ToolContext):
         print(f"エラー: {e}", file=sys.stderr)
         raise
     except RuntimeError as e:
-        # test_runner からのタイムアウトエラーなど
-        # state は test_runner 内で更新されているはずだが、念のため。
         if "status" not in tool_context.state:
              tool_context.state.update({
                 "status": "failed",
@@ -100,25 +98,23 @@ def process_message(tool_context: ToolContext):
         print(f"予期せぬエラー: {e}", file=sys.stderr)
         raise
 
-def run_skill_tests(threshold_accuracy: float, tool_context: ToolContext) -> str:
+def run_mock_tests(threshold_accuracy: float, tool_context: ToolContext) -> str:
     """
-    指定されたスキルのテストを実行します。
-    引数:
-      threshold_accuracy: 合格に必要な精度の閾値（0.0〜1.0）
+    指定されたスキルのモックシミュレーションテストを実行します。
     """
     skill = tool_context.state.get("skill")
-    eval_set_path = tool_context.state.get("eval_set_path")
-    step_name = "04_ut_exec"
+    eval_set_path = tool_context.state.get("trig_eval_set_path")
+    step_name = "06_trig_exec"
         
     if not skill or not eval_set_path:
-        raise ValueError("セッション状態に 'skill' または 'eval_set_path' が設定されていません。")
+        raise ValueError("セッション状態に 'skill' または 'trig_eval_set_path' が設定されていません。")
         
     output_json_path = f"/workspace/src/.workflow_tmp/{skill}/{step_name}_out.json"
     
-    # 共通ランナー（edd-run）を用いたスキル CLI サブプロセス実行
+    # 共通ランナーを用いた CLI サブプロセス実行
     cmd_args = [
         sys.executable, "-m", "edd_agent_tools.cli.run",
-        "test-executor",
+        "mock-executor",
         "--skill", skill,
         "--eval_set_path", eval_set_path,
         "--threshold_accuracy", str(threshold_accuracy),
@@ -137,7 +133,7 @@ def run_skill_tests(threshold_accuracy: float, tool_context: ToolContext) -> str
     edd_tools_path = os.path.abspath("/workspace/edd-agent-tools/src")
     patched_env["PYTHONPATH"] = f"{edd_tools_path}:{patched_env['PYTHONPATH']}"
         
-    print(f"Executing: {' '.join(cmd_args)}")
+    print(f"Executing mock test runner: {' '.join(cmd_args)}")
     import subprocess
     result = subprocess.run(
         cmd_args,
@@ -148,13 +144,13 @@ def run_skill_tests(threshold_accuracy: float, tool_context: ToolContext) -> str
         cwd="/workspace"
     )
     
-    print("--- SUBPROCESS OUTPUT ---")
+    print("--- MOCK SUBPROCESS OUTPUT ---")
     if result.stdout:
         print(result.stdout)
     if result.stderr:
         print(result.stderr, file=sys.stderr)
         
     if result.returncode != 0:
-        raise RuntimeError(f"テストが不合格またはエラーが発生しました (exit code {result.returncode})。")
+        raise RuntimeError(f"モックテストが不合格またはエラーが発生しました (exit code {result.returncode})。")
         
-    return f"Success: Tests passed with accuracy >= {threshold_accuracy}."
+    return f"Success: Mock tests passed with accuracy >= {threshold_accuracy}."

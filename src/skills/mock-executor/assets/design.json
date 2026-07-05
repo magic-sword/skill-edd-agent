@@ -1,0 +1,45 @@
+{
+  "name": "mock-executor",
+  "description": "モック実行（シミュレーション）評価を実行するための専用のテスト実行スキル。",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "parameters": [
+    {
+      "name": "skill",
+      "type": "str",
+      "description": "評価対象スキルの名前またはパス",
+      "required": true
+    },
+    {
+      "name": "eval_set_path",
+      "type": "str",
+      "description": "テストデータセットファイルのパス",
+      "required": true
+    },
+    {
+      "name": "config_file_path",
+      "type": "str",
+      "description": "評価設定ファイルのパス",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "timeout_seconds",
+      "type": "int",
+      "description": "評価のタイムアウト秒数",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "threshold_accuracy",
+      "type": "float",
+      "description": "合格に必要な精度の閾値（0.0 から 1.0 の浮動小数点）。デフォルトは 1.0。",
+      "required": false,
+      "default": "1.0"
+    }
+  ],
+  "dependencies": [],
+  "constraints": [
+    "threshold_accuracy は 0.0 から 1.0 の範囲である必要があります。"
+  ]
+}

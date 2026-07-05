@@ -40,13 +40,12 @@ def register_skill_node(tool_context: ToolContext):
 @node(name="run_trigger_tests_node")
 def run_trigger_tests_node(tool_context: ToolContext):
     """トリガーテストケースの実行を行います。"""
-    handler = registry.load_handler("test-executor")
+    handler = registry.load_handler("mock-executor")
     
     params = handler.Input(
         skill=tool_context.state.get("skill"),
         eval_set_path=tool_context.state.get("trig_eval_set_path"),
-        threshold_accuracy=0.90,
-        eval_mode=0
+        threshold_accuracy=0.90
     )
     
     tool_context.state["validated_input"] = params
@@ -61,8 +60,7 @@ def run_unit_tests_node(tool_context: ToolContext):
     params = handler.Input(
         skill=tool_context.state.get("skill"),
         eval_set_path=tool_context.state.get("eval_set_path"),
-        threshold_accuracy=1.00,
-        eval_mode=1
+        threshold_accuracy=1.00
     )
     
     tool_context.state["validated_input"] = params

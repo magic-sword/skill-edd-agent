@@ -13,8 +13,12 @@ if str(current_dir) not in sys.path:
 from agents.common import is_eval_mode
 
 if is_eval_mode:
-    # 評価モード時は、システム開発ツールを除外したクリーンな一般ユーザー用エージェントをロード
-    from agents.user_agent import user_agent as root_agent
+    # 評価モード時：MOCK_TOOLS環境変数がある場合はモック用エージェントを、ない場合は通常評価用エージェントをロード
+    import os
+    if os.environ.get("MOCK_TOOLS"):
+        from agents.mock_agent import user_agent as root_agent
+    else:
+        from agents.user_agent import user_agent as root_agent
 else:
     # 通常起動時は、システム開発支援用のワークフロー指示を持ったエージェントをロード
     from agents.system_agent import system_agent as root_agent
