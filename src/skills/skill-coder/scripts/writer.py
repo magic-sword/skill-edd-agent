@@ -134,10 +134,12 @@ class PydanticModelWriter:
             
         imports_str = "\n".join(imports)
         
-        # 3. テンプレートに Output クラスをマージして出力
-        full_fields_str = fields_str + output_class_str
-        
-        return self.template_str.format(imports_str=imports_str, fields_str=full_fields_str)
+        # 3. テンプレートにマッピングして出力
+        return self.template_str.format(
+            imports_str=imports_str,
+            fields_str=fields_str,
+            output_class_str=output_class_str
+        )
 
 class HandlerWriter:
     """

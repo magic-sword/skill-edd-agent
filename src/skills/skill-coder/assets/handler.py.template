@@ -1,9 +1,17 @@
 from google.adk.tools import ToolContext
 from .models import Input
+try:
+    from .models import Output
+except ImportError:
+    Output = None
+
 {any_import}from .logic import process_message as run_logic
 
 SKILL_METADATA = {metadata_str}
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
     # ビジネスロジックを呼び出す
-    return run_logic(params, tool_context)
+    result = run_logic(params, tool_context)
+    if Output and isinstance(result, Output):
+        return result.model_dump_json(by_alias=True)
+    return str(result)

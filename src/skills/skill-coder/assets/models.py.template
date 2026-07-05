@@ -2,3 +2,5 @@
 
 class Input(BaseModel):
 {fields_str}
+
+{output_class_str}
