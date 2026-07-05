@@ -1,6 +1,6 @@
 {
   "name": "skill-coder",
-  "description": "設計定義ファイルと機能要件に基づき、ADK 2.0規約に準拠したスキル実装コードを自動生成・更新するツール。",
+  "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
   "parameters": [
@@ -34,31 +34,27 @@
   ],
   "dependencies": [],
   "constraints": [
-    "'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。"
+    "パラメータ 'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。"
   ],
   "response_parameters": [
     {
-      "name": "value",
-      "type": "str",
-      "description": "スキル実行結果の要約メッセージ。",
-      "required": true
-    },
-    {
       "name": "status",
       "type": "str",
-      "description": "スキル実行のステータス（例: 'success', 'failure'）。",
-      "required": true,
-      "choices": [
-        "success",
-        "failure"
-      ]
+      "description": "スキルの実行結果ステータス ('success' または 'failure')",
+      "required": true
     },
     {
       "name": "generated_files",
       "type": "list",
-      "description": "生成または更新されたファイルの相対パスのリスト。",
+      "description": "生成または更新されたファイルの相対パスリスト",
       "required": true,
       "items_type": "str"
+    },
+    {
+      "name": "result_message",
+      "type": "str",
+      "description": "スキル実行結果の要約メッセージ",
+      "required": true
     }
   ]
 }

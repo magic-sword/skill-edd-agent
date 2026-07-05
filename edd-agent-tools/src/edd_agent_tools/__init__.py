@@ -12,4 +12,6 @@ from .models import Parameter, SkillDesign, EvalRunResult
 from .registry import SkillRegistry
 from .directory import SkillDirectory
 from .run.eval import ADKEvalRunner
+from .gemini import GeminiClient, GeminiRequest
+
 
