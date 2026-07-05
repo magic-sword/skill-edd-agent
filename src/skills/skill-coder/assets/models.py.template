@@ -1,6 +1,7 @@
 {imports_str}
 
 class Input(BaseModel):
-{fields_str}
+{input_fields_str}
 
-{output_class_str}
+class Output(BaseModel):
+{output_fields_str}

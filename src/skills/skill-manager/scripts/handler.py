@@ -1,6 +1,6 @@
 from google.adk.tools import ToolContext
-from .models import Input
-from .manage_skills import manage_skills_logic as run_manager_logic
+from .models import Input, Output
+from .logic import process_message as run_logic
 
 SKILL_METADATA = {
     "name": "skill-manager",
@@ -11,5 +11,10 @@ SKILL_METADATA = {
 }
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
-    # 既存のビジネスロジックを実行
-    return run_manager_logic(params, tool_context)
+    # ビジネスロジックを呼び出す
+    result = run_logic(params, tool_context)
+    if isinstance(result, Output):
+        if SKILL_METADATA.get("output_mode") in ("VALUE_ONLY", "CONVERSATIONAL"):
+            return result.value
+        return result.model_dump_json(by_alias=True)
+    return str(result)

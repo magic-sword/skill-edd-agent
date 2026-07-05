@@ -115,9 +115,9 @@ class PydanticModelWriter:
             
         fields_str = "\n".join(fields) if fields else "    pass"
 
-        # 2. Output クラスの生成 (存在する場合のみ)
-        output_class_str = ""
-        if self.design.response_parameters:
+        # 2. Output クラスのインナーフィールド生成
+        from edd_agent_tools.models import OutputMode
+        if self.design.response_parameters and self.design.output_mode == OutputMode.STRUCTURED_JSON:
             output_fields = []
             for param in self.design.response_parameters:
                 field_writer = PydanticFieldWriter(param)
@@ -125,7 +125,8 @@ class PydanticModelWriter:
                 all_typing_imports.update(field_writer.typing_imports)
                 
             output_fields_str = "\n".join(output_fields) if output_fields else "    pass"
-            output_class_str = f"\n\nclass Output(BaseModel):\n{output_fields_str}"
+        else:
+            output_fields_str = "    value: str = Field(..., description='スキル実行結果の出力メッセージ')"
             
         # 必要なタイピングインポートを追加
         if all_typing_imports:
@@ -137,8 +138,8 @@ class PydanticModelWriter:
         # 3. テンプレートにマッピングして出力
         return self.template_str.format(
             imports_str=imports_str,
-            fields_str=fields_str,
-            output_class_str=output_class_str
+            input_fields_str=fields_str,
+            output_fields_str=output_fields_str
         )
 
 class HandlerWriter:
