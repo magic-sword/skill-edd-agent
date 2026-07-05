@@ -16,6 +16,7 @@ from google.genai import types
 from edd_agent_tools.registry import SkillRegistry
 from edd_agent_tools.models import SkillDesign
 from edd_agent_tools.docs import LibraryDocumentationReader
+from .handler import Input
 
 def generate_handler_code(design: SkillDesign, template_str: str) -> str:
     """
@@ -81,16 +82,16 @@ def generate_handler_code(design: SkillDesign, template_str: str) -> str:
         fields_str=fields_str
     )
 
-def process_message(tool_context: ToolContext):
+def process_message(params: Input, tool_context: ToolContext) -> str:
     """
     skill-coder のメインビジネスロジック。
     - design.json をロードし、scripts/handler.py を決定論的に自動生成。
     - SkillDeveloperAgent を起動して、オブジェクト指向で分割されたビジネスロジックコード（logic.py等）を段階的にコーディング。
     """
-    prompt = tool_context.state.get("prompt")
-    skill = tool_context.state.get("skill")
-    design_path = tool_context.state.get("design_path")
-    output_dir = tool_context.state.get("output_dir")
+    prompt = params.prompt
+    skill = params.skill
+    design_path = params.design_path
+    output_dir = params.output_dir
     
     if not prompt:
         raise ValueError("必須パラメータ 'prompt' が指定されていません。")
@@ -234,6 +235,9 @@ def process_message(tool_context: ToolContext):
                 rel_path = os.path.relpath(os.path.join(root, file), target_root)
                 generated_files.append(rel_path)
                 
+    message = f"スキルコードの実装が完了しました。生成/更新ファイル: {', '.join(generated_files)}"
     tool_context.state["status"] = "success"
     tool_context.state["generated_files"] = generated_files
-    tool_context.state["result_message"] = f"スキルコードの実装が完了しました。生成/更新ファイル: {', '.join(generated_files)}"
+    tool_context.state["result_message"] = message
+    
+    return message

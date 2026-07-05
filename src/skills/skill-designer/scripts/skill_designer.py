@@ -4,16 +4,17 @@ from google import genai
 from google.genai import types
 from google.adk.tools import ToolContext
 from edd_agent_tools.models import SkillDesign
+from .handler import Input
 
-def process_message(tool_context: ToolContext):
+def process_message(params: Input, tool_context: ToolContext) -> str:
     """
     skill-designer のメインビジネスロジック。
-    自然言語の要件や既存のソースコードから ADK 2.0 互換の design.json を設計して出力します。
+    自然言語の要件や既存のソースコードから ADK 2.0 互換 of design.json を設計して出力します。
     """
-    requirement = tool_context.state.get("requirement")
-    output_dir = tool_context.state.get("output_dir")
-    skill = tool_context.state.get("skill")
-    source_code_dir = tool_context.state.get("source_code_dir")
+    requirement = params.requirement
+    output_dir = params.output_dir
+    skill = params.skill
+    source_code_dir = params.source_code_dir
 
     from edd_agent_tools.registry import SkillRegistry
     registry = SkillRegistry()
@@ -102,7 +103,6 @@ def process_message(tool_context: ToolContext):
     # レスポンスのパースとdesign.json of 保存
     design_data = json.loads(response.text)
 
-
     assets_output_dir = os.path.join(output_dir, "assets")
     output_file_path = os.path.join(assets_output_dir, "design.json")
     
@@ -112,6 +112,9 @@ def process_message(tool_context: ToolContext):
     with open(output_file_path, "w", encoding="utf-8") as f:
         json.dump(design_data, f, indent=2, ensure_ascii=False)
 
+    message = f"design.json が '{output_file_path}' に正常に生成されました。"
     tool_context.state["status"] = "success"
-    tool_context.state["message"] = f"design.json が '{output_file_path}' に正常に生成されました。"
+    tool_context.state["message"] = message
     tool_context.state["output_file_path"] = output_file_path
+
+    return message

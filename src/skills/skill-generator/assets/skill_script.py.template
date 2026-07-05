@@ -1,6 +1,7 @@
 import os
 import sys
 from google.adk.tools import ToolContext
+from .handler import Input
 
 # =============================================================================
 # 【設計思想：Pydanticを活用した構造化出力とプロンプトの簡素化】
@@ -40,17 +41,18 @@ from google.adk.tools import ToolContext
 # result = json.loads(response.text)
 # =============================================================================
 
-def process_message(tool_context: ToolContext):
+def process_message(params: Input, tool_context: ToolContext) -> str:
     """
     ここにスキルのビジネスロジックを実装してください。
-    - tool_context.state から必要なパラメータ（プレフィックスなし）を取得します。
-    - 処理結果を tool_context.state に格納します（例: tool_context.state["result_message"] = ...）
+    - params (Input) から型安全に必要なパラメータを取得します。
+    - 状態の永続化が必要な結果は tool_context.state に格納します。
+    - AI（LLM）へのテキストフィードバックとなる実行結果のサマリーを返します。
     """
-    user_message = tool_context.state.get("user_message", "")
+    prompt = params.prompt
     
     # [TODO] ここに必要なビジネスロジックを実装してください。
-    result_message = user_message  # プレースホルダー
+    result_message = f"Processed: {prompt}"  # プレースホルダー
     
     tool_context.state["result_message"] = result_message
-
-
+    
+    return f"Success: {result_message}"

@@ -16,15 +16,6 @@ class Input(BaseModel):
     design_path: str | None = Field(None, description='対象スキルの design.json への絶対/相対パス。')
     output_dir: str | None = Field(None, description='ソースコードを出力するディレクトリ。省略時は対象スキルのルートディレクトリ。')
 
-def process_message(tool_context: ToolContext):
-    # バリデーション済みのオブジェクトを取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # Stateパラメータを移行
-    if params:
-        for key, value in params.model_dump().items():
-            if value is not None:
-                tool_context.state[key] = value
-            
+def process_message(params: Input, tool_context: ToolContext) -> str:
     # ビジネスロジックを呼び出す
-    run_logic(tool_context)
+    return run_logic(params, tool_context)

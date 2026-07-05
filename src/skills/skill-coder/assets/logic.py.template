@@ -1,7 +1,9 @@
 from google.adk.tools import ToolContext
+from .handler import Input
 
-def process_message(tool_context: ToolContext):
+def process_message(params: Input, tool_context: ToolContext) -> str:
     """
     ここにビジネスロジックを実装します。
     """
-    pass
+    # TODO: ビジネスロジックを実装してください。
+    return "Success"

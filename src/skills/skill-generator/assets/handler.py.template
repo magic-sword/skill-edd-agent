@@ -14,12 +14,6 @@ class Input(BaseModel):
     # TODO: 必要に応じてスキーマパラメータを追加・カスタマイズしてください
     prompt: str = Field(..., description="実行パラメータ")
 
-def process_message(tool_context: ToolContext):
-    # バリデーション済みのオブジェクトを取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # Stateパラメータを移行
-    tool_context.state["prompt"] = params.prompt
-    
+def process_message(params: Input, tool_context: ToolContext) -> str:
     # ビジネスロジックを呼び出す
-    run_logic(tool_context)
+    return run_logic(params, tool_context)

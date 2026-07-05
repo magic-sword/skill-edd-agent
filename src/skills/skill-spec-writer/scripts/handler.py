@@ -23,15 +23,6 @@ class Input(BaseModel):
             raise ValueError("Either 'skill' or 'design_path' must be provided.")
         return self
 
-def process_message(tool_context: ToolContext):
-    # バリデーション済みのオブジェクトを取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # 既存ロジックが期待するStateパラメータを設定
-    tool_context.state["design_path"] = params.design_path
-    tool_context.state["skill"] = params.skill
-    tool_context.state["output_dir"] = params.output_dir
-    tool_context.state["source_code_dir"] = params.source_code_dir
-    
-    # 既存ロジックを呼び出す
-    run_writer_logic(tool_context)
+def process_message(params: Input, tool_context: ToolContext) -> str:
+    # ビジネスロジックを呼び出す
+    return run_writer_logic(params, tool_context)
