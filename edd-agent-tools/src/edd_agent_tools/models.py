@@ -42,3 +42,9 @@ class SkillDesign(BaseModel):
             raise FileNotFoundError(f"design.json not found at: {filepath}")
         with open(filepath, "r", encoding="utf-8") as f:
             return cls.model_validate_json(f.read())
+
+class RegisteredSkillInfo(BaseModel):
+    """レジストリに登録されているスキルまたはエージェントのメタデータ"""
+    tier: int = Field(0, description="スキルのTier（0から3）", ge=0, le=3)
+    last_tested: str | None = Field(None, description="最後にテストされた時刻（ISO-8601形式）")
+

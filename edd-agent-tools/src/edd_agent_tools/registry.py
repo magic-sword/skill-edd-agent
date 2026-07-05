@@ -13,7 +13,7 @@ class SkillRegistry:
         self.registry_path = os.path.abspath(registry_path)
         self.data = None
 
-    def load(self) -> dict:
+    def _load(self) -> dict:
         """レジストリファイルをロードします。"""
         if not os.path.exists(self.registry_path):
             raise FileNotFoundError(f"エラー: レジストリファイルが見つかりません: {self.registry_path}")
@@ -28,7 +28,7 @@ class SkillRegistry:
     def save(self):
         """レジストリファイルを保存します。"""
         if self.data is None:
-            raise RuntimeError("エラー: レジストリがロードされていません。先に load() を呼び出してください。")
+            raise RuntimeError("エラー: レジストリがロードされていません。先に _load() を呼び出してください。")
             
         os.makedirs(os.path.dirname(self.registry_path), exist_ok=True)
         try:
@@ -40,7 +40,7 @@ class SkillRegistry:
     def _get_category_and_info(self, name: str) -> tuple[str, dict] | tuple[None, None]:
         """指定された名前の登録カテゴリ(skills または agents)とメタデータを取得します。"""
         if self.data is None:
-            self.load()
+            self._load()
         for cat in ["skills", "agents"]:
             if name in self.data.get(cat, {}):
                 return cat, self.data[cat][name]
@@ -49,7 +49,7 @@ class SkillRegistry:
     def detect_category(self, skill_name: str) -> str:
         """指定されたスキル名/エージェント名が属するフォルダからカテゴリ(skills または agents)を判定します。"""
         if self.data is None:
-            self.load()
+            self._load()
         search_paths = self.data.get("search_paths", ["src/skills"])
         for path_entry in search_paths:
             possible_dir = os.path.abspath(os.path.join(os.getcwd(), path_entry, skill_name))
@@ -61,7 +61,7 @@ class SkillRegistry:
     def register_skill(self, skill_name: str) -> bool:
         """スキルまたはエージェントを新規登録します（新規は常に Tier 0 から開始）。"""
         if self.data is None:
-            self.load()
+            self._load()
             
         cat = self.detect_category(skill_name)
         skills_info = self.data.setdefault(cat, {})
@@ -83,7 +83,7 @@ class SkillRegistry:
             raise ValueError("Error: Tier must be 0, 1, 2, or 3.")
             
         if self.data is None:
-            self.load()
+            self._load()
             
         cat, info = self._get_category_and_info(skill_name)
         if not cat:
@@ -117,7 +117,7 @@ class SkillRegistry:
     def list_skills(self):
         """登録されている全スキルおよびエージェントの一覧を表示します。"""
         if self.data is None:
-            self.load()
+            self._load()
             
         print(f"{'Category':<10} | {'Name':<25} | {'Tier':<5} | {'Last Tested':<25}")
         print("-" * 75)
@@ -129,7 +129,7 @@ class SkillRegistry:
     def update_meta(self, skill_name: str):
         """スキルまたはエージェントのメタデータを最新の状態に更新します（ハッシュ廃止に伴い、何もしません）。"""
         if self.data is None:
-            self.load()
+            self._load()
             
         cat, info = self._get_category_and_info(skill_name)
         if not cat:
@@ -148,7 +148,7 @@ class SkillRegistry:
         一意の名前空間の下でキャッシュの干渉なくロードし、モジュールオブジェクトを返します。
         """
         if self.data is None:
-            self.load()
+            self._load()
             
         search_paths = self.data.get("search_paths", ["src/skills"])
         cat, skill_meta = self._get_category_and_info(skill_name)
@@ -217,7 +217,7 @@ class SkillRegistry:
     def get_registered_skills(self) -> dict[str, dict]:
         """登録されているすべてのスキルおよびエージェントの情報をマージして返します。"""
         if self.data is None:
-            self.load()
+            self._load()
         skills = self.data.get("skills", {})
         agents = self.data.get("agents", {})
         merged = {}
@@ -225,10 +225,18 @@ class SkillRegistry:
         merged.update(agents)
         return merged
 
+    def get_skill_info(self, name: str) -> RegisteredSkillInfo | None:
+        """指定されたスキルまたはエージェントの登録メタデータを取得します。"""
+        from .models import RegisteredSkillInfo
+        cat, info = self._get_category_and_info(name)
+        if info is not None:
+            return RegisteredSkillInfo.model_validate(info)
+        return None
+
     def get_skill_dir(self, skill_name: str) -> str | None:
         """指定されたスキルまたはエージェントの物理ディレクトリ絶対パスを探索して返します。"""
         if self.data is None:
-            self.load()
+            self._load()
         search_paths = self.data.get("search_paths", ["src/skills"])
         for path_entry in search_paths:
             possible_dir = os.path.abspath(os.path.join(os.getcwd(), path_entry, skill_name))
@@ -275,7 +283,7 @@ class SkillRegistry:
         from google.adk.tools import FunctionTool
         
         if self.data is None:
-            self.load()
+            self._load()
             
         tools = []
         for skill_name in skill_names:

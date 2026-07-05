@@ -18,7 +18,6 @@ class SkillLoader:
     def load(self) -> Tuple[Dict[str, Any], Type[BaseModel], Any]:
         # 1. レジストリを介して対象モジュールを安全にロード
         registry = SkillRegistry()
-        registry.load()
         self.skill_dir = registry.get_skill_dir(self.skill_name)
         
         try:

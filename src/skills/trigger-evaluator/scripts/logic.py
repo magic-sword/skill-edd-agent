@@ -13,7 +13,6 @@ class TriggerEvaluator:
         self.tool_context = tool_context
         self.genai_client = genai_client
         self.registry = SkillRegistry()
-        self.registry.load()
         # 自身のSkillDirectoryの解決
         self.self_dir = self.registry.get_skill_directory(name="trigger-evaluator")
 

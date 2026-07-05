@@ -17,7 +17,6 @@ def process_message(tool_context: ToolContext):
 
     from edd_agent_tools.registry import SkillRegistry
     registry = SkillRegistry()
-    registry.load()
 
     # 1. スキルフォルダの解決
     design_path_fallback = None

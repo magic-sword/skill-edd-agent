@@ -17,9 +17,8 @@ def process_message(tool_context: ToolContext):
     from edd_agent_tools.models import SkillDesign
     from edd_agent_tools.registry import SkillRegistry
 
-    # スキルレジストリのロード
+    # スキルレジストリ
     registry = SkillRegistry()
-    registry.load()
 
     # 1. ディレクトリ構造の特定とメタデータのロード
     directory = registry.get_skill_directory(name=skill, design_path=design_path)

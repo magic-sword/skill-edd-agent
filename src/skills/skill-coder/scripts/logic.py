@@ -98,7 +98,6 @@ def process_message(tool_context: ToolContext):
         raise ValueError("対象スキルを特定するために、'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。")
         
     registry = SkillRegistry()
-    registry.load()
     
     design_path_fallback = os.path.abspath(design_path) if design_path else None
     directory = registry.get_skill_directory(name=skill, design_path=design_path_fallback)

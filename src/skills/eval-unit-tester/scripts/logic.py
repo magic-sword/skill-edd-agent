@@ -217,7 +217,6 @@ def process_message(tool_context: ToolContext):
         raise ValueError("Error: 'skill' is not set in tool_context.state.")
         
     registry = SkillRegistry()
-    registry.load() # SkillRegistryをロード
     
     eval_set_path = _generate_test_cases(skill, registry)
     
