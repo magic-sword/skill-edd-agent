@@ -180,7 +180,7 @@ class Skill:
             json.dump(data, f, indent=2, ensure_ascii=False)
         return path
 
-    def load(self):
+    def load_module(self):
         """
         このスキルパッケージの scripts/__init__.py を、
         一意の名前空間の下でキャッシュの干渉なくロードし、モジュールオブジェクトを返します。
@@ -235,7 +235,7 @@ class Skill:
         from google.adk.tools import FunctionTool
 
         # モジュールをロード
-        skill_module = self.load()
+        skill_module = self.load_module()
         process_func = getattr(skill_module, "process_message")
 
         # 設計定義（design.json）から説明を取得

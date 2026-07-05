@@ -21,7 +21,7 @@ class SkillLoader:
         self.skill_dir = dir_obj.root_dir
         
         try:
-            self.handler_module = dir_obj.load()
+            self.handler_module = dir_obj.load_module()
         except Exception as e:
             raise ImportError(f"Failed to load skill for '{self.skill_name}': {e}")
             

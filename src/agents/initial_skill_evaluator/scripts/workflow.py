@@ -23,7 +23,7 @@ registry = SkillRegistry()
 @node(name="register_skill_node")
 def register_skill_node(tool_context: ToolContext):
     """評価対象のスキルをTier 0でレジストリに登録します。"""
-    handler = registry.get_skill("skill-manager").load()
+    handler = registry.get_skill("skill-manager").load_module()
     
     # パラメータオブジェクトを構築
     params = handler.Input(
@@ -39,7 +39,7 @@ def register_skill_node(tool_context: ToolContext):
 @node(name="run_trigger_tests_node")
 def run_trigger_tests_node(tool_context: ToolContext):
     """トリガーテストケースの実行を行います。"""
-    handler = registry.get_skill("mock-executor").load()
+    handler = registry.get_skill("mock-executor").load_module()
     
     params = handler.Input(
         skill=tool_context.state.get("skill"),
@@ -53,7 +53,7 @@ def run_trigger_tests_node(tool_context: ToolContext):
 @node(name="run_unit_tests_node")
 def run_unit_tests_node(tool_context: ToolContext):
     """ユニットテストの実行を行います。"""
-    handler = registry.get_skill("test-executor").load()
+    handler = registry.get_skill("test-executor").load_module()
     
     params = handler.Input(
         skill=tool_context.state.get("skill"),
@@ -67,7 +67,7 @@ def run_unit_tests_node(tool_context: ToolContext):
 @node(name="set_skill_tier_node")
 def set_skill_tier_node(tool_context: ToolContext):
     """評価結果が合格であれば、スキルのTierを1に更新します。"""
-    handler = registry.get_skill("skill-manager").load()
+    handler = registry.get_skill("skill-manager").load_module()
     
     params = handler.Input(
         command="set-tier",

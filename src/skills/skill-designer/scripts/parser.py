@@ -22,7 +22,7 @@ class ConstraintParser:
         if skill_name:
             try:
                 skill_obj = self._registry.get_skill(skill_name)
-                skill_module = skill_obj.load() if skill_obj else None
+                skill_module = skill_obj.load_module() if skill_obj else None
                 InputSchema = getattr(skill_module, "Input", None) if skill_module else None
                 if InputSchema:
                     extracted = PydanticModelParser.parse_constraints(InputSchema)
