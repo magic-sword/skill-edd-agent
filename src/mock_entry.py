@@ -12,10 +12,9 @@ if str(current_dir) not in sys.path:
 
 # 本番エージェントと、モック用のコールバック関数をロード
 from agent import root_agent as base_agent
+# 本番エージェントと、モック用のコールバック関数をロード
+from agent import root_agent as base_agent
 from agents.mock_agent import before_tool_callback
 
 # 本番エージェントを一切汚さず、モック用の before_tool_callback をアタッチ
 base_agent.before_tool_callback = before_tool_callback
-
-# コールバックアタッチ済みのエージェントを公開
-root_agent = base_agent

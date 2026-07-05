@@ -25,7 +25,7 @@ class TestRunner:
             "HOME": "/home/vscode",
             "PATH": os.environ.get("PATH", "/workspace/.venv/bin:/usr/local/bin:/usr/bin:/bin"),
             "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
-            "TARGET_EVAL_SKILL": skill
+            "SKILL": skill
         }
         
         # 評価エンジンのための多言語パッチ環境変数の構成
