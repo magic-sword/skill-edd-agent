@@ -16,8 +16,12 @@ class PydanticFieldWriter:
         if not self.param.required and self.param.default is None:
             type_expr = f"{type_expr} | None"
             
-        args_expr = self._resolve_field_args()
-        return f"    {self.param.name}: {type_expr} = Field({args_expr})"
+        if getattr(self.param, "is_prompt_parameter", False):
+            args_expr = self._resolve_prompt_field_args()
+            return f"    {self.param.name}: {type_expr} = PromptField({args_expr})"
+        else:
+            args_expr = self._resolve_field_args()
+            return f"    {self.param.name}: {type_expr} = Field({args_expr})"
 
     def _resolve_type(self) -> str:
         # 1. 選択肢指定 (Literal)
@@ -93,6 +97,32 @@ class PydanticFieldWriter:
 
         return ", ".join([default_expr] + field_args)
 
+    def _resolve_prompt_field_args(self) -> str:
+        # 必須・非必須に基づくデフォルト値表現
+        if self.param.required:
+            default_expr = "..."
+        else:
+            if self.param.default is None:
+                default_expr = "None"
+            else:
+                default_expr = repr(self.param.default)
+
+        field_args = [default_expr]
+        
+        # description
+        desc_val = self.param.description or ""
+        field_args.append(f"description={repr(desc_val)}")
+        
+        # instructions
+        inst_val = getattr(self.param, "prompt_instructions", None) or ""
+        field_args.append(f"instructions={repr(inst_val)}")
+        
+        # constraints
+        cons_val = getattr(self.param, "prompt_constraints", None) or ""
+        field_args.append(f"constraints={repr(cons_val)}")
+        
+        return ", ".join(field_args)
+
 class PydanticModelWriter:
     """
     SkillDesignメタデータから、Pydantic Input/Outputクラス定義を含む
@@ -104,7 +134,14 @@ class PydanticModelWriter:
 
     def write(self) -> str:
         fields = []
+        
+        # パラメータ内に PromptField 対象があるかチェック
+        has_prompt_param = any(getattr(p, "is_prompt_parameter", False) for p in self.design.parameters)
+        
         imports = ["from pydantic import BaseModel, Field"]
+        if has_prompt_param:
+            imports.append("from edd_agent_tools.models import PromptField")
+            
         all_typing_imports = set()
         
         # 1. Input クラス用のフィールド生成
@@ -155,10 +192,15 @@ class HandlerWriter:
         metadata = {
             "name": self.design.name,
             "description": self.design.description,
+        }
+        if getattr(self.design, "summary", None):
+            metadata["summary"] = self.design.summary
+
+        metadata.update({
             "execution_type": self.design.execution_type,
             "output_mode": self.design.output_mode,
             "dependencies": self.design.dependencies
-        }
+        })
         metadata_str = json.dumps(metadata, indent=4, ensure_ascii=False)
         any_import = ""
         return self.template_str.format(

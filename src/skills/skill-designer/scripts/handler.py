@@ -5,7 +5,8 @@ from .executor import SkillExecutor
 SKILL_METADATA = {
     "name": "skill-designer",
     "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
-    "execution_type": "tool",
+    "summary": "自然言語の要件や既存のソースコードを基に、ADK 2.0互換のdesign.jsonを設計・生成します。これにより、新しいスキルの定義や既存スキルの再設計を効率的に行えます。",
+    "execution_type": "agent",
     "output_mode": "STRUCTURED_JSON",
     "dependencies": []
 }
