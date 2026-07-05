@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from .base import BaseSpecWriter
 
 class SkillTextParts(BaseModel):
-    human_overview: str = Field(..., description="## 概要 セクションに記述する、人間向けの詳細な機能や動作説明。")
+    human_overview: str = Field(..., description="開発者向けの詳細な機能や動作説明の日本語テキスト。段落分けやリスト構造などを適宜含めてください。")
     trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
 class ToolSpecWriter(BaseSpecWriter):
