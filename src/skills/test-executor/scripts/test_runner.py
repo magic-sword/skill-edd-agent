@@ -1,7 +1,7 @@
 import os
 import sys
-from typing import Tuple
 from edd_agent_tools.testing import ADKEvalRunner
+from edd_agent_tools.models import EvalRunResult
 
 class TestRunner:
     def run_adk_eval(
@@ -11,7 +11,7 @@ class TestRunner:
         config_file_path: str,
         timeout_seconds: int,
         cwd: str = "/workspace"
-    ) -> Tuple[str, str, int]:
+    ) -> EvalRunResult:
         """
         adk eval コマンドをサブプロセスとして実行します。
         """
@@ -26,7 +26,7 @@ class TestRunner:
         }
         
         # 評価対象として本番のエントリポイントを指定
-        stdout, stderr, return_code = ADKEvalRunner.run_eval(
+        result = ADKEvalRunner.run_eval(
             agent_dir="/workspace/src",
             eval_set_path=eval_set_path,
             config_file_path=config_file_path,
@@ -35,12 +35,4 @@ class TestRunner:
             cwd=cwd
         )
 
-        # 結果の表示
-        print("--- ADK EVAL OUTPUT ---")
-        if stdout:
-            print(stdout)
-        if stderr:
-            print(stderr, file=sys.stderr)
-        print("-----------------------")
-
-        return stdout, stderr, return_code
+        return result

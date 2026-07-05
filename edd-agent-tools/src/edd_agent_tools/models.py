@@ -48,3 +48,10 @@ class RegisteredSkillInfo(BaseModel):
     tier: int = Field(0, description="スキルのTier（0から3）", ge=0, le=3)
     last_tested: str | None = Field(None, description="最後にテストされた時刻（ISO-8601形式）")
 
+class EvalRunResult(BaseModel):
+    passed: int = Field(..., description="合格したテストの件数")
+    failed: int = Field(..., description="不合格だったテストの件数")
+    total: int = Field(..., description="テストの総件数")
+    accuracy: float = Field(..., description="テストの合格精度（0.0〜1.0）")
+    detail_file_path: str | None = Field(None, description="ADKが生成した詳細結果JSONファイルの絶対パス")
+

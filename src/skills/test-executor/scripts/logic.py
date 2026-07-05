@@ -2,8 +2,8 @@ import os
 import sys
 from google.adk.tools import ToolContext
 from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.models import EvalRunResult
 
-from .output_parser import OutputParser
 from .test_runner import TestRunner
 from .handler import Input
 
@@ -22,7 +22,6 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
     registry = SkillRegistry()
     target_skill_dir = registry.get_skill_directory(name=skill)
     test_runner = TestRunner()
-    output_parser = OutputParser()
 
     # eval_set_path が指定されていない場合は自動解決する（test-executorはユニットテストがデフォルト）
     if not eval_set_path:
@@ -37,30 +36,24 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
             
         print(f"Using eval config file: {config_file_path}")
 
-        # 2. adk eval の実行
-        stdout, stderr, return_code = test_runner.run_adk_eval(
+        # 2. adk eval の実行 (ランナー呼び出し)
+        result: EvalRunResult = test_runner.run_adk_eval(
             skill=skill,
             eval_set_path=eval_set_path,
             config_file_path=config_file_path,
             timeout_seconds=timeout_seconds
         )
 
-        # 3. 出力結果の解析
-        combined_output = stdout + "\n" + stderr
-        parsed_results = output_parser.parse_adk_eval_output(combined_output, return_code)
-        
-        accuracy = parsed_results["accuracy"]
-        
-        if parsed_results["parsed_from_log"]:
-            print(f"解析結果: 合格 = {parsed_results['passed']}, 不合格 = {parsed_results['failed']}, 合計 = {parsed_results['total']}, 精度 = {accuracy:.4f}")
-        else:
-            print(f"警告: ログからテスト結果数を抽出できませんでした。フォールバック結果を使用します。精度 = {accuracy:.4f}")
+        accuracy = result.accuracy
+        print(f"解析結果: 合格 = {result.passed}, 不合格 = {result.failed}, 合計 = {result.total}, 精度 = {accuracy:.4f}")
 
-        # 4. 合否判定
+        # 3. 合否判定
         status = "passed" if accuracy >= threshold_accuracy else "failed"
         message = f"Accuracy {accuracy:.4f} is {'greater than or equal to' if status == 'passed' else 'less than'} threshold {threshold_accuracy:.4f}."
+        if status == "failed" and result.detail_file_path:
+            message += f"\n詳細な不合格理由は、以下の結果ファイルを参照してください：\n{result.detail_file_path}"
         
-        # 5. 結果を ToolContext.state に格納
+        # 4. 結果を ToolContext.state に格納
         tool_context.state.update({
             "status": status,
             "message": message,
@@ -85,8 +78,6 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
         print(f"エラー: {e}", file=sys.stderr)
         raise
     except RuntimeError as e:
-        # test_runner からのタイムアウトエラーなど
-        # state は test_runner 内で更新されているはずだが、念のため。
         if "status" not in tool_context.state:
              tool_context.state.update({
                 "status": "failed",
