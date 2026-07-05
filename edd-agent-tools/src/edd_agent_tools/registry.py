@@ -4,7 +4,7 @@ import json
 import hashlib
 import datetime
 import importlib.util
-from .directory import SkillDirectory
+from .skill import Skill
 
 class SkillRegistry:
     """skills_registry.json のデータ構造をカプセル化し、読み込み・保存・更新・動的ツールロードを管理するクラス"""
@@ -126,93 +126,11 @@ class SkillRegistry:
                 last_tested = info.get("last_tested") or "Never"
                 print(f"{cat[:-1].capitalize():<10} | {name:<25} | {info['tier']:<5} | {last_tested:<25}")
 
-    def update_meta(self, skill_name: str):
-        """スキルまたはエージェントのメタデータを最新の状態に更新します（ハッシュ廃止に伴い、何もしません）。"""
-        if self.data is None:
-            self._load()
-            
-        cat, info = self._get_category_and_info(skill_name)
-        if not cat:
-            self.register_skill(skill_name)
-            return
-            
-        if "file_hashes" in info:
-            del info["file_hashes"]
-            self.save()
-            
-        print(f"Updated metadata for {cat[:-1]} '{skill_name}' (hashes removed).")
 
-    def load_handler(self, skill_name: str):
-        """
-        指定されたスキルまたはエージェントの scripts/handler.py を、
-        一意の名前空間の下でキャッシュの干渉なくロードし、モジュールオブジェクトを返します。
-        """
-        if self.data is None:
-            self._load()
-            
-        search_paths = self.data.get("search_paths", ["src/skills"])
-        cat, skill_meta = self._get_category_and_info(skill_name)
-        if not cat:
-            raise ValueError(f"エラー: スキル/エージェント '{skill_name}' がレジストリに登録されていません。")
-            
-        skill_dir = self.get_skill_dir(skill_name)
-        if not skill_dir:
-            raise FileNotFoundError(
-                f"エラー: '{skill_name}' の実体ディレクトリが探索パス {search_paths} 内に見つかりません。"
-            )
-            
-        abs_skill_dir = os.path.abspath(skill_dir)
-        script_abs_path = os.path.join(abs_skill_dir, "scripts", "handler.py")
-        
-        if not os.path.exists(script_abs_path):
-            raise FileNotFoundError(f"エラー: scripts/handler.py が存在しません: {script_abs_path}")
 
-        # 一意の名前空間（仮想FQDN）の組み立て
-        # 一意の名前空間（仮想FQDN）の組み立て
-        skill_name_under = skill_name.replace('-', '_')
-        parent_pkg = f"edd_agent_tools.dynamic_skills.{skill_name_under}"
-        package_name = f"{parent_pkg}.scripts"
-        module_name = f"{package_name}.handler"
+    # load_skill は廃止され、SkillDirectory.load() へ委譲されました。
 
-        # すでにロードされている場合はキャッシュを返す
-        if module_name in sys.modules:
-            return sys.modules[module_name]
-
-        # 相対インポートを正常に解決するため sys.path を調整
-        if abs_skill_dir not in sys.path:
-            sys.path.insert(0, abs_skill_dir)
-
-        # 仮想パッケージモジュールの動的登録 (相対インポート解決用)
-        import types
-        if parent_pkg not in sys.modules:
-            sys.modules[parent_pkg] = types.ModuleType(parent_pkg)
-        if package_name not in sys.modules:
-            pkg_module = types.ModuleType(package_name)
-            pkg_module.__path__ = [os.path.join(abs_skill_dir, "scripts")]
-            pkg_module.__package__ = package_name
-            sys.modules[package_name] = pkg_module
-
-        # ロード実行
-        spec = importlib.util.spec_from_file_location(module_name, script_abs_path)
-        if spec is None:
-            raise ImportError(f"Could not load spec for {script_abs_path}")
-            
-        module = importlib.util.module_from_spec(spec)
-        module.__package__ = package_name  # 相対インポートに必須
-        sys.modules[module_name] = module
-        
-        spec.loader.exec_module(module)
-        return module
-
-    def load_tool(self, skill_name: str, function_name: str):
-        """指定されたスキル/エージェントと関数名から Python スクリプトを動的ロードし、関数オブジェクトを返します。"""
-        # load_handler を用いて安全にロード
-        module = self.load_handler(skill_name)
-        
-        if not hasattr(module, function_name):
-            raise AttributeError(f"エラー: モジュール '{module.__name__}' に関数 '{function_name}' が定義されていません。")
-            
-        return getattr(module, function_name)
+    # load_tool は廃止されました。load_skill を呼び出してモジュールから属性を直接取得してください。
 
     def get_registered_skills(self) -> dict[str, dict]:
         """登録されているすべてのスキルおよびエージェントの情報をマージして返します。"""
@@ -233,8 +151,8 @@ class SkillRegistry:
             return RegisteredSkillInfo.model_validate(info)
         return None
 
-    def get_skill_dir(self, skill_name: str) -> str | None:
-        """指定されたスキルまたはエージェントの物理ディレクトリ絶対パスを探索して返します。"""
+    def _get_skill_dir(self, skill_name: str) -> str | None:
+        """指定されたスキルまたはエージェントの物理ディレクトリ絶対パスを探索して返します。(内部用ヘルパー)"""
         if self.data is None:
             self._load()
         search_paths = self.data.get("search_paths", ["src/skills"])
@@ -244,9 +162,9 @@ class SkillRegistry:
                 return possible_dir
         return None
 
-    def get_skill_directory(self, name: str | None = None, design_path: str | None = None) -> "SkillDirectory":
+    def get_skill(self, name: str | None = None, design_path: str | None = None) -> "Skill":
         """
-        指定された name または design_path から一元的に SkillDirectory オブジェクトを構築して返します。
+        指定された name または design_path から一元的に Skill オブジェクトを構築して返します。
         """
         import os
         from edd_agent_tools.models import SkillDesign
@@ -266,56 +184,18 @@ class SkillRegistry:
                 root_dir = os.path.dirname(dir_name) if os.path.basename(dir_name) == "assets" else dir_name
 
         if target_name:
-            root_dir = self.get_skill_dir(target_name)
+            root_dir = self._get_skill_dir(target_name)
             if not root_dir:
                 root_dir = os.path.abspath(os.path.join(os.getcwd(), "src", "skills", target_name))
 
         if not root_dir:
             raise ValueError("Error: Could not resolve skill directory path.")
 
-        return SkillDirectory(root_dir)
+        return Skill(root_dir)
 
-    def get_tools(self, skill_names: list[str]):
-        """
-        指定されたスキル名（またはエージェント名）のリストに対応する
-        ADKの FunctionTool のリストを動的ロード・構築して返します。
-        """
-        from google.adk.tools import FunctionTool
-        
-        if self.data is None:
-            self._load()
-            
-        tools = []
-        for skill_name in skill_names:
-            # process_message を動的ロード
-            process_func = self.load_tool(skill_name, "process_message")
-            
-            # メタデータから説明を取得
-            skills_meta = self.get_registered_skills()
-            meta = skills_meta.get(skill_name, {})
-            description = meta.get("description", f"Execute {skill_name} skill")
-            
-            # 関数の属性を動的に書き換えることで、FunctionTool がツール名と説明を正しく解決できるようにする
-            process_func.__name__ = skill_name.replace("-", "_")
-            process_func.__doc__ = description
-            
-            tools.append(
-                FunctionTool(
-                    func=process_func
-                )
-            )
-        return tools
 
-    def load_input_schema(self, skill_name: str):
-        """
-        指定されたスキルの handler.py から Input スキーマ（Pydanticモデル）を動的ロードします。
-        スキーマが存在しない、またはロードに失敗した場合は None を返します。
-        """
-        try:
-            handler_module = self.load_handler(skill_name)
-            return getattr(handler_module, "Input", None)
-        except Exception:
-            return None
+
+    # load_input_schema は廃止されました。load_skill を呼び出して Input スキーマを直接取得してください。
 
 
 

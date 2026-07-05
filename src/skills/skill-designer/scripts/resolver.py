@@ -1,6 +1,6 @@
 import os
 from edd_agent_tools.registry import SkillRegistry
-from edd_agent_tools.directory import SkillDirectory
+from edd_agent_tools.skill import Skill
 
 class PathResolver:
     """
@@ -26,14 +26,14 @@ class PathResolver:
         if not skill_name and output_dir:
             design_path_fallback = os.path.join(os.path.abspath(output_dir), "assets", "design.json")
 
-        directory: SkillDirectory = self._registry.get_skill_directory(name=skill_name, design_path=design_path_fallback)
+        skill_obj: Skill = self._registry.get_skill(name=skill_name, design_path=design_path_fallback)
         
-        resolved_output_dir = os.path.abspath(output_dir or directory.root_dir)
-        resolved_scan_target = os.path.abspath(source_code_dir or directory.source_code_dir)
+        resolved_output_dir = os.path.abspath(output_dir or skill_obj.root_dir)
+        resolved_scan_target = os.path.abspath(source_code_dir or skill_obj.source_code_dir)
 
         return {
-            "existing_name": directory.name,
+            "existing_name": skill_obj.name,
             "output_dir": resolved_output_dir,
             "scan_target": resolved_scan_target,
-            "skill_directory": directory # SkillDirectoryオブジェクトも返す
+            "skill_directory": skill_obj # Skillオブジェクトも返す
         }

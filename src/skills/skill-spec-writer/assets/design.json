@@ -1,6 +1,7 @@
 {
   "name": "skill-spec-writer",
-  "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
+  "description": "設計定義ファイルや実装コードを解析し、エージェント向け指示ガイドラインを動的インジェクションした仕様書（SKILL.md）を自動生成するツール。",
+  "summary": "設計定義ファイル（design.json）やソースコードをロード・解析し、ADK 2.0互換の仕様書（SKILL.md）を全自動生成するツール。",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
   "parameters": [
@@ -9,7 +10,10 @@
       "type": "str",
       "description": "仕様書生成における、特別に明記したい追加の表現上のこだわりや注意点などの指示。",
       "required": false,
-      "default": null
+      "default": null,
+      "is_prompt_parameter": true,
+      "prompt_instructions": "生成される仕様書のテキスト説明のトーンや粒度（例: 開発者向けに詳細に、あるいは初心者向けに簡単に書く）、特別に言及してほしいセキュリティ設計や注意点の強調を指定できます。",
+      "prompt_constraints": "仕様書のマークダウンレイアウト構成（見出しの順序、テーブル項目）は決定論的テンプレートに固定されているため、プロンプト指示によって構成そのものを変更することはできません。"
     },
     {
       "name": "design_path",
@@ -21,7 +25,7 @@
     {
       "name": "skill",
       "type": "str",
-      "description": "対象 of 既存スキル名。design_path 省略時の自動探索キーとして使用されます。",
+      "description": "対象の既存スキル名。design_path 省略時の自動探索キーとして使用されます。",
       "required": false,
       "default": null
     },
@@ -42,14 +46,18 @@
   ],
   "dependencies": [],
   "constraints": [
-    "パラメータ 'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。"
+    "'skill' または 'design_path' のいずれか一方は必須です。両方を省略することはできません。"
   ],
   "response_parameters": [
     {
       "name": "status",
       "type": "str",
       "description": "スキルの実行結果ステータス。'success' または 'failed'。",
-      "required": true
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
+      ]
     },
     {
       "name": "message",

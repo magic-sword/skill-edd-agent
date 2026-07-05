@@ -70,8 +70,8 @@ def manage_skills_logic(params: Input, tool_context: ToolContext) -> str:
         elif command == "update-meta":
             if not skill:
                 raise ValueError("skill is required")
-            registry.update_meta(skill)
-            message = f"Updated metadata for skill '{skill}'."
+            # registry.update_meta は廃止されたため、非推奨警告メッセージの返却のみ行います
+            message = f"Skipped: 'update-meta' command is deprecated and no-op (hashes are fully removed)."
         else:
             raise ValueError(f"Unknown command: {command}")
     except Exception as e:

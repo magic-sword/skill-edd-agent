@@ -30,20 +30,20 @@ class SkillExecutor:
             raise ValueError("対象スキルを特定するために、'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。")
             
         design_path_fallback = os.path.abspath(design_path) if design_path else None
-        directory = self.registry.get_skill_directory(name=skill, design_path=design_path_fallback)
+        skill_obj = self.registry.get_skill(name=skill, design_path=design_path_fallback)
         
-        skill_name = directory.name
-        target_root = os.path.abspath(output_dir or directory.root_dir)
+        skill_name = skill_obj.name
+        target_root = os.path.abspath(output_dir or skill_obj.root_dir)
 
         # 1. design.json のロード
-        design_data: SkillDesign = directory.load_design()
+        design_data: SkillDesign = skill_obj.load_design()
         design_json_str = json.dumps(design_data.model_dump(), indent=2, ensure_ascii=False)
         
         # 2. 決定論的コードの生成（models.py, handler.py, __init__.py, executor.pyプレースホルダー）
-        coder_directory = self.registry.get_skill_directory(name="skill-coder")
+        coder_skill = self.registry.get_skill(name="skill-coder")
         code_generator = CodeGenerator(design=design_data, 
                                        target_root_dir=target_root, 
-                                       coder_directory=coder_directory)
+                                       coder_skill=coder_skill)
         generated_files_by_generator = code_generator.generate_all()
                 
         # 3. SkillDeveloperAgent の起動とコーディング実行
@@ -56,7 +56,7 @@ class SkillExecutor:
         agent_executor = SkillDeveloperAgentExecutor(skill_name=skill_name,
                                                      prompt=full_prompt,
                                                      target_root_dir=target_root,
-                                                     coder_directory=coder_directory)
+                                                     coder_skill=coder_skill)
         generated_files_by_agent = asyncio.run(agent_executor.execute(design_json_str))
         
         # 生成されたファイルを統合

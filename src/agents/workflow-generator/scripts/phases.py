@@ -22,7 +22,7 @@ def build_skill_toolset(workflow_name: str) -> SkillToolset:
         for name in skills_data.keys():
             if name in ["workflow-generator", workflow_name]:
                 continue
-            skill_dir = registry.get_skill_dir(name)
+            skill_dir = registry.get_skill(name).root_dir
             if skill_dir:
                 try:
                     skill_obj = load_skill_from_dir(pathlib.Path(skill_dir))

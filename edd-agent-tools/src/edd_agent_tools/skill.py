@@ -2,9 +2,9 @@ import os
 from typing import Literal
 from edd_agent_tools.models import SkillDesign
 
-class SkillDirectory:
+class Skill:
     """
-    特定のスキルのフォルダ構造と各主要ファイルのパスを一元管理するオブジェクト指向クラス。
+    特定のスキルパッケージ全体のモデル（フォルダ構造、アセット、動的ロード、ツール化など）を表現・管理するドメインクラス。
     """
     def __init__(self, root_dir: str):
         self.root_dir = os.path.abspath(root_dir)
@@ -116,3 +116,74 @@ class SkillDirectory:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         return path
+
+    def load(self):
+        """
+        このスキルパッケージの scripts/__init__.py を、
+        一意の名前空間の下でキャッシュの干渉なくロードし、モジュールオブジェクトを返します。
+        """
+        import sys
+        import types
+        import importlib.util
+
+        script_abs_path = os.path.join(self.root_dir, "scripts", "__init__.py")
+        if not os.path.exists(script_abs_path):
+            raise FileNotFoundError(f"エラー: scripts/__init__.py が存在しません: {script_abs_path}")
+
+        # 一意の名前空間（仮想FQDN）の組み立て
+        skill_name_under = self.name.replace('-', '_')
+        parent_pkg = f"edd_agent_tools.dynamic_skills.{skill_name_under}"
+        package_name = f"{parent_pkg}.scripts"
+        module_name = package_name
+
+        # すでにロードされている場合はキャッシュを返す
+        if module_name in sys.modules:
+            return sys.modules[module_name]
+
+        # 相対インポートを正常に解決するため sys.path を調整
+        if self.root_dir not in sys.path:
+            sys.path.insert(0, self.root_dir)
+
+        # 仮想パッケージモジュールの動的登録 (相対インポート解決用)
+        if parent_pkg not in sys.modules:
+            sys.modules[parent_pkg] = types.ModuleType(parent_pkg)
+        if package_name not in sys.modules:
+            pkg_module = types.ModuleType(package_name)
+            pkg_module.__path__ = [os.path.join(self.root_dir, "scripts")]
+            pkg_module.__package__ = package_name
+            sys.modules[package_name] = pkg_module
+
+        # ロード実行
+        spec = importlib.util.spec_from_file_location(module_name, script_abs_path)
+        if spec is None:
+            raise ImportError(f"Could not load spec for {script_abs_path}")
+
+        module = importlib.util.module_from_spec(spec)
+        module.__package__ = package_name  # 相対インポートに必須
+        sys.modules[module_name] = module
+
+        spec.loader.exec_module(module)
+        return module
+
+    def get_tool(self):
+        """
+        このスキルに対応する ADK の FunctionTool オブジェクトをロード・構築して返します。
+        """
+        from google.adk.tools import FunctionTool
+
+        # モジュールをロード
+        skill_module = self.load()
+        process_func = getattr(skill_module, "process_message")
+
+        # 設計定義（design.json）から説明を取得
+        try:
+            design_data = self.load_design()
+            description = design_data.description
+        except Exception:
+            description = f"Execute {self.name} skill"
+
+        # 関数の属性を動的に書き換えることで、FunctionTool がツール名と説明を正しく解決できるようにする
+        process_func.__name__ = self.name.replace("-", "_")
+        process_func.__doc__ = description
+
+        return FunctionTool(func=process_func)

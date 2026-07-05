@@ -15,7 +15,7 @@ from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
 from google.genai import types
 
-from edd_agent_tools.registry import SkillDirectory
+from edd_agent_tools.skill import Skill
 from edd_agent_tools.docs import LibraryDocumentationReader
 from edd_agent_tools.gemini import GeminiRequest
 
@@ -27,12 +27,12 @@ class SkillDeveloperAgentExecutor:
                  skill_name: str,
                  prompt: str,
                  target_root_dir: str,
-                 coder_directory: SkillDirectory):
+                 coder_skill: Skill):
         self._skill_name = skill_name
         self._prompt = prompt
         self._target_root_dir = target_root_dir
         self._scripts_dir = os.path.join(self._target_root_dir, "scripts")
-        self._coder_directory = coder_directory
+        self._coder_skill = coder_skill
 
     async def execute(self, design_json_str: str) -> List[str]:
         """
@@ -42,7 +42,7 @@ class SkillDeveloperAgentExecutor:
         local_env = LocalEnvironment(working_dir=self._target_root_dir)
         reader = LibraryDocumentationReader(library_name="edd_agent_tools")
 
-        system_instruction_tmpl = self._coder_directory.load_asset("system_instruction.txt")
+        system_instruction_tmpl = self._coder_skill.load_asset("system_instruction.txt")
         instruction = system_instruction_tmpl.replace(
             "{skill_name}", self._skill_name
         ).replace(
@@ -69,7 +69,7 @@ class SkillDeveloperAgentExecutor:
         artifact_service = InMemoryArtifactService()
         session_id = str(uuid.uuid4())
 
-        user_prompt_tmpl = self._coder_directory.load_asset("user_prompt.txt")
+        user_prompt_tmpl = self._coder_skill.load_asset("user_prompt.txt")
         user_prompt = user_prompt_tmpl.format(
             skill_name=self._skill_name,
             prompt=self._prompt

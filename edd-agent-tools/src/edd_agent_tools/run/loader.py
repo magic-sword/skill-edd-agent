@@ -6,7 +6,7 @@ from edd_agent_tools.registry import SkillRegistry
 
 class SkillLoader:
     """
-    指定されたスキル名に基づいて、scripts/handler.py を動的インポートし、
+    指定されたスキル名に基づいて、scripts/__init__.py を動的ロードし、
     メタデータ、Inputスキーマ、process_message関数を抽出・検証するローダー。
     """
     def __init__(self, skill_name: str):
@@ -17,18 +17,19 @@ class SkillLoader:
     def load(self) -> Tuple[Dict[str, Any], Type[BaseModel], Any]:
         # 1. レジストリを介して対象モジュールを安全にロード
         registry = SkillRegistry()
-        self.skill_dir = registry.get_skill_dir(self.skill_name)
+        dir_obj = registry.get_skill(self.skill_name)
+        self.skill_dir = dir_obj.root_dir
         
         try:
-            self.handler_module = registry.load_handler(self.skill_name)
+            self.handler_module = dir_obj.load()
         except Exception as e:
-            raise ImportError(f"Failed to load handler for skill '{self.skill_name}': {e}")
+            raise ImportError(f"Failed to load skill for '{self.skill_name}': {e}")
             
         # 2. 必要なモジュール定義の存在確認と抽出
         if not hasattr(self.handler_module, "Input"):
-            raise AttributeError(f"'Input' schema class not defined in scripts/handler.py of '{self.skill_name}'.")
+            raise AttributeError(f"'Input' schema class not defined in scripts/__init__.py of '{self.skill_name}'.")
         if not hasattr(self.handler_module, "process_message"):
-            raise AttributeError(f"'process_message' function not defined in scripts/handler.py of '{self.skill_name}'.")
+            raise AttributeError(f"'process_message' function not defined in scripts/__init__.py of '{self.skill_name}'.")
             
         InputSchema = getattr(self.handler_module, "Input")
         process_message = getattr(self.handler_module, "process_message")

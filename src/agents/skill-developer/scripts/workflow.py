@@ -13,12 +13,12 @@ DEFAULT_MODEL = "gemini-2.5-flash"
 registry = SkillRegistry()
 
 # 統一ハンドラー経由のツールロード
-skill_manager_tool = registry.get_tools(["skill-manager"])[0]
-skill_generator_tool = registry.get_tools(["skill-generator"])[0]
-eval_unit_tester_tool = registry.get_tools(["eval-unit-tester"])[0]
-test_executor_tool = registry.get_tools(["test-executor"])[0]
-trigger_evaluator_tool = registry.get_tools(["trigger-evaluator"])[0]
-mock_executor_tool = registry.get_tools(["mock-executor"])[0]
+skill_manager_tool = registry.get_skill("skill-manager").get_tool()
+skill_generator_tool = registry.get_skill("skill-generator").get_tool()
+eval_unit_tester_tool = registry.get_skill("eval-unit-tester").get_tool()
+test_executor_tool = registry.get_skill("test-executor").get_tool()
+trigger_evaluator_tool = registry.get_skill("trigger-evaluator").get_tool()
+mock_executor_tool = registry.get_skill("mock-executor").get_tool()
 
 # ==========================================
 # 各ステップ専用エージェント（ノード）の定義

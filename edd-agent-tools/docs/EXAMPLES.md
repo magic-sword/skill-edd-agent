@@ -94,6 +94,6 @@ response = (client.request("指示プロンプト...")
 from edd_agent_tools.registry import SkillRegistry
 
 registry = SkillRegistry()
-# 相対インポートの競合なく、安全にハンドラーモジュールをロード
-handler_module = registry.load_handler("my-sample-skill")
+# 相対インポートの競合なく、安全にスキルパッケージをロード
+handler_module = registry.load_skill("my-sample-skill")
 ```

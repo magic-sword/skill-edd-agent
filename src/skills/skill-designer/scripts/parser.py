@@ -21,7 +21,9 @@ class ConstraintParser:
         existing_constraints_str = "なし"
         if skill_name:
             try:
-                InputSchema = self._registry.load_input_schema(skill_name)
+                skill_obj = self._registry.get_skill(skill_name)
+                skill_module = skill_obj.load() if skill_obj else None
+                InputSchema = getattr(skill_module, "Input", None) if skill_module else None
                 if InputSchema:
                     extracted = PydanticModelParser.parse_constraints(InputSchema)
                     if extracted:

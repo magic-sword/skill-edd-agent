@@ -17,12 +17,13 @@ if is_eval_mode:
     from google.adk import Agent
     from edd_agent_tools.registry import SkillRegistry
 
+    import os
     # 評価対象スキルの特定 (CLI引数 --skill と対称な環境変数 SKILL を使用)
     target_eval_skill = os.environ.get("SKILL")
 
     registry = SkillRegistry()
     skills_to_load = [target_eval_skill] if target_eval_skill else []
-    agent_tools = registry.get_tools(skills_to_load)
+    agent_tools = [registry.get_skill(name).get_tool() for name in skills_to_load]
 
     print(f"DEBUG: loaded_skills = {skills_to_load}", file=sys.stderr)
 

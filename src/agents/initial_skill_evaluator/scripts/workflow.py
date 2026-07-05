@@ -23,7 +23,7 @@ registry = SkillRegistry()
 @node(name="register_skill_node")
 def register_skill_node(tool_context: ToolContext):
     """評価対象のスキルをTier 0でレジストリに登録します。"""
-    handler = registry.load_handler("skill-manager")
+    handler = registry.get_skill("skill-manager").load()
     
     # パラメータオブジェクトを構築
     params = handler.Input(
@@ -39,7 +39,7 @@ def register_skill_node(tool_context: ToolContext):
 @node(name="run_trigger_tests_node")
 def run_trigger_tests_node(tool_context: ToolContext):
     """トリガーテストケースの実行を行います。"""
-    handler = registry.load_handler("mock-executor")
+    handler = registry.get_skill("mock-executor").load()
     
     params = handler.Input(
         skill=tool_context.state.get("skill"),
@@ -53,7 +53,7 @@ def run_trigger_tests_node(tool_context: ToolContext):
 @node(name="run_unit_tests_node")
 def run_unit_tests_node(tool_context: ToolContext):
     """ユニットテストの実行を行います。"""
-    handler = registry.load_handler("test-executor")
+    handler = registry.get_skill("test-executor").load()
     
     params = handler.Input(
         skill=tool_context.state.get("skill"),
@@ -67,7 +67,7 @@ def run_unit_tests_node(tool_context: ToolContext):
 @node(name="set_skill_tier_node")
 def set_skill_tier_node(tool_context: ToolContext):
     """評価結果が合格であれば、スキルのTierを1に更新します。"""
-    handler = registry.load_handler("skill-manager")
+    handler = registry.get_skill("skill-manager").load()
     
     params = handler.Input(
         command="set-tier",
@@ -85,14 +85,14 @@ def set_skill_tier_node(tool_context: ToolContext):
 generate_trigger_tests_agent = Agent(
     model=DEFAULT_MODEL,
     name="generate_trigger_tests_agent",
-    tools=registry.get_tools(["trigger-evaluator"]),
+    tools=[registry.get_skill("trigger-evaluator").get_tool()],
     instruction="登録したスキルのトリガーテストケースを自動生成してください。ユーザーに対するテキスト応答メッセージは一切出力せず、サイレントに完了してください。"
 )
 
 generate_unit_tests_agent = Agent(
     model=DEFAULT_MODEL,
     name="generate_unit_tests_agent",
-    tools=registry.get_tools(["eval-unit-tester"]),
+    tools=[registry.get_skill("eval-unit-tester").get_tool()],
     instruction="評価対象スキルのユニットテストケースを自動生成してください。ユーザーに対するテキスト応答メッセージは一切出力せず、サイレントに完了してください。"
 )
 

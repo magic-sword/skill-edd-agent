@@ -14,16 +14,16 @@ class TriggerEvaluator:
         self.tool_context = tool_context
         self.genai_client = genai_client
         self.registry = SkillRegistry()
-        # 自身のSkillDirectoryの解決
-        self.self_dir = self.registry.get_skill_directory(name="trigger-evaluator")
+        # 自身のSkillの解決
+        self.self_dir = self.registry.get_skill(name="trigger-evaluator")
 
     def execute(self, skill: str):
         if not skill:
             raise ValueError("エラー: skill がパラメータに指定されていません。")
 
-        # 対象スキルのSkillDirectory
+        # 対象スキルのSkill
         try:
-            target_dir = self.registry.get_skill_directory(name=skill)
+            target_dir = self.registry.get_skill(name=skill)
         except Exception as e:
             raise FileNotFoundError(f"対象スキル '{skill}' が見つかりません: {e}")
 
