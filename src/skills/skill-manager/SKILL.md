@@ -1,132 +1,75 @@
 ---
 name: skill-manager
-description: スキルのTier（Read-Only, Draft-Only, Action-Allowed）を管理し、権限ポリシーを取得・変更するためのスキル。
+description: スキルのTierおよびメタデータを一括管理・登録します。
 ---
 
-# スキル管理スキル
+# skill-manager
 
-このスキルは、ワークスペース内の各スキルの信頼性を示す「Tier」を一括管理します。また、各Tierに応じたツール利用権限のポリシーを提供し、エージェントが安全にツールを動作できるように支援します。
+## 概要
 
-## 管理対象のTier
-1. **Tier 1 (Read-Only)**: 安全な読み込みツールのみ許可。
-2. **Tier 2 (Draft-Only)**: 読み込みに加え、ファイルへのドラフト編集を許可（シェルの実行は不可）。
-3. **Tier 3 (Action-Allowed)**: 外部連携やシェルコマンド実行を含むすべての操作を許可。
+このスキル「skill-manager」は、AIエージェントの推論に依存せず、与えられた引数に基づいて決定論的なスクリプト処理を完結させる『tool』タイプのスキルです。その主な目的は、システム内の各種スキルの登録、Tier（階層）設定、およびメタデータ管理を一元的に行うことです。本スキルは、内部的に`skills_registry.json`ファイルと連携し、スキルの情報を維持・更新します。
+
+## 主要機能
+本スキルは、`command`引数を通じて以下の操作を実行できます。
+
+*   **スキルの登録 (`register`)**:
+    *   新しいスキルをシステムに登録し、デフォルトでTier 0を設定します。既に登録済みのスキルに対しては、その旨を通知し、現在のTierレベルを報告します。
+
+*   **スキルのTier取得 (`get-tier`)**:
+    *   指定されたスキルの現在のTierレベル（0, 1, 2, 3）を取得し、結果を返します。
+
+*   **スキルのTier設定 (`set-tier`)**:
+    *   指定されたスキルのTierレベルを0から3の範囲で設定または更新します。このTier設定は、後述のセキュリティ機能に直接影響を与える重要なパラメータです。
+
+*   **スキルの一覧表示 (`list`)**:
+    *   システムに登録されている全てのスキルとその詳細情報を一覧表示します。
+
+*   **メタデータの更新 (`update-meta`)**:
+    *   指定されたスキルのメタデータを更新します。
+
+## セキュリティ連携
+このスキルで設定されるTier情報は、システム全体のセキュリティメカニズムと密接に連携しています。具体的には、`security.py`モジュールが`skills_registry.json`と`policy.json`に基づいて、各スキルが利用できるツール（例: ファイル操作、他のスキル呼び出しなど）を動的にフィルタリングします。これにより、Tierが低いスキルにはより厳格なアクセス制限が適用され、システム全体の安全性が確保されます。
+
+## 動作原理
+本スキルは、`command`、`skill_name`、`tier`、`registry_path`といった引数を受け取り、内部のPythonロジック（`manage_skills_logic`）がこれらの引数に基づいて処理を実行します。`process_message`関数は、受け取った入力を検証し、ビジネスロジックに渡すアダプターとして機能します。また、`set_skill_tier`関数は、Tier設定に特化したラッパーであり、特定のワークフロー互換性のために一時ファイル出力も行います。
 
 ## トリガー条件
-以下のいずれかの表現または類似するユーザー指示によってスキルがトリガーされます。
 
-* 「スキルのTier情報を管理・表示して」
-* 「[スキル名] のTierを [1|2|3] に変更して」
-* 「現在の全スキルのTier一覧をリストアップして」
-* 「[スキル名] の現在のTierを取得して」
+- 新しいスキルをシステムに登録して
+- 〇〇スキルの現在のTierレベルを教えて
+- 〇〇スキルのTierを2に設定してください
+- 登録されているスキルを全て一覧表示して
+- 〇〇スキルのメタデータを更新して
+- スキル管理ツールを使って〇〇のTierを変更したい
 
-## 使用手順
+## AIエージェント向け使用方法
 
-1. **スキルの登録 / Tierの更新**:
-   エージェントまたは外部ワークフローは `scripts/main.py` を実行して、スキルのステータスを変更または取得します。
+### 1. 実行手順（Instructions）
 
-   * **新規スキルの登録**:
-     ```bash
-     python src/skills/skill-manager/scripts/main.py --command register --skill_name <スキル名>
-     ```
-   
-   * **Tierの変更 (昇格・降格)**:
-     ```bash
-     python src/skills/skill-manager/scripts/main.py --command set-tier --skill_name <スキル名> --tier <1|2|3>
-     ```
-   
-   * **現在のTierの取得**:
-     ```bash
-     python src/skills/skill-manager/scripts/main.py --command get-tier --skill_name <スキル名>
-     ```
-   
-   * **登録スキル一覧の表示**:
-     ```bash
-     python src/skills/skill-manager/scripts/main.py --command list
-     ```
+あなた（エージェント）がこのスキルをトリガーした場合は、以下の手順に従ってください。
 
-   * **メタデータのクリーンアップ・更新**:
-     ```bash
-     python src/skills/skill-manager/scripts/main.py --command update-meta --skill_name <スキル名>
-     ```
+1. 必要な入力パラメータ（`command`など）を決定します。
+2. 決定したパラメータを指定して、このスキルを起動してください。
+3. 実際の処理（API呼び出しやファイル出力など）は内部スクリプト側で完結するため、あなた自身が内部テンプレートを読み込んで推論したり、成果物を手動で組み立てたりする必要はありません。
 
-2. **エージェントからの動的権限制御 (Python API)**:
-   Pythonコードから `scripts/security.py` に含まれる API をインポートして使用することで、ADK のツールセットを Tier に応じて動的に制限できます。
 
-## 管理ファイルの構成
+### 2. 呼び出し方法
+- **インプロセス呼び出し (Python API)**: ロード関数 `process_message` を使用（状態の `validated_input` に `Input` スキーマを設定して実行）。
+- **サブプロセス呼び出し (CLI)**: CLIランナーを使用。
+  `python3 -m edd_agent_tools.cli.run skill-manager [オプション引数]`
+- **出力形式 (Output Mode)**: `VALUE_ONLY` (出力は単純なプレーンテキストの値のみとなります。)
 
-### 1. スキルレジストリ・メタファイル (`src/skills_registry.json`)
-全スキルの信頼性（Tier）および整合性を一括管理する中央メタファイル（Single Source of Truth）です。外部エージェントやポリシー制限モジュールは、このファイルを参照して各スキルの権限を動的に評価します。
+### 入力パラメータ
 
-#### ファイル構造と構成項目
-```json
-{
-  "skills": {
-    "skill-generator": {
-      "tier": 3,
-      "last_tested": "2026-06-30T08:30:00Z"
-    }
-  }
-}
-```
+| パラメータ名 | 型 | 必須 | 説明 |
+|---|---|---|---|
+| command | str | はい | 実行するコマンド ('register', 'get-tier', 'set-tier', 'list', 'update-meta') |
+| skill_name | str | いいえ | 対象のスキル名 |
+| tier | int | いいえ | 設定するTier (0, 1, 2, 3) |
+| registry_path | str | いいえ | レジストリファイルのカスタムパス |
 
-*   `skills`: 登録されているスキル名をキーとするオブジェクト。
-*   `tier`: スキルの現在の信頼度レベル（1 = Read-Only, 2 = Draft-Only, 3 = Action-Allowed）。
-*   `last_tested`: スキルに対するテスト（トリガー評価や機能テストなど）に最後に合格したタイムスタンプ。
+### 制約事項
 
-#### ライフサイクルと状態遷移ルール
-
-スキルのメタデータは、開発・運用のフェーズに応じて以下のように遷移します。
-
-1.  **初期登録 (新規スキルの追加)**
-    *   新しく生成されたスキルは、デフォルトで **Tier 1 (Read-Only)** として登録されます。
-2.  **試験合格による昇格 (Promotion)**
-    *   `trigger-evaluator` などの評価ツールでテストを実行し、業界基準の合格ライン（トリガー精度 90% 以上など）をクリアすると、Tierの昇格が許可されます。
-    *   昇格時に `last_tested` が現在時刻に更新されます。
-3.  **エントリーポイントの統一と完全性チェックの廃止**
-    *   メンテナンス性と実行速度を向上させるため、従来のファイルハッシュ比較による自動降格（Demotion）ルールは廃止されました。
-    *   すべてのスキル・エージェントは `scripts/main.py` に実行エントリーポイントが統一されており、セキュリティ上の制限は各Tierによるツールセット制御に基づいて静的に判断されます。
-
-### 2. 権限ポリシー定義 (`src/skills/skill-manager/assets/policy.json`)
-各Tierにおいてエージェントに許可するツールのリストを定義します。
-
-```json
-{
-  "tiers": {
-    "1": {
-      "name": "Read-Only",
-      "allowed_tools": ["read_file", "list_dir", "view_file", "load_skill", "load_skill_resource", "list_skills"]
-    },
-    "2": {
-      "name": "Draft-Only",
-      "allowed_tools": ["read_file", "list_dir", "view_file", "load_skill", "load_skill_resource", "list_skills", "write_file", "edit_file"]
-    },
-    "3": {
-      "name": "Action-Allowed",
-      "allowed_tools": ["*"]
-    }
-  }
-}
-```
-
-*   `allowed_tools`: 該当Tierで許可するツールの名前のリスト。`*` は全ツール（制限なし）を意味します。セキュリティフィルタはこの定義に基づいて、エージェントが利用可能なツールセットを動的にラップ・制限します。
-
-## AIエージェント向け使用方法 (FunctionTool)
-
-このスキルをエージェントにバインドして実行する際は、インプロセスの `set_skill_tier` 関数ツールを直接呼び出してください。
-
-### 共有セッション状態 (Session State) のインターフェース
-* **入力値の読み込み**:
-  * `skill_name`: 対象スキルの名前 (例: `my-skill`)
-  * `registry_path` (任意): レジストリファイルのパス (デフォルト: `/workspace/src/skills_registry.json`)
-* **出力値の書き込み**:
-  * `reg_out_json_path`: 登録結果の出力JSONファイルパスを格納します。
-
-### 呼び出し時のパラメータ
-* `command`: `"set-tier"`
-* `tier`: 登録するTierの数値 (`0`, `1`, `2`, `3`)
-
-### 出力形式の要件 (Output Mode)
-- **Output Mode: VALUE_ONLY**
-  Tierの設定完了に関する決定論的なステータスメッセージのみを返却します。
-
+- commandが'register', 'get-tier', 'set-tier', 'update-meta'のいずれかの場合、skill_nameは必須です。
+- commandが'set-tier'の場合、tierは必須です。
+- tierが指定される場合、0, 1, 2, 3のいずれかの整数である必要があります。

@@ -69,12 +69,6 @@ class ToolSpecWriter(BaseSpecWriter):
             
         t = Template(tmpl_content)
         
-        if self.source_code_dir:
-            script_file = os.path.basename(self.source_code_dir)
-            script_module_name, _ = os.path.splitext(script_file)
-        else:
-            script_module_name = self.name.replace("-", "_")
-        
         # 制約事項のレンダリング
         constraints_section = ""
         if self.design_data.constraints:
@@ -91,7 +85,6 @@ class ToolSpecWriter(BaseSpecWriter):
             execution_instructions=exec_instructions,
             output_mode=out_mode,
             output_mode_description=out_mode_desc,
-            script_module_name=script_module_name,
             input_parameters=params_str,
             constraints_section=constraints_section
         )

@@ -1,0 +1,41 @@
+{
+  "name": "skill-manager",
+  "description": "スキルのTierおよびメタデータを一括管理・登録します。",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "parameters": [
+    {
+      "name": "command",
+      "type": "str",
+      "description": "実行するコマンド ('register', 'get-tier', 'set-tier', 'list', 'update-meta')",
+      "required": true
+    },
+    {
+      "name": "skill_name",
+      "type": "str",
+      "description": "対象のスキル名",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "tier",
+      "type": "int",
+      "description": "設定するTier (0, 1, 2, 3)",
+      "required": false,
+      "default": null
+    },
+    {
+      "name": "registry_path",
+      "type": "str",
+      "description": "レジストリファイルのカスタムパス",
+      "required": false,
+      "default": null
+    }
+  ],
+  "dependencies": [],
+  "constraints": [
+    "commandが'register', 'get-tier', 'set-tier', 'update-meta'のいずれかの場合、skill_nameは必須です。",
+    "commandが'set-tier'の場合、tierは必須です。",
+    "tierが指定される場合、0, 1, 2, 3のいずれかの整数である必要があります。"
+  ]
+}

@@ -39,5 +39,8 @@
     }
   ],
   "dependencies": [],
-  "constraints": []
+  "constraints": [
+    "threshold_accuracyは0.0から1.0の範囲である必要があります。",
+    "eval_modeは0または1である必要があります。"
+  ]
 }

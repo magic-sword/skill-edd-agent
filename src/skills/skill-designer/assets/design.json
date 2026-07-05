@@ -1,6 +1,6 @@
 {
   "name": "skill-designer",
-  "description": "自然言語の要件や既存 of ソースコードからADK 2.0互換のdesign.jsonを設計して出力します。",
+  "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
   "parameters": [
@@ -14,13 +14,15 @@
       "name": "output_dir",
       "type": "str",
       "description": "生成されたdesign.jsonを保存するディレクトリのパス。省略時はnameから自動探索されます。",
-      "required": false
+      "required": false,
+      "default": null
     },
     {
       "name": "name",
       "type": "str",
       "description": "既存のスキル名。再設計時の自動探索キーとして使用されます。",
-      "required": false
+      "required": false,
+      "default": null
     },
     {
       "name": "source_code_dir",
@@ -31,5 +33,7 @@
     }
   ],
   "dependencies": [],
-  "constraints": []
+  "constraints": [
+    "output_dir と name のいずれか一方は必ず指定する必要があります。"
+  ]
 }
