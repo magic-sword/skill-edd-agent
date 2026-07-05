@@ -118,6 +118,12 @@ class BaseSpecWriter(ABC):
                 formatted_desc = self._format_parameter_description(param)
                 output_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
             output_params_section = "\n".join(output_table)
+        else:
+            # 構造化JSON以外の場合に、出力値のプレーンテキスト仕様を明記する
+            if self.design_data.output_mode == "VALUE_ONLY":
+                output_params_section = "### 出力値\n\nスキル実行結果を示す単一のテキストメッセージ（プレーンテキスト）が返されます。"
+            elif self.design_data.output_mode == "CONVERSATIONAL":
+                output_params_section = "### 出力値\n\nユーザーへの返答メッセージ（プレーンテキスト）が返されます。"
         
         # 決定論的な説明文の構築
         out_mode = self.design_data.output_mode
