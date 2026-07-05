@@ -29,6 +29,11 @@ class OutputMode(StrEnum):
     STRUCTURED_JSON = "STRUCTURED_JSON"
 
 
+class ModuleType(StrEnum):
+    SKILL = "skill"
+    WORKFLOW = "workflow"
+
+
 class Parameter(BaseModel):
     name: str = Field(..., description="パラメータの名前")
     type: str = Field(..., description="パラメータの型（例: 'str', 'int', 'bool', 'list'）")
@@ -66,6 +71,7 @@ class SkillDesign(BaseModel):
     name: str = Field(..., description="スキルの名前")
     description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明（L1 description用）")
     summary: str | None = Field(None, description="スキルの仕様概要（ビジネス目的や要求の要約）。仕様書（SKILL.md）の概要セクションにマッピングされます")
+    module_type: ModuleType = Field(ModuleType.SKILL, description="モジュールの役割分類（'skill' または 'workflow'）")
     execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
     output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
     parameters: list[Parameter] = Field(..., description="スキルが受け取るパラメータのリスト")
@@ -109,6 +115,7 @@ class SkillMetadata(BaseModel):
     name: str = Field(..., description="スキル名")
     tier: int = Field(0, description="スキルのTier（0から3）", ge=0, le=3)
     last_tested: str | None = Field(None, description="最後にテストされた時刻")
+    module_type: ModuleType = Field(ModuleType.SKILL, description="モジュールの役割分類（'skill' または 'workflow'）")
     execution_type: Literal["tool", "agent"] = Field("tool", description="実行タイプ。'tool' または 'agent'")
     description: str = Field("", description="スキルの目的や説明")
     dependencies: list[str] = Field([], description="依存スキルのリスト")

@@ -8,7 +8,7 @@ except ImportError:
 
 __version__ = "0.1.0"
 
-from .models import Parameter, SkillDesign, EvalRunResult, SkillMetadata
+from .models import Parameter, SkillDesign, EvalRunResult, SkillMetadata, ModuleType
 from .registry import SkillRegistry
 from .skill import Skill
 from .run.eval import ADKEvalRunner

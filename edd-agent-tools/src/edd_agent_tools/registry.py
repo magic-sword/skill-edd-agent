@@ -46,24 +46,21 @@ class SkillRegistry:
                 return cat, self.data[cat][name]
         return None, None
 
-    def detect_category(self, skill_name: str) -> str:
-        """指定されたスキル名/エージェント名が属するフォルダからカテゴリ(skills または agents)を判定します。"""
-        if self.data is None:
-            self._load()
-        search_paths = self.data.get("search_paths", ["src/skills"])
-        for path_entry in search_paths:
-            possible_dir = os.path.abspath(os.path.join(os.getcwd(), path_entry, skill_name))
-            if os.path.exists(possible_dir) and os.path.isdir(possible_dir):
-                if "agents" in path_entry:
-                    return "agents"
-        return "skills"  # デフォルト
+    # detect_category は廃止されました。Skill.metadata.module_type を参照して決定論的に判定してください。
 
     def register_skill(self, skill_name: str) -> bool:
         """スキルまたはエージェントを新規登録します（新規は常に Tier 0 から開始）。"""
         if self.data is None:
             self._load()
             
-        cat = self.detect_category(skill_name)
+        from edd_agent_tools.models import ModuleType
+        try:
+            skill_obj = self.get_skill(skill_name)
+            cat = "agents" if skill_obj.metadata.module_type == ModuleType.WORKFLOW else "skills"
+        except Exception:
+            # 物理フォルダ構成からの安全なフォールバック
+            cat = "skills"
+
         skills_info = self.data.setdefault(cat, {})
         if skill_name in skills_info:
             print(f"{cat[:-1].capitalize()} '{skill_name}' already registered. Current tier: {skills_info[skill_name].get('tier')}")
@@ -87,7 +84,12 @@ class SkillRegistry:
             
         cat, info = self._get_category_and_info(skill_name)
         if not cat:
-            cat = self.detect_category(skill_name)
+            from edd_agent_tools.models import ModuleType
+            try:
+                skill_obj = self.get_skill(skill_name)
+                cat = "agents" if skill_obj.metadata.module_type == ModuleType.WORKFLOW else "skills"
+            except Exception:
+                cat = "skills"
             
         skills_info = self.data.setdefault(cat, {})
         now_str = datetime.datetime.now().isoformat() + "Z"

@@ -22,10 +22,30 @@ class Skill:
             # 1. design.json から設計データをロード
             try:
                 design = self.load_design()
+                module_type = design.module_type
                 execution_type = design.execution_type
                 description = design.description
                 dependencies = design.dependencies
             except Exception:
+                import json
+                from edd_agent_tools.models import ModuleType
+                
+                # 物理配置または design.json の構造からワークフローを自動検出
+                has_workflow_indicator = False
+                try:
+                    if os.path.exists(self.design_path):
+                        with open(self.design_path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                            if "edges" in data or "agents" in data:
+                                has_workflow_indicator = True
+                except Exception:
+                    pass
+
+                if "src/agents" in self.root_dir or "/agents/" in self.root_dir or has_workflow_indicator:
+                    module_type = ModuleType.WORKFLOW
+                else:
+                    module_type = ModuleType.SKILL
+
                 execution_type = "tool"
                 description = ""
                 dependencies = []
@@ -36,6 +56,7 @@ class Skill:
                 name=self.name,
                 tier=self._tier,
                 last_tested=self._last_tested,
+                module_type=module_type,
                 execution_type=execution_type,
                 description=description,
                 dependencies=dependencies
