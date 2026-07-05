@@ -25,6 +25,7 @@ def process_message(params: Input, tool_context: ToolContext) -> Output:
     # ここで output_dir を更新する。元のparams.output_dirではなく解決されたパスを使用
     output_dir = resolved_paths["output_dir"]
     scan_target = resolved_paths["scan_target"]
+    skill_directory = resolved_paths["skill_directory"]
 
     # 2. 既存の制約事項を抽出
     constraint_parser = ConstraintParser()
@@ -34,7 +35,8 @@ def process_message(params: Input, tool_context: ToolContext) -> Output:
     gemini_client = GeminiDesignClient()
 
     # 4. プロンプトコンテンツ (GeminiRequest) の構築
-    design_prompter = DesignPrompter()
+    # DesignPrompterにskill_directoryを渡すように変更
+    design_prompter = DesignPrompter(skill_directory=skill_directory)
     request = design_prompter.build_request(
         client=gemini_client._client,
         requirement=requirement,

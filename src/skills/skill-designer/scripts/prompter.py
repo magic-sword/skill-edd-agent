@@ -2,15 +2,15 @@ import os
 from edd_agent_tools.registry import SkillRegistry
 from edd_agent_tools.docs import LibraryDocumentationReader
 from google.genai import types
+from edd_agent_tools.directory import SkillDirectory # SkillDirectoryをインポート
 
 class DesignPrompter:
     """
     スキル設計のためのプロンプト構築ロジックを提供します。
     """
-    def __init__(self):
-        self._registry = SkillRegistry()
-        designer_dir = self._registry.get_skill_directory("skill-designer")
-        self._prompt_tmpl = designer_dir.load_asset("prompt.txt")
+    def __init__(self, skill_directory: SkillDirectory): # SkillDirectoryを受け取るように変更
+        self._skill_directory = skill_directory
+        self._prompt_tmpl = self._skill_directory.load_asset("prompt.txt")
 
     def build_request(
         self, 
