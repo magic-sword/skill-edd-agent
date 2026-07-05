@@ -11,7 +11,7 @@ SKILL_METADATA = {
 }
 
 class Input(BaseModel):
-    skill_name: str = Field(..., description="開発対象のスキル名")
+    skill: str = Field(..., description="開発対象のスキル名")
     prompt: str = Field(..., description="開発するスキルの機能要件")
 
 def process_message(tool_context: ToolContext):
@@ -19,7 +19,7 @@ def process_message(tool_context: ToolContext):
     params: Input = tool_context.state.get("validated_input")
     
     # ロジックが期待するStateを設定
-    tool_context.state["skill_name"] = params.skill_name
+    tool_context.state["skill"] = params.skill
     tool_context.state["prompt"] = params.prompt
     
     # 既存のビジネスロジックを実行

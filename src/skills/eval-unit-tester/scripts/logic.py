@@ -29,11 +29,11 @@ class TestParameterSet(BaseModel):
     )
 
 
-def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
+def _generate_test_cases(skill: str, registry: SkillRegistry) -> str:
     """
     指定されたスキルに対して評価用の単体テストスイートを生成し、パスを返します。
     """
-    skill_dir_obj = registry.get_skill_directory(name=skill_name)
+    skill_dir_obj = registry.get_skill_directory(name=skill)
     skill_dir = skill_dir_obj.root_dir
     skill_content = skill_dir_obj.load_spec()
         
@@ -54,12 +54,12 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
     instruction_override = strategy.get_instruction_override()
 
     pydantic_schema_str = ""
-    InputSchema = registry.load_input_schema(skill_name)
+    InputSchema = registry.load_input_schema(skill)
     if InputSchema:
         try:
             pydantic_schema_str = json.dumps(InputSchema.model_json_schema(), ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Warning: Could not extract Pydantic schema for {skill_name}: {e}")
+            print(f"Warning: Could not extract Pydantic schema for {skill}: {e}")
     print(f"DEBUG: Pydantic Schema = {pydantic_schema_str}")
 
     prompt = prompt_template.replace(
@@ -122,7 +122,7 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
         print(response.text)
         raise e
         
-    skill_name_underscore = skill_name.replace('-', '_')
+    skill_name_underscore = skill.replace('-', '_')
     # ツール関数名を skill_name_underscore に変更
     tool_function_name = skill_name_underscore
     
@@ -131,7 +131,9 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
         eval_id = f"{skill_name_underscore}_happy_path_{i+1:03d}"
         
         input_args = case.input_parameters
-        if not isinstance(input_args, dict):
+        if hasattr(input_args, "model_dump"):
+            input_args = input_args.model_dump()
+        elif not isinstance(input_args, dict):
             input_args = {"text": str(input_args)}
 
         conversation_turn = {
@@ -185,8 +187,8 @@ def _generate_test_cases(skill_name: str, registry: SkillRegistry) -> str:
         
     eval_set_data = {
         "eval_set_id": f"{skill_name_underscore}_eval_set",
-        "name": f"{skill_name} evaluation set",
-        "description": f"{skill_name} skill unit tests",
+        "name": f"{skill} evaluation set",
+        "description": f"{skill} skill unit tests",
         "eval_cases": eval_cases
     }
 
@@ -210,14 +212,14 @@ def process_message(tool_context: ToolContext):
     """
     指定されたスキルに対して評価用の単体テストスイートを自動生成します。
     """
-    skill_name = tool_context.state.get("skill_name")
-    if not skill_name:
-        raise ValueError("Error: 'skill_name' is not set in tool_context.state.")
+    skill = tool_context.state.get("skill")
+    if not skill:
+        raise ValueError("Error: 'skill' is not set in tool_context.state.")
         
     registry = SkillRegistry()
     registry.load() # SkillRegistryをロード
     
-    eval_set_path = _generate_test_cases(skill_name, registry)
+    eval_set_path = _generate_test_cases(skill, registry)
     
     # 結果パスをセッション状態に保存
     tool_context.state["eval_set_path"] = eval_set_path

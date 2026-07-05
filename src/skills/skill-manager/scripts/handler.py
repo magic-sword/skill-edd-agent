@@ -12,7 +12,7 @@ SKILL_METADATA = {
 
 class Input(BaseModel):
     command: str = Field(..., description="実行するコマンド ('register', 'get-tier', 'set-tier', 'list', 'update-meta')")
-    skill_name: str | None = Field(None, description="対象のスキル名")
+    skill: str | None = Field(None, description="対象のスキル名")
     tier: int | None = Field(None, description="設定するTier (0, 1, 2, 3)")
     registry_path: str | None = Field(None, description="レジストリファイルのカスタムパス")
 
@@ -22,7 +22,7 @@ def process_message(tool_context: ToolContext):
     
     # ロジックが期待するStateを設定
     tool_context.state["command"] = params.command
-    tool_context.state["skill_name"] = params.skill_name
+    tool_context.state["skill"] = params.skill
     tool_context.state["tier"] = params.tier
     tool_context.state["registry_path"] = params.registry_path
     

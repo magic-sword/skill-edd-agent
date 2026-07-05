@@ -146,13 +146,13 @@ async def generate_skill_code(tool_context: ToolContext) -> str:
     指定された要件（prompt）に基づき、SkillDeveloperAgent を起動して
     新規スキルを自律生成します。
     """
-    skill_name = tool_context.state.get("skill_name")
+    skill = tool_context.state.get("skill")
     prompt = tool_context.state.get("prompt")
     
-    if not skill_name or not prompt:
-        raise ValueError("セッション状態に 'skill_name' または 'prompt' が設定されていません。")
+    if not skill or not prompt:
+        raise ValueError("セッション状態に 'skill' または 'prompt' が設定されていません。")
         
-    output_dir = os.path.abspath(f"/workspace/src/skills/{skill_name}")
+    output_dir = os.path.abspath(f"/workspace/src/skills/{skill}")
     model = "gemini-2.5-flash"
     max_turns = 15
     
@@ -169,7 +169,7 @@ async def generate_skill_code(tool_context: ToolContext) -> str:
     if not os.path.exists(skill_md_path):
         raise ValueError(f"Skill specification 'SKILL.md' was not generated at {skill_md_path}.")
         
-    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/02_gen_out.json"
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill}/02_gen_out.json"
     os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
     with open(output_json_path, "w", encoding="utf-8") as f:
         json.dump({
@@ -180,5 +180,5 @@ async def generate_skill_code(tool_context: ToolContext) -> str:
         
     tool_context.state["skill_dir"] = output_dir
     
-    return f"Success: Generated skill '{skill_name}' at '{output_dir}'."
+    return f"Success: Generated skill '{skill}' at '{output_dir}'."
 

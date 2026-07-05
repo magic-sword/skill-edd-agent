@@ -1,38 +1,36 @@
 {
   "name": "skill-generator",
-  "description": "ADKサブエージェントを動的に起動し、指定された要件に基づいてスキルを自律的に生成・実装します。",
+  "description": "ADKサブエージェントを動的に起動し、指定された要件に基づいてスキルコードを自律生成します。",
   "execution_type": "agent",
-  "output_mode": "VALUE_ONLY",
+  "output_mode": "CONVERSATIONAL",
   "parameters": [
     {
       "name": "output_dir",
       "type": "str",
-      "description": "生成されたスキルが出力されるディレクトリパス。このパスの末尾のディレクトリ名が生成されるスキル名として使用されます。例: src/skills/my-skill",
+      "description": "生成されたスキルが出力されるディレクトリのパス。例: src/skills/my-skill",
       "required": true
     },
     {
       "name": "prompt",
       "type": "str",
-      "description": "生成したいスキルの目的や要件を記述した詳細なプロンプト",
+      "description": "生成したいスキルの詳細な説明や要件。",
       "required": true
     },
     {
       "name": "model",
       "type": "str",
-      "description": "スキル生成に使用するLLMのモデル名",
+      "description": "スキル生成に使用するLLMのモデル名。",
       "required": false,
       "default": "gemini-2.5-flash"
     },
     {
       "name": "max_attempts",
       "type": "int",
-      "description": "サブエージェントがスキル生成を試行する最大ターン数",
+      "description": "スキル開発サブエージェントの最大試行（ターン）回数。",
       "required": false,
       "default": "15"
     }
   ],
   "dependencies": [],
-  "constraints": [
-    "output_dirは、スキル名として有効なケバブケース文字列を末尾に含むパスである必要があります。"
-  ]
+  "constraints": []
 }

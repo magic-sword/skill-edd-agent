@@ -28,7 +28,7 @@ def register_skill_node(tool_context: ToolContext):
     # パラメータオブジェクトを構築
     params = handler.Input(
         command="register",
-        skill_name=tool_context.state.get("skill_name"),
+        skill=tool_context.state.get("skill"),
         tier=0
     )
     
@@ -43,7 +43,7 @@ def run_trigger_tests_node(tool_context: ToolContext):
     handler = registry.load_handler("test-executor")
     
     params = handler.Input(
-        skill_name=tool_context.state.get("skill_name"),
+        skill=tool_context.state.get("skill"),
         eval_set_path=tool_context.state.get("trig_eval_set_path"),
         threshold_accuracy=0.90,
         eval_mode=0
@@ -59,7 +59,7 @@ def run_unit_tests_node(tool_context: ToolContext):
     handler = registry.load_handler("test-executor")
     
     params = handler.Input(
-        skill_name=tool_context.state.get("skill_name"),
+        skill=tool_context.state.get("skill"),
         eval_set_path=tool_context.state.get("eval_set_path"),
         threshold_accuracy=1.00,
         eval_mode=1
@@ -76,7 +76,7 @@ def set_skill_tier_node(tool_context: ToolContext):
     
     params = handler.Input(
         command="set-tier",
-        skill_name=tool_context.state.get("skill_name"),
+        skill=tool_context.state.get("skill"),
         tier=1
     )
     

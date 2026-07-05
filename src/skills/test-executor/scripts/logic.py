@@ -11,14 +11,14 @@ def process_message(tool_context: ToolContext):
     """
     ADK eval テストを実行し、結果を ToolContext.state に格納します。
     """
-    skill_name = tool_context.state.get("skill_name")
+    skill = tool_context.state.get("skill")
     eval_set_path = tool_context.state.get("eval_set_path")
     threshold_accuracy = tool_context.state.get("threshold_accuracy", 1.0)
     timeout_seconds = tool_context.state.get("timeout_seconds", 180)
     eval_mode = tool_context.state.get("eval_mode", 1)
 
-    if not skill_name or not eval_set_path:
-        raise ValueError("エラー: 'skill_name' と 'eval_set_path' は必須です。")
+    if not skill or not eval_set_path:
+        raise ValueError("エラー: 'skill' と 'eval_set_path' は必須です。")
         
     registry = SkillRegistry()
     skill_directory = registry.get_skill_directory(name="test-executor")
@@ -34,7 +34,7 @@ def process_message(tool_context: ToolContext):
 
         # 2. adk eval の実行
         stdout, stderr, return_code = test_runner.run_adk_eval(
-            skill_name=skill_name,
+            skill=skill,
             eval_set_path=eval_set_path,
             config_file_path=config_file_path,
             timeout_seconds=timeout_seconds,
@@ -108,7 +108,7 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
       eval_mode: 1 (単体テスト評価用) または 0 (トリガー評価用)
       threshold_accuracy: 合格に必要な精度の閾値（0.0〜1.0）
     """
-    skill_name = tool_context.state.get("skill_name")
+    skill = tool_context.state.get("skill")
     
     if eval_mode == 1:
         eval_set_path = tool_context.state.get("eval_set_path")
@@ -117,16 +117,16 @@ def run_skill_tests(eval_mode: int, threshold_accuracy: float, tool_context: Too
         eval_set_path = tool_context.state.get("trig_eval_set_path")
         step_name = "06_trig_exec"
         
-    if not skill_name or not eval_set_path:
-        raise ValueError("セッション状態に 'skill_name' または 'eval_set_path' / 'trig_eval_set_path' が設定されていません。")
+    if not skill or not eval_set_path:
+        raise ValueError("セッション状態に 'skill' または 'eval_set_path' / 'trig_eval_set_path' が設定されていません。")
         
-    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/{step_name}_out.json"
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill}/{step_name}_out.json"
     
     # 共通ランナー（edd-run）を用いたスキル CLI サブプロセス実行
     cmd_args = [
         sys.executable, "-m", "edd_agent_tools.cli.run",
         "test-executor",
-        "--skill_name", skill_name,
+        "--skill", skill,
         "--eval_set_path", eval_set_path,
         "--threshold_accuracy", str(threshold_accuracy),
         "--eval_mode", str(eval_mode),

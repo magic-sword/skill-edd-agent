@@ -11,7 +11,7 @@
       "required": true
     },
     {
-      "name": "name",
+      "name": "skill",
       "type": "str",
       "description": "対象のスキル名。design_pathが省略された場合の探索キー。",
       "required": false,
@@ -34,6 +34,6 @@
   ],
   "dependencies": [],
   "constraints": [
-    "name または design_path のいずれか一方が必須であること。"
+    "対象スキルを特定するために、'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。"
   ]
 }

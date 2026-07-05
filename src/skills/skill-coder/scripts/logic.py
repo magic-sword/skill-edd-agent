@@ -88,20 +88,20 @@ def process_message(tool_context: ToolContext):
     - SkillDeveloperAgent を起動して、オブジェクト指向で分割されたビジネスロジックコード（logic.py等）を段階的にコーディング。
     """
     prompt = tool_context.state.get("prompt")
-    name = tool_context.state.get("name")
+    skill = tool_context.state.get("skill")
     design_path = tool_context.state.get("design_path")
     output_dir = tool_context.state.get("output_dir")
     
     if not prompt:
         raise ValueError("必須パラメータ 'prompt' が指定されていません。")
-    if not name and not design_path:
-        raise ValueError("対象スキルを特定するために、'name' または 'design_path' のいずれか一方は必ず指定する必要があります。")
+    if not skill and not design_path:
+        raise ValueError("対象スキルを特定するために、'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。")
         
     registry = SkillRegistry()
     registry.load()
     
     design_path_fallback = os.path.abspath(design_path) if design_path else None
-    directory = registry.get_skill_directory(name=name, design_path=design_path_fallback)
+    directory = registry.get_skill_directory(name=skill, design_path=design_path_fallback)
     
     skill_name = directory.name
     target_root = os.path.abspath(output_dir or directory.root_dir)

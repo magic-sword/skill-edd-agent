@@ -19,7 +19,7 @@
   ],
   "parameters": [
     {
-      "name": "skill_name",
+      "name": "skill",
       "type": "str",
       "required": true,
       "help": "評価対象スキルの名前"
@@ -44,32 +44,32 @@
     {
       "name": "register_skill_agent",
       "tool": "skill-manager.set_skill_tier",
-      "instruction": "ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として command='register', tier=0 で set_skill_tier 関数を実行します。"
+      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として command='register', tier=0 で set_skill_tier 関数を実行します。"
     },
     {
       "name": "generate_trigger_tests_agent",
       "tool": "trigger-evaluator.generate_trigger_tests",
-      "instruction": "ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として generate_trigger_tests 関数を実行します。"
+      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として generate_trigger_tests 関数を実行します。"
     },
     {
       "name": "run_trigger_tests_agent",
       "tool": "test-executor.run_skill_tests",
-      "instruction": "ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として eval_mode=0, threshold_accuracy=0.90 で run_skill_tests 関数を実行します。"
+      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として eval_mode=0, threshold_accuracy=0.90 で run_skill_tests 関数を実行します。"
     },
     {
       "name": "generate_unit_tests_agent",
       "tool": "eval-unit-tester.generate_unit_tests",
-      "instruction": "ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として generate_unit_tests 関数を実行します。"
+      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として generate_unit_tests 関数を実行します。"
     },
     {
       "name": "run_unit_tests_agent",
       "tool": "test-executor.run_skill_tests",
-      "instruction": "ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として eval_mode=1, threshold_accuracy=1.0 で run_skill_tests 関数を実行します。"
+      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として eval_mode=1, threshold_accuracy=1.0 で run_skill_tests 関数を実行します。"
     },
     {
       "name": "set_skill_tier_agent",
       "tool": "skill-manager.set_skill_tier",
-      "instruction": "ToolContext から 'skill_name' と 'skill_id' を取得し、それらを引数として command='set-tier', tier=1 で set_skill_tier 関数を実行します。"
+      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として command='set-tier', tier=1 で set_skill_tier 関数を実行します。"
     }
   ]
 }

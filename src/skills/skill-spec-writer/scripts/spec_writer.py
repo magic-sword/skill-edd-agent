@@ -10,7 +10,7 @@ def process_message(tool_context: ToolContext):
     仕様書 (SKILL.md) を自動生成します。
     """
     design_path = tool_context.state.get("design_path")
-    name = tool_context.state.get("name")
+    skill = tool_context.state.get("skill")
     output_dir = tool_context.state.get("output_dir")
     source_code_dir = tool_context.state.get("source_code_dir")
 
@@ -22,7 +22,7 @@ def process_message(tool_context: ToolContext):
     registry.load()
 
     # 1. ディレクトリ構造の特定とメタデータのロード
-    directory = registry.get_skill_directory(name=name, design_path=design_path)
+    directory = registry.get_skill_directory(name=skill, design_path=design_path)
     design_data = directory.load_design()
 
     # 2. オプションパラメータのフォールバック解決

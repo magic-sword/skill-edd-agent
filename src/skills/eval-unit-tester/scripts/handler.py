@@ -11,7 +11,7 @@ SKILL_METADATA = {
 }
 
 class Input(BaseModel):
-    skill_name: str = Field(..., description='テストケースを生成する対象のスキル名')
+    skill: str = Field(..., description='テストケースを生成する対象のスキル名')
 
 def process_message(tool_context: ToolContext):
     # バリデーション済みのオブジェクトを取得

@@ -7,12 +7,12 @@
     {
       "name": "design_path",
       "type": "str",
-      "description": "design.json ファイルの直接のパス。省略された場合は name から自動探索します。",
+      "description": "design.json ファイルの直接のパス。省略された場合は skill から自動探索します。",
       "required": false,
       "default": null
     },
     {
-      "name": "name",
+      "name": "skill",
       "type": "str",
       "description": "対象の既存スキル名。design_path 省略時の自動探索キーとして使用されます。",
       "required": false,
@@ -35,6 +35,6 @@
   ],
   "dependencies": [],
   "constraints": [
-    "name と design_path のいずれか一方は必ず指定する必要があります。"
+    "skill と design_path のいずれか一方は必ず指定する必要があります。"
   ]
 }

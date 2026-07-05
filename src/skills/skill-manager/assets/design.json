@@ -11,7 +11,7 @@
       "required": true
     },
     {
-      "name": "skill_name",
+      "name": "skill",
       "type": "str",
       "description": "対象のスキル名",
       "required": false,
@@ -34,8 +34,11 @@
   ],
   "dependencies": [],
   "constraints": [
-    "commandが'register', 'get-tier', 'set-tier', 'update-meta'のいずれかの場合、skill_nameは必須です。",
-    "commandが'set-tier'の場合、tierは必須です。",
-    "tierが指定される場合、0, 1, 2, 3のいずれかの整数である必要があります。"
+    "commandパラメータは必須です。",
+    "commandが'register'の場合、skillパラメータは必須です。",
+    "commandが'get-tier'の場合、skillパラメータは必須です。",
+    "commandが'set-tier'の場合、skillとtierパラメータは必須です。",
+    "commandが'update-meta'の場合、skillパラメータは必須です。",
+    "tierパラメータが指定される場合、0, 1, 2, 3のいずれかの整数である必要があります。"
   ]
 }

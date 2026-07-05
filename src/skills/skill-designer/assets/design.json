@@ -13,12 +13,12 @@
     {
       "name": "output_dir",
       "type": "str",
-      "description": "生成されたdesign.jsonを保存するディレクトリのパス。省略時はnameから自動探索されます。",
+      "description": "生成されたdesign.jsonを保存するディレクトリのパス。省略時はskillから自動探索されます。",
       "required": false,
       "default": null
     },
     {
-      "name": "name",
+      "name": "skill",
       "type": "str",
       "description": "既存のスキル名。再設計時の自動探索キーとして使用されます。",
       "required": false,
@@ -34,6 +34,6 @@
   ],
   "dependencies": [],
   "constraints": [
-    "output_dir と name のいずれか一方は必ず指定する必要があります。"
+    "output_dir と skill のいずれか一方は必ず指定する必要があります。"
   ]
 }

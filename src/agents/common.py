@@ -40,7 +40,7 @@ def load_all_skills(exclude_system=False, target_eval_skill=None):
                 is_system = skill_name in system_skills
                 
                 # システムスキルの除外判定
-                if exclude_system and is_system:
+                if exclude_system and is_system and skill_name != target_eval_skill:
                     continue
                 
                 # 登録情報を取得
@@ -56,8 +56,8 @@ def load_all_skills(exclude_system=False, target_eval_skill=None):
                     
                 # 評価モード時の追加の除外ロジック
                 if is_eval_mode:
-                    if is_system:
-                        continue # システム開発スキルを排除
+                    if is_system and skill_name != target_eval_skill:
+                        continue # 評価対象でないシステム開発スキルを排除
                     if target_eval_skill and skill_name != target_eval_skill:
                         continue # 評価対象外の別スキルを排除して混同を防ぐ
                         

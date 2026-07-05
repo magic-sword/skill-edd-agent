@@ -19,14 +19,14 @@ from edd_agent_tools.testing.cli import SkillCommandLineRunner
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from workflow import root_workflow
 
-async def run_developer_workflow(skill_name: str, prompt: str, tool_context: ToolContext = None):
+async def run_developer_workflow(skill: str, prompt: str, tool_context: ToolContext = None):
     session_service = InMemorySessionService()
     artifact_service = InMemoryArtifactService()
     session_id = str(uuid.uuid4())
     
     # 初期セッション状態
     initial_state = {
-        "skill_name": skill_name,
+        "skill": skill,
         "prompt": prompt,
         "registry_path": "/workspace/src/skills_registry.json",
         "status": "running",
@@ -98,14 +98,14 @@ def develop_skill_logic(tool_context: ToolContext):
     """
     SkillCommandLineRunner およびインプロセスツールから呼び出されるビジネスロジック。
     """
-    skill_name = tool_context.state.get("skill_name")
+    skill = tool_context.state.get("skill")
     prompt = tool_context.state.get("prompt")
     
-    if not skill_name or not prompt:
-        raise ValueError("Error: 'skill_name' and 'prompt' are required.")
+    if not skill or not prompt:
+        raise ValueError("Error: 'skill' and 'prompt' are required.")
         
     # 非同期実行
-    result = asyncio.run(run_developer_workflow(skill_name, prompt, tool_context))
+    result = asyncio.run(run_developer_workflow(skill, prompt, tool_context))
     
     tool_context.state.update({
         "status": "success",

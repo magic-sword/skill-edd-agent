@@ -17,7 +17,7 @@ DEFAULT_REGISTRY_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..
 def manage_skills_logic(tool_context: ToolContext):
     """スキル登録・管理のメインビジネスロジック"""
     command = tool_context.state.get("command")
-    skill_name = tool_context.state.get("skill_name")
+    skill = tool_context.state.get("skill")
     tier = tool_context.state.get("tier")
     registry_path = tool_context.state.get("registry_path") or DEFAULT_REGISTRY_PATH
 
@@ -33,48 +33,48 @@ def manage_skills_logic(tool_context: ToolContext):
 
     try:
         if command == "register":
-            if not skill_name:
-                raise ValueError("skill_name is required")
-            registered = registry.register_skill(skill_name)
+            if not skill:
+                raise ValueError("skill is required")
+            registered = registry.register_skill(skill)
             if registered:
-                message = f"Registered skill '{skill_name}' at Tier 0."
+                message = f"Registered skill '{skill}' at Tier 0."
             else:
                 registry_data = registry.load()
-                skill_info = registry_data.get("skills", {}).get(skill_name) or registry_data.get("agents", {}).get(skill_name)
+                skill_info = registry_data.get("skills", {}).get(skill) or registry_data.get("agents", {}).get(skill)
                 current_tier = skill_info["tier"] if skill_info else 0
-                message = f"Skill '{skill_name}' already registered at Tier {current_tier}."
+                message = f"Skill '{skill}' already registered at Tier {current_tier}."
         elif command == "get-tier":
-            if not skill_name:
-                raise ValueError("skill_name is required")
+            if not skill:
+                raise ValueError("skill is required")
             registry_data = registry.load()
-            skill_info = registry_data.get("skills", {}).get(skill_name) or registry_data.get("agents", {}).get(skill_name)
+            skill_info = registry_data.get("skills", {}).get(skill) or registry_data.get("agents", {}).get(skill)
             current_tier = skill_info["tier"] if skill_info else 1
             print(current_tier)
             result_data["tier"] = current_tier
-            message = f"Got tier {current_tier} for skill/agent '{skill_name}'."
+            message = f"Got tier {current_tier} for skill/agent '{skill}'."
         elif command == "set-tier":
-            if not skill_name or tier is None:
-                raise ValueError("skill_name and tier are required")
+            if not skill or tier is None:
+                raise ValueError("skill and tier are required")
             try:
                 tier = int(tier)
             except ValueError:
                 pass
-            updated = registry.set_tier(skill_name, tier)
+            updated = registry.set_tier(skill, tier)
             if updated:
-                message = f"Set tier of '{skill_name}' to {tier}."
+                message = f"Set tier of '{skill}' to {tier}."
             else:
                 registry_data = registry.load()
-                skill_info = registry_data.get("skills", {}).get(skill_name) or registry_data.get("agents", {}).get(skill_name)
+                skill_info = registry_data.get("skills", {}).get(skill) or registry_data.get("agents", {}).get(skill)
                 current_tier = skill_info["tier"] if skill_info else 0
-                message = f"Skipped promotion to Tier {tier} for '{skill_name}' (current tier is {current_tier})."
+                message = f"Skipped promotion to Tier {tier} for '{skill}' (current tier is {current_tier})."
         elif command == "list":
             registry.list_skills()
             message = "Listed all skills."
         elif command == "update-meta":
-            if not skill_name:
-                raise ValueError("skill_name is required")
-            registry.update_meta(skill_name)
-            message = f"Updated metadata for skill '{skill_name}'."
+            if not skill:
+                raise ValueError("skill is required")
+            registry.update_meta(skill)
+            message = f"Updated metadata for skill '{skill}'."
         else:
             raise ValueError(f"Unknown command: {command}")
     except Exception as e:
@@ -86,7 +86,7 @@ def manage_skills_logic(tool_context: ToolContext):
     tool_context.state.update({
         "status": status,
         "message": message,
-        "skill_name": skill_name,
+        "skill": skill,
         **result_data
     })
 
@@ -101,23 +101,23 @@ def set_skill_tier(command: str, tier: int, tool_context: ToolContext) -> str:
     tool_context.state["command"] = command
     tool_context.state["tier"] = tier
     
-    skill_name = tool_context.state.get("skill_name")
+    skill = tool_context.state.get("skill")
     
     manage_skills_logic(tool_context)
     
     # ワークフロー固有の一時ファイル出力 (互換性のため)
-    output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/01_reg_out.json"
+    output_json_path = f"/workspace/src/.workflow_tmp/{skill}/01_reg_out.json"
     if tier == 1:
-        output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/07_final_reg_out.json"
+        output_json_path = f"/workspace/src/.workflow_tmp/{skill}/07_final_reg_out.json"
         
-    final_message = tool_context.state.get("message", f"Set tier of '{skill_name}' to {tier}.")
+    final_message = tool_context.state.get("message", f"Set tier of '{skill}' to {tier}.")
         
     os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
     with open(output_json_path, "w", encoding="utf-8") as f:
         json.dump({
             "status": tool_context.state.get("status", "success"),
             "message": final_message,
-            "skill_name": skill_name
+            "skill": skill
         }, f, indent=2, ensure_ascii=False)
         
     tool_context.state["reg_out_json_path"] = output_json_path

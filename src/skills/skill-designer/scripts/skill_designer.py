@@ -12,7 +12,7 @@ def process_message(tool_context: ToolContext):
     """
     requirement = tool_context.state.get("requirement")
     output_dir = tool_context.state.get("output_dir")
-    name = tool_context.state.get("name")
+    skill = tool_context.state.get("skill")
     source_code_dir = tool_context.state.get("source_code_dir")
 
     from edd_agent_tools.registry import SkillRegistry
@@ -21,10 +21,10 @@ def process_message(tool_context: ToolContext):
 
     # 1. スキルフォルダの解決
     design_path_fallback = None
-    if not name and output_dir:
+    if not skill and output_dir:
         design_path_fallback = os.path.join(os.path.abspath(output_dir), "assets", "design.json")
 
-    directory = registry.get_skill_directory(name=name, design_path=design_path_fallback)
+    directory = registry.get_skill_directory(name=skill, design_path=design_path_fallback)
     existing_name = directory.name
 
     output_dir = os.path.abspath(output_dir or directory.root_dir)
@@ -67,28 +67,38 @@ def process_message(tool_context: ToolContext):
     try:
         reader = LibraryDocumentationReader(library_name="edd_agent_tools")
         docs_content = reader.read_documentation()
-        builder.add_text_part(
-            text=f"=== プロジェクト共通開発規約 ===\n{docs_content}",
-            display_name="README.md"
-        )
+        builder.parts.append(f"=== プロジェクト共通開発規約 ===\n{docs_content}")
     except Exception as e:
         print(f"Info: Could not load README.md in designer: {e}")
         
     contents = builder.build()
 
-    # Gemini API の呼び出し
+    # Gemini API の呼び出し（一時的な503エラーに対するリトライ処理を追加）
     from edd_agent_tools.gemini import get_gemini_client
     client = get_gemini_client()
     
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=contents,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=SkillDesign,
-            temperature=0.1
-        )
-    )
+    import time
+    max_retries = 3
+    retry_delay = 2
+    response = None
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=SkillDesign,
+                    temperature=0.1
+                )
+            )
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise e
+            print(f"Gemini API 呼び出しエラー (試行 {attempt + 1}/{max_retries}): {e}。{retry_delay}秒後に再試行します...")
+            time.sleep(retry_delay)
+            retry_delay *= 2
 
     # レスポンスのパースとdesign.json of 保存
     design_data = json.loads(response.text)

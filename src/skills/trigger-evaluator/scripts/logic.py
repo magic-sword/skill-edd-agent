@@ -18,17 +18,17 @@ class TriggerEvaluator:
         self.self_dir = self.registry.get_skill_directory(name="trigger-evaluator")
 
     def execute(self):
-        skill_name = self.tool_context.state.get("skill_name")
-        if not skill_name:
-            raise ValueError("エラー: skill_name がセッション状態に設定されていません。")
+        skill = self.tool_context.state.get("skill")
+        if not skill:
+            raise ValueError("エラー: skill がセッション状態に設定されていません。")
 
         # 対象スキルのSkillDirectory
         try:
-            target_dir = self.registry.get_skill_directory(name=skill_name)
+            target_dir = self.registry.get_skill_directory(name=skill)
         except Exception as e:
-            raise FileNotFoundError(f"対象スキル '{skill_name}' が見つかりません: {e}")
+            raise FileNotFoundError(f"対象スキル '{skill}' が見つかりません: {e}")
 
-        print(f"スキル '{skill_name}' のトリガーアセット生成を開始します。\n")
+        print(f"スキル '{skill}' のトリガーアセット生成を開始します。\n")
 
         status = "success"
         message = "Successfully generated trigger test assets."
@@ -39,21 +39,21 @@ class TriggerEvaluator:
             try:
                 skill_md_content = target_dir.load_spec()
             except FileNotFoundError as e:
-                raise FileNotFoundError(f"対象スキル '{skill_name}' のSKILL.mdファイルが見つかりません: {e}")
+                raise FileNotFoundError(f"対象スキル '{skill}' のSKILL.mdファイルが見つかりません: {e}")
 
             # 第1ゲート: 静的評価
-            static_eval_result = self.static_evaluate_skill_md(skill_name, skill_md_content)
+            static_eval_result = self.static_evaluate_skill_md(skill, skill_md_content)
             if not static_eval_result["passed"]:
                 raise ValueError(f"トリガー静的評価不合格 (Specificity: {static_eval_result.get('specificity')}, Clarity: {static_eval_result.get('clarity')})")
 
             # 第2ゲート: テストケース生成
-            eval_set_filepath = self.generate_trigger_test_cases(skill_name, skill_md_content, target_dir)
+            eval_set_filepath = self.generate_trigger_test_cases(skill, skill_md_content, target_dir)
             if not eval_set_filepath:
                 raise ValueError("テストケース生成に失敗しました。")
 
             # 全体合格とレポート保存
-            print(f"🎉 スキル '{skill_name}' のトリガー評価用テストアセットを正常に生成しました！")
-            self.save_report(skill_name, static_eval_result, eval_set_filepath, target_dir)
+            print(f"🎉 スキル '{skill}' のトリガー評価用テストアセットを正常に生成しました！")
+            self.save_report(skill, static_eval_result, eval_set_filepath, target_dir)
             print("アセット生成プロセスが正常に完了しました。")
 
         except Exception as e:
@@ -71,7 +71,7 @@ class TriggerEvaluator:
         if status == "success":
             self.tool_context.state["trig_eval_set_path"] = eval_set_filepath
             # ワークフロー用の固固有時フォルダへの書き出し (互換性のため)
-            output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/05_trig_gen_out.json"
+            output_json_path = f"/workspace/src/.workflow_tmp/{skill}/05_trig_gen_out.json"
             os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
             with open(output_json_path, "w", encoding="utf-8") as f:
                 json.dump({
@@ -82,9 +82,9 @@ class TriggerEvaluator:
         else:
             raise RuntimeError(message)
 
-    def static_evaluate_skill_md(self, skill_name: str, skill_md_content: str) -> dict:
+    def static_evaluate_skill_md(self, skill: str, skill_md_content: str) -> dict:
         """第1ゲート: SKILL.mdの静的評価（具体性、明確性）"""
-        print(f"[第1ゲート] スキル '{skill_name}' のSKILL.mdを静的評価中...\n")
+        print(f"[第1ゲート] スキル '{skill}' のSKILL.mdを静的評価中...\n")
 
         # アセットのロード (os.path.joinのハードコード全廃)
         static_prompt_template = self.self_dir.load_asset("static_eval_prompt.txt")
@@ -124,14 +124,14 @@ class TriggerEvaluator:
             print(f"  => 静的評価中にエラーが発生しました: {e}\n")
             return {"specificity": 0, "clarity": 0, "passed": False, "error": str(e)}
 
-    def generate_trigger_test_cases(self, skill_name: str, skill_md_content: str, target_dir) -> str:
+    def generate_trigger_test_cases(self, skill: str, skill_md_content: str, target_dir) -> str:
         """第2ゲート: トリガー評価用のテストケース自動生成"""
-        print(f"[第2ゲート] スキル '{skill_name}' のトリガー評価用テストケースを生成中...\n")
+        print(f"[第2ゲート] スキル '{skill}' のトリガー評価用テストケースを生成中...\n")
 
         test_gen_prompt_template = self.self_dir.load_asset("test_case_gen_prompt.txt")
 
         prompt = test_gen_prompt_template.replace(
-            "{skill_name}", skill_name
+            "{skill}", skill
         ).replace(
             "{skill_md_content}", skill_md_content
         )
@@ -166,7 +166,7 @@ class TriggerEvaluator:
                                     {
                                         "name": "load_skill",
                                         "args": {
-                                            "skill_name": skill_name
+                                            "skill_name": skill
                                         }
                                     }
                                 ]
@@ -197,8 +197,8 @@ class TriggerEvaluator:
                 })
 
             eval_set_data = {
-                "eval_set_id": f"{skill_name}_trigger_eval_set",
-                "name": f"{skill_name} Trigger Evaluation Set",
+                "eval_set_id": f"{skill}_trigger_eval_set",
+                "name": f"{skill} Trigger Evaluation Set",
                 "eval_cases": eval_cases
             }
 
@@ -222,12 +222,12 @@ class TriggerEvaluator:
             print(f"  => テストケース生成中にエラーが発生しました: {e}\n")
             return None
 
-    def save_report(self, skill_name: str, static_eval_result: dict, generated_cases_file: str, target_dir):
+    def save_report(self, skill: str, static_eval_result: dict, generated_cases_file: str, target_dir):
         """詳細レポートを保存します。"""
         now_str = datetime.now().isoformat() + "Z"
         report_filepath = os.path.join(target_dir.root_dir, "tests", "trigger_eval_report.json")
         report_data = {
-            "skill_name": skill_name,
+            "skill": skill,
             "static_evaluation": static_eval_result,
             "generated_cases_file": generated_cases_file,
             "status": "PASSED" if static_eval_result.get("passed") else "FAILED",

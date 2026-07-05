@@ -1,11 +1,11 @@
 {
   "name": "trigger-evaluator",
-  "description": "指定されたスキルのトリガー条件を静的評価し、トリガー評価用テストケースを自動生成します。",
+  "description": "指定されたスキルのSKILL.md内のトリガー条件の静的評価、およびトリガー評価用テストケースの自動生成を行います。",
   "execution_type": "tool",
   "output_mode": "VALUE_ONLY",
   "parameters": [
     {
-      "name": "skill_name",
+      "name": "skill",
       "type": "str",
       "description": "評価対象のスキル名",
       "required": true,
@@ -13,5 +13,7 @@
     }
   ],
   "dependencies": [],
-  "constraints": []
+  "constraints": [
+    "評価対象のスキル名 (skill) は、システムに登録されており、かつSKILL.mdファイルが存在する必要があります。"
+  ]
 }

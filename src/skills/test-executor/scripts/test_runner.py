@@ -6,7 +6,7 @@ from typing import Tuple
 class TestRunner:
     def run_adk_eval(
         self,
-        skill_name: str,
+        skill: str,
         eval_set_path: str,
         config_file_path: str,
         timeout_seconds: int,
@@ -16,7 +16,7 @@ class TestRunner:
         """
         adk eval コマンドをサブプロセスとして実行します。
         """
-        print(f"Running test-executor for skill: {skill_name}")
+        print(f"Running test-executor for skill: {skill}")
         print(f"Eval set: {eval_set_path}")
         print(f"Threshold accuracy: (handled by logic.py), Timeout: {timeout_seconds}s, Eval mode: {eval_mode}")
 
@@ -25,7 +25,8 @@ class TestRunner:
             "HOME": "/home/vscode",
             "PATH": os.environ.get("PATH", "/workspace/.venv/bin:/usr/local/bin:/usr/bin:/bin"),
             "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
-            "ADK_EVAL_MODE": str(eval_mode)
+            "ADK_EVAL_MODE": str(eval_mode),
+            "TARGET_EVAL_SKILL": skill
         }
         
         # 評価エンジンのための多言語パッチ環境変数の構成

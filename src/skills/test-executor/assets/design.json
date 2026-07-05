@@ -5,7 +5,7 @@
   "output_mode": "VALUE_ONLY",
   "parameters": [
     {
-      "name": "skill_name",
+      "name": "skill",
       "type": "str",
       "description": "テスト対象のスキル名。",
       "required": true
@@ -40,7 +40,7 @@
   ],
   "dependencies": [],
   "constraints": [
-    "threshold_accuracyは0.0から1.0の範囲である必要があります。",
-    "eval_modeは0または1である必要があります。"
+    "threshold_accuracy は 0.0 から 1.0 の範囲である必要があります。",
+    "eval_mode は 0 または 1 のいずれかである必要があります。"
   ]
 }
