@@ -15,7 +15,7 @@ class DesignPrompter:
     def build_request(
         self, 
         client,
-        requirement: str, 
+        prompt: str, 
         existing_name: str | None, 
         existing_constraints: str, 
         scan_target: str | None,
@@ -27,7 +27,7 @@ class DesignPrompter:
         existing_name_str = existing_name or "なし"
         formatted_prompt = self._prompt_tmpl.format(
             existing_name=existing_name_str,
-            requirement=requirement,
+            prompt=prompt,
             existing_constraints=existing_constraints
         )
 

@@ -47,8 +47,14 @@ class SkillExecutor:
         generated_files_by_generator = code_generator.generate_all()
                 
         # 3. SkillDeveloperAgent の起動とコーディング実行
+        # design.json 内の summary (仕様概要) とユーザーの prompt (実装のこだわり) をマージ
+        full_prompt = ""
+        if getattr(design_data, "summary", None):
+            full_prompt = f"=== 基本仕様概要（What） ===\n{design_data.summary}\n\n"
+        full_prompt += f"=== 今回の実装・改修要望（How） ===\n{prompt}"
+
         agent_executor = SkillDeveloperAgentExecutor(skill_name=skill_name,
-                                                     prompt=prompt,
+                                                     prompt=full_prompt,
                                                      target_root_dir=target_root,
                                                      coder_directory=coder_directory)
         generated_files_by_agent = asyncio.run(agent_executor.execute(design_json_str))

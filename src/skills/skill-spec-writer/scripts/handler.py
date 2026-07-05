@@ -1,6 +1,6 @@
 from google.adk.tools import ToolContext
 from .models import Input, Output
-from .logic import process_message as run_logic
+from .executor import SkillExecutor
 
 SKILL_METADATA = {
     "name": "skill-spec-writer",
@@ -12,6 +12,7 @@ SKILL_METADATA = {
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
     # ビジネスロジックを呼び出す
-    result = run_logic(params, tool_context)
+    executor = SkillExecutor(params, tool_context)
+    result = executor.execute()
     # result が Output インスタンスであることを想定して model_dump_json を呼び出す
     return result.model_dump_json(by_alias=True)

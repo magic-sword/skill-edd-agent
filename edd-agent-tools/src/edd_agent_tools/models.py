@@ -41,6 +41,7 @@ class SkillDesign(BaseModel):
     """
     name: str = Field(..., description="スキルの名前")
     description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明（L1 description用）")
+    summary: str | None = Field(None, description="スキルの仕様概要（ビジネス目的や要求の要約）。仕様書（SKILL.md）の概要セクションにマッピングされます")
     execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
     output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
     parameters: list[Parameter] = Field(..., description="スキルが受け取るパラメータのリスト")

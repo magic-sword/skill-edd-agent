@@ -8,8 +8,8 @@ class ToolSkillTextParts(BaseSkillTextParts):
     workflow_steps: list[str] = Field(..., description="このスキルが呼び出されたときに内部で実行する具体的な処理手順のリスト。")
 
 class ToolSpecWriter(BaseSpecWriter):
-    def __init__(self, design_data, source_code_dir: str, tool_context):
-        super().__init__(design_data, source_code_dir, tool_context)
+    def __init__(self, design_data, source_code_dir: str, tool_context, prompt: str | None = None):
+        super().__init__(design_data, source_code_dir, tool_context, prompt)
 
     def get_pydantic_schema(self):
         return ToolSkillTextParts

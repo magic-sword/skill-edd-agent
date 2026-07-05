@@ -43,7 +43,8 @@ class SpecGenerator:
                 execution_type=design_data.execution_type,
                 design_data=design_data,
                 source_code_dir=scan_target,
-                tool_context=self.tool_context
+                tool_context=self.tool_context,
+                prompt=self.params.prompt
             )
             
             output_file_path = writer.generate(output_dir)

@@ -7,8 +7,8 @@ class AgentSkillTextParts(BaseSkillTextParts):
     workflow_steps: list[str] = Field(..., description="このスキルが呼び出されたときにエージェント（LLM）が辿る具体的な推論思考プロセスや処理ステップのリスト。")
 
 class AgentSpecWriter(BaseSpecWriter):
-    def __init__(self, design_data, source_code_dir: str, tool_context):
-        super().__init__(design_data, source_code_dir, tool_context)
+    def __init__(self, design_data, source_code_dir: str, tool_context, prompt: str | None = None):
+        super().__init__(design_data, source_code_dir, tool_context, prompt)
 
     def get_pydantic_schema(self):
         return AgentSkillTextParts

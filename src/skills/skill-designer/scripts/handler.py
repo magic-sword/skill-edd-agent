@@ -1,6 +1,6 @@
 from google.adk.tools import ToolContext
 from .models import Input, Output
-from .logic import process_message as run_logic
+from .executor import SkillExecutor
 
 SKILL_METADATA = {
     "name": "skill-designer",
@@ -12,7 +12,8 @@ SKILL_METADATA = {
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
     # ビジネスロジックを呼び出す
-    result = run_logic(params, tool_context)
+    executor = SkillExecutor(params, tool_context)
+    result = executor.execute()
     if isinstance(result, Output):
         if SKILL_METADATA.get("output_mode") in ("VALUE_ONLY", "CONVERSATIONAL"):
             return result.value

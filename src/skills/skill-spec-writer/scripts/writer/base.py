@@ -17,11 +17,12 @@ class BaseSkillTextParts(BaseModel):
     trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
 class BaseSpecWriter(ABC):
-    def __init__(self, design_data: SkillDesign, source_code_dir: str, tool_context: ToolContext):
+    def __init__(self, design_data: SkillDesign, source_code_dir: str, tool_context: ToolContext, prompt: str | None = None):
         self.design_data = design_data
         self.name = design_data.name
         self.source_code_dir = source_code_dir
         self.tool_context = tool_context
+        self.prompt = prompt
         
         from edd_agent_tools import GeminiClient
         self.client = GeminiClient()
@@ -79,10 +80,13 @@ class BaseSpecWriter(ABC):
     def render_markdown(self, text_parts) -> str:
         """Markdown ドキュメントを構築する"""
         from string import Template
-
+ 
         # 決定論的な概要（Overview）の組み立て
+        # design.json に summary (仕様概要) があればそれを最優先とし、なければLLM抽出の purpose を使う
+        purpose_str = getattr(self.design_data, "summary", None) or text_parts.purpose
+
         overview_lines = [
-            text_parts.purpose,
+            purpose_str,
             "\n### 主な機能",
             "\n".join([f"* {f}" for f in text_parts.features]),
             "\n### 内部処理の流れ",
@@ -182,6 +186,9 @@ class BaseSpecWriter(ABC):
         prompt_tmpl = writer_dir.load_asset("prompt_common.txt")
             
         prompt = self.build_prompt(prompt_tmpl)
+        if self.prompt:
+            prompt = f"{prompt}\n\n=== ユーザーからの仕様書生成に関する追加のこだわり指示（最優先） ===\n{self.prompt}"
+            
         schema = self.get_pydantic_schema()
         
         # GeminiRequestを用いてマルチパーツ添付を構築

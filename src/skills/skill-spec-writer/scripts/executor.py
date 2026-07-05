@@ -14,6 +14,4 @@ class SkillExecutor:
         generator = SpecGenerator(self.params, self.tool_context)
         return generator.generate()
 
-def process_message(params: Input, tool_context: ToolContext) -> Output:
-    executor = SkillExecutor(params, tool_context)
-    return executor.execute()
+

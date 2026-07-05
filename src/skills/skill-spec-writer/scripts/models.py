@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 class Input(BaseModel):
+    prompt: str | None = Field(None, description='仕様書生成における、特別に明記したい追加の表現上のこだわりや注意点などの指示。')
     design_path: str | None = Field(None, description='design.json ファイルの直接のパス。省略された場合は skill から自動探索します。')
     skill: str | None = Field(None, description='対象の既存スキル名。design_path 省略時の自動探索キーとして使用されます。')
     output_dir: str | None = Field(None, description='生成されたSKILL.mdを保存するディレクトリのパス。省略時は対象スキルのディレクトリに出力されます。')
