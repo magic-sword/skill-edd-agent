@@ -197,7 +197,8 @@ def _generate_test_cases(skill: str, registry: SkillRegistry) -> str:
         "eval_cases": eval_cases
     }
 
-    eval_set_path = skill_dir_obj.save_eval_set(eval_set_data, test_type="unit")
+    eval_obj = skill_obj.get_eval("unit")
+    eval_set_path = eval_obj.save_eval_set(eval_set_data)
     print(f"Successfully generated and saved test cases: {eval_set_path}")
     
     # テスト構成ファイルの保存
@@ -208,7 +209,7 @@ def _generate_test_cases(skill: str, registry: SkillRegistry) -> str:
             "response_match_score": 0.8
         }
     }
-    config_path = skill_dir_obj.save_eval_config(config_data, test_type="unit")
+    config_path = eval_obj.save_config(config_data)
     print(f"Successfully generated and saved test config: {config_path}")
     
     return eval_set_path

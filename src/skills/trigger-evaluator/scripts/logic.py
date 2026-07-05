@@ -209,8 +209,9 @@ class TriggerEvaluator:
             }
 
             # 保存
-            eval_set_filepath = target_dir.save_eval_set(eval_set_data, test_type="trigger")
-            config_filepath = target_dir.save_eval_config(config_data, test_type="trigger")
+            eval_obj = target_dir.get_eval("trigger")
+            eval_set_filepath = eval_obj.save_eval_set(eval_set_data)
+            config_filepath = eval_obj.save_config(config_data)
             
             print(f"  - テストケースを '{eval_set_filepath}' に保存しました。")
             print(f"  - 評価設定を '{config_filepath}' に保存しました。\n")

@@ -53,6 +53,8 @@ Entrypoint to load dynamically in-process is `scripts/__init__.py`, from which t
 
 *   **`Skill` / `SkillRegistry`**:
     スキルのルート、アセット、ソースコードパスの自動解決、インプロセス動的ロード（`load_module()`）、FunctionToolオブジェクトの生成。およびプロンプトなどのアセットファイルの安全ロード。
+*   **`SkillEval` / `UnitEval` / `TriggerEval`**:
+    スキルの評価（ユニットテスト、トリガーテストなど）を管理するクラス群。アセットパス（`*.evalset.json`、`*.evalset.config.json`）の解決、テストケースの保存、およびデフォルト設定ファイルの自動生成などの役割を担います。
 *   **`GeminiClient` / `GeminiRequest`**:
     自動リトライとモデル中央管理を備えた共通クライアントおよびリクエストオブジェクト。以下のように流れるようなメソッドチェーンでリクエストの構築と実行を行います。
     ```python

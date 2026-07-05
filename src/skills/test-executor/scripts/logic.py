@@ -26,10 +26,7 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
 
     try:
         # 1. 共通パッケージを用いて設定ファイルパスの取得・自動生成
-        config_file_path = target_skill.resolve_eval_config_path(eval_set_path)
-        if not os.path.exists(config_file_path):
-            test_type = "trigger" if "trigger" in eval_set_path else "unit"
-            target_skill.save_eval_config({"criteria": {"response_match_score": 0.8}}, test_type)
+        config_file_path = target_skill.get_eval(eval_set_path).prepare_config()
             
         print(f"Using eval config file: {config_file_path}")
 

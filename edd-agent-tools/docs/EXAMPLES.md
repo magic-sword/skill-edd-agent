@@ -111,3 +111,27 @@ skills = registry.list_skills()
 for skill in skills:
     print(f"Name: {skill.name}, Tier: {skill.metadata.tier}")
 ```
+
+### ⑤ `SkillEval` による評価用アセットの準備と保存
+```python
+from edd_agent_tools.registry import SkillRegistry
+
+registry = SkillRegistry()
+skill = registry.get_skill("my-sample-skill")
+
+# 1. 評価用パスまたはタイプ名から SkillEval インスタンスを取得
+# 引数が "trigger" またはパス名に "trigger" が含まれる場合は TriggerEval、それ以外は UnitEval が返ります
+eval_obj = skill.get_eval("unit")
+
+# 2. 評価設定ファイルの準備 (存在しない場合はデフォルト config ファイルを自動生成して保存)
+config_path = eval_obj.prepare_config()
+print(f"Eval Config Path: {config_path}")
+
+# 3. テストケースの保存
+eval_set_data = {
+    "eval_set_id": "my_sample_eval_set",
+    "name": "My Sample Evaluation Set",
+    "eval_cases": []
+}
+eval_set_path = eval_obj.save_eval_set(eval_set_data)
+```

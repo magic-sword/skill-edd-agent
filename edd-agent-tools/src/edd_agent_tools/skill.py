@@ -1,6 +1,7 @@
 import os
 from typing import Literal
 from edd_agent_tools.models import SkillDesign
+from edd_agent_tools.evaluation import SkillEval, UnitEval, TriggerEval
 
 class Skill:
     """
@@ -108,19 +109,7 @@ class Skill:
         with open(asset_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    @property
-    def tests_dir(self) -> str:
-        """tests ディレクトリの絶対パス"""
-        return os.path.join(self.root_dir, "tests")
 
-    def get_test_filepath(self, filename: str) -> str:
-        """
-        tests ディレクトリ配下のテスト用ファイルの絶対パスを取得し、
-        tests ディレクトリが存在しない場合は自動で作成します。
-        """
-        tests_dir = self.tests_dir
-        os.makedirs(tests_dir, exist_ok=True)
-        return os.path.join(tests_dir, filename)
 
     def load_spec(self) -> str:
         """
@@ -133,52 +122,15 @@ class Skill:
         with open(spec_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    def _get_filename(self, test_type: str, suffix: str) -> str:
-        """一貫した命名規則に従ってテストファイル名を生成します"""
-        skill_name_underscore = self.name.replace('-', '_')
-        return f"{skill_name_underscore}_{test_type}.{suffix}"
-
-    def get_eval_set_path(self, test_type: Literal["unit", "trigger"] | str = "unit") -> str:
+    def get_eval(self, eval_type_or_path: str) -> "SkillEval":
         """
-        評価用のテストケースファイル (*.evalset.json) の絶対パスを返します。
+        引数として eval_set_path または "unit" / "trigger" を受け取り、
+        適切な SkillEval（UnitEval または TriggerEval）のインスタンスを返します。
         """
-        filename = self._get_filename(test_type, "evalset.json")
-        return self.get_test_filepath(filename)
-
-    def get_eval_config_path(self, test_type: Literal["unit", "trigger"] | str = "unit") -> str:
-        """
-        評価用の設定ファイル (*.evalset.config.json) の絶対パスを返します。
-        """
-        filename = self._get_filename(test_type, "evalset.config.json")
-        return self.get_test_filepath(filename)
-
-    def resolve_eval_config_path(self, eval_set_path: str) -> str:
-        """
-        テストケースファイルの絶対/相対パスから、対応する設定ファイルの絶対パスを逆引き解決します。
-        """
-        basename = os.path.basename(eval_set_path)
-        test_type = "trigger" if "trigger" in basename else "unit"
-        return self.get_eval_config_path(test_type)
-
-    def save_eval_set(self, data: dict, test_type: Literal["unit", "trigger"] | str = "unit") -> str:
-        """
-        テストケースファイルを保存し、保存先パスを返します。
-        """
-        import json
-        path = self.get_eval_set_path(test_type)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        return path
-
-    def save_eval_config(self, data: dict, test_type: Literal["unit", "trigger"] | str = "unit") -> str:
-        """
-        テスト構成ファイルを保存し、保存先パスを返します。
-        """
-        import json
-        path = self.get_eval_config_path(test_type)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        return path
+        basename = os.path.basename(eval_type_or_path)
+        if "trigger" in basename or eval_type_or_path == "trigger":
+            return TriggerEval(self)
+        return UnitEval(self)
 
     def load_module(self):
         """
