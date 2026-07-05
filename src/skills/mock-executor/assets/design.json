@@ -1,33 +1,33 @@
 {
   "name": "mock-executor",
-  "description": "モック実行（シミュレーション）評価を実行するための専用のテスト実行スキル。",
+  "description": "モック実行（シミュレーション）評価を実行し、結果を検証するスキル。",
   "execution_type": "tool",
   "output_mode": "VALUE_ONLY",
   "parameters": [
     {
       "name": "skill",
       "type": "str",
-      "description": "評価対象スキルの名前またはパス",
+      "description": "評価対象スキルの名前またはパス。",
       "required": true
     },
     {
       "name": "eval_set_path",
       "type": "str",
-      "description": "テストデータセットファイルのパス",
+      "description": "テストデータセットファイルのパス。",
       "required": false,
       "default": null
     },
     {
       "name": "config_file_path",
       "type": "str",
-      "description": "評価設定ファイルのパス",
+      "description": "評価設定ファイルのパス。",
       "required": false,
       "default": null
     },
     {
       "name": "timeout_seconds",
       "type": "int",
-      "description": "評価のタイムアウト秒数",
+      "description": "評価のタイムアウト秒数。",
       "required": false,
       "default": null
     },
@@ -42,7 +42,6 @@
     }
   ],
   "dependencies": [],
-  "constraints": [
-    "threshold_accuracy must be a float value between 0.0 and 1.0 (inclusive)."
-  ]
+  "constraints": [],
+  "response_parameters": null
 }

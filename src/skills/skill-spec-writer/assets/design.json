@@ -36,5 +36,26 @@
   "dependencies": [],
   "constraints": [
     "skill と design_path のいずれか一方は必ず指定する必要があります。"
+  ],
+  "response_parameters": [
+    {
+      "name": "status",
+      "type": "str",
+      "description": "スキルの実行結果ステータス ('success' または 'failed')",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "str",
+      "description": "実行結果のサマリーメッセージ",
+      "required": true
+    },
+    {
+      "name": "output_file_path",
+      "type": "str",
+      "description": "生成されたSKILL.mdファイルの絶対パス",
+      "required": false,
+      "default": null
+    }
   ]
 }

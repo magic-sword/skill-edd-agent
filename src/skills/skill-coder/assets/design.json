@@ -1,6 +1,6 @@
 {
   "name": "skill-coder",
-  "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コード(scripts/handler.py, scripts/logic.py等)を自動生成・更新するスキル",
+  "description": "設計定義ファイルと機能要件に基づき、ADK 2.0規約に準拠したスキル実装コードを自動生成・更新する。",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
   "parameters": [
@@ -35,5 +35,26 @@
   "dependencies": [],
   "constraints": [
     "対象スキルを特定するために、'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。"
+  ],
+  "response_parameters": [
+    {
+      "name": "status",
+      "type": "str",
+      "description": "スキル実行のステータス（例: 'success', 'failure'）。",
+      "required": true
+    },
+    {
+      "name": "generated_files",
+      "type": "list",
+      "description": "生成または更新されたファイルの相対パスのリスト。",
+      "required": true,
+      "items_type": "str"
+    },
+    {
+      "name": "result_message",
+      "type": "str",
+      "description": "スキル実行結果の要約メッセージ。",
+      "required": true
+    }
   ]
 }

@@ -19,18 +19,19 @@
     {
       "name": "model",
       "type": "str",
-      "description": "スキル生成に使用するLLMのモデル名。",
+      "description": "使用するモデル名。",
       "required": false,
       "default": "gemini-2.5-flash"
     },
     {
       "name": "max_attempts",
       "type": "int",
-      "description": "スキル開発サブエージェントの最大試行（ターン）回数。",
+      "description": "サブエージェントの最大試行ターン数。",
       "required": false,
       "default": "15"
     }
   ],
   "dependencies": [],
-  "constraints": []
+  "constraints": [],
+  "response_parameters": null
 }

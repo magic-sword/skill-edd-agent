@@ -7,9 +7,15 @@
     {
       "name": "command",
       "type": "str",
-      "description": "実行するコマンド ('register', 'get-tier', 'set-tier', 'list', 'update-meta')",
+      "description": "実行するコマンド",
       "required": true,
-      "choices": ["register", "get-tier", "set-tier", "list", "update-meta"]
+      "choices": [
+        "register",
+        "get-tier",
+        "set-tier",
+        "list",
+        "update-meta"
+      ]
     },
     {
       "name": "skill",
@@ -21,10 +27,15 @@
     {
       "name": "tier",
       "type": "int",
-      "description": "設定するTier (0, 1, 2, 3)",
+      "description": "設定するTier",
       "required": false,
       "default": null,
-      "choices": [0, 1, 2, 3]
+      "choices": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
     },
     {
       "name": "registry_path",
@@ -36,11 +47,8 @@
   ],
   "dependencies": [],
   "constraints": [
-    "commandパラメータは必須です。",
-    "commandが'register'の場合、skillパラメータは必須です。",
-    "commandが'get-tier'の場合、skillパラメータは必須です。",
-    "commandが'set-tier'の場合、skillとtierパラメータは必須です。",
-    "commandが'update-meta'の場合、skillパラメータは必須です。",
-    "tierパラメータが指定される場合、0, 1, 2, 3のいずれかの整数である必要があります。"
-  ]
+    "commandが'register', 'get-tier', 'set-tier', 'update-meta'の場合、skillは必須です。",
+    "commandが'set-tier'の場合、tierは必須です。"
+  ],
+  "response_parameters": null
 }
