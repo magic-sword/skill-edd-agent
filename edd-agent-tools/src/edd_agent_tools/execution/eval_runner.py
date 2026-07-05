@@ -1,8 +1,8 @@
 import os
 import sys
 import subprocess
-from typing import Tuple
 from edd_agent_tools.models import EvalRunResult
+from edd_agent_tools.execution.env import get_patched_env
 
 class ADKEvalRunner:
     """
@@ -18,30 +18,11 @@ class ADKEvalRunner:
         env_vars: dict = None,
         cwd: str = "/workspace"
     ) -> EvalRunResult:
-        # 共通パッケージのインストールディレクトリから相対パスでパッチディレクトリを自動解決
-        current_file_dir = os.path.dirname(os.path.abspath(__file__))
-        patch_dir = os.path.join(current_file_dir, "patch")
-        
-        # edd-agent-tools の src ディレクトリのルートを特定
-        edd_tools_src_dir = os.path.abspath(os.path.join(current_file_dir, "..", ".."))
-
-        # ベース環境変数を構成
-        patched_env = os.environ.copy()
-        if env_vars:
-            patched_env.update(env_vars)
-
-        # PYTHONPATH を構成
-        pythonpaths = [patch_dir, edd_tools_src_dir]
-        current_pythonpath = os.environ.get("PYTHONPATH", "")
-        if current_pythonpath:
-            # 既存の PYTHONPATH と重複しないように追加
-            for path in current_pythonpath.split(":"):
-                if path and path not in pythonpaths:
-                    pythonpaths.append(path)
-        patched_env["PYTHONPATH"] = ":".join(pythonpaths)
+        # env.py を使って環境変数を構成（重複コードの一元共通化）
+        patched_env = get_patched_env(env_vars)
 
         # コマンドの組み立て (adk eval の代わりに eval_launcher スクリプトを Python 起動)
-        cmd_args = [sys.executable, "-m", "edd_agent_tools.testing.eval_launcher", agent_dir, eval_set_path]
+        cmd_args = [sys.executable, "-m", "edd_agent_tools.execution.eval_launcher", agent_dir, eval_set_path]
         if config_file_path:
             cmd_args.extend(["--config_file_path", config_file_path])
             
@@ -60,7 +41,6 @@ class ADKEvalRunner:
             if result.returncode == 0:
                 return EvalRunResult.model_validate_json(result.stdout)
             else:
-                # 失敗時、エラーログが出力されているはずなので、空の失敗結果を返すか、例外を投げる
                 print(f"Error during eval run (exit code {result.returncode}):\n{result.stderr}", file=sys.stderr)
                 return EvalRunResult(
                     passed=0,

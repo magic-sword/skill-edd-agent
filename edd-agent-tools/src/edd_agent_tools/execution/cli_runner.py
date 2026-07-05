@@ -6,13 +6,19 @@ import os
 import argparse
 import json
 
+# 多言語パッチ（モンキーパッチ）の強制インプロセス適用
+try:
+    import edd_agent_tools.execution.patch.usercustomize
+except ImportError:
+    pass
+
 # Ensure edd-agent-tools is in path if executed directly
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from google.adk.tools import ToolContext
-from edd_agent_tools.testing.mock_context import MockInvocationContext
-from edd_agent_tools.cli.loader import SkillLoader
-from edd_agent_tools.cli.parser import SchemaArgumentParser
+from edd_agent_tools.execution.mock_context import MockInvocationContext
+from edd_agent_tools.execution.loader import SkillLoader
+from edd_agent_tools.execution.cli_parser import SchemaArgumentParser
 
 class SkillRunner:
     """
@@ -82,7 +88,7 @@ def run_cli():
     # 最初の引数を位置引数としてスキル名を取得
     if len(sys.argv) < 2 or sys.argv[1].startswith("-"):
         print("Error: Skill name is required as the first argument.", file=sys.stderr)
-        print("Usage: python3 -m edd_agent_tools.cli.run <skill_name> [options]", file=sys.stderr)
+        print("Usage: python3 -m edd_agent_tools.execution.cli_runner <skill_name> [options]", file=sys.stderr)
         sys.exit(1)
 
     skill_name = sys.argv[1]

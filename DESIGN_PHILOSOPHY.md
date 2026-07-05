@@ -51,7 +51,7 @@ src/skills/{skill-name}/
 # scripts/handler.py の実装例
 from pydantic import BaseModel, Field
 from google.adk.tools import ToolContext
-from .my_logic import run_business_logic
+from .my_logic import process_message as run_logic
 
 SKILL_METADATA = {
     "name": "my-skill",
@@ -65,26 +65,23 @@ class Input(BaseModel):
     param_a: str = Field(..., description="必須のパラメータ説明")
     param_b: int = Field(10, description="デフォルト値付きパラメータ")
 
-def process_message(tool_context: ToolContext):
-    # 共通ランナーによって検証されたオブジェクトを型安全に取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # 実際のビジネスロジックへ委譲
-    run_business_logic(params, tool_context)
+def process_message(params: Input, tool_context: ToolContext) -> str:
+    # 実際のビジネスロジックへ委譲し、完了メッセージを返却
+    return run_logic(params, tool_context)
 ```
 
 ---
 
-## 4. 共通ランナー（`edd-run`）によるスキーマ駆動CLI
+## 4. 共通ランナー（edd-run）によるスキーマ駆動CLI
 
-開発者がコマンドラインから直接デバッグ・実行できるように、`edd-agent-tools` 側で**共通CLIランナー（`edd_agent_tools.cli.run`）**提供します。
+開発者がコマンドラインから直接デバッグ・実行できるように、`edd-agent-tools` 側で**共通CLIランナー（`edd_agent_tools.execution.cli_runner`）**を提供します。
 
 ### 仕組み
-1. 指定された `--skill_name` から `handler.py` の `Input` と `SKILL_METADATA` を動的にインポート。
+1. 指定された引数の第一位置引数から `handler.py` をロードし、`Input` スキーマと `SKILL_METADATA` を動的にインポート。
 2. `Input.model_fields` から `argparse` オプションを自動生成。
-3. コマンドラインからの入力を `Input.model_validate()` で型安全に検証した上で `process_message` を実行。
+3. コマンドラインからの入力を `Input.model_validate()` で型安全に検証した上で `process_message(validated_input, tool_context)` を実行。
 
 ### メリット
 * **JSONエスケープ地獄の排除**: 引数はすべて通常のフラットなオプション（`--param_a value`）で書けます。
-* **自動 `--help`**: `python3 -m edd_agent_tools.cli.run --skill_name my-skill --help` と打つだけで、Pydanticの定義に基づいた引数説明が自動出力されます。
+* **自動 `--help`**: `python3 -m edd_agent_tools.execution.cli_runner my-skill --help` と打つだけで、Pydanticの定義に基づいた引数説明が自動出力されます。
 * **バリデーションの即時性**: 不正な引数や型の間違いは、ビジネスロジック実行前にCLIレベルでエラーになります。

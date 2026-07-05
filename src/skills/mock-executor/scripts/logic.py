@@ -1,10 +1,8 @@
 import os
 import sys
 from google.adk.tools import ToolContext
-from edd_agent_tools.registry import SkillRegistry
-from edd_agent_tools.models import EvalRunResult
+from edd_agent_tools import ADKEvalRunner, SkillRegistry, EvalRunResult
 
-from .test_runner import TestRunner
 from .handler import Input
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
@@ -21,7 +19,6 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
         
     registry = SkillRegistry()
     target_skill_dir = registry.get_skill_directory(name=skill)
-    test_runner = TestRunner()
 
     # eval_set_path が指定されていない場合は自動解決する（mock-executorはトリガーテストがデフォルト）
     if not eval_set_path:
@@ -36,12 +33,23 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
             
         print(f"Using eval config file: {config_file_path}")
 
-        # 2. adk eval の実行 (ランナー呼び出し)
-        result: EvalRunResult = test_runner.run_adk_eval(
-            skill=skill,
+        print(f"Running mock-executor for skill: {skill}")
+        print(f"Eval set: {eval_set_path}")
+        print(f"Threshold accuracy: {threshold_accuracy:.4f}, Timeout: {timeout_seconds}s")
+
+        # 環境変数の設定
+        env = {
+            "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
+            "SKILL": skill
+        }
+
+        # 2. adk eval の実行 (ADKEvalRunner を直接呼び出し)
+        result: EvalRunResult = ADKEvalRunner.run_eval(
+            agent_dir="/workspace/src/mock_entry",
             eval_set_path=eval_set_path,
             config_file_path=config_file_path,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
+            env_vars=env
         )
 
         accuracy = result.accuracy
