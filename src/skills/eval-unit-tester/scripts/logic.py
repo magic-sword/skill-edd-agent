@@ -7,6 +7,7 @@ from google.adk.tools import ToolContext
 from pydantic import BaseModel, Field, create_model
 from edd_agent_tools.registry import SkillRegistry
 from .strategy import get_output_mode_strategy
+from .handler import Input
 
 class TestParameterCase(BaseModel):
     user_instruction: str = Field(
@@ -208,13 +209,13 @@ def _generate_test_cases(skill: str, registry: SkillRegistry) -> str:
     
     return eval_set_path
 
-def process_message(tool_context: ToolContext):
+def process_message(params: Input, tool_context: ToolContext) -> str:
     """
     指定されたスキルに対して評価用の単体テストスイートを自動生成します。
     """
-    skill = tool_context.state.get("skill")
+    skill = params.skill
     if not skill:
-        raise ValueError("Error: 'skill' is not set in tool_context.state.")
+        raise ValueError("Error: 'skill' is not set.")
         
     registry = SkillRegistry()
     
@@ -222,4 +223,4 @@ def process_message(tool_context: ToolContext):
     
     # 結果パスをセッション状態に保存
     tool_context.state["eval_set_path"] = eval_set_path
-    tool_context.state["result_message"] = f"Success: Unit tests generated at {eval_set_path}"
+    return f"Success: Unit tests generated at {eval_set_path}"

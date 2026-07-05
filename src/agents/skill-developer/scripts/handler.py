@@ -14,13 +14,6 @@ class Input(BaseModel):
     skill: str = Field(..., description="開発対象のスキル名")
     prompt: str = Field(..., description="開発するスキルの機能要件")
 
-def process_message(tool_context: ToolContext):
-    # バリデーション済みのオブジェクトを取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # ロジックが期待するStateを設定
-    tool_context.state["skill"] = params.skill
-    tool_context.state["prompt"] = params.prompt
-    
+def process_message(params: Input, tool_context: ToolContext) -> str:
     # 既存のビジネスロジックを実行
-    run_developer_logic(tool_context)
+    return run_developer_logic(params, tool_context)

@@ -12,6 +12,7 @@ from google.adk.runners import Runner
 from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.tools import ToolContext
+from .handler import Input
 
 # 同一ディレクトリのサブモジュールをインポート可能にする
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -161,17 +162,17 @@ async def run_workflow_developer_agent(
         artifact_service=artifact_service
     )
 
-async def generate_workflow_code(tool_context: ToolContext) -> str:
+async def generate_workflow_code(params: Input, tool_context: ToolContext) -> str:
     """
     指定された要件（prompt）に基づき、WorkflowDeveloperAgent を起動して
     新規ワークフローエージェントを自律生成します。
     """
-    workflow_name = tool_context.state.get("workflow_name")
-    prompt = tool_context.state.get("prompt")
-    output_dir = tool_context.state.get("output_dir")
+    workflow_name = params.workflow_name
+    prompt = params.prompt
+    output_dir = params.output_dir
     
     if not workflow_name or not prompt:
-        raise ValueError("セッション状態に 'workflow_name' または 'prompt' が設定されていません。")
+        raise ValueError("'workflow_name' または 'prompt' は必須です。")
         
     if not output_dir:
         output_dir = os.path.abspath(f"/workspace/src/agents/{workflow_name}")

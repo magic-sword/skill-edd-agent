@@ -14,6 +14,7 @@ from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactServ
 from google.genai import types
 from google.adk.tools import ToolContext
 from edd_agent_tools.testing.cli import SkillCommandLineRunner
+from .handler import Input
 
 # 動的解決用パス設定
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -94,12 +95,12 @@ async def run_developer_workflow(skill: str, prompt: str, tool_context: ToolCont
         
     return f"Success: {message}"
 
-def develop_skill_logic(tool_context: ToolContext):
+def develop_skill_logic(params: Input, tool_context: ToolContext) -> str:
     """
     SkillCommandLineRunner およびインプロセスツールから呼び出されるビジネスロジック。
     """
-    skill = tool_context.state.get("skill")
-    prompt = tool_context.state.get("prompt")
+    skill = params.skill
+    prompt = params.prompt
     
     if not skill or not prompt:
         raise ValueError("Error: 'skill' and 'prompt' are required.")
@@ -111,3 +112,4 @@ def develop_skill_logic(tool_context: ToolContext):
         "status": "success",
         "message": result
     })
+    return result

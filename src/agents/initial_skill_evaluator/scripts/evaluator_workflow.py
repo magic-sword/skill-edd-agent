@@ -11,6 +11,7 @@ from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
 from google.genai import types
 from google.adk.tools import ToolContext
+from .handler import Input
 
 
 # 同一ディレクトリのビジネスロジックモジュールをインポート可能にする
@@ -91,10 +92,13 @@ async def run_workflow_instance(tool_context: ToolContext = None):
         
     return f"Success: {message}"
 
-def workflow_logic(tool_context: ToolContext):
+def workflow_logic(params: Input, tool_context: ToolContext) -> str:
     """
     CommandLineRunner およびインプロセスツールから呼び出されるビジネスロジック。
     """
+    tool_context.state["skill"] = params.skill
+    tool_context.state["eval_set_path"] = params.eval_set_path
+
     # 非同期実行
     result = asyncio.run(run_workflow_instance(tool_context))
     
@@ -102,5 +106,6 @@ def workflow_logic(tool_context: ToolContext):
         "status": "success",
         "message": result
     })
+    return result
 
 

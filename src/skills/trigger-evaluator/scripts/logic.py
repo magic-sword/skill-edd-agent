@@ -7,6 +7,7 @@ from google.genai import types
 from edd_agent_tools.registry import SkillRegistry
 from edd_agent_tools.gemini import get_gemini_client
 from .models import StaticEvalResult, TriggerTestCases
+from .handler import Input
 
 class TriggerEvaluator:
     def __init__(self, tool_context: ToolContext, genai_client):
@@ -16,10 +17,9 @@ class TriggerEvaluator:
         # 自身のSkillDirectoryの解決
         self.self_dir = self.registry.get_skill_directory(name="trigger-evaluator")
 
-    def execute(self):
-        skill = self.tool_context.state.get("skill")
+    def execute(self, skill: str):
         if not skill:
-            raise ValueError("エラー: skill がセッション状態に設定されていません。")
+            raise ValueError("エラー: skill がパラメータに指定されていません。")
 
         # 対象スキルのSkillDirectory
         try:
@@ -237,7 +237,8 @@ class TriggerEvaluator:
             json.dump(report_data, f, indent=2, ensure_ascii=False)
         print(f"  - 詳細レポートを '{report_filepath}' に保存しました。\n")
 
-def process_message(tool_context: ToolContext):
+def process_message(params: Input, tool_context: ToolContext) -> str:
     genai_client = get_gemini_client()
     evaluator = TriggerEvaluator(tool_context, genai_client)
-    evaluator.execute()
+    evaluator.execute(params.skill)
+    return tool_context.state.get("message", "Successfully generated trigger test assets.")

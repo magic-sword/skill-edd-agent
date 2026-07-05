@@ -32,9 +32,8 @@ def register_skill_node(tool_context: ToolContext):
         tier=0
     )
     
-    # 状態をセットして実行
-    tool_context.state["validated_input"] = params
-    handler.process_message(tool_context)
+    # 実行
+    handler.process_message(params, tool_context)
 
 
 @node(name="run_trigger_tests_node")
@@ -76,8 +75,7 @@ def set_skill_tier_node(tool_context: ToolContext):
         tier=1
     )
     
-    tool_context.state["validated_input"] = params
-    handler.process_message(tool_context)
+    handler.process_message(params, tool_context)
 
 
 # ==========================================

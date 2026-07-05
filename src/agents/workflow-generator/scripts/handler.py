@@ -16,14 +16,6 @@ class Input(BaseModel):
     prompt: str = Field(..., description="ワークフローの要件や手順")
     output_dir: str | None = Field(None, description="出力先ディレクトリのパス")
 
-def process_message(tool_context: ToolContext):
-    # バリデーション済みのオブジェクトを取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # ロジックが期待するStateを設定
-    tool_context.state["workflow_name"] = params.workflow_name
-    tool_context.state["prompt"] = params.prompt
-    tool_context.state["output_dir"] = params.output_dir
-    
+def process_message(params: Input, tool_context: ToolContext) -> str:
     # 非同期ロジックを実行
-    asyncio.run(run_generator_logic(tool_context))
+    return asyncio.run(run_generator_logic(params, tool_context))

@@ -16,15 +16,6 @@ class Input(BaseModel):
     tier: int | None = Field(None, description="設定するTier (0, 1, 2, 3)")
     registry_path: str | None = Field(None, description="レジストリファイルのカスタムパス")
 
-def process_message(tool_context: ToolContext):
-    # バリデーション済みのオブジェクトを取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # ロジックが期待するStateを設定
-    tool_context.state["command"] = params.command
-    tool_context.state["skill"] = params.skill
-    tool_context.state["tier"] = params.tier
-    tool_context.state["registry_path"] = params.registry_path
-    
+def process_message(params: Input, tool_context: ToolContext) -> str:
     # 既存のビジネスロジックを実行
-    run_manager_logic(tool_context)
+    return run_manager_logic(params, tool_context)

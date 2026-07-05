@@ -1,25 +1,24 @@
 """
 skill_developer の Workflow オブジェクト定義。
 ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠し、
-状態バケツリレー用の WorkflowState スキーマや LLM Agent に対する JSON 制御指示を完全に排除する。
-各エージェントはインプロセス関数ツール (FunctionTool) を実行し、状態は ToolContext を介して裏側で自動的に共有される。
+各エージェントは統一プロセス機能ツール (FunctionTool) を実行し、状態は ToolContext を介して自動的に共有されます。
 """
 from google.adk import Workflow
 from google.adk import Agent
-from google.adk.tools import FunctionTool
 from edd_agent_tools.registry import SkillRegistry
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
-# レジストリを初期化してインプロセスツールの関数を動的ロード
+# レジストリを初期化
 registry = SkillRegistry()
-set_skill_tier = registry.load_tool("skill-manager", "set_skill_tier")
-generate_skill_code = registry.load_tool("skill-generator", "generate_skill_code")
-generate_unit_tests = registry.load_tool("eval-unit-tester", "generate_unit_tests")
-run_skill_tests = registry.load_tool("test-executor", "run_skill_tests")
-generate_trigger_tests = registry.load_tool("trigger-evaluator", "generate_trigger_tests")
 
-
+# 統一ハンドラー経由のツールロード
+skill_manager_tool = registry.get_tools(["skill-manager"])[0]
+skill_generator_tool = registry.get_tools(["skill-generator"])[0]
+eval_unit_tester_tool = registry.get_tools(["eval-unit-tester"])[0]
+test_executor_tool = registry.get_tools(["test-executor"])[0]
+trigger_evaluator_tool = registry.get_tools(["trigger-evaluator"])[0]
+mock_executor_tool = registry.get_tools(["mock-executor"])[0]
 
 # ==========================================
 # 各ステップ専用エージェント（ノード）の定義
@@ -29,13 +28,13 @@ generate_trigger_tests = registry.load_tool("trigger-evaluator", "generate_trigg
 set_tier_0_agent = Agent(
     model=DEFAULT_MODEL,
     name="set_tier_0_agent",
-    tools=[FunctionTool(func=set_skill_tier)],
+    tools=[skill_manager_tool],
     instruction=(
-        "あなたはスキル登録の担当者です。`set_skill_tier` ツールを呼び出して、"
+        "あなたはスキル登録の担当者です。`skill_manager` ツールを呼び出して、"
         "現在のスキルを Tier 0 (試験中) で仮登録してください。\n"
         "【ツール呼び出しパラメータ】\n"
-        "- command: 'set-tier'\n"
-        "- tier: 0"
+        "- command: 'register'\n"
+        "- skill: (開発対象のスキル名)"
     )
 )
 
@@ -43,11 +42,13 @@ set_tier_0_agent = Agent(
 generate_skill_agent = Agent(
     model=DEFAULT_MODEL,
     name="generate_skill_agent",
-    tools=[FunctionTool(func=generate_skill_code)],
+    tools=[skill_generator_tool],
     instruction=(
-        "あなたはスキル開発の担当者です。`generate_skill_code` ツールを呼び出して、"
+        "あなたはスキル開発の担当者です。`skill_generator` ツールを呼び出して、"
         "新規スキルの本体コードの自動生成を実行してください。\n"
-        "要件（prompt）はセッション状態に設定されています。引数は不要です。"
+        "【ツール呼び出しパラメータ】\n"
+        "- skill: (開発対象のスキル名)\n"
+        "- prompt: (セッション状態から得られる機能要件)"
     )
 )
 
@@ -55,11 +56,12 @@ generate_skill_agent = Agent(
 generate_unit_test_agent = Agent(
     model=DEFAULT_MODEL,
     name="generate_unit_test_agent",
-    tools=[FunctionTool(func=generate_unit_tests)],
+    tools=[eval_unit_tester_tool],
     instruction=(
-        "あなたは単体テストアセットの生成担当者です。`generate_unit_tests` ツールを呼び出して, "
+        "あなたは単体テストアセットの生成担当者です。`eval_unit_tester` ツールを呼び出して、"
         "現在のスキルに対する単体テストケースの自動生成を実行してください。\n"
-        "引数は不要です。"
+        "【ツール呼び出しパラメータ】\n"
+        "- skill: (開発対象のスキル名)"
     )
 )
 
@@ -67,12 +69,13 @@ generate_unit_test_agent = Agent(
 execute_unit_test_agent = Agent(
     model=DEFAULT_MODEL,
     name="execute_unit_test_agent",
-    tools=[FunctionTool(func=run_skill_tests)],
+    tools=[test_executor_tool],
     instruction=(
-        "あなたは単体テスト実行の担当者です。`run_skill_tests` ツールを呼び出して、"
+        "あなたは単体テスト実行の担当者です。`test_executor` ツールを呼び出して、"
         "生成された単体テストケースを実行し合格判定を行ってください。\n"
         "【ツール呼び出しパラメータ】\n"
-        "- eval_mode: 1 (単体評価用)\n"
+        "- skill: (開発対象のスキル名)\n"
+        "- eval_set_path: (単体テストファイルへの絶対パス。通常 `tests/unit_test_cases.evalset.json`)\n"
         "- threshold_accuracy: 1.0"
     )
 )
@@ -81,11 +84,12 @@ execute_unit_test_agent = Agent(
 generate_trigger_test_agent = Agent(
     model=DEFAULT_MODEL,
     name="generate_trigger_test_agent",
-    tools=[FunctionTool(func=generate_trigger_tests)],
+    tools=[trigger_evaluator_tool],
     instruction=(
-        "あなたはトリガー精度テストケースの生成担当者です。`generate_trigger_tests` ツールを呼び出して、"
+        "あなたはトリガー精度テストケースの生成担当者です。`trigger_evaluator` ツールを呼び出して、"
         "現在のスキルに対するトリガー精度テストケースの自動生成を実行してください。\n"
-        "引数は不要です。"
+        "【ツール呼び出しパラメータ】\n"
+        "- skill: (開発対象のスキル名)"
     )
 )
 
@@ -93,12 +97,13 @@ generate_trigger_test_agent = Agent(
 execute_trigger_test_agent = Agent(
     model=DEFAULT_MODEL,
     name="execute_trigger_test_agent",
-    tools=[FunctionTool(func=run_skill_tests)],
+    tools=[mock_executor_tool],
     instruction=(
-        "あなたはトリガー精度テスト実行の担当者です。`run_skill_tests` ツールを呼び出して、"
+        "あなたはトリガー精度テスト実行の担当者です。`mock_executor` ツールを呼び出して、"
         "生成されたトリガーテストケースを実行し合格判定を行ってください。\n"
         "【ツール呼び出しパラメータ】\n"
-        "- eval_mode: 0 (トリガー精度評価用)\n"
+        "- skill: (開発対象のスキル名)\n"
+        "- eval_set_path: (トリガーテストファイルへの絶対パス。通常 `tests/trigger_test_cases.evalset.json`)\n"
         "- threshold_accuracy: 0.90"
     )
 )
