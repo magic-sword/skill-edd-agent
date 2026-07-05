@@ -46,7 +46,11 @@ class SkillRunner:
 
         # 4. ビジネスロジック（process_message）の呼び出し
         try:
-            process_message(tool_context)
+            result_message = process_message(validated_input, tool_context)
+            if result_message and isinstance(result_message, str):
+                tool_context.state["message"] = result_message
+                if "status" not in tool_context.state:
+                    tool_context.state["status"] = "passed"
         except Exception as e:
             print(f"Error executing business logic: {e}", file=sys.stderr)
             tool_context.state.update({

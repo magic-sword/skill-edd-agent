@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from google.adk.tools import ToolContext
-from .logic import process_message as run_logic, run_skill_tests
+from .logic import process_message as run_logic
 
 
 SKILL_METADATA = {
@@ -17,15 +17,6 @@ class Input(BaseModel):
     threshold_accuracy: float = Field(1.0, description='合格に必要な精度の閾値（0.0 から 1.0 の浮動小数点）。デフォルトは 1.0 (100%合格)。')
     timeout_seconds: int = Field(180, description='テスト実行のタイムアウト制限（秒）。デフォルトは 180 秒。')
 
-def process_message(tool_context: ToolContext):
-    # バリデーション済みのオブジェクトを取得
-    params: Input = tool_context.state.get("validated_input")
-    
-    # Stateパラメータを移行
-    if params:
-        for key, value in params.model_dump().items():
-            if value is not None:
-                tool_context.state[key] = value
-            
+def process_message(params: Input, tool_context: ToolContext) -> str:
     # ビジネスロジックを呼び出す
-    run_logic(tool_context)
+    return run_logic(params, tool_context)

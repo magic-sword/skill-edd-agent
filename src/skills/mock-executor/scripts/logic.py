@@ -5,15 +5,16 @@ from edd_agent_tools.registry import SkillRegistry
 
 from .output_parser import OutputParser
 from .test_runner import TestRunner
+from .handler import Input
 
-def process_message(tool_context: ToolContext):
+def process_message(params: Input, tool_context: ToolContext) -> str:
     """
     ADK eval のモックシミュレーションテストを実行し、結果を ToolContext.state に格納します。
     """
-    skill = tool_context.state.get("skill")
-    eval_set_path = tool_context.state.get("eval_set_path")
-    threshold_accuracy = tool_context.state.get("threshold_accuracy", 1.0)
-    timeout_seconds = tool_context.state.get("timeout_seconds", 180)
+    skill = params.skill
+    eval_set_path = params.eval_set_path
+    threshold_accuracy = params.threshold_accuracy if params.threshold_accuracy is not None else 1.0
+    timeout_seconds = params.timeout_seconds if params.timeout_seconds is not None else 180
 
     if not skill:
         raise ValueError("エラー: 'skill' は必須です。")
@@ -28,7 +29,7 @@ def process_message(tool_context: ToolContext):
         eval_set_path = target_skill_dir.get_eval_set_path("trigger")
 
     try:
-        # 1. 共通パッケージを用いて設定ファイルパスの取得・自動生成
+        # 1. 共通パッケージを用いて設定ファイルパス of 取得・自動生成
         config_file_path = target_skill_dir.resolve_eval_config_path(eval_set_path)
         if not os.path.exists(config_file_path):
             test_type = "trigger" if "trigger" in eval_set_path else "unit"
@@ -69,6 +70,7 @@ def process_message(tool_context: ToolContext):
 
         if status == "passed":
             print(f"\n🎉 テスト合格! 精度 {accuracy:.4f} >= 閾値 {threshold_accuracy:.4f}")
+            return message
         else:
             print(f"\n❌ テスト不合格! 精度 {accuracy:.4f} < 閾値 {threshold_accuracy:.4f}", file=sys.stderr)
             raise RuntimeError(message)
@@ -101,44 +103,3 @@ def process_message(tool_context: ToolContext):
         })
         print(f"予期せぬエラー: {e}", file=sys.stderr)
         raise
-
-def run_mock_tests(threshold_accuracy: float, tool_context: ToolContext) -> str:
-    """
-    指定されたスキルのモックシミュレーションテストを実行します。
-    """
-    skill = tool_context.state.get("skill")
-    eval_set_path = tool_context.state.get("trig_eval_set_path")
-        
-    if not skill:
-        raise ValueError("セッション状態に 'skill' が設定されていません。")
-        
-    registry = SkillRegistry()
-    target_skill_dir = registry.get_skill_directory(name=skill)
-    
-    if not eval_set_path:
-        eval_set_path = target_skill_dir.get_eval_set_path("trigger")
-        
-    # 新規の ToolContext を構築してコンテキストを隔離する
-    from google.adk.tools import ToolContext as ADKToolContext
-    from edd_agent_tools.testing.mock_context import MockInvocationContext
-    
-    isolated_context = ADKToolContext(invocation_context=MockInvocationContext())
-    isolated_context.state.update({
-        "skill": skill,
-        "eval_set_path": eval_set_path,
-        "threshold_accuracy": threshold_accuracy,
-        "timeout_seconds": tool_context.state.get("timeout_seconds", 180)
-    })
-    
-    # 直接 process_message をインプロセスで実行
-    process_message(isolated_context)
-    
-    # 隔離されたコンテキストから直接結果を取得する
-    status = isolated_context.state.get("status")
-    accuracy = isolated_context.state.get("accuracy", 0.0)
-    message = isolated_context.state.get("message", "")
-    
-    if status != "passed":
-        raise RuntimeError(f"モックテストが不合格またはエラーが発生しました: {message}")
-        
-    return f"Success: Mock tests passed with accuracy >= {threshold_accuracy}."

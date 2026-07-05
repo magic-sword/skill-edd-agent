@@ -57,8 +57,8 @@
     },
     {
       "name": "run_trigger_tests_agent",
-      "tool": "mock-executor.run_mock_tests",
-      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として threshold_accuracy=0.90 で run_mock_tests 関数を実行します。"
+      "tool": "mock-executor.process_message",
+      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として threshold_accuracy=0.90 で process_message 関数を実行します。"
     },
     {
       "name": "generate_unit_tests_agent",
@@ -67,8 +67,8 @@
     },
     {
       "name": "run_unit_tests_agent",
-      "tool": "test-executor.run_skill_tests",
-      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として threshold_accuracy=1.00 で run_skill_tests 関数を実行します。"
+      "tool": "test-executor.process_message",
+      "instruction": "ToolContext から 'skill' と 'skill_id' を取得し、それらを引数として threshold_accuracy=1.00 で process_message 関数を実行します。"
     },
     {
       "name": "set_skill_tier_agent",

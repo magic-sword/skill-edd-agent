@@ -48,8 +48,7 @@ def run_trigger_tests_node(tool_context: ToolContext):
         threshold_accuracy=0.90
     )
     
-    tool_context.state["validated_input"] = params
-    handler.process_message(tool_context)
+    handler.process_message(params, tool_context)
 
 
 @node(name="run_unit_tests_node")
@@ -63,8 +62,7 @@ def run_unit_tests_node(tool_context: ToolContext):
         threshold_accuracy=1.00
     )
     
-    tool_context.state["validated_input"] = params
-    handler.process_message(tool_context)
+    handler.process_message(params, tool_context)
 
 
 @node(name="set_skill_tier_node")
