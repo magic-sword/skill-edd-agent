@@ -10,6 +10,9 @@ class Parameter(BaseModel):
     ge: float | None = Field(None, description="数値パラメータの最小値（ge制約の生成に使用します）")
     le: float | None = Field(None, description="数値パラメータの最大値（le制約の生成に使用します）")
     items_type: str | None = Field(None, description="リスト型パラメータの要素の型（例: 'str', 'int'。list[items_type] の生成に使用します）")
+    pattern: str | None = Field(None, description="文字列パラメータの正規表現パターン制約（pattern制約の生成に使用します）")
+    min_length: int | None = Field(None, description="文字列またはリストパラメータの最小長制約（min_length制約の生成に使用します）")
+    max_length: int | None = Field(None, description="文字列またはリストパラメータの最大長制約（max_length制約の生成に使用します）")
 
 class SkillDesign(BaseModel):
     """
@@ -35,6 +38,7 @@ class SkillDesign(BaseModel):
     parameters: list[Parameter] = Field(..., description="スキルが受け取るパラメータのリスト")
     dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
     constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")
+    response_parameters: list[Parameter] | None = Field(None, description="出力(戻り値)JSONのパラメータ構造定義。STRUCTURED_JSON時に使用されます")
 
     @classmethod
     def load_from_file(cls, filepath: str) -> "SkillDesign":

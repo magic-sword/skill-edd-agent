@@ -75,12 +75,18 @@ class PydanticFieldWriter:
                 else:
                     default_expr = repr(self.param.default)
 
-        # オプションパラメータ（数値制約、説明）の組み立て
+        # オプションパラメータ（制約、説明）の組み立て
         field_args = []
         if self.param.ge is not None:
             field_args.append(f"ge={self.param.ge}")
         if self.param.le is not None:
             field_args.append(f"le={self.param.le}")
+        if self.param.pattern is not None:
+            field_args.append(f"pattern={repr(self.param.pattern)}")
+        if self.param.min_length is not None:
+            field_args.append(f"min_length={self.param.min_length}")
+        if self.param.max_length is not None:
+            field_args.append(f"max_length={self.param.max_length}")
 
         desc_val = self.param.description or ""
         field_args.append(f"description={repr(desc_val)}")
@@ -89,7 +95,7 @@ class PydanticFieldWriter:
 
 class PydanticModelWriter:
     """
-    SkillDesignメタデータから、Pydantic Inputクラス定義を含む
+    SkillDesignメタデータから、Pydantic Input/Outputクラス定義を含む
     scripts/models.py のソースコードを決定論的に生成するライター。
     """
     def __init__(self, design: SkillDesign, template_str: str):
@@ -101,11 +107,25 @@ class PydanticModelWriter:
         imports = ["from pydantic import BaseModel, Field"]
         all_typing_imports = set()
         
+        # 1. Input クラス用のフィールド生成
         for param in self.design.parameters:
-            # パラメータ行生成を PydanticFieldWriter に完全委譲 (オブジェクト指向化)
             field_writer = PydanticFieldWriter(param)
             fields.append(field_writer.to_code())
             all_typing_imports.update(field_writer.typing_imports)
+            
+        fields_str = "\n".join(fields) if fields else "    pass"
+
+        # 2. Output クラスの生成 (存在する場合のみ)
+        output_class_str = ""
+        if self.design.response_parameters:
+            output_fields = []
+            for param in self.design.response_parameters:
+                field_writer = PydanticFieldWriter(param)
+                output_fields.append(field_writer.to_code())
+                all_typing_imports.update(field_writer.typing_imports)
+                
+            output_fields_str = "\n".join(output_fields) if output_fields else "    pass"
+            output_class_str = f"\n\nclass Output(BaseModel):\n{output_fields_str}"
             
         # 必要なタイピングインポートを追加
         if all_typing_imports:
@@ -113,9 +133,11 @@ class PydanticModelWriter:
             imports.append(f"from typing import {', '.join(unique_imports)}")
             
         imports_str = "\n".join(imports)
-        fields_str = "\n".join(fields) if fields else "    pass"
         
-        return self.template_str.format(imports_str=imports_str, fields_str=fields_str)
+        # 3. テンプレートに Output クラスをマージして出力
+        full_fields_str = fields_str + output_class_str
+        
+        return self.template_str.format(imports_str=imports_str, fields_str=full_fields_str)
 
 class HandlerWriter:
     """
