@@ -53,8 +53,13 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
 
 *   **`SkillDirectory` / `SkillRegistry`**:
     スキルのルート、アセット、ソースコードパスの自動解決。およびプロンプトなどのアセットファイルの安全ロード。
-*   **`GeminiContentBuilder`**:
-    指示プロンプトとソースコード等の添付データを分離し、LLM送信用のマルチパーツ（Gemini Content）を構築。
+*   **`GeminiClient` / `GeminiRequest`**:
+    自動リトライとモデル中央管理を備えた共通クライアントおよびリクエストオブジェクト。以下のように流れるようなメソッドチェーンでリクエストの構築と実行を行います。
+    ```python
+    from edd_agent_tools.gemini import GeminiClient
+    client = GeminiClient()
+    response = client.request("プロンプト").add_dir("dir/").execute()
+    ```
 *   **`LibraryDocumentationReader`**:
     本ドキュメント（README.md）を動的にロードし、LLMのシステムプロンプト等に開発規約として添付可能にする。
 
