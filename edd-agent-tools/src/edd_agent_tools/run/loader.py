@@ -17,11 +17,11 @@ class SkillLoader:
     def load(self) -> Tuple[Dict[str, Any], Type[BaseModel], Any]:
         # 1. レジストリを介して対象モジュールを安全にロード
         registry = SkillRegistry()
-        dir_obj = registry.get_skill(self.skill_name)
-        self.skill_dir = dir_obj.root_dir
+        skill_obj = registry.get_skill(self.skill_name)
+        self.skill_dir = skill_obj.root_dir
         
         try:
-            self.handler_module = dir_obj.load_module()
+            self.handler_module = skill_obj.load_module()
         except Exception as e:
             raise ImportError(f"Failed to load skill for '{self.skill_name}': {e}")
             
