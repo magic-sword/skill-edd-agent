@@ -62,3 +62,11 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
 
 ## 4. 日本語テスト実行パッチ (Monkey Patch)
 ADK 2.0 評価器（Rouge-1）の日本語文字分割問題を解決するため、`bert-base-multilingual-cased` による多言語トークナイズパッチを `adk eval` 実行時に自動適用します。
+
+---
+
+## 5. 前提条件と動作環境 (Prerequisites)
+
+本ライブラリは、Pydanticモデルの `StrEnum` などの機能を使用しているため、以下の環境が必要です。
+*   **Python**: `>= 3.11` (Python 3.11 以上を必須とします)
+
