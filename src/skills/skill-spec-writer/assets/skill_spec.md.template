@@ -20,9 +20,9 @@ ${trigger_conditions}
 ${execution_instructions}
 
 ### 2. 呼び出し方法
-- **インプロセス呼び出し (Python API)**: ロード関数 `process_message` を使用（状態の `validated_input` に `Input` スキーマを設定して実行）。
+- **インプロセス呼び出し (Python API)**: ロード関数 `process_message(params, tool_context)` を使用。
 - **サブプロセス呼び出し (CLI)**: CLIランナーを使用。
-  `python3 -m edd_agent_tools.cli.run ${skill_name} [オプション引数]`
+  `python3 -m edd_agent_tools.run ${skill_name} [オプション引数]`
 - **出力形式 (Output Mode)**: `${output_mode}` (${output_mode_description})
 
 ### 入力パラメータ
