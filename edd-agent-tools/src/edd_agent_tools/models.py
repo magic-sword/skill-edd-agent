@@ -2,6 +2,27 @@ from enum import StrEnum
 from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
+def PromptField(
+    default=...,
+    description: str = "",
+    instructions: str = "",
+    constraints: str = "",
+    **kwargs
+):
+    """
+    LLMへの直接の指示（プロンプト）として機能する特別なパラメータを定義するためのフィールドラッパー。
+    """
+    return Field(
+        default,
+        description=description,
+        json_schema_extra={
+            "is_prompt_parameter": True,
+            "prompt_instructions": instructions,
+            "prompt_constraints": constraints
+        },
+        **kwargs
+    )
+
 class OutputMode(StrEnum):
     VALUE_ONLY = "VALUE_ONLY"
     CONVERSATIONAL = "CONVERSATIONAL"
@@ -21,6 +42,9 @@ class Parameter(BaseModel):
     pattern: str | None = Field(None, description="文字列パラメータの正規表現パターン制約（pattern制約の生成に使用します）")
     min_length: int | None = Field(None, description="文字列またはリストパラメータの最小長制約（min_length制約の生成に使用します）")
     max_length: int | None = Field(None, description="文字列またはリストパラメータの最大長制約（max_length制約の生成に使用します）")
+    is_prompt_parameter: bool | None = Field(None, description="このパラメータがプロンプト（LLMへの指示）用途かどうか")
+    prompt_instructions: str | None = Field(None, description="プロンプトパラメータの有効な指定可能指示ガイドライン")
+    prompt_constraints: str | None = Field(None, description="プロンプトパラメータの構造的な制約ガイドライン")
 
 class SkillDesign(BaseModel):
     """

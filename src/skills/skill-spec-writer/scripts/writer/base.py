@@ -131,6 +131,23 @@ class BaseSpecWriter(ABC):
         # 各具象クラス固有の instructions 構築
         exec_instructions = self._build_execution_instructions(required_params)
 
+        # design.json 内に prompt_parameter メタデータが存在する場合、
+        # プロンプトパラメータの有効指示と制約ガイドを決定論的にマージする
+        prompt_guides = []
+        for param in self.design_data.parameters:
+            if getattr(param, "is_prompt_parameter", None):
+                inst = getattr(param, "prompt_instructions", None) or "指示トーンや特別に盛り込んでほしい仕様コンテキストの指定。"
+                cons = getattr(param, "prompt_constraints", None) or "出力ドキュメント全体のレイアウト構成・見出し等の構造変更は不可。"
+                prompt_guides.append(
+                    f"\n> [!NOTE]\n"
+                    f"> **`{param.name}` パラメータの使用ガイドライン:**\n"
+                    f"> * **指定可能な指示**: {inst}\n"
+                    f"> * **構造的な制約（指定不可）**: {cons}\n"
+                )
+
+        if prompt_guides:
+            exec_instructions = f"{exec_instructions.strip()}\n" + "\n".join(prompt_guides)
+
         # テンプレートのロード
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         tmpl_path = os.path.join(script_dir, "..", "assets", "skill_spec.md.template")
