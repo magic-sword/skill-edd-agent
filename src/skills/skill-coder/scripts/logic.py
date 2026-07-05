@@ -48,12 +48,6 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
     os.makedirs(scripts_dir, exist_ok=True)
     os.makedirs(os.path.join(target_root, "assets"), exist_ok=True)
     os.makedirs(os.path.join(target_root, "references"), exist_ok=True)
-    
-    # scripts/__init__.py の配置
-    init_py_path = os.path.join(scripts_dir, "__init__.py")
-    if not os.path.exists(init_py_path):
-        with open(init_py_path, "w", encoding="utf-8") as f:
-            f.write("#\n")
             
     # 2. design.json のロード
     design_data: SkillDesign = directory.load_design()
@@ -76,6 +70,13 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
     with open(handler_path, "w", encoding="utf-8") as f:
         f.write(handler_code)
     print(f"決定論的ハンドラーファイルを生成しました: {handler_path}")
+    
+    # 3-3. __init__.py の決定論的自動生成 (テンプレートのコピー)
+    init_tmpl = coder_directory.load_asset("__init__.py.template")
+    init_path = os.path.join(scripts_dir, "__init__.py")
+    with open(init_path, "w", encoding="utf-8") as f:
+        f.write(init_tmpl)
+    print(f"決定論的パッケージ初期化ファイルを生成しました: {init_path}")
     
     # 4. logic.py のプレースホルダー配置（存在しない場合のみ）
     logic_path = os.path.join(scripts_dir, "logic.py")
@@ -118,6 +119,33 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
         artifact_service = InMemoryArtifactService()
         session_id = str(uuid.uuid4())
         
+        # 1回目およびエラー修復リトライのループ
+        user_prompt_tmpl = coder_directory.load_asset("user_prompt.txt")
+        user_prompt = user_prompt_tmpl.format(
+            skill_name=skill_name,
+            prompt=prompt
+        )
+        
+        # GeminiContentBuilder を使って、指示と既存ソースコード、規約をマルチパーツ化
+        from edd_agent_tools.gemini import GeminiContentBuilder
+        builder = GeminiContentBuilder(user_prompt)
+        
+        # 既存の scripts ディレクトリ内の全 python ファイル (handler.py 含む) を添付
+        if os.path.exists(scripts_dir):
+            builder.add_dir(
+                directory=scripts_dir,
+                ref_root=target_root,
+                file_filter=lambda p: p.endswith(".py")
+            )
+            
+        docs_content = reader.read_documentation()
+        builder.parts.append(f"=== 開発規約（edd-agent-tools 仕様書） ===\n{docs_content}")
+        
+        current_message = types.Content(
+            role='user',
+            parts=[types.Part(text=p) for p in builder.build()]
+        )
+
         async with Runner(
             app_name="skill_coder_runner",
             agent=developer_agent,
@@ -125,45 +153,62 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
             artifact_service=artifact_service,
             auto_create_session=True
         ) as runner:
-            user_prompt_tmpl = coder_directory.load_asset("user_prompt.txt")
-            user_prompt = user_prompt_tmpl.format(
-                skill_name=skill_name,
-                prompt=prompt
-            )
-            
-            # GeminiContentBuilder を使って、指示と既存ソースコード、規約をマルチパーツ化
-            from edd_agent_tools.gemini import GeminiContentBuilder
-            builder = GeminiContentBuilder(user_prompt)
-            
-            # 既存の scripts ディレクトリ内の全 python ファイル (handler.py 含む) を添付
-            if os.path.exists(scripts_dir):
-                builder.add_dir(
-                    directory=scripts_dir,
-                    ref_root=target_root,
-                    file_filter=lambda p: p.endswith(".py")
+            max_fix_attempts = 3
+            for attempt in range(max_fix_attempts + 1):
+                async for event in runner.run_async(
+                    user_id="skill_coder",
+                    session_id=session_id,
+                    new_message=current_message,
+                ):
+                    author = event.author or "Agent"
+                    if event.content and event.content.parts:
+                        for part in event.content.parts:
+                            if part.text:
+                                print(f"[{author}]: {part.text}")
+                            if part.function_call:
+                                fc = part.function_call
+                                print(f"[{author} ツール実行]: {fc.name}({fc.args})")
+
+                # コンパイルチェックを実行して生成コードのインポート/構文を検証
+                py_files = []
+                for r, _, fs in os.walk(scripts_dir):
+                    for f in fs:
+                        if f.endswith(".py"):
+                            py_files.append(os.path.join(r, f))
+                
+                if not py_files:
+                    break
+
+                import subprocess
+                # py_compile で一括静的チェック
+                check_res = subprocess.run(
+                    ["python3", "-m", "py_compile"] + py_files,
+                    capture_output=True, text=True
                 )
                 
-            docs_content = reader.read_documentation()
-            builder.parts.append(f"=== 開発規約（edd-agent-tools 仕様書） ===\n{docs_content}")
-            
-            user_message = types.Content(
-                role='user',
-                parts=[types.Part(text=p) for p in builder.build()]
-            )
-            
-            async for event in runner.run_async(
-                user_id="skill_coder",
-                session_id=session_id,
-                new_message=user_message,
-            ):
-                author = event.author or "Agent"
-                if event.content and event.content.parts:
-                    for part in event.content.parts:
-                        if part.text:
-                            print(f"[{author}]: {part.text}")
-                        if part.function_call:
-                            fc = part.function_call
-                            print(f"[{author} ツール実行]: {fc.name}({fc.args})")
+                if check_res.returncode == 0:
+                    print("✅ 生成されたすべての Python ファイルのコンパイルチェックに合格しました。")
+                    break
+                else:
+                    if attempt == max_fix_attempts:
+                        print(f"❌ 警告: {max_fix_attempts} 回の自己修復試行後もコンパイルエラーが解消されませんでした。")
+                        break
+                    
+                    print(f"⚠️ コンパイルエラーを検出しました (自己修復試行 {attempt + 1}/{max_fix_attempts}):")
+                    print(check_res.stderr)
+                    
+                    # エラーをフィードバックして再コーディングを要請
+                    feedback_prompt = (
+                        f"【警告: 生成されたコードにコンパイル/インポートエラーが発生しています】\n"
+                        f"以下のエラー内容を確認し、該当ファイルのインポート文やクラス定義・メソッド名を正しく修正してください。\n"
+                        f"※特に `google.generativeai` ではなく `google.genai` を使用しているか、"
+                        f"また `edd_agent_tools.models` ではなく適切なモジュール（例: `edd_agent_tools.directory` 等）からインポートしているかを注意深く確認してください。\n\n"
+                        f"エラー内容:\n{check_res.stderr}"
+                    )
+                    current_message = types.Content(
+                        role='user',
+                        parts=[types.Part(text=feedback_prompt)]
+                    )
 
     # 同期処理として非同期エージェントを実行
     asyncio.run(run_developer_agent())
