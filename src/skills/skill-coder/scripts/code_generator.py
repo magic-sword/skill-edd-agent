@@ -58,13 +58,13 @@ class CodeGenerator:
         print(f"決定論的パッケージ初期化ファイルを生成しました: {init_path}")
         generated_files.append(os.path.relpath(init_path, self._target_root_dir))
 
-        # 5. logic.py のプレースホルダー配置（存在しない場合のみ）
-        logic_path = os.path.join(self._scripts_dir, "logic.py")
-        if not os.path.exists(logic_path):
-            logic_tmpl = self._coder_directory.load_asset("logic.py.template")
-            with open(logic_path, "w", encoding="utf-8") as f:
-                f.write(logic_tmpl)
-            print(f"logic.py のプレースホルダーを配置しました: {logic_path}")
-            generated_files.append(os.path.relpath(logic_path, self._target_root_dir))
+        # 5. executor.py のプレースホルダー配置（存在しない場合のみ）
+        executor_path = os.path.join(self._scripts_dir, "executor.py")
+        if not os.path.exists(executor_path):
+            executor_tmpl = self._coder_directory.load_asset("executor.py.template")
+            with open(executor_path, "w", encoding="utf-8") as f:
+                f.write(executor_tmpl)
+            print(f"executor.py のプレースホルダーを配置しました: {executor_path}")
+            generated_files.append(os.path.relpath(executor_path, self._target_root_dir))
             
         return generated_files

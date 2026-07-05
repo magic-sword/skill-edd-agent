@@ -12,7 +12,3 @@ class SkillExecutor:
     def execute(self) -> Output:
         # TODO: 責務ごとにメソッドや別クラスに処理を分割して実行します
         raise NotImplementedError()
-
-def process_message(params: Input, tool_context: ToolContext) -> Output:
-    executor = SkillExecutor(params, tool_context)
-    return executor.execute()
