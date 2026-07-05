@@ -1,4 +1,11 @@
-from pydantic import BaseModel, Field
+from enum import StrEnum
+from pydantic import BaseModel, Field, model_validator
+
+class OutputMode(StrEnum):
+    VALUE_ONLY = "VALUE_ONLY"
+    CONVERSATIONAL = "CONVERSATIONAL"
+    STRUCTURED_JSON = "STRUCTURED_JSON"
+
 
 class Parameter(BaseModel):
     name: str = Field(..., description="パラメータの名前")
@@ -34,11 +41,18 @@ class SkillDesign(BaseModel):
     name: str = Field(..., description="スキルの名前")
     description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明（L1 description用）")
     execution_type: str = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
-    output_mode: str = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
+    output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
     parameters: list[Parameter] = Field(..., description="スキルが受け取るパラメータのリスト")
     dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
     constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")
     response_parameters: list[Parameter] | None = Field(None, description="出力(戻り値)JSONのパラメータ構造定義。STRUCTURED_JSON時に使用されます")
+
+    @model_validator(mode="after")
+    def validate_response_parameters(self) -> "SkillDesign":
+        if self.output_mode != OutputMode.STRUCTURED_JSON:
+            if self.response_parameters:
+                raise ValueError("response_parameters can only be defined when output_mode is 'STRUCTURED_JSON'")
+        return self
 
     @classmethod
     def load_from_file(cls, filepath: str) -> "SkillDesign":
