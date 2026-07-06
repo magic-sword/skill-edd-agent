@@ -87,25 +87,26 @@ class SkillEval(ABC):
     def execute(self, timeout_seconds: int = 180, env_vars: dict = None, config_file_path: str = None) -> EvalRunResult:
         """
         評価を実行し、その結果を返します。
-        エージェントの準備、パス解決、評価器の呼び出しのすべてがここにカプセル化されます。
+        エージェントの準備、パス解決、評価器の呼び出しのすべてがインプロセスで完結します。
         """
         # 1. 評価設定ファイルの準備
-        if config_file_path:
-            config_path = config_file_path
-        else:
-            config_path = self.prepare_config()
+        config_path = config_file_path if config_file_path else self.prepare_config()
 
         # 2. 自身が決定したポリシー（use_mock）に基づいてディレクトリを用意
         agent_dir = self._prepare_eval_agent_dir(mock=self.use_mock)
 
-        # 3. 評価の実行
-        from edd_agent_tools.run.eval import ADKEvalRunner
-        return ADKEvalRunner.run_eval(
+        # 3. インプロセス実行器に処理を委譲して実行
+        from edd_agent_tools.evaluation.runner import ADKEvalServiceRunner
+        runner = ADKEvalServiceRunner()
+        
+        # 環境変数がある場合は適用
+        if env_vars:
+            os.environ.update(env_vars)
+
+        return runner.run_in_process(
             agent_dir=agent_dir,
             eval_set_path=self.eval_set_path,
-            config_file_path=config_path,
-            timeout_seconds=timeout_seconds,
-            env_vars=env_vars or {}
+            config_path=config_path
         )
 
     def _prepare_eval_agent_dir(self, mock: bool) -> str:
