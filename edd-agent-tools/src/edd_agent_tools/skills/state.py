@@ -12,20 +12,12 @@ class SkillsState:
         self.project_root = Path(project_root or os.getcwd()).resolve()
         
         if state_path is None:
-            state_path = os.getenv("SKILLS_STATE_PATH")
-            if state_path:
-                state_path = Path(state_path)
-            else:
-                state_path = self.project_root / "skills_state.json"
-        
-        self.state_path = Path(state_path).resolve()
-        
-        # skills.json のパス決定 (互換性のための SKILLS_REGISTRY_PATH もフォールバックとして許容)
-        skills_json_path = os.getenv("SKILLS_JSON_PATH") or os.getenv("SKILLS_REGISTRY_PATH")
-        if skills_json_path:
-            self.skills_json_path = Path(skills_json_path).resolve()
+            self.state_path = self.project_root / "skills_state.json"
         else:
-            self.skills_json_path = self.state_path.parent / "skills.json"
+            self.state_path = Path(state_path).resolve()
+        
+        # skills.json は常に skills_state.json と同一のディレクトリに固定出力する
+        self.skills_json_path = self.state_path.parent / "skills.json"
             
         self.data: Optional[SkillsStateJson] = None
 
@@ -168,8 +160,6 @@ class SkillsState:
                         tier = SkillTier.SANDBOX
                         if logical_name in self.data.skills:
                             tier = self.data.skills[logical_name].tier
-                        elif logical_name in self.data.agents:
-                            tier = self.data.agents[logical_name].tier
 
                         # メタデータ (Tier) を注入した Skill インスタンスを構築
                         discovered_skills[logical_name] = Skill(
@@ -224,8 +214,6 @@ class SkillsState:
                     self.load()
                 if target_name in self.data.skills:
                     tier = self.data.skills[target_name].tier
-                elif target_name in self.data.agents:
-                    tier = self.data.agents[target_name].tier
                     
             return Skill(root_dir=str(skill_dir), tier=int(tier))
 
@@ -251,10 +239,7 @@ class SkillsState:
             return False
             
         skill_name = skill.name
-        from edd_agent_tools.models import ModuleType
-        cat = "agents" if skill.metadata.module_type == ModuleType.WORKFLOW else "skills"
-
-        skills_info = getattr(self.data, cat)
+        skills_info = self.data.skills
         existing_info = skills_info.get(skill_name)
         current_tier = existing_info.tier if existing_info else None
         
@@ -271,5 +256,5 @@ class SkillsState:
         
         # 自身を保存。save() 内部で、自動的に合格スキルのみを skills.json にマウント更新する処理も実行されます。
         self.save()
-        print(f"Saved/Registered {cat[:-1]} '{skill_name}' at Tier {skill._tier.name} ({cat}).")
+        print(f"Saved/Registered skill '{skill_name}' at Tier {skill._tier.name}.")
         return True

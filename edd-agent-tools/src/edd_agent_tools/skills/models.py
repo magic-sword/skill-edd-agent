@@ -37,6 +37,5 @@ class SkillsStateJson(BaseModel):
     inherits: list[InheritEntry] = Field(default_factory=list, description="継承元設定ファイルのリスト")
     exclude: list[str] = Field(default_factory=list, description="除外するスキル名のリスト")
 
-    # プロジェクト独自の拡張メタデータ (論理スキル名をキーにしたオブジェクトマップ形式)
-    skills: dict[str, ProjectSkillInfo] = Field(default_factory=dict, description="登録されている各スキルの品質・テストステータス情報")
-    agents: dict[str, ProjectSkillInfo] = Field(default_factory=dict, description="登録されている各エージェント/ワークフローの品質・テストステータス情報")
+    # プロジェクト独自の拡張メタデータ (論理モジュール名をキーにしたオブジェクトマップ形式)
+    skills: dict[str, ProjectSkillInfo] = Field(default_factory=dict, description="登録されている各スキルおよびワークフローの品質ステータス情報")
