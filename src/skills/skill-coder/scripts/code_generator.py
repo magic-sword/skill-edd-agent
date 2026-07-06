@@ -226,8 +226,21 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                     
                     dep_mapping = mapping_data.get(dep, {})
                     param_assignments = []
-                    for param_name, state_key in dep_mapping.items():
-                        param_assignments.append(f'        {param_name}=tool_context.state.get("{state_key}")')
+                    for param_name, mapping_val in dep_mapping.items():
+                        is_expression = (
+                            "tool_context" in mapping_val or 
+                            "(" in mapping_val or 
+                            ")" in mapping_val or 
+                            "+" in mapping_val or
+                            "*" in mapping_val or
+                            "/" in mapping_val or
+                            " " in mapping_val or
+                            "." in mapping_val
+                        )
+                        if is_expression:
+                            param_assignments.append(f'        {param_name}={mapping_val}')
+                        else:
+                            param_assignments.append(f'        {param_name}=tool_context.state.get("{mapping_val}")')
                         
                     params_init_str = ",\n".join(param_assignments)
                     code_lines.append(f"    params = {dep_var}_module.Input(")
