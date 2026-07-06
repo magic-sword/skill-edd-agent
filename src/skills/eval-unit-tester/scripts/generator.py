@@ -2,7 +2,7 @@ import json
 from typing import Any
 from pydantic import BaseModel, create_model
 from google.genai import types
-from edd_agent_tools import GeminiClient, SkillRegistry
+from edd_agent_tools import GeminiClient, SkillsState
 from .schemas import TestParameterCase, TestParameterSet, EvalSet, EvalConfig
 from .strategy import get_output_mode_strategy
 
@@ -23,7 +23,7 @@ class TestGenerator:
         Args:
             skill_name: 単体テストを生成する対象のスキル名。
         """
-        self._skill_obj = SkillRegistry().get_skill(name=skill_name)
+        self._skill_obj = SkillsState().get_skill(skill_name)
         self._client = GeminiClient()
 
     def generate_and_save(self) -> str:
@@ -83,7 +83,7 @@ class TestGenerator:
             str: 置換・構築が完了した最終プロンプトテキスト。
         """
         # 自身のスキルアセットからテンプレートをロード
-        eval_unit_tester_skill = SkillRegistry().get_skill(name="eval-unit-tester")
+        eval_unit_tester_skill = SkillsState().get_skill("eval-unit-tester")
         prompt_template = eval_unit_tester_skill.load_asset("test_case_gen_prompt.txt")
 
         # 戦略オブジェクトにプロンプト構築責任を委譲（ポリモーフィズム）

@@ -1,4 +1,4 @@
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState
 from edd_agent_tools.parser import PydanticModelParser
 
 class ConstraintParser:
@@ -6,7 +6,7 @@ class ConstraintParser:
     既存スキルの制約事項をパースして抽出するロジックを提供します。
     """
     def __init__(self):
-        self._registry = SkillRegistry()
+        self._state = SkillsState()
 
     def get_existing_constraints(self, skill_name: str | None) -> str:
         """
@@ -21,7 +21,7 @@ class ConstraintParser:
         existing_constraints_str = "なし"
         if skill_name:
             try:
-                skill_obj = self._registry.get_skill(skill_name)
+                skill_obj = self._state.get_skill(skill_name)
                 skill_module = skill_obj.load_module() if skill_obj else None
                 InputSchema = getattr(skill_module, "Input", None) if skill_module else None
                 if InputSchema:

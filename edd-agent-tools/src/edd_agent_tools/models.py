@@ -199,3 +199,4 @@ class SkillMetadata(BaseModel):
     description: str = Field("", description="スキルの目的や説明")
     dependencies: list[str] = Field([], description="依存スキルのリスト")
 
+

@@ -41,9 +41,9 @@ class SkillExecutor:
         gemini_client = GeminiDesignClient()
 
         # 4. プロンプトコンテンツ (GeminiRequest) の構築
-        from edd_agent_tools.registry import SkillRegistry
-        registry = SkillRegistry()
-        designer_skill = registry.get_skill("skill-designer")
+        from edd_agent_tools.skills import SkillsState
+        state = SkillsState()
+        designer_skill = state.get_skill("skill-designer")
         design_prompter = DesignPrompter(designer_skill=designer_skill)
         request = design_prompter.build_request(
             client=gemini_client._client,

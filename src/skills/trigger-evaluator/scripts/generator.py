@@ -9,10 +9,10 @@ class TriggerGenerator:
     def __init__(self):
         """TriggerGenerator を初期化します。"""
         # パッケージ初期ロード時の循環参照を回避するため、実行時に遅延ローカルインポート
-        from edd_agent_tools.registry import SkillRegistry
+        from edd_agent_tools.skills import SkillsState
 
         self.genai_client = GeminiClient()
-        self_dir = SkillRegistry().get_skill(name="trigger-evaluator")
+        self_dir = SkillsState().get_skill("trigger-evaluator")
         self.test_gen_prompt_template = self_dir.load_asset("test_case_gen_prompt.txt")
 
     def generate(self, skill_name: str, skill_md_content: str) -> List[EvalCase]:

@@ -10,8 +10,8 @@ class AssetManager:
     def __init__(self):
         """AssetManager を初期化します。"""
         # パッケージ初期ロード時の循環参照を回避するため、実行時に遅延ローカルインポート
-        from edd_agent_tools.registry import SkillRegistry
-        self.skill_registry = SkillRegistry()
+        from edd_agent_tools.skills import SkillsState
+        self.skills_state = SkillsState()
 
     def save_eval_assets(self, skill_name: str, eval_cases: List[EvalCase], target_dir) -> str:
         """生成された評価アセットを保存します。

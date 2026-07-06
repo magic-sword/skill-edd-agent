@@ -1,8 +1,6 @@
 import os
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import Skill
 from edd_agent_tools import LibraryDocumentationReader
-from google.genai import types
-from edd_agent_tools.skill import Skill # Skillをインポート
 
 class DesignPrompter:
     """

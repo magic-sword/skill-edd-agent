@@ -6,11 +6,11 @@ from google.adk.tools.environment import EnvironmentToolset
 from google.adk.environment import LocalEnvironment
 from google.adk.code_executors.unsafe_local_code_executor import UnsafeLocalCodeExecutor
 from google.adk.skills import load_skill_from_dir
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState, SkillTier
 
-# registry を用いて全登録スキルを解決
-registry = SkillRegistry()
-skills = registry.list_skills()
+# state を用いて全登録スキルを解決
+state = SkillsState()
+skills = state.list_skills()
 
 # システムスキル定義
 system_skills = {"skill-generator", "skill-manager", "trigger-evaluator", "eval-unit-tester", "test-executor"}
@@ -18,8 +18,8 @@ system_skills = {"skill-generator", "skill-manager", "trigger-evaluator", "eval-
 # ADKのSkillオブジェクトリストへマップ (Tier 0のものは除外、システムスキルは常に含める)
 loaded_skills = []
 for skill in skills:
-    # Tier 0 (実験中) のスキルは排除
-    if skill._tier == 0 and skill.name not in system_skills:
+    # Tier 0 (SANDBOX) のスキルは排除
+    if skill._tier == SkillTier.SANDBOX and skill.name not in system_skills:
         continue
     try:
         adk_skill = load_skill_from_dir(skill.root_dir)

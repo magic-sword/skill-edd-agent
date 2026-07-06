@@ -7,9 +7,9 @@ class Skill:
     """特定のスキルパッケージ全体のモデル（フォルダ構造、アセット、動的ロード、ツール化など）を表現・管理するドメインクラス。
 
     Examples:
-        >>> from edd_agent_tools.registry import SkillRegistry
-        >>> registry = SkillRegistry()
-        >>> skill = registry.get_skill(name="skill-spec-writer")
+        >>> from edd_agent_tools.skills import SkillsState
+        >>> state = SkillsState()
+        >>> skill = state.get_skill("skill-spec-writer")
         >>> print(skill.name)
         'skill-spec-writer'
 
@@ -180,8 +180,9 @@ class Skill:
             ロードされた `scripts/__init__.py` のモジュールオブジェクト。
 
         Examples:
-            >>> registry = SkillRegistry()
-            >>> skill = registry.get_skill("my-sample-skill")
+            >>> from edd_agent_tools.skills import SkillsState
+            >>> state = SkillsState()
+            >>> skill = state.get_skill("my-sample-skill")
             >>> handler_module = skill.load_module()
         """
         import sys

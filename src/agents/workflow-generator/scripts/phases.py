@@ -9,16 +9,16 @@ from google.adk.tools.environment._write_file_tool import WriteFileTool
 from google.adk.runners import Runner
 from google.genai import types
 from edd_agent_tools import LibraryDocumentationReader
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 
 def build_skill_toolset(workflow_name: str) -> SkillToolset:
     """登録されているすべてのスキルをスキャンして SkillToolset を構築します。"""
-    registry = SkillRegistry()
+    state = SkillsState()
     skills_list = []
     try:
-        skills = registry.list_skills()
+        skills = state.list_skills()
         for skill in skills:
             if skill.name in ["workflow-generator", workflow_name]:
                 continue

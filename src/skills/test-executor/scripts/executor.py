@@ -1,7 +1,7 @@
 import os
 import sys
 from google.adk.tools import ToolContext
-from edd_agent_tools import EvalRunResult, SkillRegistry
+from edd_agent_tools import EvalRunResult, SkillsState
 
 from .models import Input, Output
 
@@ -25,7 +25,7 @@ class SkillExecutor:
         """
         self.params = params
         self.tool_context = tool_context
-        self._registry = SkillRegistry()
+        self._state = SkillsState()
 
     def execute(self) -> Output:
         """ADK評価シミュレーションを実行し、その結果を検証します。
@@ -46,7 +46,7 @@ class SkillExecutor:
             if not skill_name:
                 raise ValueError("'skill' parameter is required.")
 
-            target_skill = self._registry.get_skill(name=skill_name)
+            target_skill = self._state.get_skill(skill_name)
             
             eval_set_path = self.params.eval_set_path
             eval_obj = target_skill.get_eval(eval_set_path)

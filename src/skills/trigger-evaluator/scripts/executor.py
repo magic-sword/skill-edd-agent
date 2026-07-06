@@ -21,8 +21,8 @@ class SkillExecutor:
         self.tool_context = tool_context
 
         # パッケージ初期ロード時の循環参照を回避するため、実行時に遅延ローカルインポート
-        from edd_agent_tools.registry import SkillRegistry
-        self.skill_registry = SkillRegistry()
+        from edd_agent_tools.skills import SkillsState
+        self.skills_state = SkillsState()
 
         # 各責務クラスのインスタンス化 (DI引数と状態保持を排除)
         self.static_evaluator = StaticEvaluator()
@@ -45,7 +45,7 @@ class SkillExecutor:
             raise ValueError("エラー: skill がパラメータに指定されていません。")
 
         try:
-            target_dir = self.skill_registry.get_skill(name=skill_name)
+            target_dir = self.skills_state.get_skill(skill_name)
         except Exception as e:
             raise FileNotFoundError(f"対象スキル '{skill_name}' が見つかりません: {e}")
 

@@ -7,19 +7,19 @@ import os
 import sys
 import json
 from google.adk.tools import ToolContext
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState, SkillTier
 from .models import Input
 
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_REGISTRY_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", "skills_registry.json"))
+DEFAULT_STATE_PATH = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "..", "skills_state.json"))
 
 def manage_skills_logic(params: Input, tool_context: ToolContext) -> str:
     """スキル登録・管理のメインビジネスロジック"""
     command = params.command
     skill = params.skill
     tier = params.tier
-    registry_path = params.registry_path or DEFAULT_REGISTRY_PATH
+    state_path = params.registry_path or DEFAULT_STATE_PATH
 
     if not command:
         raise ValueError("Error: 'command' is required.")
@@ -28,24 +28,24 @@ def manage_skills_logic(params: Input, tool_context: ToolContext) -> str:
     message = ""
     result_data = {}
 
-    # パッケージの SkillRegistry を使用
-    registry = SkillRegistry(registry_path=registry_path)
+    # パッケージの SkillsState を使用
+    state = SkillsState(state_path=state_path)
 
     try:
         if command == "register":
             if not skill:
                 raise ValueError("skill is required")
-            skill_obj = registry.get_skill(skill)
-            registered = registry.register_skill(skill_obj)
+            skill_obj = state.get_skill(skill)
+            registered = state.register_skill(skill_obj)
             if registered:
-                message = f"Registered skill '{skill}' at Tier 0."
+                message = f"Registered skill '{skill}'."
             else:
                 current_tier = skill_obj.metadata.tier if skill_obj else 0
-                message = f"Skill '{skill}' already registered at Tier {current_tier}."
+                message = f"Skill '{skill}' already registered or skipped (tier: {current_tier})."
         elif command == "get-tier":
             if not skill:
                 raise ValueError("skill is required")
-            skill_obj = registry.get_skill(skill)
+            skill_obj = state.get_skill(skill)
             current_tier = skill_obj.metadata.tier if skill_obj else 1
             print(current_tier)
             result_data["tier"] = current_tier
@@ -57,16 +57,16 @@ def manage_skills_logic(params: Input, tool_context: ToolContext) -> str:
                 tier = int(tier)
             except ValueError:
                 pass
-            skill_obj = registry.get_skill(skill)
+            skill_obj = state.get_skill(skill)
             skill_obj.set_tier(tier)
-            updated = registry.register_skill(skill_obj)
+            updated = state.register_skill(skill_obj)
             if updated:
                 message = f"Set tier of '{skill}' to {tier}."
             else:
                 current_tier = skill_obj.metadata.tier if skill_obj else 0
                 message = f"Skipped promotion to Tier {tier} for '{skill}' (current tier is {current_tier})."
         elif command == "list":
-            skills = registry.list_skills()
+            skills = state.list_skills()
             print(f"{'Category':<10} | {'Name':<25} | {'Tier':<5} | {'Last Tested':<25}")
             print("-" * 75)
             from edd_agent_tools.models import ModuleType

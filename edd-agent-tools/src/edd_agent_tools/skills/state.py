@@ -19,6 +19,14 @@ class SkillsState:
                 state_path = self.project_root / "skills_state.json"
         
         self.state_path = Path(state_path).resolve()
+        
+        # skills.json のパス決定 (互換性のための SKILLS_REGISTRY_PATH もフォールバックとして許容)
+        skills_json_path = os.getenv("SKILLS_JSON_PATH") or os.getenv("SKILLS_REGISTRY_PATH")
+        if skills_json_path:
+            self.skills_json_path = Path(skills_json_path).resolve()
+        else:
+            self.skills_json_path = self.state_path.parent / "skills.json"
+            
         self.data: Optional[SkillsStateJson] = None
 
     def load(self) -> SkillsStateJson:
@@ -43,17 +51,45 @@ class SkillsState:
         return self.data
 
     def save(self):
-        """現在のメモリ状態を skills_state.json ファイルへ書き出します。"""
+        """現在のメモリ状態を skills_state.json ファイルへ書き出し、かつ合格スキルのみを skills.json へマウントします。"""
         if self.data is None:
             raise RuntimeError("エラー: データがロードされていません。")
         
+        # 1. skills_state.json を保存
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             with open(self.state_path, "w", encoding="utf-8") as f:
-                # 読みやすいようにインデントを揃えてJSON書き出し
                 f.write(self.data.model_dump_json(indent=2))
         except Exception as e:
             raise RuntimeError(f"エラー: {self.state_path} の保存に失敗しました: {e}")
+
+        # 2. 合格した（Tier 1: READ_ONLY 以上の）スキルのみを抽出し、skills.json に書き出し
+        entries = []
+        
+        # スキャン結果から、合格した（Tier >= 1）のスキルのみを抽出する (論理名から実在パスを解決)
+        discovered = self.scan_skills()
+        for name, skill_obj in discovered.items():
+            if skill_obj._tier >= SkillTier.READ_ONLY: # READ_ONLY(1) 以上の安全が確認されたもののみ
+                # CWD からの相対パスに変換して記録 (ポータビリティ確保のため)
+                rel_path = os.path.relpath(skill_obj.root_dir, os.getcwd())
+                # Windows環境を考慮し、スラッシュ区切りに統一
+                rel_path = rel_path.replace(os.sep, "/")
+                entries.append({"path": rel_path})
+
+        skills_json_data = {
+            "entries": entries,
+            "inherits": [],
+            "exclude": []
+        }
+
+        # skills.json のパスを解決して書き出し
+        os.makedirs(os.path.dirname(self.skills_json_path), exist_ok=True)
+        try:
+            with open(self.skills_json_path, "w", encoding="utf-8") as f:
+                json.dump(skills_json_data, f, indent=2, ensure_ascii=False)
+            print(f"ℹ️ Updated ADK config '{self.skills_json_path}' with {len(entries)} verified skills.")
+        except Exception as e:
+            raise RuntimeError(f"エラー: skills.json の更新に失敗しました: {e}")
 
     def _extract_skill_name(self, skill_md_path: Path) -> Optional[str]:
         """SKILL.md のフロントマターから 'name' フィールド（論理名）を安全に抽出します。"""
@@ -83,7 +119,7 @@ class SkillsState:
         exclude リストに含まれる論理名のスキルは除外されます。
         また、発見された各スキルには、skills_state.json からロードされた Tier メタデータが自動注入されます。
         """
-        from edd_agent_tools.skill import Skill
+        from .skill import Skill
 
         if self.data is None:
             self.load()
@@ -143,16 +179,97 @@ class SkillsState:
 
         return discovered_skills
 
-    def get_skill(self, name: str) -> "Skill":
-        """指定された名前のスキル/エージェントをスキャンして、メタデータが注入済みの Skill インスタンスを返します。
+    def get_skill(self, name: Optional[str] = None, design_path: Optional[str] = None) -> "Skill":
+        """指定された名前（name）または設計ファイルパス（design_path）から、メタデータ注入済みの Skill インスタンスを返します。
         
         Args:
             name: 取得したいスキルの論理名。
+            design_path: 設計ファイル (design.json) またはその親ディレクトリのパス。
             
         Raises:
-            ValueError: 指定された名前のスキルがスキャン対象のパス内に物理的に見つからない場合。
+            ValueError: 解決に必要なパラメータが不足しているか、物理的に見つからない場合。
         """
+        if name is None and design_path is None:
+            raise ValueError("エラー: name または design_path のいずれかを指定する必要があります。")
+
+        target_name = name
+        skill_dir = None
+
+        if design_path:
+            # 1. design_path から物理ディレクトリと論理名を解決
+            from edd_agent_tools.models import SkillDesign
+            design_abs_path = Path(design_path).resolve()
+            if design_abs_path.name == "design.json":
+                skill_dir = design_abs_path.parent
+            else:
+                skill_dir = design_abs_path
+                
+            try:
+                design = SkillDesign.load_from_path(skill_dir / "design.json")
+                target_name = design.name
+            except Exception:
+                pass
+
+        # 2. スキャン結果から探索
         discovered = self.scan_skills()
-        if name not in discovered:
-            raise ValueError(f"エラー: スキル '{name}' が登録された entries 内に物理的に見つかりません。")
-        return discovered[name]
+        if target_name and target_name in discovered:
+            return discovered[target_name]
+
+        # 3. スキャン対象外だが、design_path から直接解決された場合 (スタンドアロン読み込み)
+        if skill_dir and (skill_dir / "SKILL.md").exists():
+            from edd_agent_tools.skills import Skill
+            tier = SkillTier.SANDBOX
+            if target_name:
+                if self.data is None:
+                    self.load()
+                if target_name in self.data.skills:
+                    tier = self.data.skills[target_name].tier
+                elif target_name in self.data.agents:
+                    tier = self.data.agents[target_name].tier
+                    
+            return Skill(root_dir=str(skill_dir), tier=int(tier))
+
+        raise ValueError(f"エラー: スキル '{target_name or design_path}' を物理的に解決できません。")
+
+    def list_skills(self) -> list["Skill"]:
+        """現在スキャンされたすべての有効なスキルおよびエージェントの Skill オブジェクトリストを返します。"""
+        return list(self.scan_skills().values())
+
+    def register_skill(self, skill: "Skill") -> bool:
+        """スキルまたはエージェントのオブジェクトをメタデータ（skills_state.json）へ新規登録・更新（保存）します。
+        
+        Tier 1 (READ_ONLY) 以上の合格スキルの場合のみ、skills_state.json に永続化され、
+        自動的に skills.json へのマウント露出も行われます。
+        Tier 0 (SANDBOX) のスキルを登録・永続化する処理は行いません（動的スキャンで解決するため）。
+        """
+        if self.data is None:
+            self.load()
+            
+        # Tier 0 (SANDBOX) のスキルは、登録・永続化の対象外とする
+        if skill._tier == SkillTier.SANDBOX:
+            print(f"Skipped registration for '{skill.name}': Tier is SANDBOX (dynamic discovery only).")
+            return False
+            
+        skill_name = skill.name
+        from edd_agent_tools.models import ModuleType
+        cat = "agents" if skill.metadata.module_type == ModuleType.WORKFLOW else "skills"
+
+        skills_info = getattr(self.data, cat)
+        existing_info = skills_info.get(skill_name)
+        current_tier = existing_info.tier if existing_info else None
+        
+        # すでに上位の権限が適用されている既存スキルはダウングレードや不要な上書きを防ぐためスキップ
+        if skill._tier == SkillTier.READ_ONLY:
+            if current_tier is not None and current_tier != SkillTier.SANDBOX:
+                print(f"Skipped promotion to READ_ONLY for '{skill_name}': Current tier is {current_tier.name} (only SANDBOX can be promoted).")
+                return False
+
+        # メタデータを更新 (ProjectSkillInfo)
+        skills_info[skill_name] = ProjectSkillInfo(
+            tier=skill._tier
+        )
+        
+        # 自身を保存。save() 内部で、自動的に合格スキルのみを skills.json にマウント更新する処理も実行されます。
+        self.save()
+        print(f"Saved/Registered {cat[:-1]} '{skill_name}' at Tier {skill._tier.name} ({cat}).")
+        return True

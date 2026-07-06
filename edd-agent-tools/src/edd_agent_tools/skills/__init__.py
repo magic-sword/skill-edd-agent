@@ -26,6 +26,10 @@ def __getattr__(name: str) -> Any:
         from .models import ProjectSkillInfo
         return ProjectSkillInfo
         
+    if name == "Skill":
+        from .skill import Skill
+        return Skill
+        
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
 # エディタの自動補完や静的解析ツールが公開シンボルを正しく認識できるように __all__ を定義
@@ -35,5 +39,6 @@ __all__ = [
     "InheritEntry",
     "SkillTier",
     "ProjectSkillInfo",
-    "SkillsState"
+    "SkillsState",
+    "Skill"
 ]

@@ -5,16 +5,16 @@ from typing import TYPE_CHECKING
 from edd_agent_tools.models import ModuleType, EvalRunResult
 
 if TYPE_CHECKING:
-    from edd_agent_tools.skill import Skill
+    from edd_agent_tools.skills import Skill
 
 
 class SkillEval(ABC):
     """スキルの評価（テスト）を管理する基底クラス。
 
     Examples:
-        >>> from edd_agent_tools.registry import SkillRegistry
-        >>> registry = SkillRegistry()
-        >>> skill = registry.get_skill("my-sample-skill")
+        >>> from edd_agent_tools.skills import SkillsState
+        >>> state = SkillsState()
+        >>> skill = state.get_skill("my-sample-skill")
 
         # 1. 評価用パスまたはタイプ名から SkillEval インスタンスを取得
         >>> eval_obj = skill.get_eval("unit")

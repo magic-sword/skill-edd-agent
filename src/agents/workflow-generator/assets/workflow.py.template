@@ -6,15 +6,15 @@ ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠。
 from google.adk import Workflow
 from google.adk import Agent
 from google.adk.tools import FunctionTool
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
-# レジストリを初期化してインプロセスツールの関数を動的ロード
-registry = SkillRegistry()
+# 状態管理を初期化してインプロセスツールの関数を動的ロード
+state = SkillsState()
 
 # [TODO] 依存するスキルからツールをロード
-# 例: set_skill_tier = registry.load_tool("skill-manager", "set_skill_tier")
+# 例: skill_manager_tool = state.get_skill("skill-manager").get_tool()
 
 
 # ==========================================

@@ -1,6 +1,5 @@
 import os
-from edd_agent_tools.registry import SkillRegistry
-from edd_agent_tools.skill import Skill
+from edd_agent_tools.skills import SkillsState, Skill
 
 class PathResolver:
     """
@@ -8,7 +7,7 @@ class PathResolver:
     各種パスの解決と決定に関するロロジックを提供します。
     """
     def __init__(self):
-        self._registry = SkillRegistry()
+        self._state = SkillsState()
 
     def resolve_paths(self, skill_name: str | None, output_dir: str | None, source_code_dir: str | None) -> dict:
         """
@@ -26,7 +25,7 @@ class PathResolver:
         if not skill_name and output_dir:
             design_path_fallback = os.path.join(os.path.abspath(output_dir), "assets", "design.json")
 
-        skill_obj: Skill = self._registry.get_skill(name=skill_name, design_path=design_path_fallback)
+        skill_obj: Skill = self._state.get_skill(name=skill_name, design_path=design_path_fallback)
         
         resolved_output_dir = os.path.abspath(output_dir or skill_obj.root_dir)
         resolved_scan_target = os.path.abspath(source_code_dir or skill_obj.source_code_dir)

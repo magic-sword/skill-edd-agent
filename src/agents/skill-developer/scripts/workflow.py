@@ -5,20 +5,20 @@ ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠し、
 """
 from google.adk import Workflow
 from google.adk import Agent
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
-# レジストリを初期化
-registry = SkillRegistry()
+# 状態管理を初期化
+state = SkillsState()
 
 # 統一ハンドラー経由のツールロード
-skill_manager_tool = registry.get_skill("skill-manager").get_tool()
-skill_generator_tool = registry.get_skill("skill-generator").get_tool()
-eval_unit_tester_tool = registry.get_skill("eval-unit-tester").get_tool()
-test_executor_tool = registry.get_skill("test-executor").get_tool()
-trigger_evaluator_tool = registry.get_skill("trigger-evaluator").get_tool()
-mock_executor_tool = registry.get_skill("mock-executor").get_tool()
+skill_manager_tool = state.get_skill("skill-manager").get_tool()
+skill_generator_tool = state.get_skill("skill-generator").get_tool()
+eval_unit_tester_tool = state.get_skill("eval-unit-tester").get_tool()
+test_executor_tool = state.get_skill("test-executor").get_tool()
+trigger_evaluator_tool = state.get_skill("trigger-evaluator").get_tool()
+mock_executor_tool = state.get_skill("mock-executor").get_tool()
 
 # ==========================================
 # 各ステップ専用エージェント（ノード）の定義

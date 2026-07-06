@@ -1,10 +1,10 @@
 import sys
 from google.adk import Agent
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState
 
 # 指定されたスキルだけをツールとしてロードしてエージェントを構築
-registry = SkillRegistry()
-skill_obj = registry.get_skill("{skill_name}")
+state = SkillsState()
+skill_obj = state.get_skill("{skill_name}")
 agent_tools = [skill_obj.get_tool()]
 
 root_agent = Agent(

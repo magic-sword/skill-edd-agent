@@ -2,7 +2,7 @@ import sys
 import os
 from typing import Tuple, Dict, Any, Type
 from pydantic import BaseModel
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState
 
 class SkillLoader:
     """
@@ -15,9 +15,9 @@ class SkillLoader:
         self.handler_module = None
 
     def load(self) -> Tuple[Dict[str, Any], Type[BaseModel], Any]:
-        # 1. レジストリを介して対象モジュールを安全にロード
-        registry = SkillRegistry()
-        skill_obj = registry.get_skill(self.skill_name)
+        # 1. 状態管理を介して対象モジュールを安全にロード
+        state = SkillsState()
+        skill_obj = state.get_skill(self.skill_name)
         self.skill_dir = skill_obj.root_dir
         
         try:
