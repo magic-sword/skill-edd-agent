@@ -7,7 +7,7 @@ SKILL_METADATA = {
     "description": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するためのテスト実行スキルです。評価対象スキル、テストデータセット、合格基準などを指定して、スキルの精度と信頼性を確認できます。",
     "summary": "指定されたスキルに対してADK評価シミュレーションを実行し、その結果を検証します。",
     "execution_type": "tool",
-    "output_mode": "VALUE_ONLY",
+    "output_mode": "STRUCTURED_JSON",
     "dependencies": []
 }
 

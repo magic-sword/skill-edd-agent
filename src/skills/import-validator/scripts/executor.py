@@ -34,4 +34,5 @@ class SkillExecutor:
         status, details = skill_validator.validate_skill_import(self.params.skill)
 
         # 4. 結果をOutputモデルにマッピングして返却
-        return Output(status=status, details=details)
+        score = 1.0 if status == 'success' else 0.0
+        return Output(status=status, details=details, score=score)

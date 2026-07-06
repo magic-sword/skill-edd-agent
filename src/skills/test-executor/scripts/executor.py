@@ -63,33 +63,28 @@ class SkillExecutor:
                 config_file_path=self.params.config_file_path
             )
             
-            output_message = self._process_eval_result(eval_result, threshold_accuracy)
+            output_message, is_passed, accuracy = self._process_eval_result(eval_result, threshold_accuracy)
+            status = 'success' if is_passed else 'failed'
 
-            return Output(value=output_message)
+            return Output(status=status, details=output_message, score=accuracy)
 
         except FileNotFoundError as e:
             error_message = f"File not found: {e}"
             self._update_state_on_error(error_message, 0.0, self.params.threshold_accuracy or 1.0)
             print(f"Error: {error_message}", file=sys.stderr)
-            raise RuntimeError(error_message) from e
+            return Output(status='failed', details=error_message, score=0.0)
         except ValueError as e:
             error_message = str(e)
             self._update_state_on_error(error_message, 0.0, self.params.threshold_accuracy or 1.0)
             print(f"Error: {error_message}", file=sys.stderr)
-            raise RuntimeError(error_message) from e
-        except RuntimeError as e:
-            error_message = str(e)
-            if "status" not in self.tool_context.state:
-                self._update_state_on_error(error_message, 0.0, self.params.threshold_accuracy or 1.0)
-            print(f"Error: {error_message}", file=sys.stderr)
-            raise
+            return Output(status='failed', details=error_message, score=0.0)
         except Exception as e:
             error_message = f"An unexpected error occurred: {e}"
             self._update_state_on_error(error_message, 0.0, self.params.threshold_accuracy or 1.0)
             print(f"Unexpected error: {error_message}", file=sys.stderr)
-            raise RuntimeError(error_message) from e
+            return Output(status='failed', details=error_message, score=0.0)
 
-    def _process_eval_result(self, result: EvalRunResult, threshold_accuracy: float) -> str:
+    def _process_eval_result(self, result: EvalRunResult, threshold_accuracy: float) -> tuple[str, bool, float]:
         """評価結果を処理し、合否を判断してメッセージを生成し、`ToolContext.state` を更新します。
 
         Args:
@@ -97,17 +92,15 @@ class SkillExecutor:
             threshold_accuracy: 評価が合格するために必要な最小精度。
 
         Returns:
-            評価結果を要約する文字列メッセージ。
-
-        Raises:
-            RuntimeError: 評価結果が失敗を示している場合。
+            評価結果を要約する文字列メッセージ、合否（True/False）、および測定された精度のタプル。
         """
         accuracy = result.accuracy
         print(f"Evaluation result: Passed = {result.passed}, Failed = {result.failed}, Total = {result.total}, Accuracy = {accuracy:.4f}")
 
-        status = "passed" if accuracy >= threshold_accuracy else "failed"
+        is_passed = accuracy >= threshold_accuracy
+        status = "passed" if is_passed else "failed"
         message = f"Accuracy {accuracy:.4f} is {'greater than or equal to' if status == 'passed' else 'less than'} threshold {threshold_accuracy:.4f}."
-        if status == "failed" and result.detail_file_path:
+        if not is_passed and result.detail_file_path:
             message += f"\nFor detailed failure reasons, please refer to the result file:\n{result.detail_file_path}"
         
         self.tool_context.state.update({
@@ -117,12 +110,12 @@ class SkillExecutor:
             "threshold_accuracy": threshold_accuracy
         })
 
-        if status == "passed":
+        if is_passed:
             print(f"\n🎉 Test passed! Accuracy {accuracy:.4f} >= Threshold {threshold_accuracy:.4f}")
-            return message
         else:
             print(f"\n❌ Test failed! Accuracy {accuracy:.4f} < Threshold {threshold_accuracy:.4f}", file=sys.stderr)
-            raise RuntimeError(message)
+        
+        return message, is_passed, accuracy
 
     def _update_state_on_error(self, error_message: str, accuracy: float, threshold: float):
         """評価中にエラーが発生した場合に `tool_context.state` を更新します。

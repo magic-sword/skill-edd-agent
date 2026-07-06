@@ -24,4 +24,4 @@ class SkillExecutor:
             処理結果の構造化データ（Output）。
         """
         # DesignValidator を使用してスキルを検証
-        return self._validator.validate_skill(skill_name=self.params.skill_name)
+        return self._validator.validate_skill(skill_name=self.params.skill)
