@@ -17,7 +17,7 @@ class LibraryDocumentationReader:
             
         # 1. 開発環境用のローカルファイル探索（リポジトリルートの README.md）
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        possible_readme = os.path.abspath(os.path.join(current_dir, "..", "..", "..", "README.md"))
+        possible_readme = os.path.abspath(os.path.join(current_dir, "..", "..", "README.md"))
         if os.path.exists(possible_readme):
             try:
                 with open(possible_readme, "r", encoding="utf-8") as f:
@@ -25,20 +25,12 @@ class LibraryDocumentationReader:
             except Exception:
                 pass
                 
-        # 2. パッケージリソースからのロード（インストールされた環境）
+        # 2. パッケージリソースからのロード（インストールされた環境。docsフォルダは廃止されたためパッケージ直下の README.md を読む）
         try:
             from importlib import resources
             if hasattr(resources, "files"):
-                # パッケージルートに README.md が含まれている場合を想定
-                try:
-                    return resources.files("edd_agent_tools").joinpath("README.md").read_text(encoding="utf-8")
-                except Exception:
-                    # docs/README.md に含まれている場合を想定
-                    return resources.files("edd_agent_tools.docs").joinpath("README.md").read_text(encoding="utf-8")
+                return resources.files("edd_agent_tools").joinpath("README.md").read_text(encoding="utf-8")
             else:
-                try:
-                    return resources.read_text("edd_agent_tools", "README.md")
-                except Exception:
-                    return resources.read_text("edd_agent_tools.docs", "README.md")
+                return resources.read_text("edd_agent_tools", "README.md")
         except Exception as e:
             return f"Error loading documentation: {e}"

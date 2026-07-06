@@ -16,7 +16,7 @@ from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactServ
 from google.genai import types
 
 from edd_agent_tools.skill import Skill
-from edd_agent_tools.docs import LibraryDocumentationReader
+from edd_agent_tools import LibraryDocumentationReader
 from edd_agent_tools.gemini import GeminiRequest
 
 class SkillDeveloperAgentExecutor:

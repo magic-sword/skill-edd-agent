@@ -8,7 +8,7 @@ from google.adk.tools.environment._edit_file_tool import EditFileTool
 from google.adk.tools.environment._write_file_tool import WriteFileTool
 from google.adk.runners import Runner
 from google.genai import types
-from edd_agent_tools.docs import LibraryDocumentationReader
+from edd_agent_tools import LibraryDocumentationReader
 from edd_agent_tools.registry import SkillRegistry
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset

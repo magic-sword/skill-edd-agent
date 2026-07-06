@@ -13,5 +13,6 @@ from .registry import SkillRegistry
 from .skill import Skill
 from .evaluation import SkillEval, UnitEval, TriggerEval
 from .gemini import GeminiClient, GeminiRequest
+from .doc_reader import LibraryDocumentationReader
 
 
