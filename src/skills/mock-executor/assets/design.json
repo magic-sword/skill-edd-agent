@@ -11,7 +11,6 @@
       "type": "str",
       "description": "評価対象スキルの名前。",
       "required": true,
-      "default": null,
       "is_prompt_parameter": true,
       "prompt_instructions": "評価を実行したいスキルの名前を正確に指定してください。",
       "prompt_constraints": "必須項目です。"
@@ -32,9 +31,7 @@
       "description": "評価設定ファイルのパス。指定しない場合は自動解決・自動生成されます。",
       "required": false,
       "default": null,
-      "is_prompt_parameter": true,
-      "prompt_instructions": "評価設定ファイルを使用する場合は、そのパスを指定してください。通常は不要です。",
-      "prompt_constraints": "任意項目です。指定しない場合は自動的に解決されます。"
+      "is_prompt_parameter": false
     },
     {
       "name": "timeout_seconds",
@@ -42,9 +39,7 @@
       "description": "評価のタイムアウト秒数。デフォルトは 180 秒。",
       "required": false,
       "default": "180",
-      "is_prompt_parameter": true,
-      "prompt_instructions": "評価がタイムアウトするまでの秒数を指定してください。",
-      "prompt_constraints": "正の整数で指定してください。デフォルトは 180 秒です。"
+      "is_prompt_parameter": false
     },
     {
       "name": "threshold_accuracy",
@@ -54,9 +49,7 @@
       "default": "1.0",
       "ge": 0.0,
       "le": 1.0,
-      "is_prompt_parameter": true,
-      "prompt_instructions": "評価が合格と見なされるための最低精度を0.0から1.0の範囲で指定してください。",
-      "prompt_constraints": "0.0以上1.0以下の浮動小数点数で指定してください。デフォルトは 1.0 です。"
+      "is_prompt_parameter": false
     }
   ],
   "dependencies": [],

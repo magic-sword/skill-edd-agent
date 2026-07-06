@@ -15,9 +15,9 @@
 - `execution_type` は `tool` または `agent` を適切に選択してください。
 - `output_mode` は `STRUCTURED_JSON`, `VALUE_ONLY`, `CONVERSATIONAL` のいずれかを指定してください。
 - `parameters` は Pydantic の Field で指定可能な制約（`ge`, `le`, `pattern`, `min_length`, `max_length` など）および、デフォルト値の指定がある場合は `default` フィールドにその値を明記することを考慮して定義してください。
-- `is_prompt_parameter` はユーザーからの直接入力が期待されるパラメータに対して `true` を設定してください。
-- `prompt_instructions` はユーザーにパラメータの入力方法をガイドする説明文を記述してください。
-- `prompt_constraints` はパラメータに対する具体的な制約（例: 日付フォーマット、範囲など）を記述してください。
+- `is_prompt_parameter` は、そのパラメータがスキル内部の決定論的なプログラムロジック（if文による数値比較、機械的なファイル読み込み、タイムアウト秒数など）で直接処理されるものではなく、LLM（AI）による自律的な判断・非決定論的な推論に引き渡されて利用されるパラメータ（例: 自然言語による要求、追加のビジネス制約指示など）である場合にのみ `true` を設定してください。決定論的プログラムで直接処理されるシステム変数に対しては `false` を設定してください。
+- `prompt_instructions` は、`is_prompt_parameter` が `true` の場合にのみ、AIや人間がその自律判断パラメータを正しく記述し、無駄な再試行や失敗を防ぐための詳細な指定ガイドラインを記述してください。
+- `prompt_constraints` は、`is_prompt_parameter` が `true` の場合にのみ、自律判断における構造的な制約（破壊的なプロンプト呼び出しを防ぐための制約）を記述してください。
 - `dependencies` はスキルが依存する他のスキル名（例: `['google-calendar']`）をリストで指定してください。ない場合は空のリスト `[]` を指定してください。
 - `constraints` はスキル全体の実行に関する制約をリストで指定してください。ない場合は空のリスト `[]` を指定してください。
 - `response_parameters` はスキルの出力スキーマを定義してください。
