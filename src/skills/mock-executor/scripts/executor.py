@@ -12,9 +12,9 @@ class SkillExecutor:
     与えられた精度閾値に基づいて評価が合格したかを判断するビジネスロジックをカプセル化します。
 
     Attributes:
-        params: スキル実行のための入力パラメータ。
-        tool_context: 状態やその他のユーティリティへのアクセスを提供するツールコンテキスト。
-        _registry: スキル定義にアクセスするための SkillRegistry インスタンス。
+        params (Input): スキル実行のための入力パラメータ。
+        tool_context (ToolContext): 状態やその他のユーティリティへのアクセスを提供するツールコンテキスト。
+        _registry (SkillRegistry): スキル定義にアクセスするための SkillRegistry インスタンス。
     """
     def __init__(self, params: Input, tool_context: ToolContext):
         """SkillExecutor を入力パラメータとツールコンテキストで初期化します。
