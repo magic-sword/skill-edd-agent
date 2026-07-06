@@ -15,7 +15,7 @@ from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
 from google.genai import types
 
-from edd_agent_tools.skill import Skill
+from edd_agent_tools.skills import Skill
 from edd_agent_tools import LibraryDocumentationReader
 from edd_agent_tools.gemini import GeminiRequest
 

@@ -191,12 +191,17 @@ class SkillsState:
             from edd_agent_tools.models import SkillDesign
             design_abs_path = Path(design_path).resolve()
             if design_abs_path.name == "design.json":
+                if design_abs_path.parent.name == "assets":
+                    skill_dir = design_abs_path.parent.parent
+                else:
+                    skill_dir = design_abs_path.parent
+            elif design_abs_path.name == "assets":
                 skill_dir = design_abs_path.parent
             else:
                 skill_dir = design_abs_path
                 
             try:
-                design = SkillDesign.load_from_path(skill_dir / "design.json")
+                design = SkillDesign.load_from_file(str(skill_dir / "assets" / "design.json"))
                 target_name = design.name
             except Exception:
                 pass
@@ -206,8 +211,8 @@ class SkillsState:
         if target_name and target_name in discovered:
             return discovered[target_name]
 
-        # 3. スキャン対象外だが、design_path から直接解決された場合 (スタンドアロン読み込み)
-        if skill_dir and (skill_dir / "SKILL.md").exists():
+        # 3. スキャン対象外だが、design_path から直接解決された場合 (スタンドアロン読み込み / 新規作成フォールバック)
+        if skill_dir:
             from edd_agent_tools.skills import Skill
             tier = SkillTier.SANDBOX
             if target_name:
@@ -217,8 +222,23 @@ class SkillsState:
                     tier = self.data.skills[target_name].tier
                     
             return Skill(root_dir=str(skill_dir), tier=int(tier))
+            
+        # 4. パス解決もスキャンも失敗し、純粋な新規モジュール名 (name) のみが指定された場合の暫定パス自動解決
+        if name:
+            if self.data is None:
+                self.load()
+                
+            # 最優先（インデックス 0）の探索エントリを書き出し先ベースフォルダとして決定論的に採用する
+            if self.data.entries:
+                base_dir = self.project_root / self.data.entries[0].path
+            else:
+                base_dir = self.project_root / "src/skills"
+                    
+            skill_dir = base_dir / name
+            from edd_agent_tools.skills import Skill
+            return Skill(root_dir=str(skill_dir), tier=int(SkillTier.SANDBOX))
 
-        raise ValueError(f"エラー: スキル '{target_name or design_path}' を物理的に解決できません。")
+        raise ValueError(f"エラー: スキル '{target_name or name or design_path}' を物理的に解決できません。")
 
     def list_skills(self) -> list["Skill"]:
         """現在スキャンされたすべての有効なスキルおよびエージェントの Skill オブジェクトリストを返します。"""

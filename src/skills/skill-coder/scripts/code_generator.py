@@ -2,7 +2,7 @@ import os
 import json
 from typing import List
 
-from edd_agent_tools.skill import Skill
+from edd_agent_tools.skills import Skill
 from edd_agent_tools.models import SkillDesign
 from .writer import PydanticModelWriter, HandlerWriter
 
