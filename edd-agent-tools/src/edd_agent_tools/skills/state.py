@@ -24,9 +24,10 @@ class SkillsState:
     def load(self) -> SkillsStateJson:
         """skills_state.json をロードし、メモリ上に保持します。存在しない場合はデフォルト構成で初期化します。"""
         if not self.state_path.exists():
-            # デフォルトは src/skills と src/agents を探索対象として初期化
+            # デフォルトはカレントディレクトリ (.)、src/skills と src/agents を探索対象として初期化
             self.data = SkillsStateJson(
                 entries=[
+                    SkillEntry(path=Path(".")),
                     SkillEntry(path=Path("src/skills")),
                     SkillEntry(path=Path("src/agents"))
                 ],
