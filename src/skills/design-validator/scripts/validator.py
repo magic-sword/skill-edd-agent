@@ -2,6 +2,7 @@ import json
 import os
 from typing import Dict, Any
 from google.adk.tools import ToolContext
+from edd_agent_tools.skills import SkillsState
 from .models import Output
 from .client import GeminiClient
 from .prompter import PromptBuilder
@@ -41,7 +42,6 @@ class DesignValidator:
             Output: 検証結果。
         """
         try:
-            from edd_agent_tools.skills import SkillsState
             state = SkillsState()
             skill_obj = state.get_skill(skill_name)
 

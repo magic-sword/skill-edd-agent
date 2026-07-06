@@ -1,6 +1,6 @@
-
 import traceback
 from google.adk.tools import ToolContext
+from edd_agent_tools.skills import SkillsState
 
 class SkillsStateClient:
     """ADKのSkillsStateメカニズムを操作するためのクライアント。"""
@@ -27,7 +27,6 @@ class SkillsStateClient:
         """
         try:
             # SkillsStateを介してSkillオブジェクトを取得し、動的ロードを実行
-            from edd_agent_tools.skills import SkillsState
             state = SkillsState()
             skill_obj = state.get_skill(skill_name)
             skill_obj.load_module()
