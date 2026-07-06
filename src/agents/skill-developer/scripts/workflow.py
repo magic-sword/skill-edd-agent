@@ -80,11 +80,6 @@ def run_write_spec_step(tool_context: ToolContext) -> str:
 
     res_str = skill_spec_writer_module.process_message(params, tool_context)
     _update_state_from_json_response(tool_context, res_str)
-
-    # 最終的な出力パラメータを Output モデルに合わせて tool_context.state に設定
-    # skill-spec-writer の出力には status, message, output_dir が含まれるはずなので、
-    # それらが tool_context.state に更新されていることを期待する
-
     return res_str
 
 root_workflow = Workflow(

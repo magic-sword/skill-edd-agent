@@ -380,14 +380,4 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
             f.write(workflow_code)
         print(f"workflow.py を生成しました: {workflow_path}")
         generated_files.append(os.path.relpath(workflow_path, self.target_root_dir))
-
-        # 5. executor.py の自動生成
-        executor_path = os.path.join(self.scripts_dir, "executor.py")
-        executor_tmpl = self.coder_skill.load_asset("templates/workflow/executor.py.template")
-        executor_code = executor_tmpl.replace("{workflow_name}", workflow_name)
-        with open(executor_path, "w", encoding="utf-8") as f:
-            f.write(executor_code)
-        print(f"決定論的エグゼキューターファイルを生成しました (workflow): {executor_path}")
-        generated_files.append(os.path.relpath(executor_path, self.target_root_dir))
-
         return generated_files

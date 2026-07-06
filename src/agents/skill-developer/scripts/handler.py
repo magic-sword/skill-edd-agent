@@ -1,6 +1,7 @@
 from google.adk.tools import ToolContext
-from .models import Input
-from .executor import WorkflowExecutor
+from edd_agent_tools import WorkflowRunner
+from .models import Input, Output
+from .workflow import root_workflow
 
 SKILL_METADATA = {
     "name": "skill-developer",
@@ -16,6 +17,10 @@ SKILL_METADATA = {
 }
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
-    # ワークフローを実行するエグゼキューターを呼び出す
-    executor = WorkflowExecutor(tool_context)
-    return executor.execute(params)
+    # 共通ランナーを直接使用してワークフローを駆動
+    runner = WorkflowRunner(
+        workflow_name=SKILL_METADATA["name"],
+        root_workflow=root_workflow,
+        tool_context=tool_context
+    )
+    return runner.run(params, output_cls=Output)
