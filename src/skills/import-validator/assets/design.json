@@ -1,0 +1,38 @@
+{
+  "name": "import-validator",
+  "description": "指定されたスキルを動的にインポートし、その成否を検証します。",
+  "summary": "このスキルは、ADK 2.0のSkillsStateメカニズムを使用して、指定されたスキルモジュール（scripts/__init__.py）を動的にロードできるかを検証します。動的ロードに成功した場合は成功ステータスを、失敗した場合は失敗ステータスと詳細なエラー情報（トレースバック）を構造化されたJSON形式で返却します。これにより、スキルがADK 2.0の規約に準拠し、正しくロード可能であるかを確認できます。",
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "parameters": [
+    {
+      "name": "skill",
+      "type": "str",
+      "description": "動的インポートを検証する対象のスキル名。",
+      "required": true,
+      "is_prompt_parameter": false
+    }
+  ],
+  "dependencies": [],
+  "constraints": [],
+  "response_parameters": [
+    {
+      "name": "status",
+      "type": "str",
+      "description": "スキルの動的ロードの成否。'success' または 'failed'。",
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
+      ]
+    },
+    {
+      "name": "details",
+      "type": "str",
+      "description": "動的ロードが失敗した場合のエラー詳細（トレースバックなど）。成功時は空文字列。",
+      "required": true,
+      "default": ""
+    }
+  ]
+}

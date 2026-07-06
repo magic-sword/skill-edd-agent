@@ -7,13 +7,13 @@ from .writer.factory import SpecWriterFactory
 
 # 循環参照を避けるため、edd_agent_tools のインポートはここに集約
 from edd_agent_tools.models import SkillDesign
-from edd_agent_tools.registry import SkillRegistry
+from edd_agent_tools.skills import SkillsState
 
 class SpecGenerator:
     def __init__(self, params: Input, tool_context: ToolContext):
         self.params = params
         self.tool_context = tool_context
-        self.registry = SkillRegistry() # SkillRegistryは一度だけ初期化
+        self.state = SkillsState() # SkillsStateは一度だけ初期化
 
     def generate(self) -> Output:
         design_path = self.params.design_path
@@ -27,7 +27,7 @@ class SpecGenerator:
             if not skill and not design_path:
                 raise ValueError("Skill name or design path must be provided.")
 
-            skill_obj = self.registry.get_skill(name=skill, design_path=design_path)
+            skill_obj = self.state.get_skill(name=skill, design_path=design_path)
             design_data = skill_obj.load_design()
 
             # 2. オプションパラメータのフォールバック解決

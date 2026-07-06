@@ -203,9 +203,9 @@ class BaseSpecWriter(ABC):
     def generate(self, output_dir: str):
         """【共通フロー】仕様書の生成を実行する（テンプレートメソッド）"""
         # 共通プロンプトテンプレートをロード
-        from edd_agent_tools.registry import SkillRegistry
-        registry = SkillRegistry()
-        writer_skill = registry.get_skill("skill-spec-writer")
+        from edd_agent_tools.skills import SkillsState
+        state = SkillsState()
+        writer_skill = state.get_skill("skill-spec-writer")
         prompt_tmpl = writer_skill.load_asset("prompt_common.txt")
             
         prompt = self.build_prompt(prompt_tmpl)
