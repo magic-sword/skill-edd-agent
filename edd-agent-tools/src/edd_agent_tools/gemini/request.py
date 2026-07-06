@@ -3,14 +3,29 @@ from collections.abc import Callable
 from typing import Any
 
 class GeminiRequest:
-    """
-    Gemini APIへの1回のリクエスト（プロンプトおよび添付ファイルコンテキスト）を組み立てて実行するクラス。
+    """Gemini APIへの1回のリクエスト（プロンプトおよび添付ファイルコンテキスト）を組み立てて実行するクラス。
+
     メソッドチェーンに対応し、流れるような記述でリクエストを構築できます。
+
+    Attributes:
+        prompt: LLMに与える主要な指示テキスト（プロンプト）。
+        parts: 添付ファイルやルールテキストを含め、Geminiに引き渡すコンテンツパーツのリスト。
     """
-    def __init__(self, prompt: str, client=None):
+    def __init__(self, prompt: str, client=None, auto_attach_rules: bool = True):
+        """GeminiRequest を初期化します。
+
+        Args:
+            prompt: LLMに与える主要な指示テキスト（プロンプト）。
+            client: このリクエストを実行するために紐付ける GeminiClient インスタンス。
+            auto_attach_rules: True の場合、ワークスペース固有ルール（.agents/AGENTS.md）
+                およびホームディレクトリ配下のグローバルルール（AGENTS.md / GEMINI.md）を自動検出し、
+                リクエスト添付としてアタッチします。
+        """
         self.prompt = prompt
         self.parts = [prompt] if prompt else []
         self._client = client
+        if auto_attach_rules:
+            self._attach_system_rules()
 
     def add_dir(self, directory: str, ref_root: str | None = None, file_filter: Callable[[str], bool] | None = None) -> "GeminiRequest":
         """
@@ -81,3 +96,58 @@ class GeminiRequest:
             model=model,
             **kwargs
         )
+
+    def _attach_system_rules(self):
+        """適用されるプロジェクトルールおよびグローバルルールを動的に検出し、自動添付します。"""
+        # 1. プロジェクト固有ルール
+        project_root = self._find_project_root()
+        project_rule_path = os.path.join(project_root, ".agents", "AGENTS.md")
+        if os.path.exists(project_rule_path):
+            try:
+                with open(project_rule_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                if content:
+                    self.parts.append(f"# --- System Rule: Project Rule (.agents/AGENTS.md) ---\n{content}")
+            except Exception as e:
+                print(f"Warning: Failed to load project rule: {e}")
+
+        # 2. グローバルルール (新仕様: config/AGENTS.md)
+        global_rule_path = os.path.expanduser("~/.gemini/config/AGENTS.md")
+        if os.path.exists(global_rule_path):
+            try:
+                with open(global_rule_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                if content:
+                    self.parts.append(f"# --- System Rule: Global Rule (config/AGENTS.md) ---\n{content}")
+            except Exception as e:
+                print(f"Warning: Failed to load global rule (AGENTS.md): {e}")
+
+        # 3. グローバルルール (旧仕様: GEMINI.md)
+        old_global_rule_path = os.path.expanduser("~/.gemini/GEMINI.md")
+        if os.path.exists(old_global_rule_path):
+            try:
+                with open(old_global_rule_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                if content:
+                    self.parts.append(f"# --- System Rule: Global Rule (GEMINI.md) ---\n{content}")
+            except Exception as e:
+                print(f"Warning: Failed to load global rule (GEMINI.md): {e}")
+
+    def _find_project_root(self) -> str:
+        """カレントワーキングディレクトリから親階層へ遡り、プロジェクトルートディレクトリを探索します。
+
+        Returns:
+            特定されたプロジェクトルートディレクトリの絶対パス。
+            見つからない場合はカレントディレクトリの絶対パス。
+        """
+        current = os.path.abspath(os.getcwd())
+        while True:
+            if (os.path.exists(os.path.join(current, ".git")) or
+                os.path.exists(os.path.join(current, ".agents")) or
+                os.path.exists(os.path.join(current, "pyproject.toml"))):
+                return current
+            parent = os.path.dirname(current)
+            if parent == current:
+                break
+            current = parent
+        return os.path.abspath(os.getcwd())

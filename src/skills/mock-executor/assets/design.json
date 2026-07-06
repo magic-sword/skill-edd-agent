@@ -9,47 +9,54 @@
     {
       "name": "skill",
       "type": "str",
-      "description": "評価対象スキルの名前またはパス。",
+      "description": "評価対象スキルの名前。",
       "required": true,
+      "default": null,
       "is_prompt_parameter": true,
       "prompt_instructions": "評価を実行したいスキルの名前を正確に指定してください。",
-      "prompt_constraints": "必須項目です。既存のスキル名を指定してください。"
+      "prompt_constraints": "必須項目です。"
     },
     {
       "name": "eval_set_path",
       "type": "str",
-      "description": "テストデータセットファイルのパス。",
+      "description": "評価セットの識別子（'trigger' または 'unit'）、あるいはファイルパス。デフォルトは 'trigger'。",
       "required": false,
-      "default": null,
+      "default": "trigger",
       "is_prompt_parameter": true,
-      "prompt_instructions": "評価に使用するテストデータセットファイルのパスを指定してください。省略した場合、対象スキルのデフォルトのトリガー評価セットが使用されます。",
-      "prompt_constraints": "ファイルパス形式で指定してください。例: 'skills/my-skill/evals/trigger/eval_set.jsonl'"
+      "prompt_instructions": "評価セットのタイプ（'trigger' または 'unit'）を指定するか、評価セットファイルへのパスを指定してください。",
+      "prompt_constraints": "デフォルトは 'trigger' です。"
     },
     {
       "name": "config_file_path",
       "type": "str",
-      "description": "評価設定ファイルのパス。",
+      "description": "評価設定ファイルのパス。指定しない場合は自動解決・自動生成されます。",
       "required": false,
       "default": null,
-      "is_prompt_parameter": false
+      "is_prompt_parameter": true,
+      "prompt_instructions": "評価設定ファイルを使用する場合は、そのパスを指定してください。通常は不要です。",
+      "prompt_constraints": "任意項目です。指定しない場合は自動的に解決されます。"
     },
     {
       "name": "timeout_seconds",
       "type": "int",
-      "description": "評価のタイムアウト秒数。",
+      "description": "評価のタイムアウト秒数。デフォルトは 180 秒。",
       "required": false,
-      "default": null,
-      "is_prompt_parameter": false
+      "default": "180",
+      "is_prompt_parameter": true,
+      "prompt_instructions": "評価がタイムアウトするまでの秒数を指定してください。",
+      "prompt_constraints": "正の整数で指定してください。デフォルトは 180 秒です。"
     },
     {
       "name": "threshold_accuracy",
       "type": "float",
-      "description": "合格に必要な精度の閾値（0.0 から 1.0 の浮動小数点）。デフォルトは 1.0。",
+      "description": "合格に必要な精度の閾値（0.0 から 1.0）。デフォルトは 1.0。",
       "required": false,
       "default": "1.0",
       "ge": 0.0,
       "le": 1.0,
-      "is_prompt_parameter": false
+      "is_prompt_parameter": true,
+      "prompt_instructions": "評価が合格と見なされるための最低精度を0.0から1.0の範囲で指定してください。",
+      "prompt_constraints": "0.0以上1.0以下の浮動小数点数で指定してください。デフォルトは 1.0 です。"
     }
   ],
   "dependencies": [],
