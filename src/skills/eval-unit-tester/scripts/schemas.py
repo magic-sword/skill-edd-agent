@@ -26,6 +26,8 @@ class ConversationTurn(BaseModel):
 class SessionInput(BaseModel):
     """シミュレーションセッションの初期入力状態。"""
     state: dict[str, Any] = Field(..., description="初期セッションのステート引数")
+    app_name: str = Field("evaluation_driven_development_agent", description="評価を実行するアプリケーション名")
+    user_id: str = Field("user", description="ユーザーID")
 
 class EvalCase(BaseModel):
     """単一の評価テストケース全体の構造モデル。"""
@@ -92,7 +94,11 @@ class TestParameterCase(BaseModel):
         return EvalCase(
             eval_id=eval_id,
             conversation=[turn],
-            session_input=SessionInput(state=input_args)
+            session_input=SessionInput(
+                state=input_args,
+                app_name="evaluation_driven_development_agent",
+                user_id="user"
+            )
         )
 
 class TestParameterSet(BaseModel):
