@@ -14,7 +14,7 @@
 - `description` は詳細な説明、`summary` は簡潔な要約を記述してください。
 - `execution_type` は `tool` または `agent` を適切に選択してください。
 - `output_mode` は `STRUCTURED_JSON`, `VALUE_ONLY`, `CONVERSATIONAL` のいずれかを指定してください。
-- `parameters` は Pydantic の Field で指定可能な制約（`ge`, `le`, `pattern`, `min_length`, `max_length` など）を考慮して定義してください。
+- `parameters` は Pydantic の Field で指定可能な制約（`ge`, `le`, `pattern`, `min_length`, `max_length` など）および、デフォルト値の指定がある場合は `default` フィールドにその値を明記することを考慮して定義してください。
 - `is_prompt_parameter` はユーザーからの直接入力が期待されるパラメータに対して `true` を設定してください。
 - `prompt_instructions` はユーザーにパラメータの入力方法をガイドする説明文を記述してください。
 - `prompt_constraints` はパラメータに対する具体的な制約（例: 日付フォーマット、範囲など）を記述してください。
