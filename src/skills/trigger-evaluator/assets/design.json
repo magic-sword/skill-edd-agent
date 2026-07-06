@@ -1,6 +1,8 @@
 {
   "name": "trigger-evaluator",
-  "description": "設計情報（Pydanticスキーマ等）を動的にロードし、トリガー精度の静的評価およびテスト生成を行います。",
+  "description": "対象スキルの仕様書（SKILL.md）を静的に具体性と明確性の観点から評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存するスキル。",
+  "summary": "SKILL.mdを静的評価し、トリガー評価用のテストケースを自動生成・保存するスキル。",
+  "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "VALUE_ONLY",
   "parameters": [
@@ -16,7 +18,10 @@
       "items_type": null,
       "pattern": null,
       "min_length": null,
-      "max_length": null
+      "max_length": null,
+      "is_prompt_parameter": false,
+      "prompt_instructions": null,
+      "prompt_constraints": null
     }
   ],
   "dependencies": [],
