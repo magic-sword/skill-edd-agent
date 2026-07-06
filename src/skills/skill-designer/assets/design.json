@@ -1,4 +1,5 @@
 {
+  "rationale": "このスキルは、自然言語の要件を受け取り、ADK 2.0互換のdesign.jsonを生成または再設計することを目的としています。このプロセスは、パス解決、既存制約の抽出、プロンプト構築、Gemini API（LLM）の呼び出し、レスポンスのパースとクレンジング、そして最終的なdesign.jsonの保存という複数の内部ステップを含みます。しかし、これらの内部ステップはすべて『design.jsonを生成する』という単一の目的のためにカプセル化されており、外部から見たときにこのスキルはアトミックな単一機能として振る舞います。したがって、複数の独立したスキルやカスタム関数をパイプラインで接続する『workflow』ではなく、単一の『skill』として設計するのが適切であると判断しました。内部でLLMを呼び出して自律的な推論を行うため、`execution_type` は `agent` となります。",
   "name": "skill-designer",
   "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
   "summary": "自然言語の要件や既存のソースコードを基に、ADK 2.0互換のdesign.jsonを設計・生成します。これにより、新しいスキルの定義や既存スキルの再設計を効率的に行えます。",
@@ -28,19 +29,22 @@
       "name": "output_dir",
       "type": "str",
       "description": "生成されたdesign.jsonを保存するディレクトリのパス。省略時はskillから自動探索されます。",
-      "required": false
+      "required": false,
+      "is_prompt_parameter": false
     },
     {
       "name": "skill",
       "type": "str",
       "description": "既存のスキル名。再設計時の自動探索キーとして使用されます。",
-      "required": false
+      "required": false,
+      "is_prompt_parameter": false
     },
     {
       "name": "source_code_dir",
       "type": "str",
       "description": "再設計のベースとなる既存のスキル実装コードのディレクトリ（またはファイル）パス。指定しない場合、自動的に検出を試みます。",
-      "required": false
+      "required": false,
+      "is_prompt_parameter": false
     }
   ],
   "dependencies": [],
