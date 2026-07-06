@@ -42,7 +42,7 @@ class SkillDeveloperAgentExecutor:
         local_env = LocalEnvironment(working_dir=self._target_root_dir)
         reader = LibraryDocumentationReader(library_name="edd_agent_tools")
 
-        system_instruction_tmpl = self._coder_skill.load_asset("system_instruction.txt")
+        system_instruction_tmpl = self._coder_skill.load_asset("prompts/system_instruction.txt")
         instruction = system_instruction_tmpl.replace(
             "{skill_name}", self._skill_name
         ).replace(
@@ -69,7 +69,7 @@ class SkillDeveloperAgentExecutor:
         artifact_service = InMemoryArtifactService()
         session_id = str(uuid.uuid4())
 
-        user_prompt_tmpl = self._coder_skill.load_asset("user_prompt.txt")
+        user_prompt_tmpl = self._coder_skill.load_asset("prompts/user_prompt.txt")
         user_prompt = user_prompt_tmpl.format(
             skill_name=self._skill_name,
             prompt=self._prompt
