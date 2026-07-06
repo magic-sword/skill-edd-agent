@@ -25,15 +25,14 @@ class SkillExecutor:
 
             target_skill = self._registry.get_skill(name=skill_name)
             
-            # 評価セットの解決 (指定なし時は "trigger" をデフォルトとする)
-            eval_set_path = self.params.eval_set_path or "trigger"
+            eval_set_path = self.params.eval_set_path
             eval_obj = target_skill.get_eval(eval_set_path)
 
             print(f"Running mock-executor for skill: {skill_name}")
             print(f"Eval set: {eval_set_path}")
             
-            threshold_accuracy = self.params.threshold_accuracy if self.params.threshold_accuracy is not None else 1.0
-            timeout_seconds = self.params.timeout_seconds if self.params.timeout_seconds is not None else 180
+            threshold_accuracy = self.params.threshold_accuracy
+            timeout_seconds = self.params.timeout_seconds
             print(f"Threshold accuracy: {threshold_accuracy:.4f}, Timeout: {timeout_seconds}s")
 
             # 評価の実行
