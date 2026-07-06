@@ -3,7 +3,7 @@
 EDD（評価駆動開発）によるAIエージェント開発をサポートするための共通ツールおよびヘルパーライブラリ。
 
 > [!NOTE]
-> 具体的な利用例や API 仕様は、本パッケージの各主要クラス（`Skill`, `SkillRegistry`, `SkillEval` 等）の Docstring 内にサンプルコード（`Examples:`）として実装と一体で記述されています。
+> 具体的な利用例や API 仕様は、本パッケージの各主要クラス（`Skill`, `SkillsState`, `SkillEval` 等）の Docstring 内にサンプルコード（`Examples:`）として実装と一体で記述されています。
 
 ---
 
@@ -60,8 +60,8 @@ Entrypoint to load dynamically in-process is `scripts/__init__.py`, from which t
 
 ## 3. 主要クラスの役割
 
-*   **`Skill` / `SkillRegistry`**:
-    スキルのルート、アセット、ソースコードパスの自動解決、インプロセス動的ロード（`load_module()`）、FunctionToolオブジェクトの生成。およびプロンプトなどのアセットファイルの安全ロード。
+*   **`Skill` / `SkillsState`**:
+    スキルのルート、アセット、ソースコードパスの自動解決、インプロセス動的ロード（`load_module()`）、FunctionToolオブジェクトの生成、およびプロンプトなどのアセットファイルの安全ロード。さらに、`SkillsState` を用いた合格スキルの自動プロモート（マウント）管理。
 *   **`SkillEval` / `UnitEval` / `TriggerEval`**:
     スキルの評価（ユニットテスト、トリガーテストなど）を管理するクラス群。アセットパス（`*.evalset.json`、`*.evalset.config.json`）の解決、テストケースの保存、およびデフォルト設定ファイルの自動生成などの役割を担います。
 *   **`GeminiClient` / `GeminiRequest`**:
