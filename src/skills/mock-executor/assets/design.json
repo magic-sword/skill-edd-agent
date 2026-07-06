@@ -11,9 +11,9 @@
       "type": "str",
       "description": "評価対象スキルの名前。",
       "required": true,
-      "is_prompt_parameter": true,
-      "prompt_instructions": "評価を実行したいスキルの名前を正確に指定してください。",
-      "prompt_constraints": "必須項目です。"
+      "is_prompt_parameter": false,
+      "prompt_instructions": null,
+      "prompt_constraints": null
     },
     {
       "name": "eval_set_path",
@@ -21,9 +21,9 @@
       "description": "評価セットの識別子（'trigger' または 'unit'）、あるいはファイルパス。デフォルトは 'trigger'。",
       "required": false,
       "default": "trigger",
-      "is_prompt_parameter": true,
-      "prompt_instructions": "評価セットのタイプ（'trigger' または 'unit'）を指定するか、評価セットファイルへのパスを指定してください。",
-      "prompt_constraints": "デフォルトは 'trigger' です。"
+      "is_prompt_parameter": false,
+      "prompt_instructions": null,
+      "prompt_constraints": null
     },
     {
       "name": "config_file_path",

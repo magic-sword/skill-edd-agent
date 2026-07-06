@@ -54,6 +54,12 @@ class SkillExecutor:
             output_dir=output_dir
         )
 
+        # 既存の design.json があれば LLM に対し参考コンテキストとして添付提供する
+        assets_output_dir = os.path.join(output_dir, "assets")
+        output_file_path = os.path.join(assets_output_dir, "design.json")
+        if os.path.exists(output_file_path):
+            request.add_file(output_file_path, ref_root=output_dir)
+
         try:
             response_text = gemini_client.generate_design(contents=request)
         except Exception as e:
