@@ -2,7 +2,7 @@ import json
 from typing import Any
 from pydantic import BaseModel, create_model
 from google.genai import types
-from edd_agent_tools import GeminiClient
+from edd_agent_tools import GeminiClient, SkillRegistry
 from .schemas import TestParameterCase, TestParameterSet, EvalSet, EvalConfig
 from .strategy import get_output_mode_strategy
 
@@ -23,9 +23,6 @@ class TestGenerator:
         Args:
             skill_name: 単体テストを生成する対象のスキル名。
         """
-        # パッケージ初期ロード時の循環参照エラーを防ぐため、実行時に遅延ローカルインポート
-        from edd_agent_tools.registry import SkillRegistry
-
         self._skill_obj = SkillRegistry().get_skill(name=skill_name)
         self._client = GeminiClient()
 
@@ -85,8 +82,9 @@ class TestGenerator:
         Returns:
             str: 置換・構築が完了した最終プロンプトテキスト。
         """
-        # ドメインオブジェクトの機能を用いてアセットテンプレートを1行でロード
-        prompt_template = self._skill_obj.load_asset("test_case_gen_prompt.txt")
+        # 自身のスキルアセットからテンプレートをロード
+        eval_unit_tester_skill = SkillRegistry().get_skill(name="eval-unit-tester")
+        prompt_template = eval_unit_tester_skill.load_asset("test_case_gen_prompt.txt")
 
         # 戦略オブジェクトにプロンプト構築責任を委譲（ポリモーフィズム）
         return strategy.build_prompt(
