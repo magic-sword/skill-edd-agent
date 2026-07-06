@@ -1,44 +1,55 @@
 {
   "name": "test-executor",
-  "description": "ADK evalテストを実行し、結果をToolContext.stateに格納するスキル。",
+  "description": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するためのテスト実行スキルです。評価対象スキル、テストデータセット、合格基準などを指定して、スキルの精度と信頼性を確認できます。",
+  "summary": "指定されたスキルに対してADK評価シミュレーションを実行し、その結果を検証します。",
+  "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "VALUE_ONLY",
   "parameters": [
     {
       "name": "skill",
       "type": "str",
-      "description": "評価対象スキルの名前またはパス。",
-      "required": true
+      "description": "評価対象スキルの名前。",
+      "required": true,
+      "is_prompt_parameter": false,
+      "prompt_instructions": null,
+      "prompt_constraints": null
     },
     {
       "name": "eval_set_path",
       "type": "str",
-      "description": "テストデータセットファイルのパス。",
+      "description": "評価セットの識別子（'trigger' または 'unit'）、あるいはファイルパス。デフォルトは 'trigger'。",
       "required": false,
-      "default": null
+      "default": "trigger",
+      "is_prompt_parameter": false,
+      "prompt_instructions": null,
+      "prompt_constraints": null
     },
     {
       "name": "config_file_path",
       "type": "str",
-      "description": "評価設定ファイルのパス。",
+      "description": "評価設定ファイルのパス。指定しない場合は自動解決・自動生成されます。",
       "required": false,
-      "default": null
+      "default": null,
+      "is_prompt_parameter": false
     },
     {
       "name": "timeout_seconds",
       "type": "int",
-      "description": "評価のタイムアウト秒数。",
+      "description": "評価のタイムアウト秒数。デフォルトは 180 秒。",
       "required": false,
-      "default": null
+      "default": "180",
+      "is_prompt_parameter": false
     },
     {
       "name": "threshold_accuracy",
       "type": "float",
-      "description": "合格に必要な精度の閾値（0.0 から 1.0 の浮動小数点）。デフォルトは 1.0。",
+      "description": "合格に必要な精度の閾値（0.0 から 1.0）。デフォルトは 1.0。",
       "required": false,
       "default": "1.0",
       "ge": 0.0,
-      "le": 1.0
+      "le": 1.0,
+      "is_prompt_parameter": false
     }
   ],
   "dependencies": [],
