@@ -3,7 +3,7 @@
 EDD（評価駆動開発）によるAIエージェント開発をサポートするための共通ツールおよびヘルパーライブラリ。
 
 > [!NOTE]
-> 開発者向けの具体的な実装コード例や主要クラスのサンプルスニペットは、[docs/EXAMPLES.md](file:///workspace/edd-agent-tools/docs/EXAMPLES.md) を参照してください。
+> 具体的な利用例や API 仕様は、本パッケージの各主要クラス（`Skill`, `SkillRegistry`, `SkillEval` 等）の Docstring 内にサンプルコード（`Examples:`）として実装と一体で記述されています。
 
 ---
 
@@ -46,6 +46,15 @@ Entrypoint to load dynamically in-process is `scripts/__init__.py`, from which t
     *   **特性**: 複雑な課題（設計、コード生成など）を、別の「LLMによる自律思考を持ったエージェント（Sub-Agent）」に委譲して解決する処理。内部プロンプトに沿ってLLMが推論を実行します。
     *   **design.jsonの定義**: `"execution_type": "agent"`
     *   **アセット規約**: スキル仕様書（`SKILL.md`）には、AIがサブエージェントの思考プロセスを正しく把握できるよう「自律的な推論ステップ（Instructions）」を明記します。これにより、AIはこれが単なる機械的ツールではなく「仕事を委譲すべき自律的なエージェント」であると正しく認識し、適切なコンテキストを伝搬して呼び出せるようになります。
+
+### ④ コーディング規約とドキュメンテーション (Docstring)
+
+*   **Google Python Style Guide への準拠**:
+    本パッケージのすべての Python コードは、**Google Python Style Guide（グーグル Python コーディング規約）** に準拠して記述します。
+*   **Docstring の構造化**:
+    クラスや関数の定義には、必ず Google スタイル（`Args`, `Returns`, `Raises`）の Docstring を記述してください。
+*   **利用例のコード内統合**:
+    二重管理を防ぐため、静的ドキュメントでの利用例の個別管理は行いません。すべての主要クラス・公開 API には、Docstring 内に **`Examples:`** セクションを作成し、doctest 形式で動作するサンプルコードを必ず記述してください。
 
 ---
 
