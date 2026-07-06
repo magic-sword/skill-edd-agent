@@ -6,42 +6,40 @@ from edd_agent_tools import EvalRunResult, SkillRegistry
 from .models import Input, Output
 
 class SkillExecutor:
-    """Executes ADK evaluation simulations and validates the results.
+    """ADK評価シミュレーションを実行し、その結果を検証します。
 
-    This class encapsulates the business logic for running ADK evaluation simulations
-    against a specified skill and determining if the evaluation passes based on
-    a given accuracy threshold.
+    このクラスは、指定されたスキルに対してADK評価シミュレーションを実行し、
+    与えられた精度閾値に基づいて評価が合格したかを判断するビジネスロジックをカプセル化します。
 
     Attributes:
-        params: Input parameters for the skill execution.
-        tool_context: The tool context providing access to state and other utilities.
-        _registry: An instance of SkillRegistry for accessing skill definitions.
+        params: スキル実行のための入力パラメータ。
+        tool_context: 状態やその他のユーティリティへのアクセスを提供するツールコンテキスト。
+        _registry: スキル定義にアクセスするための SkillRegistry インスタンス。
     """
     def __init__(self, params: Input, tool_context: ToolContext):
-        """Initializes the SkillExecutor with input parameters and tool context.
+        """SkillExecutor を入力パラメータとツールコンテキストで初期化します。
 
         Args:
-            params: The input parameters provided to the skill.
-            tool_context: The tool context for managing skill state and interactions.
+            params: スキルに提供される入力パラメータ。
+            tool_context: スキル状態とインタラクションを管理するためのツールコンテキスト。
         """
         self.params = params
         self.tool_context = tool_context
         self._registry = SkillRegistry()
 
     def execute(self) -> Output:
-        """Executes the ADK evaluation simulation and validates the results.
+        """ADK評価シミュレーションを実行し、その結果を検証します。
 
-        This method orchestrates the evaluation process, including retrieving the
-        target skill, running the evaluation set, and processing the results
-        against the defined accuracy threshold.
+        このメソッドは、対象スキルの取得、評価セットの実行、
+        そして定義された精度閾値に対する結果の処理を含む評価プロセスを統括します。
 
         Returns:
-            An Output object containing the evaluation result message.
+            評価結果メッセージを含む Output オブジェクト。
 
         Raises:
-            ValueError: If the skill name is not provided.
-            FileNotFoundError: If the specified evaluation set or configuration file is not found.
-            RuntimeError: If an unexpected error occurs during evaluation or if the evaluation fails.
+            ValueError: スキル名が提供されていない場合。
+            FileNotFoundError: 指定された評価セットまたは設定ファイルが見つからない場合。
+            RuntimeError: 評価中に予期せぬエラーが発生した場合、または評価が失敗した場合。
         """
         try:
             skill_name = self.params.skill
@@ -81,7 +79,6 @@ class SkillExecutor:
             raise RuntimeError(error_message) from e
         except RuntimeError as e:
             error_message = str(e)
-            # If _process_eval_result already updated the state, skip updating again.
             if "status" not in self.tool_context.state:
                 self._update_state_on_error(error_message, 0.0, self.params.threshold_accuracy or 1.0)
             print(f"Error: {error_message}", file=sys.stderr)
@@ -93,17 +90,17 @@ class SkillExecutor:
             raise RuntimeError(error_message) from e
 
     def _process_eval_result(self, result: EvalRunResult, threshold_accuracy: float) -> str:
-        """Processes the evaluation result, determines pass/fail, generates a message, and updates `ToolContext.state`.
+        """評価結果を処理し、合否を判断してメッセージを生成し、`ToolContext.state` を更新します。
 
         Args:
-            result: The `EvalRunResult` object containing the raw evaluation outcomes.
-            threshold_accuracy: The minimum accuracy required for the evaluation to pass.
+            result: 生の評価結果を含む `EvalRunResult` オブジェクト。
+            threshold_accuracy: 評価が合格するために必要な最小精度。
 
         Returns:
-            A string message summarizing the evaluation outcome.
+            評価結果を要約する文字列メッセージ。
 
         Raises:
-            RuntimeError: If the evaluation result indicates a failure.
+            RuntimeError: 評価結果が失敗を示している場合。
         """
         accuracy = result.accuracy
         print(f"Evaluation result: Passed = {result.passed}, Failed = {result.failed}, Total = {result.total}, Accuracy = {accuracy:.4f}")
@@ -128,12 +125,12 @@ class SkillExecutor:
             raise RuntimeError(message)
 
     def _update_state_on_error(self, error_message: str, accuracy: float, threshold: float):
-        """Updates the `tool_context.state` when an error occurs during evaluation.
+        """評価中にエラーが発生した場合に `tool_context.state` を更新します。
 
         Args:
-            error_message: The error message to be stored in the state.
-            accuracy: The accuracy value to record (typically 0.0 on error).
-            threshold: The threshold accuracy against which the evaluation was run.
+            error_message: 状態に格納されるエラーメッセージ。
+            accuracy: 記録される精度値（エラー時は通常 0.0）。
+            threshold: 評価が実行された際の閾値精度。
         """
         self.tool_context.state.update({
             "status": "failed",
