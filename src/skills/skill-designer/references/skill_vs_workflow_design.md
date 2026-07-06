@@ -41,7 +41,7 @@ ADK 2.0 におけるモジュールは、その本質的な役割に応じて明
 
 ## 3. 具体的なデータモデル構造 (edd-agent-tools)
 
-スキーマ定義（Pydantic）では、この設計思想を以下のバリデーションルールで強制しています。
+スキーマ定義（Pydantic）では、この設計思想を以下の多態的（Polymorphic）モデルで定義しています。
 
 ### ステップ構造モデル
 ```python
@@ -57,20 +57,54 @@ class Step(BaseModel):
     description: str | None = Field(None, description="処理要件の説明 (type='function'/'agent' 時に必須)")
     instruction: str | None = Field(None, description="システムプロンプト指示 (type='agent' 時に任意)")
     tools: list[str] | None = Field(None, description="使用可能ツール (type='agent' 時に任意)")
+    inputs: dict[str, str] | None = Field(None, description="引数マッピング辞書")
 ```
 
-### 設計定義モデルの制約
+### 設計定義モデル（Union 分離）
 ```python
 class SkillDesign(BaseModel):
+    """単一スキルの設計定義（stepsを持たない）"""
+    rationale: str = Field(..., description="設計の思考プロセス（なぜ単一スキルと判定したか）")
     name: str
-    module_type: ModuleType  # SKILL または WORKFLOW
-    steps: list[Step] | None = Field(None, description="ワークフローを構成するステップの定義リスト")
+    module_type: Literal[ModuleType.SKILL] = ModuleType.SKILL
+    execution_type: Literal["tool", "agent"]
+    output_mode: OutputMode
+    parameters: list[Parameter]
+    dependencies: list[str]
+    constraints: list[str]
+    response_parameters: list[Parameter] | None
 
-    @model_validator(mode="after")
-    def validate_workflow_steps(self) -> "SkillDesign":
-        # workflow型以外のときに steps が定義されていればエラーを投げる
-        if self.module_type != ModuleType.WORKFLOW:
-            if self.steps:
-                raise ValueError("steps can only be defined when module_type is 'workflow'")
-        return self
+class WorkflowDesign(BaseModel):
+    """複数モジュールを連結するワークフローの設計仕様（stepsを必須とする）"""
+    rationale: str = Field(..., description="設計の思考プロセス（なぜワークフローと判定したか）")
+    name: str
+    module_type: Literal[ModuleType.WORKFLOW] = ModuleType.WORKFLOW
+    parameters: list[Parameter]
+    dependencies: list[str]
+    constraints: list[str]
+    response_parameters: list[Parameter] | None
+    steps: list[Step]
+
+# Discriminated Union によるロードの多態性
+ModuleDesign = Annotated[
+    Union[SkillDesign, WorkflowDesign],
+    Field(discriminator="module_type")
+]
 ```
+
+---
+
+## 4. 意味論的な設計判断と Chain-of-Thought (rationale) の役割
+
+設計の自動化エージェント（`skill-designer`）が、与えられた要件の難易度に基づいて「スキル」と「ワークフロー」を正しく切り分けるために、スキーマの最上部に **`rationale`（思考プロセス）** フィールドを統合しています。
+
+### Chain-of-Thought (CoT) の強制
+1. **生成順序の重要性**:
+   Pydantic モデルで `rationale` を最上部に定義することで、Gemini API は JSON を出力する最初のステップでこのフィールドを生成します。
+2. **難易度と手順の自己分析**:
+   LLM は `module_type`（`skill` か `workflow` か）を決定する前に、与えられた要件の難易度や必要な手順を `rationale` 内で詳細に分析します。
+   * 「この要件は1つの機能で完結するか？」
+   * 「既存のスキルを組み合わせたり、データ処理関数や LLM 判定ノードをつなぐ必要があるか？」
+   といった思考をテキストで展開させた上で、残りの `module_type` や `steps` などの具体的なパラメータ値を決定論的に決定します。これにより、判断のハルシネーション（誤判定）が劇的に低下します。
+3. **推論プロセスの静的保存**:
+   生成された `design.json` には、AI がどのような論理的思考でその構成に至ったかの推論トレースが `rationale` フィールドとして静的に残ります。これは、人間が設計レビューやデバッグを行う際にも極めて重要なドキュメント情報になります。

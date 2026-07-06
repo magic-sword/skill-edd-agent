@@ -142,6 +142,7 @@ class Step(BaseModel):
 
 class SkillDesign(BaseModel):
     """単一スキルの設計定義を表す Pydantic モデル。"""
+    rationale: str = Field(..., description="設計の思考プロセス。要件の難易度・必要な手順を詳細に分析し、なぜ workflow ではなくアトミックな単一の skill と判定したかの設計根拠を記述してください。")
     name: str = Field(..., description="スキルの名前。小文字のハイフン区切り")
     description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明（L1 description用）")
     summary: str | None = Field(None, description="スキルの仕様概要")
@@ -167,6 +168,7 @@ class SkillDesign(BaseModel):
 
 class WorkflowDesign(BaseModel):
     """複数モジュールを連結するワークフローの設計仕様定義。"""
+    rationale: str = Field(..., description="設計の思考プロセス。要件の難易度・必要な手順を詳細に分析し、複数のステップ（既存スキル・カスタム関数・自律エージェントのパイプライン接続）が必要であると判定した設計根拠を記述してください。")
     name: str = Field(..., description="ワークフローの名前。小文字のハイフン区切り")
     description: str = Field(..., description="ワークフローの目的や役割を記述した簡潔な説明")
     summary: str | None = Field(None, description="ワークフローの仕様概要")
