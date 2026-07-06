@@ -165,8 +165,8 @@ class UnitEval(SkillEval):
 
     @property
     def use_mock(self) -> bool:
-        # ユニットテストはモックを使用する
-        return True
+        # ユニットテストはモックを使用しない（通常実行）
+        return False
 
     def get_default_config(self) -> dict:
         return {"criteria": {"response_match_score": 0.8}}
@@ -179,8 +179,8 @@ class TriggerEval(SkillEval):
 
     @property
     def use_mock(self) -> bool:
-        # トリガーテストはモックを使用しない（通常実行）
-        return False
+        # トリガーテストはモックを使用する（呼び出し判断のみ）
+        return True
 
     def get_default_config(self) -> dict:
         return {"criteria": {"response_match_score": 0.8}}
