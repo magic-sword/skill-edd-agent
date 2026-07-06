@@ -2,15 +2,23 @@ import os
 import sys
 
 class LibraryDocumentationReader:
-    """エージェントが特定のパッケージのLLM向け開発規約・API仕様ドキュメントを動的にロードするためのリファレンスブック・ツール"""
+    """エージェントが特定のパッケージのLLM向け開発規約・API仕様ドキュメントを動的にロードするためのツール。
+
+    Args:
+        library_name: ドキュメントをロードする対象ライブラリ名。
+    """
     
     def __init__(self, library_name: str = "edd_agent_tools"):
         self.library_name = library_name
 
     def read_documentation(self, target_library: str = "edd_agent_tools") -> str:
-        """
-        指定されたライブラリ（edd_agent_toolsなど）のLLM向け公式開発規約やAPI仕様のドキュメントを動的にロードします。
-        新規コードの実装や修正を開始する前に、必ずこのツールを実行して最新のAPI仕様や状態管理（state）のルールを確認してください。
+        """指定されたライブラリのLLM向け公式開発規約やAPI仕様（README.md）を動的にロードします。
+
+        Args:
+            target_library: ロード対象のライブラリ名。デフォルトは 'edd_agent_tools'。
+
+        Returns:
+            ロードされた Markdown ドキュメントのテキストコンテンツ。
         """
         if target_library != self.library_name:
             return f"Error: No documentation available for library '{target_library}'."

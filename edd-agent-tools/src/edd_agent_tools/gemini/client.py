@@ -5,9 +5,20 @@ from google import genai
 from google.genai import types
 
 class GeminiClient:
-    """
-    edd-agent-tools 共通の堅牢な Gemini API クライアント。
+    """共通の堅牢な Gemini API クライアント。
+
     モデル名、リトライ回数、タイムアウトなどの中央集約的な管理と、エラー時の自動リトライを提供します。
+
+    Examples:
+        >>> from edd_agent_tools.gemini import GeminiClient
+        >>> client = GeminiClient()
+        >>> response = (client.request("指示プロンプト...")
+        ...                   .add_dir(
+        ...                       directory="/workspace/src/skills/my-skill/scripts",
+        ...                       ref_root="/workspace/src/skills/my-skill",
+        ...                       file_filter=lambda path: path.endswith(".py")
+        ...                   )
+        ...                   .execute())
     """
     def __init__(self):
         self.default_model = os.getenv("GEMINI_DEFAULT_MODEL", "gemini-2.5-flash")

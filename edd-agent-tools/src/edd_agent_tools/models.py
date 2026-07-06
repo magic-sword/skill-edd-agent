@@ -9,8 +9,17 @@ def PromptField(
     constraints: str = "",
     **kwargs
 ):
-    """
-    LLMへの直接の指示（プロンプト）として機能する特別なパラメータを定義するためのフィールドラッパー。
+    """LLMへの直接の指示（プロンプト）として機能する特別なパラメータを定義するためのフィールドラッパー。
+
+    Args:
+        default: デフォルト値。
+        description: パラメータの詳細説明。
+        instructions: パラメータの有効な指定可能指示ガイドライン。
+        constraints: パラメータの構造的な制約ガイドライン。
+        **kwargs: 基礎となる Pydantic Field に引き渡す追加の属性。
+
+    Returns:
+        Pydantic の FieldInfo オブジェクト。
     """
     return Field(
         default,
@@ -52,20 +61,19 @@ class Parameter(BaseModel):
     prompt_constraints: str | None = Field(None, description="プロンプトパラメータの構造的な制約ガイドライン")
 
 class SkillDesign(BaseModel):
-    """
-    スキルの設計定義を表すPydanticモデル。
-    
-    【設計思想: execution_typeによる分類の必要性】
-    AIエージェント（LLM）が自律的にスキルを発見して実行する際、そのスキルが
-    「LLMによる自律推論によって実行されるもの（'agent'）」か、
+    """スキルの設計定義を表す Pydantic モデル。
+
+    【設計思想: execution_type による分類の必要性】
+    AI エージェント（LLM）が自律的にスキルを発見して実行する際、そのスキルが
+    「LLM による自律推論によって実行されるもの（'agent'）」か、
     「決定論的なスクリプトで処理されるもの（'tool'）」かによって、
-    仕様書（SKILL.md）の『実行手順（Instructions）』においてAIが取るべき行動指針が全く異なります。
-    
+    仕様書（SKILL.md）の『実行手順（Instructions）』において AI が取るべき行動指針が全く異なります。
+
     - 'tool': 実際のロジックがスクリプト（Pythonコード等）で完結するため、
-             AI自身がプロンプト等を読み込んで推論したり手動で成果物を組み立てたりする必要はありません。
+             AI 自身がプロンプト等を読み込んで推論したり手動で成果物を組み立てたりする必要はありません。
     - 'agent': スキル内部のプロンプトテンプレート（assets/prompt.txt等）をロードし、
-              そこに記載されている指示および思考ステップに従って、AI自身が推論を実行する必要があります。
-              
+              そこに記載されている指示および思考ステップに従って、AI 自身が推論を実行する必要があります。
+
     この役割分担とドキュメントの書き分け（指示の出し方）を自動制御するために、この分類が必須となります。
     """
     name: str = Field(..., description="スキルの名前")
@@ -88,8 +96,16 @@ class SkillDesign(BaseModel):
 
     @classmethod
     def load_from_file(cls, filepath: str) -> "SkillDesign":
-        """
-        指定された JSON ファイルを読み込み、SkillDesign スキーマで検証してインスタンスを返します。
+        """指定された JSON ファイルを読み込み、SkillDesign スキーマで検証してインスタンスを返します。
+
+        Args:
+            filepath: 読み込む設計ファイル（design.json）の絶対パス。
+
+        Returns:
+            検証済みの SkillDesign インスタンス。
+
+        Raises:
+            FileNotFoundError: 指定されたファイルが存在しない場合。
         """
         import os
         if not os.path.exists(filepath):

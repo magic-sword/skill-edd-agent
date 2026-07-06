@@ -7,14 +7,30 @@ import importlib.util
 from .skill import Skill
 
 class SkillRegistry:
-    """skills_registry.json のデータ構造をカプセル化し、読み込み・保存・更新・動的ツールロードを管理するクラス"""
+    """skills_registry.json のデータ構造をカプセル化し、読み込み・保存・更新・動的ツールロードを管理するクラス。
+
+    Examples:
+        >>> from edd_agent_tools.registry import SkillRegistry
+        >>> registry = SkillRegistry()
+        >>> skills = registry.list_skills()
+        >>> for skill in skills:
+        ...     print(skill.name)
+    """
     
     def __init__(self, registry_path: str = "/workspace/src/skills_registry.json"):
         self.registry_path = os.path.abspath(registry_path)
         self.data = None
 
     def _load(self) -> dict:
-        """レジストリファイルをロードします。"""
+        """レジストリファイルをロードします。
+
+        Returns:
+            ロードされたレジストリデータの辞書。
+
+        Raises:
+            FileNotFoundError: レジストリファイルが存在しない場合。
+            RuntimeError: JSON のロードに失敗した場合。
+        """
         if not os.path.exists(self.registry_path):
             raise FileNotFoundError(f"エラー: レジストリファイルが見つかりません: {self.registry_path}")
             
@@ -26,7 +42,11 @@ class SkillRegistry:
         return self.data
 
     def _save(self):
-        """レジストリファイルを保存します。(内部用)"""
+        """レジストリファイルを保存します（内部用）。
+
+        Raises:
+            RuntimeError: レジストリがロードされていない場合、または書き込みに失敗した場合。
+        """
         if self.data is None:
             raise RuntimeError("エラー: レジストリがロードされていません。先に _load() を呼び出してください。")
             
@@ -38,7 +58,14 @@ class SkillRegistry:
             raise RuntimeError(f"エラー: レジストリの保存に失敗しました: {e}")
 
     def _get_category_and_info(self, name: str) -> tuple[str, dict] | tuple[None, None]:
-        """指定された名前の登録カテゴリ(skills または agents)とメタデータを取得します。"""
+        """指定された名前の登録カテゴリ（skills または agents）とメタデータを取得します。
+
+        Args:
+            name: スキル名。
+
+        Returns:
+            カテゴリ名（str）とメタデータ（dict）のタプル。見つからない場合は (None, None)。
+        """
         if self.data is None:
             self._load()
         for cat in ["skills", "agents"]:
@@ -47,7 +74,14 @@ class SkillRegistry:
         return None, None
 
     def register_skill(self, skill: "Skill") -> bool:
-        """スキルまたはエージェントのオブジェクトをレジストリへ新規登録・更新（保存）します。"""
+        """スキルまたはエージェントのオブジェクトをレジストリへ新規登録・更新（保存）します。
+
+        Args:
+            skill: 登録・更新対象の Skill インスタンス。
+
+        Returns:
+            登録に成功した場合は True、スキップされた場合は False。
+        """
         if self.data is None:
             self._load()
             
@@ -77,7 +111,11 @@ class SkillRegistry:
         return True
 
     def list_skills(self) -> list[Skill]:
-        """登録されているすべてのスキルおよびエージェントの Skill オブジェクトリストを返します。"""
+        """登録されているすべてのスキルおよびエージェントの Skill オブジェクトリストを返します。
+
+        Returns:
+            登録されている全スキルの Skill オブジェクトのリスト。
+        """
         if self.data is None:
             self._load()
         skills_list = []
@@ -90,7 +128,14 @@ class SkillRegistry:
         return skills_list
 
     def _get_skill_dir(self, skill_name: str) -> str | None:
-        """指定されたスキルまたはエージェントの物理ディレクトリ絶対パスを探索して返します。(内部用ヘルパー)"""
+        """指定されたスキルまたはエージェントの物理ディレクトリ絶対パスを探索して返します（内部用）。
+
+        Args:
+            skill_name: 探索するスキル名。
+
+        Returns:
+            スキルの物理ディレクトリの絶対パス。見つからない場合は None。
+        """
         if self.data is None:
             self._load()
         search_paths = self.data.get("search_paths", ["src/skills"])
@@ -101,8 +146,17 @@ class SkillRegistry:
         return None
 
     def get_skill(self, name: str | None = None, design_path: str | None = None) -> "Skill":
-        """
-        指定された name または design_path から一元的に Skill オブジェクトを構築して返します。
+        """指定された name または design_path から一元的に Skill オブジェクトを構築して返します。
+
+        Args:
+            name: 解決対象のスキル名。
+            design_path: 設計ファイル（design.json）のパス。
+
+        Returns:
+            構築された Skill インスタンス。
+
+        Raises:
+            ValueError: ディレクトリパスの解決に失敗した場合。
         """
         import os
         from edd_agent_tools.models import SkillDesign

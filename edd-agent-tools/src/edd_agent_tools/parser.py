@@ -1,12 +1,18 @@
 from pydantic import BaseModel
 
 class PydanticModelParser:
-    """
-    Pydantic (V2) モデルを解析し、アタッチされているバリデータから
-    ドキュメント用制約条件を決定論的に抽出するパーサーユーティリティ。
+    """Pydantic (V2) モデルを解析しアタッチされているバリデータからドキュメント用制約条件を抽出するユーティリティ。
     """
     @staticmethod
     def parse_constraints(model_cls: type[BaseModel]) -> list[str]:
+        """Pydantic モデルに定義されたバリデータの docstring から制約文を決定論的に抽出します。
+
+        Args:
+            model_cls: 解析対象の Pydantic BaseModel 派生クラス。
+
+        Returns:
+            抽出された制約説明文のリスト。
+        """
         constraints = []
         # model_cls から Pydantic デコレータ情報を取得
         decorators = getattr(model_cls, "__pydantic_decorators__", None)

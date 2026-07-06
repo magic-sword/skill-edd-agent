@@ -5,11 +5,21 @@ from concurrent.futures import ThreadPoolExecutor
 from edd_agent_tools.models import EvalRunResult
 
 class ADKEvalServiceRunner:
-    """
-    ADK の LocalEvalService をインプロセスで初期化・実行し、
-    構造化されたオブジェクトから直接結果を集計する責務を持つ実行クラス。
+    """ADK の LocalEvalService をインプロセスで初期化・実行する実行クラス。
+
+    構造化されたオブジェクトから直接結果を集計する責務を持ちます。
     """
     def run_in_process(self, agent_dir: str, eval_set_path: str, config_path: str) -> EvalRunResult:
+        """ADK 評価サービスをインプロセスで初期化・実行し、合否数をパースします。
+
+        Args:
+            agent_dir: 動的に構築されたエージェントコードが配置されているディレクトリの絶対パス。
+            eval_set_path: 評価用のテストケースファイル（*.evalset.json）の絶対パス。
+            config_path: 評価設定ファイル（*.evalset.config.json）の絶対パス。
+
+        Returns:
+            テスト結果の合格数、不合格数、精度、および生成された詳細ログパスを格納した EvalRunResult。
+        """
         # パッチ用ディレクトリとパッケージソースルートを sys.path に動的注入
         self._patch_sys_path()
 
@@ -104,7 +114,7 @@ class ADKEvalServiceRunner:
         )
 
     def _patch_sys_path(self):
-        """ADKプロセスとマルチ言語パッチ環境を sys.path に動的追加します"""
+        """ADKプロセスとマルチ言語パッチ環境を sys.path に動的追加します。"""
         import sys
         current_file_dir = os.path.dirname(os.path.abspath(__file__))
         
@@ -117,7 +127,14 @@ class ADKEvalServiceRunner:
                 sys.path.insert(0, path)
 
     def _run_coroutine_safe(self, coro):
-        """既にイベントループが動いている場合でも、コルーチンを安全に同期実行します"""
+        """既にイベントループが動いている場合でも、コルーチンを安全に同期実行します。
+
+        Args:
+            coro: 同期実行するコルーチンオブジェクト。
+
+        Returns:
+            コルーチンの実行結果オブジェクト。
+        """
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:

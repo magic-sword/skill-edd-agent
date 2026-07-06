@@ -9,8 +9,29 @@ if TYPE_CHECKING:
 
 
 class SkillEval(ABC):
-    """
-    スキルの評価（テスト）を管理する基底クラス。
+    """スキルの評価（テスト）を管理する基底クラス。
+
+    Examples:
+        >>> from edd_agent_tools.registry import SkillRegistry
+        >>> registry = SkillRegistry()
+        >>> skill = registry.get_skill("my-sample-skill")
+
+        # 1. 評価用パスまたはタイプ名から SkillEval インスタンスを取得
+        >>> eval_obj = skill.get_eval("unit")
+
+        # 2. 評価設定ファイルの準備 (存在しない場合はデフォルト config ファイルを自動生成して保存)
+        >>> config_path = eval_obj.prepare_config()
+
+        # 3. テストケースの保存
+        >>> eval_set_data = {
+        ...     "eval_set_id": "my_sample_eval_set",
+        ...     "name": "My Sample Evaluation Set",
+        ...     "eval_cases": []
+        ... }
+        >>> eval_set_path = eval_obj.save_eval_set(eval_set_data)
+
+        # 4. テスト実行 (100% インプロセスで直接実行)
+        >>> result = eval_obj.execute()
     """
     def __init__(self, skill: "Skill"):
         self.skill = skill
@@ -21,9 +42,15 @@ class SkillEval(ABC):
         return os.path.join(self.skill.root_dir, "tests")
 
     def get_test_filepath(self, filename: str) -> str:
-        """
-        tests ディレクトリ配下のテスト用ファイルの絶対パスを取得し、
+        """tests ディレクトリ配下のテスト用ファイルの絶対パスを取得します。
+
         tests ディレクトリが存在しない場合は自動で作成します。
+
+        Args:
+            filename: 解決するテスト用のファイル名。
+
+        Returns:
+            テスト用ファイルの絶対パス。
         """
         tests_dir = self.tests_dir
         os.makedirs(tests_dir, exist_ok=True)
@@ -85,9 +112,17 @@ class SkillEval(ABC):
         pass
 
     def execute(self, timeout_seconds: int = 180, env_vars: dict = None, config_file_path: str = None) -> EvalRunResult:
-        """
-        評価を実行し、その結果を返します。
+        """評価を実行し、その結果を返します。
+
         エージェントの準備、パス解決、評価器の呼び出しのすべてがインプロセスで完結します。
+
+        Args:
+            timeout_seconds: 評価タイムアウト秒数。デフォルトは 180 秒。
+            env_vars: 評価実行時に適用する追加の環境変数。
+            config_file_path: 評価設定ファイルのカスタムパス。
+
+        Returns:
+            評価結果を集計した EvalRunResult インスタンス。
         """
         # 1. 評価設定ファイルの準備
         config_path = config_file_path if config_file_path else self.prepare_config()
@@ -110,7 +145,14 @@ class SkillEval(ABC):
         )
 
     def _prepare_eval_agent_dir(self, mock: bool) -> str:
-        """adk eval 用の動的エージェントディレクトリを構築し、そのパスを返します。"""
+        """adk eval 用の動的エージェントディレクトリを構築し、そのパスを返します。
+
+        Args:
+            mock: モック実行用エージェントを構築する場合は True、そうでない場合は False。
+
+        Returns:
+            構築された動的エージェント配置用ディレクトリの絶対パス。
+        """
         eval_run_dir = os.path.join("/workspace/scratch", f"eval_run_{self.skill.name.replace('-', '_')}")
         os.makedirs(eval_run_dir, exist_ok=True)
         
@@ -125,7 +167,14 @@ class SkillEval(ABC):
         return eval_run_dir
 
     def _generate_eval_agent_code(self, mock: bool) -> str:
-        """モジュールタイプ (SKILL または WORKFLOW) に応じて、適切な agent.py コードを生成します。"""
+        """モジュールタイプ（SKILL または WORKFLOW）に応じて、適切な agent.py コードを生成します。
+
+        Args:
+            mock: モック用の初期化処理を埋め込む場合は True、そうでない場合は False。
+
+        Returns:
+            生成された Python ソースコードのテキスト。
+        """
         skill_name = self.skill.name
         skill_root = self.skill.root_dir
         

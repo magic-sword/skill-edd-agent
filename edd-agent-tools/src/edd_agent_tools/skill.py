@@ -4,8 +4,21 @@ from edd_agent_tools.models import SkillDesign
 from edd_agent_tools.evaluation import SkillEval, UnitEval, TriggerEval
 
 class Skill:
-    """
-    特定のスキルパッケージ全体のモデル（フォルダ構造、アセット、動的ロード、ツール化など）を表現・管理するドメインクラス。
+    """特定のスキルパッケージ全体のモデル（フォルダ構造、アセット、動的ロード、ツール化など）を表現・管理するドメインクラス。
+
+    Examples:
+        >>> from edd_agent_tools.registry import SkillRegistry
+        >>> registry = SkillRegistry()
+        >>> skill = registry.get_skill(name="skill-spec-writer")
+        >>> print(skill.name)
+        'skill-spec-writer'
+
+        # 主要パスへのアクセス
+        >>> design_path = skill.design_path
+        >>> source_code_dir = skill.source_code_dir
+
+        # アセットファイル（プロンプト等）の安全ロード
+        >>> prompt_content = skill.load_asset("prompt.txt")
     """
     def __init__(self, root_dir: str, tier: int = 0, last_tested: str | None = None):
         self.root_dir = os.path.abspath(root_dir)
@@ -14,7 +27,14 @@ class Skill:
         self._metadata = None
 
     def set_tier(self, tier: int):
-        """このスキルの Tier を設定し、テスト時間を更新します。"""
+        """このスキルの Tier を設定し、テスト時間を更新します。
+
+        Args:
+            tier: 設定する Tier 値（0〜3）。
+
+        Raises:
+            ValueError: Tier が 0〜3 の範囲外の場合。
+        """
         if tier not in [0, 1, 2, 3]:
             raise ValueError("Error: Tier must be 0, 1, 2, or 3.")
         self._tier = tier
@@ -24,9 +44,12 @@ class Skill:
 
     @property
     def metadata(self) -> "SkillMetadata":
-        """
-        レジストリ JSON の登録情報と design.json の設計情報を統合した
-        型安全な SkillMetadata インスタンスをロードして返します。
+        """型安全な SkillMetadata インスタンスをロードして返します。
+
+        レジストリ JSON の登録情報と design.json の設計情報を統合します。
+
+        Returns:
+            統合された型安全な SkillMetadata。
         """
         if self._metadata is None:
             # 1. design.json から設計データをロード
@@ -99,9 +122,16 @@ class Skill:
         return SkillDesign.load_from_file(self.design_path)
 
     def load_asset(self, asset_filename: str) -> str:
-        """
-        自身の assets ディレクトリ配下の指定されたアセットファイルを読み込み、テキストとして返します。
-        ファイルが存在しない、またはディレクトリの場合は FileNotFoundError をスローします。
+        """自身の assets ディレクトリ配下の指定されたアセットファイルを読み込み、テキストとして返します。
+
+        Args:
+            asset_filename: 読み込むアセットファイルのファイル名。
+
+        Returns:
+            アセットファイルの内容文字列。
+
+        Raises:
+            FileNotFoundError: ファイルが存在しない、またはディレクトリである場合。
         """
         asset_path = os.path.join(self.root_dir, "assets", asset_filename)
         if not os.path.exists(asset_path) or os.path.isdir(asset_path):
@@ -112,9 +142,13 @@ class Skill:
 
 
     def load_spec(self) -> str:
-        """
-        仕様書（SKILL.md）のファイル内容を読み込み、テキストとして返します。
-        ファイルが存在しない場合は FileNotFoundError をスローします。
+        """仕様書（SKILL.md）のファイル内容を読み込み、テキストとして返します。
+
+        Returns:
+            仕様書（SKILL.md）の内容文字列。
+
+        Raises:
+            FileNotFoundError: 仕様書ファイルが存在しない場合。
         """
         spec_path = self.spec_path
         if not os.path.exists(spec_path):
@@ -123,9 +157,13 @@ class Skill:
             return f.read()
 
     def get_eval(self, eval_type_or_path: str) -> "SkillEval":
-        """
-        引数として eval_set_path または "unit" / "trigger" を受け取り、
-        適切な SkillEval（UnitEval または TriggerEval）のインスタンスを返します。
+        """適切な SkillEval（UnitEval または TriggerEval）のインスタンスを取得します。
+
+        Args:
+            eval_type_or_path: 評価タイプ名（"unit" または "trigger"）、あるいは評価ケースファイルのパス。
+
+        Returns:
+            対応する SkillEval 派生クラスインスタンス（UnitEval または TriggerEval）。
         """
         basename = os.path.basename(eval_type_or_path)
         if "trigger" in basename or eval_type_or_path == "trigger":
@@ -133,9 +171,18 @@ class Skill:
         return UnitEval(self)
 
     def load_module(self):
-        """
-        このスキルパッケージの scripts/__init__.py を、
-        一意の名前空間の下でキャッシュの干渉なくロードし、モジュールオブジェクトを返します。
+        """このスキルパッケージの scripts/__init__.py をロードしモジュールオブジェクトを返します。
+
+        他スキルの相対インポートとの名前空間の競合を防ぐため、
+        一意の仮想パッケージの階層（edd_agent_tools.dynamic_skills.<name>.scripts）を構築してキャッシュします。
+
+        Returns:
+            ロードされた `scripts/__init__.py` のモジュールオブジェクト。
+
+        Examples:
+            >>> registry = SkillRegistry()
+            >>> skill = registry.get_skill("my-sample-skill")
+            >>> handler_module = skill.load_module()
         """
         import sys
         import types
