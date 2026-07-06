@@ -1,7 +1,7 @@
 {
   "name": "skill-developer",
-  "description": "スキルを生成するワークフローエージェント。",
-  "summary": "src/skills/skill-designer、src/skills/skill-coder、src/skills/skill-spec-writerを順番に実行し、スキル設計・実装を行うワークフローエージェント。",
+  "description": "スキルを設計、実装、および仕様書を作成するワークフローエージェント。",
+  "summary": "このワークフローは、ユーザーからの要件プロンプトに基づいて、skill-designer、skill-coder、skill-spec-writerの各スキルを順に実行し、新しいスキルを生成します。設計、実装、仕様書作成の一連のプロセスを自動化し、成果物を指定されたディレクトリに出力します。",
   "module_type": "workflow",
   "execution_type": "agent",
   "output_mode": "STRUCTURED_JSON",
@@ -9,39 +9,39 @@
     {
       "name": "prompt",
       "type": "str",
-      "description": "スキル設計・実装の要件",
+      "description": "スキル設計・実装の要件を記述したプロンプト。",
       "required": true,
       "is_prompt_parameter": true,
-      "prompt_instructions": "生成したいスキルの機能、目的、入出力、制約、利用シナリオなどを具体的に記述してください。",
-      "prompt_constraints": "破壊的な操作や機密情報に関わる指示は避けてください。生成されるスキルはADK 2.0規約に準拠する必要があります。"
+      "prompt_instructions": "スキル設計・実装の要件を具体的に記述してください。どのような機能を持つスキルが必要か、どのような入力と出力を期待するか、どのような制約があるかなどを明確に指定してください。",
+      "prompt_constraints": "スキル設計・実装の要件は、明確かつ具体的な指示である必要があります。曖昧な表現や矛盾する指示は避けてください。また、セキュリティやプライバシーに関する要件がある場合は明記してください。"
     },
     {
       "name": "skill",
       "type": "str",
-      "description": "対象のスキル名",
+      "description": "対象のスキル名。既存スキルを改修する場合に指定します。",
       "required": false,
-      "is_prompt_parameter": false
+      "default": null
     },
     {
       "name": "output_dir",
       "type": "str",
-      "description": "成果物の出力先ディレクトリ",
+      "description": "成果物の出力先ディレクトリのパス。",
       "required": false,
-      "is_prompt_parameter": false
+      "default": null
     },
     {
       "name": "design_path",
       "type": "str",
-      "description": "design.jsonの絶対パス",
+      "description": "design.jsonの絶対パス。既存スキルを改修する場合に指定します。",
       "required": false,
-      "is_prompt_parameter": false
+      "default": null
     },
     {
       "name": "source_code_dir",
       "type": "str",
-      "description": "実装コードのソースコードディレクトリ",
+      "description": "実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。",
       "required": false,
-      "is_prompt_parameter": false
+      "default": null
     }
   ],
   "dependencies": [
@@ -54,7 +54,7 @@
     {
       "name": "status",
       "type": "str",
-      "description": "処理結果の成否ステータス",
+      "description": "処理結果の成否ステータス。",
       "required": true,
       "choices": [
         "success",
@@ -64,13 +64,13 @@
     {
       "name": "message",
       "type": "str",
-      "description": "処理結果のメッセージサマリー",
+      "description": "処理結果のメッセージサマリー。",
       "required": true
     },
     {
       "name": "output_dir",
       "type": "str",
-      "description": "最終生成された成果物が格納されたスキルディレクトリの絶対パス",
+      "description": "最終生成された成果物が格納されたスキルディレクトリの絶対パス。",
       "required": true
     }
   ]

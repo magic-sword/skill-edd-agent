@@ -117,15 +117,156 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
         print(f"決定論的パッケージ初期化ファイルを生成しました (workflow): {init_path}")
         generated_files.append(os.path.relpath(init_path, self.target_root_dir))
 
-        # 4. workflow.py のプレースホルダー配置（存在しない場合のみ）
+        # 4. workflow.py の生成（依存関係がある場合はセマンティック生成、なければプレースホルダー）
         workflow_path = os.path.join(self.scripts_dir, "workflow.py")
-        if not os.path.exists(workflow_path):
+        if self.design.dependencies:
+            from edd_agent_tools.skills import SkillsState
+            from edd_agent_tools import GeminiClient
+            from google.genai import types
+            
+            state = SkillsState()
+            state.load()
+            
+            schema_docs = []
+            for dep in self.design.dependencies:
+                try:
+                    dep_skill = state.get_skill(dep)
+                    dep_design = dep_skill.load_design()
+                    
+                    inputs = []
+                    for param in dep_design.input_parameters:
+                        inputs.append(f"  - {param.name} ({param.type}): {param.description}")
+                        
+                    outputs = []
+                    for param in dep_design.response_parameters:
+                        outputs.append(f"  - {param.name} ({param.type}): {param.description}")
+                        
+                    inputs_str = "\n".join(inputs) if inputs else "  なし"
+                    outputs_str = "\n".join(outputs) if outputs else "  なし"
+                    
+                    schema_docs.append(
+                        f"■ スキル名: {dep_design.name}\n"
+                        f"説明: {dep_design.description}\n"
+                        f"入力パラメータ (Input):\n{inputs_str}\n"
+                        f"出力パラメータ (Output):\n{outputs_str}\n"
+                    )
+                except Exception as e:
+                    print(f"警告: 依存スキル {dep} のスキーマ取得に失敗しました: {e}")
+            
+            workflow_design_str = json.dumps(self.design.model_dump(), indent=2, ensure_ascii=False)
+            
+            prompt_tmpl = self.coder_skill.load_asset("prompts/workflow_generator.prompt")
+            prompt = prompt_tmpl.replace(
+                "{dependency_schemas_str}", "\n".join(schema_docs)
+            ).replace(
+                "{module_name}", workflow_name
+            ).replace(
+                "{workflow_design_str}", workflow_design_str
+            )
+            
+            print(f"Gemini API を呼び出して {workflow_name} 用のパラメータマッピング情報を生成しています...")
+            client = GeminiClient()
+            try:
+                response = client.generate_content(
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.1,
+                        response_mime_type="application/json"
+                    )
+                )
+                mapping_json_str = response.text
+                
+                # markdownコードブロックを念のため除去
+                if "```" in mapping_json_str:
+                    lines = mapping_json_str.split("\n")
+                    cleaned_lines = []
+                    in_block = False
+                    for line in lines:
+                        if line.strip().startswith("```"):
+                            in_block = not in_block
+                            continue
+                        cleaned_lines.append(line)
+                    mapping_json_str = "\n".join(cleaned_lines)
+                
+                mapping_data = json.loads(mapping_json_str)
+                print("生成されたマッピング定義:", mapping_data)
+                
+                # 決定論的な Python コードの組み立て
+                code_lines = [
+                    '"""',
+                    f'{workflow_name} の Workflow オブジェクト定義。',
+                    'ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠した関数ノード接続。',
+                    '"""',
+                    'from google.adk import Workflow',
+                    'from google.adk.tools import ToolContext',
+                    'from edd_agent_tools.skills import SkillsState',
+                    'import json',
+                    '',
+                    'state = SkillsState()',
+                    'state.load()',
+                    ''
+                ]
+                
+                # モジュールインポートの生成
+                for dep in self.design.dependencies:
+                    dep_var = dep.replace("-", "_")
+                    code_lines.append(f'{dep_var}_module = state.get_skill("{dep}").load_module()')
+                
+                code_lines.append('')
+                
+                # 関数ノードの生成
+                step_functions = []
+                for dep in self.design.dependencies:
+                    dep_var = dep.replace("-", "_")
+                    func_name = f"run_{dep_var}_step"
+                    step_functions.append(func_name)
+                    
+                    code_lines.append(f"def {func_name}(tool_context: ToolContext) -> str:")
+                    code_lines.append("    # セマンティックにマッピングされた引数の抽出")
+                    
+                    dep_mapping = mapping_data.get(dep, {})
+                    param_assignments = []
+                    for param_name, state_key in dep_mapping.items():
+                        param_assignments.append(f'        {param_name}=tool_context.state.get("{state_key}")')
+                        
+                    params_init_str = ",\n".join(param_assignments)
+                    code_lines.append(f"    params = {dep_var}_module.Input(")
+                    if params_init_str:
+                        code_lines.append(params_init_str)
+                    code_lines.append("    )")
+                    
+                    code_lines.append(f"    res_str = {dep_var}_module.process_message(params, tool_context)")
+                    code_lines.append("    try:")
+                    code_lines.append("        res_data = json.loads(res_str)")
+                    code_lines.append("        tool_context.state.update(res_data)")
+                    code_lines.append("    except Exception:")
+                    code_lines.append("        pass")
+                    code_lines.append("    return res_str")
+                    code_lines.append("")
+                
+                # edgesの生成
+                code_lines.append("root_workflow = Workflow(")
+                code_lines.append(f'    name="{workflow_module_name}",')
+                code_lines.append("    edges=[")
+                code_lines.append(f'        ("START", {step_functions[0]}),')
+                for i in range(len(step_functions) - 1):
+                    code_lines.append(f'        ({step_functions[i]}, {step_functions[i+1]}),')
+                code_lines.append("    ]")
+                code_lines.append(")")
+                
+                workflow_code = "\n".join(code_lines)
+            except Exception as e:
+                print(f"エラー: workflow.py の LLM 生成または組み立てに失敗しました。プレースホルダーにフォールバックします: {e}")
+                workflow_tmpl = self.coder_skill.load_asset("templates/workflow/workflow.py.template")
+                workflow_code = workflow_tmpl.replace("{workflow_name}", workflow_name).replace("{workflow_module_name}", workflow_module_name)
+        else:
             workflow_tmpl = self.coder_skill.load_asset("templates/workflow/workflow.py.template")
             workflow_code = workflow_tmpl.replace("{workflow_name}", workflow_name).replace("{workflow_module_name}", workflow_module_name)
-            with open(workflow_path, "w", encoding="utf-8") as f:
-                f.write(workflow_code)
-            print(f"workflow.py のプレースホルダーを配置しました: {workflow_path}")
-            generated_files.append(os.path.relpath(workflow_path, self.target_root_dir))
+
+        with open(workflow_path, "w", encoding="utf-8") as f:
+            f.write(workflow_code)
+        print(f"workflow.py を生成しました: {workflow_path}")
+        generated_files.append(os.path.relpath(workflow_path, self.target_root_dir))
 
         # 5. workflow_logic.py のプレースホルダー配置（存在しない場合のみ）
         logic_path = os.path.join(self.scripts_dir, "workflow_logic.py")
