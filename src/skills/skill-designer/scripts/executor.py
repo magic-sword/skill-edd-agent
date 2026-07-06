@@ -6,6 +6,7 @@ from .client import GeminiDesignClient
 from .prompter import DesignPrompter
 from .resolver import PathResolver
 from .parser import ConstraintParser
+from .cleanser import DesignCleanser
 
 class SkillExecutor:
     """
@@ -71,10 +72,25 @@ class SkillExecutor:
         except json.JSONDecodeError as e:
             return Output(status="failed", message=f"Gemini API レスポンスのパースエラー: {e}", output_dir="")
 
+        # 5.2. 決定論的クレンジング（自動補正）
+        design_data = DesignCleanser().clean(design_data)
+
         # 概要 (summary) フィールドの処理
         # ユーザーから明示的な summary が指定されている場合は、それを最優先で上書き
         if summary_override:
             design_data["summary"] = summary_override
+
+        # 5.5. Pydantic モデルによるスキーマバリデーション (スキルとワークフローの切り分けチェック)
+        from edd_agent_tools.models import ModuleDesign
+        from pydantic import TypeAdapter
+        try:
+            TypeAdapter(ModuleDesign).validate_python(design_data)
+        except Exception as e:
+            return Output(
+                status="failed", 
+                message=f"設計データのバリデーションエラー（スキルとワークフローの構成不整合など）: {e}", 
+                output_dir=""
+            )
 
         assets_output_dir = os.path.join(output_dir, "assets")
         output_file_path = os.path.join(assets_output_dir, "design.json")

@@ -15,6 +15,10 @@ def __getattr__(name: str):
         # models
         "Parameter": (".models", "Parameter"),
         "SkillDesign": (".models", "SkillDesign"),
+        "WorkflowDesign": (".models", "WorkflowDesign"),
+        "ModuleDesign": (".models", "ModuleDesign"),
+        "Step": (".models", "Step"),
+        "StepType": (".models", "StepType"),
         "EvalRunResult": (".models", "EvalRunResult"),
         "SkillMetadata": (".models", "SkillMetadata"),
         "ModuleType": (".models", "ModuleType"),
@@ -43,7 +47,8 @@ def __getattr__(name: str):
 
 def __dir__():
     return sorted(list(globals().keys()) + [
-        "Parameter", "SkillDesign", "EvalRunResult", "SkillMetadata", "ModuleType",
+        "Parameter", "SkillDesign", "WorkflowDesign", "ModuleDesign", "Step", "StepType",
+        "EvalRunResult", "SkillMetadata", "ModuleType",
         "clean_pydantic_schema",
         "SkillsState", "Skill", "SkillEval", "UnitEval", "TriggerEval",
         "GeminiClient", "GeminiRequest", "LibraryDocumentationReader"

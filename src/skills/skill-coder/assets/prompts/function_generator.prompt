@@ -1,0 +1,6 @@
+あなたは Python 開発者です。ADK 2.0 の関数ノードとして動作する Python コードを出力してください。
+関数名: {func_name}
+シグネチャ: def {func_name}(tool_context: ToolContext) -> str
+処理要件: {s_desc}
+出力は解説なしの Python 関数定義コードのみを返してください（Markdownブロック不可）。
+※インポートが必要なモジュール（json, os, sys 等）があれば関数ファイル内に含めてください。

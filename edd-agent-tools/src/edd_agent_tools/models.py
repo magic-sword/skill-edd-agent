@@ -1,6 +1,6 @@
 from enum import StrEnum
-from typing import Literal
-from pydantic import BaseModel, Field, model_validator
+from typing import Literal, Union, Annotated
+from pydantic import BaseModel, Field, model_validator, TypeAdapter
 
 from typing import Any, get_origin, get_args, Union
 from pydantic import BaseModel, create_model
@@ -123,26 +123,29 @@ class Parameter(BaseModel):
     prompt_instructions: str | None = Field(None, description="プロンプトパラメータの有効な指定可能指示ガイドライン")
     prompt_constraints: str | None = Field(None, description="プロンプトパラメータの構造的な制約ガイドライン")
 
+
+class StepType(StrEnum):
+    SKILL = "skill"
+    FUNCTION = "function"
+    AGENT = "agent"
+
+
+class Step(BaseModel):
+    name: str = Field(..., description="ステップの識別子名")
+    type: StepType = Field(..., description="ステップの種別。'skill' (既存スキル), 'function' (カスタムPython関数), 'agent' (自律エージェント)")
+    target: str | None = Field(None, description="typeが 'skill' の場合に呼び出す既存のスキル名")
+    description: str | None = Field(None, description="typeが 'function' または 'agent' の場合に、ノードの役割・処理要件を記述する説明")
+    instruction: str | None = Field(None, description="typeが 'agent' の場合に、エージェントへ与えるシステムプロンプト/指示")
+    tools: list[str] | None = Field(None, description="typeが 'agent' の場合に、エージェントが使用可能なツールのリスト")
+    inputs: dict[str, str] | None = Field(None, description="引数マッピング辞書。キーはステップに入力される引数名、値は tool_context.state から取得する値（またはPythonの評価式）")
+
+
 class SkillDesign(BaseModel):
-    """スキルの設計定義を表す Pydantic モデル。
-
-    【設計思想: execution_type による分類の必要性】
-    AI エージェント（LLM）が自律的にスキルを発見して実行する際、そのスキルが
-    「LLM による自律推論によって実行されるもの（'agent'）」か、
-    「決定論的なスクリプトで処理されるもの（'tool'）」かによって、
-    仕様書（SKILL.md）の『実行手順（Instructions）』において AI が取るべき行動指針が全く異なります。
-
-    - 'tool': 実際のロジックがスクリプト（Pythonコード等）で完結するため、
-             AI 自身がプロンプト等を読み込んで推論したり手動で成果物を組み立てたりする必要はありません。
-    - 'agent': スキル内部のプロンプトテンプレート（assets/prompt.txt等）をロードし、
-              そこに記載されている指示および思考ステップに従って、AI 自身が推論を実行する必要があります。
-
-    この役割分担とドキュメントの書き分け（指示の出し方）を自動制御するために、この分類が必須となります。
-    """
-    name: str = Field(..., description="スキルの名前")
+    """単一スキルの設計定義を表す Pydantic モデル。"""
+    name: str = Field(..., description="スキルの名前。小文字のハイフン区切り")
     description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明（L1 description用）")
-    summary: str | None = Field(None, description="スキルの仕様概要（ビジネス目的や要求の要約）。仕様書（SKILL.md）の概要セクションにマッピングされます")
-    module_type: ModuleType = Field(ModuleType.SKILL, description="モジュールの役割分類（'skill' または 'workflow'）")
+    summary: str | None = Field(None, description="スキルの仕様概要")
+    module_type: Literal[ModuleType.SKILL] = Field(ModuleType.SKILL, description="モジュールの役割分類。単一スキルは必ず 'skill'")
     execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
     output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
     parameters: list[Parameter] = Field(..., description="スキルが受け取るパラメータのリスト")
@@ -158,23 +161,45 @@ class SkillDesign(BaseModel):
         return self
 
     @classmethod
-    def load_from_file(cls, filepath: str) -> "SkillDesign":
-        """指定された JSON ファイルを読み込み、SkillDesign スキーマで検証してインスタンスを返します。
+    def load_from_file(cls, filepath: str) -> "Union[SkillDesign, WorkflowDesign]":
+        return load_design_from_file(filepath)
 
-        Args:
-            filepath: 読み込む設計ファイル（design.json）の絶対パス。
 
-        Returns:
-            検証済みの SkillDesign インスタンス。
+class WorkflowDesign(BaseModel):
+    """複数モジュールを連結するワークフローの設計仕様定義。"""
+    name: str = Field(..., description="ワークフローの名前。小文字のハイフン区切り")
+    description: str = Field(..., description="ワークフローの目的や役割を記述した簡潔な説明")
+    summary: str | None = Field(None, description="ワークフローの仕様概要")
+    module_type: Literal[ModuleType.WORKFLOW] = Field(ModuleType.WORKFLOW, description="モジュールの役割分類。ワークフローは必ず 'workflow'")
+    parameters: list[Parameter] = Field(..., description="ワークフロー全体が外部から受け取るパラメータのリスト")
+    dependencies: list[str] = Field([], description="依存するターゲットスキル名のリスト")
+    constraints: list[str] = Field([], description="全体の実行に関する制約")
+    response_parameters: list[Parameter] | None = Field(None, description="全体の出力JSONの構造定義")
+    steps: list[Step] = Field(..., description="ワークフローを構成するステップの定義リスト（有向グラフ）")
 
-        Raises:
-            FileNotFoundError: 指定されたファイルが存在しない場合。
-        """
-        import os
-        if not os.path.exists(filepath):
-            raise FileNotFoundError(f"design.json not found at: {filepath}")
-        with open(filepath, "r", encoding="utf-8") as f:
-            return cls.model_validate_json(f.read())
+    @classmethod
+    def load_from_file(cls, filepath: str) -> "Union[SkillDesign, WorkflowDesign]":
+        return load_design_from_file(filepath)
+
+
+# Discriminated Union による統合定義
+ModuleDesign = Annotated[
+    Union[SkillDesign, WorkflowDesign],
+    Field(discriminator="module_type")
+]
+
+
+def load_design_from_file(filepath: str) -> Union[SkillDesign, WorkflowDesign]:
+    import os
+    import json
+    
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"design.json not found at: {filepath}")
+    with open(filepath, "r", encoding="utf-8") as f:
+        data = json.loads(f.read())
+        
+    adapter = TypeAdapter(ModuleDesign)
+    return adapter.validate_python(data)
 
 
 
