@@ -48,6 +48,16 @@ class GeminiClient:
         """
         堅牢な指数バックオフリトライとタイムアウト制御を備えた中央集約的なコンテンツ生成。
         """
+        # response_schema が Pydantic の BaseModel サブクラスである場合、
+        # Gemini API が受け入れられないカスタム属性を除外したクリーンなモデルに差し替える
+        if config and getattr(config, "response_schema", None) is not None:
+            from pydantic import BaseModel
+            from edd_agent_tools.models import clean_pydantic_schema
+
+            orig_schema = config.response_schema
+            if isinstance(orig_schema, type) and issubclass(orig_schema, BaseModel):
+                config.response_schema = clean_pydantic_schema(orig_schema)
+
         from .request import GeminiRequest
         if isinstance(contents, GeminiRequest):
             actual_contents = contents.build()

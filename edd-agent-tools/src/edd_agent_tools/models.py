@@ -2,6 +2,69 @@ from enum import StrEnum
 from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
+from typing import Any, get_origin, get_args, Union
+from pydantic import BaseModel, create_model
+
+def _clean_type_annotation(anno: Any) -> Any:
+    """型アノテーションを再帰的に解析し、内包される Pydantic モデルをクレンジング済みのモデルに置換します。"""
+    if anno is None:
+        return None
+
+    # 直接 Pydantic モデルの場合 (例: Input)
+    if isinstance(anno, type) and issubclass(anno, BaseModel):
+        return clean_pydantic_schema(anno)
+
+    # ジェネリック型 (例: list[BaseModel], Union[BaseModel, None] など) の場合
+    origin = get_origin(anno)
+    if origin is not None:
+        args = get_args(anno)
+        # 型引数をそれぞれ再帰的にクレンジング
+        cleaned_args = tuple(_clean_type_annotation(arg) for arg in args)
+
+        # Union の特殊な再構築
+        if origin is Union:
+            return Union[cleaned_args]
+
+        try:
+            # 引数の数に応じて型を再構成 (list[T] や dict[K, V] 等)
+            if len(cleaned_args) == 1:
+                return origin[cleaned_args[0]]
+            else:
+                return origin[cleaned_args]
+        except Exception:
+            return anno
+
+    return anno
+
+def clean_pydantic_schema(original_model: type[BaseModel]) -> type[BaseModel]:
+    """Pydanticモデル定義から、Gemini APIが拒否するカスタムメタデータを除去したクローンモデルを返します（再帰適用）。"""
+    fields_definition = {}
+
+    for field_name, field_info in original_model.model_fields.items():
+        clean_extra = None
+        if isinstance(field_info.json_schema_extra, dict):
+            clean_extra = {
+                k: v for k, v in field_info.json_schema_extra.items()
+                if k not in ["is_prompt_parameter", "prompt_instructions", "prompt_constraints"]
+            }
+
+        cleaned_annotation = _clean_type_annotation(field_info.annotation)
+
+        fields_definition[field_name] = (
+            cleaned_annotation,
+            Field(
+                default=field_info.default,
+                default_factory=field_info.default_factory,
+                description=field_info.description,
+                json_schema_extra=clean_extra
+            )
+        )
+
+    return create_model(
+        f"GeminiAPI_{original_model.__name__}",
+        **fields_definition
+    )
+
 def PromptField(
     default=...,
     description: str = "",
@@ -16,7 +79,7 @@ def PromptField(
         description: パラメータの詳細説明。
         instructions: パラメータの有効な指定可能指示ガイドライン。
         constraints: パラメータの構造的な制約ガイドライン。
-        **kwargs: 基礎となる Pydantic Field に引き渡す追加の属性。
+        **kwargs: 基礎となる Pydantic Field に引き渡す追加 of 属性。
 
     Returns:
         Pydantic の FieldInfo オブジェクト。

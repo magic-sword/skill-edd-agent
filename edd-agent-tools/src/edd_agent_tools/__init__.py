@@ -18,6 +18,7 @@ def __getattr__(name: str):
         "EvalRunResult": (".models", "EvalRunResult"),
         "SkillMetadata": (".models", "SkillMetadata"),
         "ModuleType": (".models", "ModuleType"),
+        "clean_pydantic_schema": (".models", "clean_pydantic_schema"),
         # registry
         "SkillRegistry": (".registry", "SkillRegistry"),
         # skill
@@ -44,6 +45,7 @@ def __getattr__(name: str):
 def __dir__():
     return sorted(list(globals().keys()) + [
         "Parameter", "SkillDesign", "EvalRunResult", "SkillMetadata", "ModuleType",
+        "clean_pydantic_schema",
         "SkillRegistry", "Skill", "SkillEval", "UnitEval", "TriggerEval",
         "GeminiClient", "GeminiRequest", "LibraryDocumentationReader"
     ])
