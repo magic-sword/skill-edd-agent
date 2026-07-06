@@ -381,14 +381,13 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
         print(f"workflow.py を生成しました: {workflow_path}")
         generated_files.append(os.path.relpath(workflow_path, self.target_root_dir))
 
-        # 5. workflow_logic.py のプレースホルダー配置（存在しない場合のみ）
-        logic_path = os.path.join(self.scripts_dir, "workflow_logic.py")
-        if not os.path.exists(logic_path):
-            logic_tmpl = self.coder_skill.load_asset("templates/workflow/workflow_logic.py.template")
-            logic_code = logic_tmpl.replace("{workflow_name}", workflow_name)
-            with open(logic_path, "w", encoding="utf-8") as f:
-                f.write(logic_code)
-            print(f"workflow_logic.py のプレースホルダーを配置しました: {logic_path}")
-            generated_files.append(os.path.relpath(logic_path, self.target_root_dir))
+        # 5. executor.py の自動生成
+        executor_path = os.path.join(self.scripts_dir, "executor.py")
+        executor_tmpl = self.coder_skill.load_asset("templates/workflow/executor.py.template")
+        executor_code = executor_tmpl.replace("{workflow_name}", workflow_name)
+        with open(executor_path, "w", encoding="utf-8") as f:
+            f.write(executor_code)
+        print(f"決定論的エグゼキューターファイルを生成しました (workflow): {executor_path}")
+        generated_files.append(os.path.relpath(executor_path, self.target_root_dir))
 
         return generated_files

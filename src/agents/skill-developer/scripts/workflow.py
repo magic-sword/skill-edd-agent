@@ -6,7 +6,6 @@ from google.adk import Workflow
 from google.adk.tools import ToolContext
 from edd_agent_tools.skills import SkillsState
 import json
-import os
 
 state = SkillsState()
 state.load()
@@ -17,22 +16,24 @@ skill_spec_writer_module = state.get_skill("skill-spec-writer").load_module()
 
 def run_design_skill_step(tool_context: ToolContext) -> str:
     """
-    skill-designer を実行し、スキル設計を生成します。
+    skill-designerスキルを実行するステップ。
+    tool_context.stateから必要な入力パラメータを取得し、skill-designerに渡します。
     """
+    # skill-developerの入力からpromptとoutput_dir, skillを取得
+    prompt = tool_context.state.get("prompt")
+    output_dir = tool_context.state.get("output_dir")
+    skill = tool_context.state.get("skill")
+
+    # skill-designerのInputオブジェクトを生成
     params = skill_designer_module.Input(
-        prompt=tool_context.state.get("prompt"),
-        skill=tool_context.state.get("skill"),
-        output_dir=tool_context.state.get("output_dir"),
-        design_path=tool_context.state.get("design_path")
+        prompt=prompt,
+        output_dir=output_dir,
+        skill=skill
     )
     res_str = skill_designer_module.process_message(params, tool_context)
     try:
         res_data = json.loads(res_str)
-        # design_path と skill をセッション状態に保存
-        if "design_path" in res_data:
-            tool_context.state["design_path"] = res_data["design_path"]
-        if "skill" in res_data:
-            tool_context.state["skill"] = res_data["skill"]
+        # skill-designerの出力（例: design_path, skill, output_dir）をstateに更新
         tool_context.state.update(res_data)
     except Exception:
         pass
@@ -40,20 +41,25 @@ def run_design_skill_step(tool_context: ToolContext) -> str:
 
 def run_code_skill_step(tool_context: ToolContext) -> str:
     """
-    skill-coder を実行し、スキルコードを生成します。
+    skill-coderスキルを実行するステップ。
+    tool_context.stateから必要な入力パラメータを取得し、skill-coderに渡します。
     """
+    # skill-designerの出力からdesign_pathを取得
+    design_path = tool_context.state.get("design_path")
+    # skill-developerの入力からoutput_dir, skillを取得
+    output_dir = tool_context.state.get("output_dir")
+    skill = tool_context.state.get("skill")
+
+    # skill-coderのInputオブジェクトを生成
     params = skill_coder_module.Input(
-        design_path=tool_context.state.get("design_path"),
-        skill=tool_context.state.get("skill"),
-        output_dir=tool_context.state.get("output_dir"),
-        source_code_dir=tool_context.state.get("source_code_dir")
+        design_path=design_path,
+        output_dir=output_dir,
+        skill=skill
     )
     res_str = skill_coder_module.process_message(params, tool_context)
     try:
         res_data = json.loads(res_str)
-        # source_code_dir をセッション状態に保存
-        if "source_code_dir" in res_data:
-            tool_context.state["source_code_dir"] = res_data["source_code_dir"]
+        # skill-coderの出力（例: source_code_dir, skill, output_dir）をstateに更新
         tool_context.state.update(res_data)
     except Exception:
         pass
@@ -61,17 +67,25 @@ def run_code_skill_step(tool_context: ToolContext) -> str:
 
 def run_write_spec_step(tool_context: ToolContext) -> str:
     """
-    skill-spec-writer を実行し、スキル仕様書を生成します。
+    skill-spec-writerスキルを実行するステップ。
+    tool_context.stateから必要な入力パラメータを取得し、skill-spec-writerに渡します。
     """
+    # skill-coderの出力からsource_code_dirを取得
+    source_code_dir = tool_context.state.get("source_code_dir")
+    # skill-developerの入力からoutput_dir, skillを取得
+    output_dir = tool_context.state.get("output_dir")
+    skill = tool_context.state.get("skill")
+
+    # skill-spec-writerのInputオブジェクトを生成
     params = skill_spec_writer_module.Input(
-        design_path=tool_context.state.get("design_path"),
-        skill=tool_context.state.get("skill"),
-        output_dir=tool_context.state.get("output_dir"),
-        source_code_dir=tool_context.state.get("source_code_dir")
+        source_code_dir=source_code_dir,
+        output_dir=output_dir,
+        skill=skill
     )
     res_str = skill_spec_writer_module.process_message(params, tool_context)
     try:
         res_data = json.loads(res_str)
+        # skill-spec-writerの出力（例: output_dir, skill）をstateに更新
         tool_context.state.update(res_data)
     except Exception:
         pass

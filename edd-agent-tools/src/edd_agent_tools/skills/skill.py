@@ -1,5 +1,5 @@
 import os
-from typing import Literal
+from typing import Literal, Any
 from edd_agent_tools.models import SkillDesign
 from edd_agent_tools.evaluation import SkillEval, UnitEval, TriggerEval
 
@@ -250,3 +250,4 @@ class Skill:
         process_func.__doc__ = description
 
         return FunctionTool(func=process_func)
+

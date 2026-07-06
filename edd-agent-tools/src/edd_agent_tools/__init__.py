@@ -26,6 +26,7 @@ def __getattr__(name: str):
         # skills
         "SkillsState": (".skills", "SkillsState"),
         "Skill": (".skills", "Skill"),
+        "WorkflowRunner": (".run.workflow", "WorkflowRunner"),
         # evaluation
         "SkillEval": (".evaluation", "SkillEval"),
         "UnitEval": (".evaluation", "UnitEval"),
@@ -50,7 +51,7 @@ def __dir__():
         "Parameter", "SkillDesign", "WorkflowDesign", "ModuleDesign", "Step", "StepType",
         "EvalRunResult", "SkillMetadata", "ModuleType",
         "clean_pydantic_schema",
-        "SkillsState", "Skill", "SkillEval", "UnitEval", "TriggerEval",
+        "SkillsState", "Skill", "WorkflowRunner", "SkillEval", "UnitEval", "TriggerEval",
         "GeminiClient", "GeminiRequest", "LibraryDocumentationReader"
     ])
 

@@ -1,6 +1,6 @@
 from google.adk.tools import ToolContext
-from .models import Input, Output
-from .workflow_logic import workflow_logic as run_workflow_logic
+from .models import Input
+from .executor import WorkflowExecutor
 
 SKILL_METADATA = {
     "name": "skill-developer",
@@ -16,6 +16,6 @@ SKILL_METADATA = {
 }
 
 def process_message(params: Input, tool_context: ToolContext) -> str:
-    # ワークフローを実行するビジネスロジックを呼び出す
-    result = run_workflow_logic(params, tool_context)
-    return result
+    # ワークフローを実行するエグゼキューターを呼び出す
+    executor = WorkflowExecutor(tool_context)
+    return executor.execute(params)

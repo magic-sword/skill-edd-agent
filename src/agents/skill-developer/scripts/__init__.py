@@ -1,14 +1,11 @@
-from google.adk import Agent
+import os
+import sys
+
+# パス追加
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from .handler import process_message, SKILL_METADATA
 from .models import Input, Output
+from .executor import WorkflowExecutor
 
-# 構築されたエージェントオブジェクトを公開 (テストハーネスや親エージェントから参照可能)
-workflow_agent = Agent(
-    model='gemini-2.5-flash',
-    name='skill_developer_agent',
-    instruction=(
-        "あなたは Google ADK 互換のワークフローエージェントです。\n"
-        "ロードされた skill-developer ツールを呼び出して、処理を正確に実行してください。"
-    ),
-    tools=[process_message]
-)
+__all__ = ["process_message", "SKILL_METADATA", "Input", "Output", "WorkflowExecutor"]

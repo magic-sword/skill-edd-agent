@@ -1,0 +1,25 @@
+"""
+{workflow_name} のワークフロー実行を制御するエグゼキュータークラス。
+"""
+from google.adk.tools import ToolContext
+from edd_agent_tools import WorkflowRunner
+from .models import Input, Output
+from .workflow import root_workflow
+
+class WorkflowExecutor:
+    """
+    ワークフローの実行ライフサイクル（セッション作成、状態同期、Runnerの実行）を共通ランナーに委譲して実行するクラス。
+    """
+    def __init__(self, tool_context: ToolContext):
+        self.tool_context = tool_context
+
+    def execute(self, params: Input) -> str:
+        """
+        インプロセスおよびCLIから呼び出される同期実行エントリポイント。
+        """
+        runner = WorkflowRunner(
+            workflow_name="{workflow_name}",
+            root_workflow=root_workflow,
+            tool_context=self.tool_context
+        )
+        return runner.run(params, output_cls=Output)
