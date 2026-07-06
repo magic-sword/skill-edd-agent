@@ -65,11 +65,10 @@
       "required": true
     },
     {
-      "name": "output_file_path",
+      "name": "output_dir",
       "type": "str",
-      "description": "生成されたSKILL.mdファイルの絶対パス。成功時にのみ存在し、失敗時はnull。",
-      "required": false,
-      "default": null
+      "description": "仕様書(SKILL.md)が格納されたスキルディレクトリの絶対パス",
+      "required": true
     }
   ]
 }

@@ -63,9 +63,9 @@
       "required": true
     },
     {
-      "name": "output_file_path",
+      "name": "output_dir",
       "type": "str",
-      "description": "生成された design.json の絶対ファイルパス",
+      "description": "成果物(design.json)が格納されたスキルディレクトリの絶対パス",
       "required": true
     }
   ]

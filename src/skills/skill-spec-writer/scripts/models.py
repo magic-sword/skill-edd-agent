@@ -17,4 +17,4 @@ class Input(BaseModel):
 class Output(BaseModel):
     status: Literal['success', 'failed'] = Field(..., description="スキルの実行結果ステータス。'success' または 'failed'。")
     message: str = Field(..., description='実行結果に関する詳細メッセージ。')
-    output_file_path: str | None = Field(None, description='生成されたSKILL.mdファイルの絶対パス。成功時にのみ存在し、失敗時はnull。')
+    output_dir: str = Field(..., description='仕様書(SKILL.md)が格納されたスキルディレクトリの絶対パス')

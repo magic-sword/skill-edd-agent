@@ -44,20 +44,19 @@
     {
       "name": "status",
       "type": "str",
-      "description": "スキルの実行結果ステータス ('success' または 'failure')",
+      "description": "スキルの実行結果ステータス ('success' または 'failed')",
       "required": true
     },
     {
-      "name": "generated_files",
-      "type": "list",
-      "description": "生成または更新されたファイルの相対パスリスト",
-      "required": true,
-      "items_type": "str"
-    },
-    {
-      "name": "result_message",
+      "name": "message",
       "type": "str",
       "description": "スキル実行結果の要約メッセージ",
+      "required": true
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "実装コードが出力されたディレクトリの絶対パス",
       "required": true
     }
   ]

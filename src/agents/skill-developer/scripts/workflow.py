@@ -1,124 +1,58 @@
 """
-skill_developer の Workflow オブジェクト定義。
-ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠し、
-各エージェントは統一プロセス機能ツール (FunctionTool) を実行し、状態は ToolContext を介して自動的に共有されます。
+skill-developer の Workflow オブジェクト定義。
+ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠。
 """
 from google.adk import Workflow
 from google.adk import Agent
+from google.adk.tools import FunctionTool
 from edd_agent_tools.skills import SkillsState
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
-# 状態管理を初期化
 state = SkillsState()
 
-# 統一ハンドラー経由のツールロード
-skill_manager_tool = state.get_skill("skill-manager").get_tool()
-skill_generator_tool = state.get_skill("skill-generator").get_tool()
-eval_unit_tester_tool = state.get_skill("eval-unit-tester").get_tool()
-test_executor_tool = state.get_skill("test-executor").get_tool()
-trigger_evaluator_tool = state.get_skill("trigger-evaluator").get_tool()
-mock_executor_tool = state.get_skill("mock-executor").get_tool()
-
-# ==========================================
-# 各ステップ専用エージェント（ノード）の定義
-# ==========================================
-
-# ステップ1: スキル仮登録エージェント (Tier 0)
-set_tier_0_agent = Agent(
+# 依存するスキルからツールをロードし、各ステップのエージェント(ノード)を定義
+# skill-designer
+skill_designer = state.get_skill("skill-designer")
+tool_designer = skill_designer.get_tool()
+step_designer_agent = Agent(
     model=DEFAULT_MODEL,
-    name="set_tier_0_agent",
-    tools=[skill_manager_tool],
+    name="skill_designer_agent",
+    tools=[tool_designer],
     instruction=(
-        "あなたはスキル登録の担当者です。`skill_manager` ツールを呼び出して、"
-        "現在のスキルを Tier 0 (試験中) で仮登録してください。\n"
-        "【ツール呼び出しパラメータ】\n"
-        "- command: 'register'\n"
-        "- skill: (開発対象のスキル名)"
+        '''あなたはスキルの設計を担当するエージェントです。
+ユーザーの要求と初期入力として与えられたプロンプトに基づいて skill-designer ツールを呼び出し、スキル設計を行います。
+設計結果として design.json のパスをセッション状態に保存してください。'''
     )
 )
 
-# ステップ2: スキル本体コード生成エージェント
-generate_skill_agent = Agent(
+# skill-coder
+skill_coder = state.get_skill("skill-coder")
+tool_coder = skill_coder.get_tool()
+step_coder_agent = Agent(
     model=DEFAULT_MODEL,
-    name="generate_skill_agent",
-    tools=[skill_generator_tool],
+    name="skill_coder_agent",
+    tools=[tool_coder],
     instruction=(
-        "あなたはスキル開発の担当者です。`skill_generator` ツールを呼び出して、"
-        "新規スキルの本体コードの自動生成を実行してください。\n"
-        "【ツール呼び出しパラメータ】\n"
-        "- skill: (開発対象のスキル名)\n"
-        "- prompt: (セッション状態から得られる機能要件)"
+        '''あなたはスキルの実装を担当するエージェントです。
+前のステップで生成された design.json のパスと、出力先ディレクトリがセッション状態にあります。
+これらの情報に基づいて skill-coder ツールを呼び出し、実装コードを生成してください。
+実装コードの出力先ディレクトリ（source_code_dir）をセッション状態に保存してください。'''
     )
 )
 
-# ステップ3: 単体テストケース生成エージェント
-generate_unit_test_agent = Agent(
+# skill-spec-writer
+skill_spec_writer = state.get_skill("skill-spec-writer")
+tool_spec_writer = skill_spec_writer.get_tool()
+step_spec_writer_agent = Agent(
     model=DEFAULT_MODEL,
-    name="generate_unit_test_agent",
-    tools=[eval_unit_tester_tool],
+    name="skill_spec_writer_agent",
+    tools=[tool_spec_writer],
     instruction=(
-        "あなたは単体テストアセットの生成担当者です。`eval_unit_tester` ツールを呼び出して、"
-        "現在のスキルに対する単体テストケースの自動生成を実行してください。\n"
-        "【ツール呼び出しパラメータ】\n"
-        "- skill: (開発対象のスキル名)"
-    )
-)
-
-# ステップ4: 単体テスト実行エージェント（精度100%必須）
-execute_unit_test_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="execute_unit_test_agent",
-    tools=[test_executor_tool],
-    instruction=(
-        "あなたは単体テスト実行の担当者です。`test_executor` ツールを呼び出して、"
-        "生成された単体テストケースを実行し合格判定を行ってください。\n"
-        "【ツール呼び出しパラメータ】\n"
-        "- skill: (開発対象のスキル名)\n"
-        "- eval_set_path: (単体テストファイルへの絶対パス。通常 `tests/unit_test_cases.evalset.json`)\n"
-        "- threshold_accuracy: 1.0"
-    )
-)
-
-# ステップ5: トリガーテストケース生成エージェント
-generate_trigger_test_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="generate_trigger_test_agent",
-    tools=[trigger_evaluator_tool],
-    instruction=(
-        "あなたはトリガー精度テストケースの生成担当者です。`trigger_evaluator` ツールを呼び出して、"
-        "現在のスキルに対するトリガー精度テストケースの自動生成を実行してください。\n"
-        "【ツール呼び出しパラメータ】\n"
-        "- skill: (開発対象のスキル名)"
-    )
-)
-
-# ステップ6: トリガーテスト実行エージェント（精度90%必須）
-execute_trigger_test_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="execute_trigger_test_agent",
-    tools=[mock_executor_tool],
-    instruction=(
-        "あなたはトリガー精度テスト実行の担当者です。`mock_executor` ツールを呼び出して、"
-        "生成されたトリガーテストケースを実行し合格判定を行ってください。\n"
-        "【ツール呼び出しパラメータ】\n"
-        "- skill: (開発対象のスキル名)\n"
-        "- eval_set_path: (トリガーテストファイルへの絶対パス。通常 `tests/trigger_test_cases.evalset.json`)\n"
-        "- threshold_accuracy: 0.90"
-    )
-)
-
-# ステップ7: スキル正式本登録エージェント (Tier 1 & クリーンアップ)
-set_tier_1_agent = Agent(
-    model=DEFAULT_MODEL,
-    name="set_tier_1_agent",
-    tools=[skill_manager_tool],
-    instruction=(
-        "あなたはスキル正式本登録の担当者です。`skill_manager` ツールを呼び出して、"
-        "現在のスキルを Tier 1 に本登録してください。\n"
-        "【ツール呼び出しパラメータ】\n"
-        "- command: 'set-tier'\n"
-        "- tier: 1"
+        '''あなたはスキル仕様書の生成を担当するエージェントです。
+前のステップで生成された design.json のパスとソースコードのディレクトリがセッション状態にあります。
+これらの情報に基づいて skill-spec-writer ツールを呼び出し、スキル仕様書（SKILL.md）を生成します。
+生成された SKILL.md の絶対パス（output_file_path）をセッション状態に保存してください。これが最終的なワークフローの出力となります。'''
     )
 )
 
@@ -128,12 +62,8 @@ set_tier_1_agent = Agent(
 root_workflow = Workflow(
     name="skill_developer",
     edges=[
-        ("START", set_tier_0_agent),
-        (set_tier_0_agent, generate_skill_agent),
-        (generate_skill_agent, generate_unit_test_agent),
-        (generate_unit_test_agent, execute_unit_test_agent),
-        (execute_unit_test_agent, generate_trigger_test_agent),
-        (generate_trigger_test_agent, execute_trigger_test_agent),
-        (execute_trigger_test_agent, set_tier_1_agent),
+        ("START", step_designer_agent),
+        (step_designer_agent, step_coder_agent),
+        (step_coder_agent, step_spec_writer_agent)
     ]
 )

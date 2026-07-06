@@ -63,13 +63,13 @@ class SkillExecutor:
         try:
             response_text = gemini_client.generate_design(contents=request)
         except Exception as e:
-            return Output(status="failed", message=f"Gemini API 呼び出しエラー: {e}", output_file_path="")
+            return Output(status="failed", message=f"Gemini API 呼び出しエラー: {e}", output_dir="")
 
         # 5. レスポンスのパースとdesign.json の保存
         try:
             design_data = json.loads(response_text)
         except json.JSONDecodeError as e:
-            return Output(status="failed", message=f"Gemini API レスポンスのパースエラー: {e}", output_file_path="")
+            return Output(status="failed", message=f"Gemini API レスポンスのパースエラー: {e}", output_dir="")
 
         # 概要 (summary) フィールドの処理
         # ユーザーから明示的な summary が指定されている場合は、それを最優先で上書き
@@ -86,7 +86,7 @@ class SkillExecutor:
             with open(output_file_path, "w", encoding="utf-8") as f:
                 json.dump(design_data, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            return Output(status="failed", message=f"design.json の保存エラー: {e}", output_file_path="")
+            return Output(status="failed", message=f"design.json の保存エラー: {e}", output_dir="")
 
         message = f"design.json が '{output_file_path}' に正常に生成されました。"
-        return Output(status="success", message=message, output_file_path=output_file_path)
+        return Output(status="success", message=message, output_dir=output_dir)

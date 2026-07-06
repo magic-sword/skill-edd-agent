@@ -1,7 +1,0 @@
-{
-  "eval_set_path": "/workspace/src/agents/skill-developer/tests/skill_developer_eval_set.evalset.json",
-  "threshold_accuracy": 1.0,
-  "criteria": {
-    "response_match_score": 0.8
-  }
-}

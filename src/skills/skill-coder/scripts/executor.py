@@ -62,5 +62,4 @@ class SkillExecutor:
         all_generated_files.sort()
 
         message = f"スキルコードの実装が完了しました。生成/更新ファイル: {', '.join(all_generated_files)}"
-        
-        return Output(status="success", generated_files=all_generated_files, result_message=message)
+        return Output(status="success", message=message, output_dir=target_root)

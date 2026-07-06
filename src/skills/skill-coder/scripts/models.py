@@ -8,6 +8,6 @@ class Input(BaseModel):
     output_dir: str | None = Field(None, description='ソースコードを出力するディレクトリ。省略時は対象スキルのルートディレクトリ。')
 
 class Output(BaseModel):
-    status: str = Field(..., description="スキルの実行結果ステータス ('success' または 'failure')")
-    generated_files: list[str] = Field(..., description='生成または更新されたファイルの相対パスリスト')
-    result_message: str = Field(..., description='スキル実行結果の要約メッセージ')
+    status: str = Field(..., description="スキルの実行結果ステータス ('success' または 'failed')")
+    message: str = Field(..., description='スキル実行結果の要約メッセージ')
+    output_dir: str = Field(..., description='実装コードが出力されたディレクトリの絶対パス')

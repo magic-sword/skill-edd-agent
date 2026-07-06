@@ -56,7 +56,7 @@ class SpecGenerator:
             return Output(
                 status="success",
                 message=message,
-                output_file_path=output_file_path
+                output_dir=output_dir
             )
 
         except Exception as e:
@@ -64,5 +64,5 @@ class SpecGenerator:
             return Output(
                 status="failed",
                 message=f"Specification generation failed: {e}",
-                output_file_path=None
+                output_dir=None
             )

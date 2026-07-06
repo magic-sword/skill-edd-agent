@@ -1,19 +1,21 @@
-from pydantic import BaseModel, Field
 from google.adk.tools import ToolContext
-from .develop_skill import develop_skill_logic as run_developer_logic
+from .models import Input, Output
+from .workflow_logic import workflow_logic as run_workflow_logic
 
 SKILL_METADATA = {
     "name": "skill-developer",
-    "description": "指定された要件（prompt）に基づき、SkillDeveloperAgentを起動して新規スキルを自動開発・設計・実装するワークフロー。",
-    "execution_type": "workflow",
-    "output_mode": "VALUE_ONLY",
-    "dependencies": []
+    "description": "スキルを生成するワークフローエージェント。",
+    "summary": "src/skills/skill-designer、src/skills/skill-coder、src/skills/skill-spec-writerを順番に実行し、スキル設計・実装を行うワークフローエージェント。",
+    "execution_type": "agent",
+    "output_mode": "STRUCTURED_JSON",
+    "dependencies": [
+        "skill-designer",
+        "skill-coder",
+        "skill-spec-writer"
+    ]
 }
 
-class Input(BaseModel):
-    skill: str = Field(..., description="開発対象のスキル名")
-    prompt: str = Field(..., description="開発するスキルの機能要件")
-
 def process_message(params: Input, tool_context: ToolContext) -> str:
-    # 既存のビジネスロジックを実行
-    return run_developer_logic(params, tool_context)
+    # ワークフローを実行するビジネスロジックを呼び出す
+    result = run_workflow_logic(params, tool_context)
+    return result

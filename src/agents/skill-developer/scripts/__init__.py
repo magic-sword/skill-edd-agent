@@ -5,10 +5,10 @@ from .models import Input, Output
 # 構築されたエージェントオブジェクトを公開 (テストハーネスや親エージェントから参照可能)
 workflow_agent = Agent(
     model='gemini-2.5-flash',
-    name='{workflow_module_name}_agent',
+    name='skill_developer_agent',
     instruction=(
         "あなたは Google ADK 互換のワークフローエージェントです。\n"
-        "ロードされた {workflow_name} ツールを呼び出して、処理を正確に実行してください。"
+        "ロードされた skill-developer ツールを呼び出して、処理を正確に実行してください。"
     ),
     tools=[process_message]
 )
