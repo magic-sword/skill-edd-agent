@@ -38,9 +38,8 @@ class SpecGenerator:
             print(f"Design Path: {design_path}")
             print(f"Output Directory: {output_dir}")
 
-            # execution_type に基づいて適切な具象ライターを構築して実行
+            # 適切な具象ライターを構築して実行
             writer = SpecWriterFactory.create(
-                execution_type=design_data.execution_type,
                 design_data=design_data,
                 source_code_dir=scan_target,
                 tool_context=self.tool_context,

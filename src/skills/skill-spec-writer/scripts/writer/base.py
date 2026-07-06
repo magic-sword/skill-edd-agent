@@ -8,7 +8,8 @@ from google.adk.tools import ToolContext
 from google import genai
 from google.genai import types
 
-from edd_agent_tools.models import SkillDesign
+from typing import Union
+from edd_agent_tools.models import SkillDesign, WorkflowDesign
 from edd_agent_tools.gemini import GeminiRequest
 
 class BaseSkillTextParts(BaseModel):
@@ -17,7 +18,7 @@ class BaseSkillTextParts(BaseModel):
     trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
 class BaseSpecWriter(ABC):
-    def __init__(self, design_data: SkillDesign, source_code_dir: str, tool_context: ToolContext, prompt: str | None = None):
+    def __init__(self, design_data: Union[SkillDesign, WorkflowDesign], source_code_dir: str, tool_context: ToolContext, prompt: str | None = None):
         self.design_data = design_data
         self.name = design_data.name
         self.source_code_dir = source_code_dir
@@ -120,13 +121,14 @@ class BaseSpecWriter(ABC):
             output_params_section = "\n".join(output_table)
         else:
             # 構造化JSON以外の場合に、出力値のプレーンテキスト仕様を明記する
-            if self.design_data.output_mode == "VALUE_ONLY":
+            out_mode = getattr(self.design_data, "output_mode", "STRUCTURED_JSON")
+            if out_mode == "VALUE_ONLY":
                 output_params_section = "### 出力値\n\nスキル実行結果を示す単一のテキストメッセージ（プレーンテキスト）が返されます。"
-            elif self.design_data.output_mode == "CONVERSATIONAL":
+            elif out_mode == "CONVERSATIONAL":
                 output_params_section = "### 出力値\n\nユーザーへの返答メッセージ（プレーンテキスト）が返されます。"
         
         # 決定論的な説明文の構築
-        out_mode = self.design_data.output_mode
+        out_mode = getattr(self.design_data, "output_mode", "STRUCTURED_JSON")
         if out_mode == "VALUE_ONLY":
             out_mode_desc = "出力は単純なプレーンテキストの値のみとなります。"
         elif out_mode == "CONVERSATIONAL":

@@ -48,15 +48,36 @@ class GeminiClient:
         """
         堅牢な指数バックオフリトライとタイムアウト制御を備えた中央集約的なコンテンツ生成。
         """
-        # response_schema が Pydantic の BaseModel サブクラスである場合、
-        # Gemini API が受け入れられないカスタム属性を除外したクリーンなモデルに差し替える
+        # response_schema の決定論的クレンジング処理
+        # Union型やAnnotated型を Gemini API に直接渡すとパースエラー（Unsupported schema type）になったり、
+        # Pydanticが自動生成する 'additionalProperties' 属性を拒否されてエラーになる現象を回避するため、
+        # 生の JSON Schema (dict) に事前変換し、不要な追加属性制約を再帰的に完全除去します。
         if config and getattr(config, "response_schema", None) is not None:
-            from pydantic import BaseModel
+            from pydantic import BaseModel, TypeAdapter
             from edd_agent_tools.models import clean_pydantic_schema
-
-            orig_schema = config.response_schema
-            if isinstance(orig_schema, type) and issubclass(orig_schema, BaseModel):
-                config.response_schema = clean_pydantic_schema(orig_schema)
+            
+            clean_schema = clean_pydantic_schema(config.response_schema)
+            try:
+                if isinstance(clean_schema, type) and issubclass(clean_schema, BaseModel):
+                    schema_dict = clean_schema.model_json_schema()
+                else:
+                    schema_dict = TypeAdapter(clean_schema).json_schema()
+                
+                def remove_additional_properties(d):
+                    if isinstance(d, dict):
+                        d.pop("additionalProperties", None)
+                        d.pop("title", None)
+                        for v in d.values():
+                            remove_additional_properties(v)
+                    elif isinstance(d, list):
+                        for item in d:
+                            remove_additional_properties(item)
+                            
+                remove_additional_properties(schema_dict)
+                config.response_schema = schema_dict
+            except Exception as e:
+                print(f"警告: response_schema の JSON Schema 変換に失敗しました: {e}")
+                config.response_schema = clean_schema
 
         from .request import GeminiRequest
         if isinstance(contents, GeminiRequest):

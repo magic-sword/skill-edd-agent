@@ -1,5 +1,5 @@
 from google.genai import types
-from edd_agent_tools import GeminiClient, SkillDesign, ModuleDesign
+from edd_agent_tools import GeminiClient, SkillDesign, ModuleDesign, clean_pydantic_schema
 
 class GeminiDesignClient:
     """
@@ -16,7 +16,7 @@ class GeminiDesignClient:
             contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=ModuleDesign,
+                response_schema=clean_pydantic_schema(ModuleDesign),
                 temperature=0.1
             )
         )

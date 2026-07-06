@@ -36,8 +36,34 @@ def _clean_type_annotation(anno: Any) -> Any:
 
     return anno
 
-def clean_pydantic_schema(original_model: type[BaseModel]) -> type[BaseModel]:
-    """Pydanticモデル定義から、Gemini APIが拒否するカスタムメタデータを除去したクローンモデルを返します（再帰適用）。"""
+def clean_pydantic_schema(original_model: Any) -> Any:
+    """Pydanticモデル定義（またはUnion型）から、Gemini APIが拒否するカスタムメタデータを除去したクローンモデルを返します（再帰適用）。"""
+    if original_model is None:
+        return None
+
+    # Annotated型やUnion型の処理
+    origin = get_origin(original_model)
+    if origin is not None:
+        args = get_args(original_model)
+        cleaned_args = tuple(clean_pydantic_schema(arg) for arg in args)
+        if origin is Union:
+            # Union[A, B] などの再構築
+            return Union[cleaned_args]
+        elif origin is Annotated:
+            # Annotated[Union[A, B], discriminator] などの再構築
+            # GeminiAPI は Annotated メタデータを解釈できないことがあるため、ベースのUnion型を展開して再帰処理したものを返却する
+            return cleaned_args[0]
+        try:
+            if len(cleaned_args) == 1:
+                return origin[cleaned_args[0]]
+            else:
+                return origin[cleaned_args]
+        except Exception:
+            return original_model
+
+    if not isinstance(original_model, type) or not issubclass(original_model, BaseModel):
+        return original_model
+
     fields_definition = {}
 
     for field_name, field_info in original_model.model_fields.items():
@@ -62,6 +88,7 @@ def clean_pydantic_schema(original_model: type[BaseModel]) -> type[BaseModel]:
 
     return create_model(
         f"GeminiAPI_{original_model.__name__}",
+        __config__={"extra": "ignore"},
         **fields_definition
     )
 
