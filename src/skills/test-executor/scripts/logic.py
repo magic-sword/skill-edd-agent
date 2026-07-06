@@ -20,31 +20,18 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
     registry = SkillRegistry()
     target_skill = registry.get_skill(name=skill)
 
-    # eval_set_path が指定されていない場合は自動解決する（test-executorはユニットテストがデフォルト）
-    if not eval_set_path:
-        eval_set_path = target_skill.get_eval_set_path("unit")
-
     try:
-        # 1. 共通パッケージを用いて設定ファイルパスの取得・自動生成
-        config_file_path = target_skill.get_eval(eval_set_path).prepare_config()
+        # 評価セットの解決 (指定なし時は "unit" をデフォルトとする)
+        resolved_eval_set_path = eval_set_path or "unit"
+        eval_obj = target_skill.get_eval(resolved_eval_set_path)
             
-        print(f"Using eval config file: {config_file_path}")
-
         print(f"Running test-executor for skill: {skill}")
-        print(f"Eval set: {eval_set_path}")
+        print(f"Eval set: {resolved_eval_set_path}")
         print(f"Threshold accuracy: {threshold_accuracy:.4f}, Timeout: {timeout_seconds}s")
 
-        # 環境変数の設定
-        env = {
-            "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
-            "SKILL": skill
-        }
-
         # 2. adk eval の実行 (SkillEval に完全に委譲)
-        eval_obj = target_skill.get_eval(eval_set_path)
         result: EvalRunResult = eval_obj.execute(
             timeout_seconds=timeout_seconds,
-            env_vars=env,
             config_file_path=config_file_path
         )
 
