@@ -31,7 +31,7 @@ class WorkflowSpecWriter(BaseSpecWriter):
             f"説明: {self.design_data.description}\n"
             f"制約事項: {self.design_data.constraints}\n"
             f"構成ステップ:\n{steps_str}\n"
-            "上記の情報から、ワークフローの『ビジネス上の価値(purpose)』、『主要な特徴・機能(features)』、『起動トリガーの具体例(trigger_conditions)』、および『各ステップの連携手順(workflow_steps)』を英語で考察・抽出し、指定された JSON スキーマに従って返却してください。"
+            "上記の情報から、ワークフローの『ビジネス上の価値(purpose)』、『主要な特徴・機能(features)』、『起動トリガーの具体例(trigger_conditions)』、および『各ステップの連携手順(workflow_steps)』を考察・抽出し、指定された JSON スキーマに従って返却してください。"
         )
         return prompt
 

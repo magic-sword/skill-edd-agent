@@ -33,7 +33,7 @@ async def run_workflow_instance(params: Input, tool_context: ToolContext = None)
         initial_state.update(tool_context.state.to_dict())
     
     # 入力パラメータをセッション状態にセット
-    initial_state.update(params.model_dump())
+    initial_state.update(params.model_dump(exclude_unset=True))
 
     # 起動前にセッションを作成
     await session_service.create_session(
@@ -45,6 +45,7 @@ async def run_workflow_instance(params: Input, tool_context: ToolContext = None)
     
     status = "success"
     message = "Workflow successfully completed."
+    output_dir = params.output_dir if params.output_dir else ""
     
     async with Runner(
         app_name="skill-developer_runner",
@@ -74,7 +75,6 @@ async def run_workflow_instance(params: Input, tool_context: ToolContext = None)
                                
             # 完了後、セッション状態から最終結果を取得
             final_session = await session_service.get_session(user_id="workflow_user", session_id=session_id)
-            output_dir = params.output_dir if params.output_dir else ""
             if final_session and "status" in final_session.state:
                 status = final_session.state["status"]
                 message = final_session.state.get("message", message)
@@ -84,7 +84,6 @@ async def run_workflow_instance(params: Input, tool_context: ToolContext = None)
         except Exception as e:
             status = "failed"
             message = str(e)
-            output_dir = params.output_dir if params.output_dir else ""
             if tool_context:
                 tool_context.state["status"] = "failed"
                 tool_context.state["message"] = str(e)

@@ -154,7 +154,8 @@ class PydanticModelWriter:
 
         # 2. Output クラスのインナーフィールド生成
         from edd_agent_tools.models import OutputMode
-        if self.design.response_parameters and self.design.output_mode == OutputMode.STRUCTURED_JSON:
+        output_mode = getattr(self.design, "output_mode", OutputMode.STRUCTURED_JSON)
+        if self.design.response_parameters and output_mode == OutputMode.STRUCTURED_JSON:
             output_fields = []
             for param in self.design.response_parameters:
                 field_writer = PydanticFieldWriter(param)
@@ -197,8 +198,8 @@ class HandlerWriter:
             metadata["summary"] = self.design.summary
 
         metadata.update({
-            "execution_type": self.design.execution_type,
-            "output_mode": self.design.output_mode,
+            "execution_type": getattr(self.design, "execution_type", "agent"),
+            "output_mode": getattr(self.design, "output_mode", "STRUCTURED_JSON"),
             "dependencies": self.design.dependencies
         })
         metadata_str = json.dumps(metadata, indent=4, ensure_ascii=False)

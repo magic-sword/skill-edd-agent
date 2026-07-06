@@ -1,9 +1,11 @@
 {
-  "rationale": "現在の 'skill-coder' は、設計定義ファイルのロード、決定論的なコード（models.py, handler.pyなど）の生成、そしてLLM駆動の自律エージェントによるビジネスロジックの実装という、複数の明確に異なるステップで構成されています。特に、LLMエージェントの起動と、そのエージェントがファイル操作ツールやドキュメントリーダーツールを駆使してコードを生成・修正するプロセスは、単一のアトミックな機能とは言えません。これは「複数のステップ（カスタム関数と自律エージェントのパイプライン接続）が必要である」というワークフローの定義に完全に合致します。したがって、'skill' ではなく 'workflow' として再設計することが適切であると判断しました。",
+  "rationale": "このモジュールは、設計定義ファイルのロード、決定論的なコードの生成、そしてLLM駆動の自律エージェントによるビジネスロジックの実装という内部的な複雑な処理を含みます。しかし、外部からこのモジュールを利用する視点では、「指定された設計と要件に基づいてスキルコードを生成する」という単一のアトミックな機能として提供されます。内部的な多段階処理は、この単一機能を実現するための実装詳細であり、外部インターフェースはシンプルです。したがって、ユーザーの指示に従い、複数のステップをパイプライン接続する 'workflow' ではなく、外部から見たアトミックな機能を提供する 'skill' として設計することが適切であると判断しました。また、その中核的な処理がLLMによる自律的なコード生成と修正に依存するため、'execution_type' は 'agent' とします。",
   "name": "skill-coder",
-  "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するワークフロー。",
-  "summary": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するワークフロー。",
-  "module_type": "workflow",
+  "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
+  "summary": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
+  "module_type": "skill",
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON",
   "parameters": [
     {
       "name": "prompt",
@@ -43,13 +45,13 @@
     {
       "name": "status",
       "type": "str",
-      "description": "ワークフローの実行結果ステータス ('success' または 'failed')",
+      "description": "スキルの実行結果ステータス ('success' または 'failed')",
       "required": true
     },
     {
       "name": "message",
       "type": "str",
-      "description": "ワークフロー実行結果の要約メッセージ",
+      "description": "スキル実行結果の要約メッセージ",
       "required": true
     },
     {
@@ -57,39 +59,6 @@
       "type": "str",
       "description": "実装コードが出力されたディレクトリの絶対パス",
       "required": true
-    }
-  ],
-  "steps": [
-    {
-      "name": "load-skill-design",
-      "type": "function",
-      "description": "対象スキルの design.json ファイルをロードし、SkillDesignオブジェクトとして解析します。また、スキル名と出力先ルートディレクトリを決定します。",
-      "inputs": {}
-    },
-    {
-      "name": "generate-deterministic-code",
-      "type": "function",
-      "description": "SkillDesignオブジェクトに基づき、models.py, handler.py, __init__.py などの決定論的なボイラープレートコードを生成します。",
-      "inputs": {}
-    },
-    {
-      "name": "execute-skill-developer-agent",
-      "type": "agent",
-      "description": "SkillDeveloperAgentを起動し、SkillDesignとユーザープロンプトに基づいて、スキルの中核となるビジネスロジックを実装します。コンパイルチェックと自己修正を繰り返す可能性があります。",
-      "instruction": "与えられた設計情報と実装要件に基づき、ADK 2.0規約に準拠したPythonスキルコードを生成・修正してください。特に、scripts/executor.py の execute メソッド内のビジネスロジックの実装に注力し、必要に応じて他のヘルパーモジュール（client.py, parser.pyなど）も作成してください。生成されたコードは、Pythonの静的解析と実行時コンパイルチェックに合格する必要があります。",
-      "tools": [
-        "read-file",
-        "edit-file",
-        "write-file",
-        "library-documentation-reader.read-documentation"
-      ],
-      "inputs": {}
-    },
-    {
-      "name": "consolidate-results",
-      "type": "function",
-      "description": "決定論的コード生成とエージェントによるコード生成の結果を統合し、最終的な実行結果メッセージと生成ファイルリストを準備します。",
-      "inputs": {}
     }
   ]
 }

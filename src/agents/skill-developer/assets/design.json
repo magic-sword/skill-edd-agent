@@ -1,10 +1,9 @@
 {
+  "rationale": "このモジュールは、ユーザーからのスキル開発要件を受け取り、設計、実装、仕様書作成という一連の複雑なプロセスを自動化します。このプロセスは、それぞれ独立した機能を持つ「skill-designer」、「skill-coder」、「skill-spec-writer」という3つの既存スキルを順次呼び出すことで実現されます。単一のアトミックな操作では完結せず、複数のステップと異なる専門性を持つスキル間の連携が必要であるため、モジュール種別は 'workflow' と判断しました。各ステップは前のステップの出力（例: 設計ファイルパス、生成されたスキル名、ソースコードディレクトリ）を次のステップの入力として利用するパイプライン構造を形成しており、これはワークフローの典型的なパターンです。また、全体としてLLMエージェントがこのワークフローをオーケストレーションするため、execution_typeは'agent'とします。",
   "name": "skill-developer",
   "description": "スキルを設計、実装、および仕様書を作成するワークフローエージェント。",
   "summary": "このワークフローは、ユーザーからの要件プロンプトに基づいて、skill-designer、skill-coder、skill-spec-writerの各スキルを順に実行し、新しいスキルを生成します。設計、実装、仕様書作成の一連のプロセスを自動化し、成果物を指定されたディレクトリに出力します。",
   "module_type": "workflow",
-  "execution_type": "agent",
-  "output_mode": "STRUCTURED_JSON",
   "parameters": [
     {
       "name": "prompt",
@@ -72,6 +71,26 @@
       "type": "str",
       "description": "最終生成された成果物が格納されたスキルディレクトリの絶対パス。",
       "required": true
+    }
+  ],
+  "steps": [
+    {
+      "name": "design-skill",
+      "type": "skill",
+      "target": "skill-designer",
+      "inputs": {}
+    },
+    {
+      "name": "code-skill",
+      "type": "skill",
+      "target": "skill-coder",
+      "inputs": {}
+    },
+    {
+      "name": "write-spec",
+      "type": "skill",
+      "target": "skill-spec-writer",
+      "inputs": {}
     }
   ]
 }
