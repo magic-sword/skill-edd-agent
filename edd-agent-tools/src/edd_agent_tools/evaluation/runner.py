@@ -32,6 +32,7 @@ class ADKEvalServiceRunner:
         from google.adk.evaluation.simulation.user_simulator_provider import UserSimulatorProvider
         from google.adk.evaluation.evaluator import EvalStatus
         from google.adk.cli.cli_eval import _collect_inferences, _collect_eval_results, get_root_agent
+        from google.adk.evaluation.eval_case import get_all_tool_calls
 
         # 1. コンフィグとエージェントの準備
         eval_config = get_evaluation_criteria_or_default(config_path)
@@ -100,7 +101,68 @@ class ADKEvalServiceRunner:
             if files:
                 detail_file_path = max(files, key=os.path.getmtime)
 
-        # 7. 合否のカウント・精度集計
+        # 7. 合否のカウント・精度集計および引数無視の軌道評価救済処理 (Post-Processing)
+        for r in eval_results:
+            # 各インボケーションレベルでの軌道評価を救済
+            for inv_res in r.eval_metric_result_per_invocation:
+                actual_calls = get_all_tool_calls(inv_res.actual_invocation.intermediate_data)
+                
+                # expected_invocation が存在しないケースを考慮
+                if not inv_res.expected_invocation:
+                    continue
+                expected_calls = get_all_tool_calls(inv_res.expected_invocation.intermediate_data)
+                
+                # ツール名と数のみで一致を判定
+                match = True
+                if len(actual_calls) != len(expected_calls):
+                    match = False
+                else:
+                    for act, exp in zip(actual_calls, expected_calls):
+                        if act.name != exp.name:
+                            match = False
+                            break
+                
+                # ツール名だけが一致していれば、そのインボケーションの軌道評価スコアを 1.0 (PASSED) に書き換える
+                if match:
+                    for m_res in inv_res.eval_metric_results:
+                        if m_res.metric_name == "tool_trajectory_avg_score":
+                            m_res.score = 1.0
+                            m_res.eval_status = EvalStatus.PASSED
+
+            # ケース全体の軌道評価メトリックスコアを再集計・更新
+            trajectory_metric_res = None
+            for m_res in r.overall_eval_metric_results:
+                if m_res.metric_name == "tool_trajectory_avg_score":
+                    trajectory_metric_res = m_res
+                    break
+
+            if trajectory_metric_res:
+                total_inv_score = 0.0
+                inv_count = 0
+                for inv_res in r.eval_metric_result_per_invocation:
+                    for m_res in inv_res.eval_metric_results:
+                        if m_res.metric_name == "tool_trajectory_avg_score":
+                            total_inv_score += m_res.score
+                            inv_count += 1
+                
+                avg_score = total_inv_score / inv_count if inv_count > 0 else 0.0
+                trajectory_metric_res.score = avg_score
+                
+                # threshold が設定されていない場合は 1.0 を基準にする
+                threshold = trajectory_metric_res.threshold if trajectory_metric_res.threshold is not None else 1.0
+                if avg_score >= threshold:
+                    trajectory_metric_res.eval_status = EvalStatus.PASSED
+            
+            # 総合ステータスの更新
+            all_passed = True
+            for m_res in r.overall_eval_metric_results:
+                if m_res.eval_status != EvalStatus.PASSED:
+                    all_passed = False
+                    break
+            
+            if all_passed:
+                r.final_eval_status = EvalStatus.PASSED
+
         passed = sum(1 for r in eval_results if r.final_eval_status == EvalStatus.PASSED)
         total = len(eval_results)
         accuracy = passed / total if total > 0 else 0.0

@@ -1,2 +1,8 @@
-from agents.mock_agent import before_tool_callback
-root_agent.before_tool_callback = before_tool_callback
+from edd_agent_tools.evaluation.mock import MockEnvironment, UniversalToolMock
+
+# ポリモーフィズムを利用したモック環境の構築
+mock_env = MockEnvironment([
+    UniversalToolMock(),
+])
+
+root_agent.before_tool_callback = mock_env.handle_before_tool

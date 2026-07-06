@@ -105,11 +105,7 @@ class SkillEval(ABC):
             json.dump(data, f, indent=2, ensure_ascii=False)
         return path
 
-    @property
-    @abstractmethod
-    def use_mock(self) -> bool:
-        """評価実行時にモックを使用するかどうかを子クラスが決定します。"""
-        pass
+
 
     def execute(self, timeout_seconds: int = 180, env_vars: dict = None, config_file_path: str = None) -> EvalRunResult:
         """評価を実行し、その結果を返します。
@@ -127,8 +123,8 @@ class SkillEval(ABC):
         # 1. 評価設定ファイルの準備
         config_path = config_file_path if config_file_path else self.prepare_config()
 
-        # 2. 自身が決定したポリシー（use_mock）に基づいてディレクトリを用意
-        agent_dir = self._prepare_eval_agent_dir(mock=self.use_mock)
+        # 2. 自身が定義するコード生成に基づいてディレクトリを用意
+        agent_dir = self._prepare_eval_agent_dir()
 
         # 3. インプロセス実行器に処理を委譲して実行
         from edd_agent_tools.evaluation.runner import ADKEvalServiceRunner
@@ -144,67 +140,57 @@ class SkillEval(ABC):
             config_path=config_path
         )
 
-    def _prepare_eval_agent_dir(self, mock: bool) -> str:
+    def _prepare_eval_agent_dir(self) -> str:
         """adk eval 用の動的エージェントディレクトリを構築し、そのパスを返します。
-
-        Args:
-            mock: モック実行用エージェントを構築する場合は True、そうでない場合は False。
 
         Returns:
             構築された動的エージェント配置用ディレクトリの絶対パス。
         """
         eval_run_dir = os.path.join("/workspace/scratch", f"eval_run_{self.skill.name.replace('-', '_')}")
         os.makedirs(eval_run_dir, exist_ok=True)
-        
-        agent_py_content = self._generate_eval_agent_code(mock)
-        
+
+        # ポリモーフィズムにより、具象クラスが実装するエージェントコード生成処理を呼ぶ
+        agent_py_content = self.generate_agent_code()
+
+        # agent.py を書き出し
         with open(os.path.join(eval_run_dir, "agent.py"), "w", encoding="utf-8") as f:
             f.write(agent_py_content)
-            
+
+        # テンプレートから __init__.py の内容をロードして書き出し
+        templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+        init_tmpl_path = os.path.join(templates_dir, "eval_agent_init.py.tmpl")
+        with open(init_tmpl_path, "r", encoding="utf-8") as f:
+            init_content = f.read()
+
         with open(os.path.join(eval_run_dir, "__init__.py"), "w", encoding="utf-8") as f:
-            f.write("")
-            
+            f.write(init_content)
+
         return eval_run_dir
 
-    def _generate_eval_agent_code(self, mock: bool) -> str:
-        """モジュールタイプ（SKILL または WORKFLOW）に応じて、適切な agent.py コードを生成します。
+    def generate_agent_code(self) -> str:
+        """エージェントの実行用 Python コード（agent.py）を生成します（サブクラスで実装）。"""
+        raise NotImplementedError
 
-        Args:
-            mock: モック用の初期化処理を埋め込む場合は True、そうでない場合は False。
-
-        Returns:
-            生成された Python ソースコードのテキスト。
-        """
+    def _load_base_agent_template(self) -> str:
+        """共通のベースエージェントテンプレートコード（Skill または Workflow 用）をロードしてフォーマットします。"""
         skill_name = self.skill.name
         skill_root = self.skill.root_dir
-        
-        # テンプレートファイルのベースディレクトリ解決
         templates_dir = os.path.join(os.path.dirname(__file__), "templates")
-        
-        # モックセットアップコードの読み込み
-        mock_setup_code = ""
-        if mock:
-            mock_setup_path = os.path.join(templates_dir, "eval_mock_setup.py.tmpl")
-            with open(mock_setup_path, "r", encoding="utf-8") as f:
-                mock_setup_code = f.read()
-                
-        # モジュールタイプ別のテンプレートロードと置換
+
         if self.skill.metadata.module_type == ModuleType.WORKFLOW:
             tmpl_path = os.path.join(templates_dir, "eval_agent_workflow.py.tmpl")
             with open(tmpl_path, "r", encoding="utf-8") as f:
                 template = f.read()
             return template.format(
                 skill_root=skill_root,
-                skill_name=skill_name,
-                mock_setup_code=mock_setup_code
+                skill_name=skill_name
             )
         else:
             tmpl_path = os.path.join(templates_dir, "eval_agent_skill.py.tmpl")
             with open(tmpl_path, "r", encoding="utf-8") as f:
                 template = f.read()
             return template.format(
-                skill_name=skill_name,
-                mock_setup_code=mock_setup_code
+                skill_name=skill_name
             )
 
 
@@ -213,10 +199,9 @@ class UnitEval(SkillEval):
     def eval_type(self) -> str:
         return "unit"
 
-    @property
-    def use_mock(self) -> bool:
-        # ユニットテストはモックを使用しない（通常実行）
-        return False
+    def generate_agent_code(self) -> str:
+        """ユニットテスト用の通常実行エージェントコードを生成します。"""
+        return self._load_base_agent_template()
 
     def get_default_config(self) -> dict:
         return {"criteria": {"response_match_score": 0.8}}
@@ -227,10 +212,17 @@ class TriggerEval(SkillEval):
     def eval_type(self) -> str:
         return "trigger"
 
-    @property
-    def use_mock(self) -> bool:
-        # トリガーテストはモックを使用する（呼び出し判断のみ）
-        return True
+    def generate_agent_code(self) -> str:
+        """トリガーテスト用のモック実行エージェントコードを生成します。"""
+        base_code = self._load_base_agent_template()
+
+        # モックセットアップ用テンプレートをロードして結合
+        templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+        mock_setup_path = os.path.join(templates_dir, "eval_mock_setup.py.tmpl")
+        with open(mock_setup_path, "r", encoding="utf-8") as f:
+            mock_setup_code = f.read()
+
+        return f"{base_code}\n{mock_setup_code}"
 
     def get_default_config(self) -> dict:
         return {"criteria": {"response_match_score": 0.8}}

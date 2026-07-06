@@ -57,7 +57,20 @@ class TriggerTestCase(BaseModel):
         """
         tool_uses = []
         if is_positive:
-            tool_uses.append(ToolUse(name="load_skill", args={"skill_name": skill_name}))
+            # トリガー対象のスキル名 (ハイフンケース) をスネークケースのツール名に変換
+            tool_name = skill_name.replace('-', '_')
+            # ADK 2.0 の parameters_json_schema に基づく params ラップ構造と、ユーザー発話そのままの期待プロンプトを定義
+            tool_uses.append(
+                ToolUse(
+                    name=tool_name,
+                    args={
+                        "params": {
+                            "skill": skill_name,
+                            "prompt": self.text
+                        }
+                    }
+                )
+            )
 
         turn = ConversationTurn(
             invocation_id=f"inv_{'pos' if is_positive else 'neg'}_{index+1}",
