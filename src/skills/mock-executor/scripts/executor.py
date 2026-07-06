@@ -91,18 +91,16 @@ class SkillExecutor:
 
     def _run_adk_eval(self, skill_name: str, eval_set_path: str, config_file_path: str, timeout_seconds: int) -> EvalRunResult:
         """ADK評価シミュレーションを実行します。"""
+        target_skill = self._registry.get_skill(skill_name)
+        eval_obj = target_skill.get_eval(eval_set_path)
         env = {
             "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", ""),
             "SKILL": skill_name
         }
-        # agent_dir は executor_old.py に合わせて暫定的に "/workspace/src/mock_entry" を使用。
-        # 本来は評価対象スキルのルートディレクトリを指すべきであるため、将来的に改善の余地あり。
-        return self._eval_client.run_eval(
-            agent_dir="/workspace/src/mock_entry",
-            eval_set_path=eval_set_path,
-            config_file_path=config_file_path,
+        return eval_obj.execute(
             timeout_seconds=timeout_seconds,
-            env_vars=env
+            env_vars=env,
+            config_file_path=config_file_path
         )
 
     def _process_eval_result(self, result: EvalRunResult, threshold_accuracy: float) -> str:

@@ -1,7 +1,7 @@
 import os
 import sys
 from google.adk.tools import ToolContext
-from edd_agent_tools import ADKEvalRunner, SkillRegistry, EvalRunResult
+from edd_agent_tools import SkillRegistry, EvalRunResult
 
 from .models import Input
 
@@ -40,13 +40,12 @@ def process_message(params: Input, tool_context: ToolContext) -> str:
             "SKILL": skill
         }
 
-        # 2. adk eval の実行 (ADKEvalRunner を直接呼び出し)
-        result: EvalRunResult = ADKEvalRunner.run_eval(
-            agent_dir="/workspace/src",
-            eval_set_path=eval_set_path,
-            config_file_path=config_file_path,
+        # 2. adk eval の実行 (SkillEval に完全に委譲)
+        eval_obj = target_skill.get_eval(eval_set_path)
+        result: EvalRunResult = eval_obj.execute(
             timeout_seconds=timeout_seconds,
-            env_vars=env
+            env_vars=env,
+            config_file_path=config_file_path
         )
 
         accuracy = result.accuracy

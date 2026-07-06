@@ -2,6 +2,7 @@ import os
 import json
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
+from edd_agent_tools.models import ModuleType, EvalRunResult
 
 if TYPE_CHECKING:
     from edd_agent_tools.skill import Skill
@@ -77,11 +78,123 @@ class SkillEval(ABC):
             json.dump(data, f, indent=2, ensure_ascii=False)
         return path
 
+    @property
+    @abstractmethod
+    def use_mock(self) -> bool:
+        """評価実行時にモックを使用するかどうかを子クラスが決定します。"""
+        pass
+
+    def execute(self, timeout_seconds: int = 180, env_vars: dict = None, config_file_path: str = None) -> EvalRunResult:
+        """
+        評価を実行し、その結果を返します。
+        エージェントの準備、パス解決、評価器の呼び出しのすべてがここにカプセル化されます。
+        """
+        # 1. 評価設定ファイルの準備
+        if config_file_path:
+            config_path = config_file_path
+        else:
+            config_path = self.prepare_config()
+
+        # 2. 自身が決定したポリシー（use_mock）に基づいてディレクトリを用意
+        agent_dir = self._prepare_eval_agent_dir(mock=self.use_mock)
+
+        # 3. 評価の実行
+        from edd_agent_tools.run.eval import ADKEvalRunner
+        return ADKEvalRunner.run_eval(
+            agent_dir=agent_dir,
+            eval_set_path=self.eval_set_path,
+            config_file_path=config_path,
+            timeout_seconds=timeout_seconds,
+            env_vars=env_vars or {}
+        )
+
+    def _prepare_eval_agent_dir(self, mock: bool) -> str:
+        """adk eval 用の動的エージェントディレクトリを構築し、そのパスを返します。"""
+        eval_run_dir = os.path.join("/workspace/scratch", f"eval_run_{self.skill.name.replace('-', '_')}")
+        os.makedirs(eval_run_dir, exist_ok=True)
+        
+        agent_py_content = self._generate_eval_agent_code(mock)
+        
+        with open(os.path.join(eval_run_dir, "agent.py"), "w", encoding="utf-8") as f:
+            f.write(agent_py_content)
+            
+        with open(os.path.join(eval_run_dir, "__init__.py"), "w", encoding="utf-8") as f:
+            f.write("")
+            
+        return eval_run_dir
+
+    def _generate_eval_agent_code(self, mock: bool) -> str:
+        """モジュールタイプ (SKILL または WORKFLOW) に応じて、適切な agent.py コードを生成します。"""
+        skill_name = self.skill.name
+        skill_root = self.skill.root_dir
+        
+        mock_setup_code = ""
+        if mock:
+            mock_setup_code = """
+from agents.mock_agent import before_tool_callback
+root_agent.before_tool_callback = before_tool_callback
+"""
+
+        if self.skill.metadata.module_type == ModuleType.WORKFLOW:
+            # ワークフローの場合: 規約に従って scripts/__init__.py からエージェントをインポートする
+            return f"""
+import sys
+# ワークフローの scripts ディレクトリを path に追加してインポート可能にする
+sys.path.insert(0, "{skill_root}/scripts")
+
+# scripts/__init__.py からエージェントをインポート
+try:
+    from __init__ import workflow_agent as root_agent
+except ImportError:
+    try:
+        from __init__ import agent as root_agent
+    except ImportError as e:
+        raise ImportError(
+            f"ワークフローエージェント '{skill_name}' の scripts/__init__.py から "
+            "workflow_agent または agent をインポートできませんでした。"
+        ) from e
+
+# adk eval が参照する変数 'agent' を定義
+agent = root_agent
+{mock_setup_code}
+"""
+        else:
+            # スキルの場合: 動的にエージェントを構築する
+            return f"""
+import sys
+from google.adk import Agent
+from edd_agent_tools.registry import SkillRegistry
+
+# 指定されたスキルだけをツールとしてロードしてエージェントを構築
+registry = SkillRegistry()
+skill_obj = registry.get_skill("{skill_name}")
+agent_tools = [skill_obj.get_tool()]
+
+root_agent = Agent(
+    model='gemini-2.5-flash',
+    name='evaluation_driven_development_agent',
+    instruction=(
+        "あなたは自立的評価駆動開発エージェントです。\\n"
+        "ロードされたスキル（ツール）を用いて、ユーザーからの指示やタスクを正常に遂行してください。"
+    ),
+    tools=agent_tools
+)
+
+# adk eval が参照する変数 'agent' を定義
+agent = root_agent
+{mock_setup_code}
+"""
+
 
 class UnitEval(SkillEval):
     @property
     def eval_type(self) -> str:
         return "unit"
+
+    @property
+    def use_mock(self) -> bool:
+        # ユニットテストはモックを使用する
+        return True
 
     def get_default_config(self) -> dict:
         return {"criteria": {"response_match_score": 0.8}}
@@ -91,6 +204,11 @@ class TriggerEval(SkillEval):
     @property
     def eval_type(self) -> str:
         return "trigger"
+
+    @property
+    def use_mock(self) -> bool:
+        # トリガーテストはモックを使用しない（通常実行）
+        return False
 
     def get_default_config(self) -> dict:
         return {"criteria": {"response_match_score": 0.8}}
