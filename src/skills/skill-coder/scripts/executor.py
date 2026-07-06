@@ -55,7 +55,7 @@ class SkillExecutor:
                                                      prompt=full_prompt,
                                                      target_root_dir=target_root,
                                                      coder_skill=coder_skill)
-        generated_files_by_agent = asyncio.run(agent_executor.execute(design_json_str))
+        generated_files_by_agent = self._run_safe(agent_executor.execute(design_json_str))
         
         # 生成されたファイルを統合
         all_generated_files = list(set(generated_files_by_generator + generated_files_by_agent))
@@ -63,3 +63,31 @@ class SkillExecutor:
 
         message = f"スキルコードの実装が完了しました。生成/更新ファイル: {', '.join(all_generated_files)}"
         return Output(status="success", message=message, output_dir=target_root)
+
+    def _run_safe(self, coro):
+        """アクティブなイベントループが存在する場合はスレッド分離して実行、なければ通常通り asyncio.run を実行します。"""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            import threading
+            from concurrent.futures import Future
+            future = Future()
+            def run_in_thread():
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    result = new_loop.run_until_complete(coro)
+                    future.set_result(result)
+                except Exception as e:
+                    future.set_exception(e)
+                finally:
+                    new_loop.close()
+            t = threading.Thread(target=run_in_thread)
+            t.start()
+            t.join()
+            return future.result()
+        else:
+            return asyncio.run(coro)

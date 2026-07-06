@@ -80,7 +80,11 @@ class WorkflowRunner:
                                 print(f"[{author} ツール呼び出し]: {part.function_call.name}({part.function_call.args})")
                                    
                 # 完了後、セッション状態から最終結果を取得
-                final_session = await self.session_service.get_session(user_id="workflow_user", session_id=session_id)
+                final_session = await self.session_service.get_session(
+                    user_id="workflow_user",
+                    session_id=session_id,
+                    app_name=f"{self.workflow_name}_runner"
+                )
                 if final_session and "status" in final_session.state:
                     status = final_session.state["status"]
                     message = final_session.state.get("message", message)
