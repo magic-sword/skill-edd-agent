@@ -128,62 +128,34 @@ class SkillEval(ABC):
         skill_name = self.skill.name
         skill_root = self.skill.root_dir
         
+        # テンプレートファイルのベースディレクトリ解決
+        templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+        
+        # モックセットアップコードの読み込み
         mock_setup_code = ""
         if mock:
-            mock_setup_code = """
-from agents.mock_agent import before_tool_callback
-root_agent.before_tool_callback = before_tool_callback
-"""
-
+            mock_setup_path = os.path.join(templates_dir, "eval_mock_setup.py.tmpl")
+            with open(mock_setup_path, "r", encoding="utf-8") as f:
+                mock_setup_code = f.read()
+                
+        # モジュールタイプ別のテンプレートロードと置換
         if self.skill.metadata.module_type == ModuleType.WORKFLOW:
-            # ワークフローの場合: 規約に従って scripts/__init__.py からエージェントをインポートする
-            return f"""
-import sys
-# ワークフローの scripts ディレクトリを path に追加してインポート可能にする
-sys.path.insert(0, "{skill_root}/scripts")
-
-# scripts/__init__.py からエージェントをインポート
-try:
-    from __init__ import workflow_agent as root_agent
-except ImportError:
-    try:
-        from __init__ import agent as root_agent
-    except ImportError as e:
-        raise ImportError(
-            f"ワークフローエージェント '{skill_name}' の scripts/__init__.py から "
-            "workflow_agent または agent をインポートできませんでした。"
-        ) from e
-
-# adk eval が参照する変数 'agent' を定義
-agent = root_agent
-{mock_setup_code}
-"""
+            tmpl_path = os.path.join(templates_dir, "eval_agent_workflow.py.tmpl")
+            with open(tmpl_path, "r", encoding="utf-8") as f:
+                template = f.read()
+            return template.format(
+                skill_root=skill_root,
+                skill_name=skill_name,
+                mock_setup_code=mock_setup_code
+            )
         else:
-            # スキルの場合: 動的にエージェントを構築する
-            return f"""
-import sys
-from google.adk import Agent
-from edd_agent_tools.registry import SkillRegistry
-
-# 指定されたスキルだけをツールとしてロードしてエージェントを構築
-registry = SkillRegistry()
-skill_obj = registry.get_skill("{skill_name}")
-agent_tools = [skill_obj.get_tool()]
-
-root_agent = Agent(
-    model='gemini-2.5-flash',
-    name='evaluation_driven_development_agent',
-    instruction=(
-        "あなたは自立的評価駆動開発エージェントです。\\n"
-        "ロードされたスキル（ツール）を用いて、ユーザーからの指示やタスクを正常に遂行してください。"
-    ),
-    tools=agent_tools
-)
-
-# adk eval が参照する変数 'agent' を定義
-agent = root_agent
-{mock_setup_code}
-"""
+            tmpl_path = os.path.join(templates_dir, "eval_agent_skill.py.tmpl")
+            with open(tmpl_path, "r", encoding="utf-8") as f:
+                template = f.read()
+            return template.format(
+                skill_name=skill_name,
+                mock_setup_code=mock_setup_code
+            )
 
 
 class UnitEval(SkillEval):

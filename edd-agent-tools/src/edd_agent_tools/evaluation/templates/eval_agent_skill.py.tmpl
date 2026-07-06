@@ -1,0 +1,22 @@
+import sys
+from google.adk import Agent
+from edd_agent_tools.registry import SkillRegistry
+
+# 指定されたスキルだけをツールとしてロードしてエージェントを構築
+registry = SkillRegistry()
+skill_obj = registry.get_skill("{skill_name}")
+agent_tools = [skill_obj.get_tool()]
+
+root_agent = Agent(
+    model='gemini-2.5-flash',
+    name='evaluation_driven_development_agent',
+    instruction=(
+        "あなたは自立的評価駆動開発エージェントです。\n"
+        "ロードされたスキル（ツール）を用いて、ユーザーからの指示やタスクを正常に遂行してください。"
+    ),
+    tools=agent_tools
+)
+
+# adk eval が参照する変数 'agent' を定義
+agent = root_agent
+{mock_setup_code}
