@@ -12,7 +12,7 @@ from edd_agent_tools.models import SkillDesign
 from edd_agent_tools.gemini import GeminiRequest
 
 class BaseSkillTextParts(BaseModel):
-    purpose: str = Field(..., description="このスキルの本質的な目的と提供する価値を要約した簡潔な日本語の1〜2文。")
+    purpose: str = Field(..., description="このスキルの本質的な目的と提供する価値を要約した簡潔な1〜2文。")
     features: list[str] = Field(..., description="このスキルが提供する具体的な主要機能のリスト。")
     trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 

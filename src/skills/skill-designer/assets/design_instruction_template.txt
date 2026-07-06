@@ -21,7 +21,3 @@
 - `dependencies` はスキルが依存する他のスキル名（例: `['google-calendar']`）をリストで指定してください。ない場合は空のリスト `[]` を指定してください。
 - `constraints` はスキル全体の実行に関する制約をリストで指定してください。ない場合は空のリスト `[]` を指定してください。
 - `response_parameters` はスキルの出力スキーマを定義してください。
-- `description` は常に日本語で記述してください。
-- `summary` は常に日本語で記述してください。
-- `prompt_instructions` は常に日本語で記述してください。
-- `prompt_constraints` は常に日本語で記述してください。
