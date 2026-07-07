@@ -4,15 +4,16 @@ from .models import Input, Output
 from .workflow import root_workflow
 
 SKILL_METADATA = {
-    "name": "skill-developer",
-    "description": "スキルを設計、実装、および仕様書を作成するワークフローエージェント。",
-    "summary": "このワークフローは、ユーザーからの要件プロンプトに基づいて、skill-designer、skill-coder、skill-spec-writerの各スキルを順に実行し、新しいスキルを生成します。設計、実装、仕様書作成の一連のプロセスを自動化し、成果物を指定されたディレクトリに出力します。",
+    "name": "first-test-runner",
+    "description": "指定されたスキルに対して一連のテストと検証を実行し、すべて成功した場合はスキルをTier 1として登録します。",
+    "summary": "このワークフローは、対象スキルに対してトリガー評価、テスト実行、インポート検証、設計検証を行います。すべての検証が成功した場合、対象スキルをTier 1（READ_ONLY）としてSkillsStateに登録します。いずれかの検証が失敗した場合は、登録を行わず、失敗の詳細を返します。",
     "execution_type": "agent",
     "output_mode": "STRUCTURED_JSON",
     "dependencies": [
-        "skill-designer",
-        "skill-coder",
-        "skill-spec-writer"
+        "trigger-evaluator",
+        "test-executor",
+        "import-validator",
+        "design-validator"
     ]
 }
 

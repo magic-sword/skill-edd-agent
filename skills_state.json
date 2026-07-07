@@ -6,5 +6,12 @@
     {
       "path": "src/agents"
     }
-  ]
+  ],
+  "inherits": [],
+  "exclude": [],
+  "skills": {
+    "first-test-runner": {
+      "tier": 1
+    }
+  }
 }

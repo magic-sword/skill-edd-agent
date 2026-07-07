@@ -48,7 +48,14 @@ class DesignValidator:
             design_json_content = self._read_skill_file(skill_obj, "design.json")
             models_py_content = self._read_skill_file(skill_obj, "scripts/models.py")
             handler_py_content = self._read_skill_file(skill_obj, "scripts/handler.py")
-            executor_py_content = self._read_skill_file(skill_obj, "scripts/executor.py")
+            
+            # executor.py が存在すれば読み、無ければ workflow.py を読む
+            import os
+            executor_path = os.path.join(skill_obj.root_dir, "scripts/executor.py")
+            if os.path.exists(executor_path):
+                executor_py_content = self._read_skill_file(skill_obj, "scripts/executor.py")
+            else:
+                executor_py_content = self._read_skill_file(skill_obj, "scripts/workflow.py")
 
             prompt = self._prompt_builder.build_validation_prompt(
                 design_json=design_json_content,

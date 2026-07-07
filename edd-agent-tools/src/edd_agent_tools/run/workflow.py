@@ -25,7 +25,7 @@ class WorkflowRunner:
         self.session_service = session_service or InMemorySessionService()
         self.artifact_service = artifact_service or InMemoryArtifactService()
 
-    async def run_async(self, params: Any, output_cls: Any = None) -> str:
+    async def run_async(self, params: Any) -> dict[str, Any]:
         """非同期のワークフロー実行処理実体。"""
         import uuid
         from google.adk.runners import Runner
@@ -103,11 +103,10 @@ class WorkflowRunner:
         if status == "failed":
             raise RuntimeError(f"Workflow failed: {message}")
             
-        if output_cls:
-            return output_cls(status=status, message=message, output_dir=output_dir).model_dump_json()
-        return message
+        # セッション状態辞書をそのまま返却
+        return final_session.state if final_session else {}
 
-    def run(self, params: Any, output_cls: Any = None) -> str:
+    def run(self, params: Any) -> dict[str, Any]:
         """同期実行用ラッパーメソッド。"""
         import asyncio
-        return asyncio.run(self.run_async(params, output_cls))
+        return asyncio.run(self.run_async(params))

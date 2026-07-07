@@ -6,7 +6,7 @@ from google.adk import Workflow
 from google.adk.tools import ToolContext
 from edd_agent_tools.skills import SkillsState
 import json
-from typing import Dict, Any
+from .models import Input, Output
 
 state = SkillsState()
 state.load()
@@ -15,78 +15,74 @@ skill_designer_module = state.get_skill("skill-designer").load_module()
 skill_coder_module = state.get_skill("skill-coder").load_module()
 skill_spec_writer_module = state.get_skill("skill-spec-writer").load_module()
 
-def _update_state_from_json_response(tool_context: ToolContext, res_str: str) -> None:
-    """JSON文字列のレスポンスを解析し、tool_context.stateを更新します。
-    パースに失敗しても例外を発生させず、処理を引き継ぎます。
-    """
+def run_design_skill_step(tool_context: ToolContext) -> str:
+    # skill-designer の Input パラメータを構築
+    params = skill_designer_module.Input(
+        prompt=tool_context.state.get("prompt"),
+        skill=tool_context.state.get("skill"),
+        output_dir=tool_context.state.get("output_dir"),
+        design_path=tool_context.state.get("design_path"),
+    )
+    res_str = skill_designer_module.process_message(params, tool_context)
     try:
         res_data = json.loads(res_str)
-        if isinstance(res_data, dict):
-            tool_context.state.update(res_data)
+        # skill-designer の出力を tool_context.state に更新
+        tool_context.state.update(res_data)
     except Exception:
-        # JSONパースエラーが発生しても、処理を続行
-        pass
-
-def run_design_skill_step(tool_context: ToolContext) -> str:
-    """
-    skill-designer スキルを実行し、設計情報を生成します。
-    """
-    # tool_context.state から初期入力パラメータを取得
-    params_dict: Dict[str, Any] = {
-        "prompt": tool_context.state.get("prompt"),
-        "skill": tool_context.state.get("skill"),
-        "output_dir": tool_context.state.get("output_dir"),
-    }
-    # None の値を除外して、スキルに渡すパラメータを構築
-    filtered_params = {k: v for k, v in params_dict.items() if v is not None}
-    params = skill_designer_module.Input(**filtered_params)
-
-    res_str = skill_designer_module.process_message(params, tool_context)
-    _update_state_from_json_response(tool_context, res_str)
+        # JSONデコードエラーの場合でも、元の文字列をstateに格納して後続処理を試みる
+        tool_context.state.update({"design_output_raw": res_str})
     return res_str
 
 def run_code_skill_step(tool_context: ToolContext) -> str:
-    """
-    skill-coder スキルを実行し、ソースコードを生成します。
-    """
-    # tool_context.state から必要な入力パラメータを取得
-    params_dict: Dict[str, Any] = {
-        "design_path": tool_context.state.get("design_path"),
-        "skill": tool_context.state.get("skill"),
-        "output_dir": tool_context.state.get("output_dir"),
-    }
-    # None の値を除外して、スキルに渡すパラメータを構築
-    filtered_params = {k: v for k, v in params_dict.items() if v is not None}
-    params = skill_coder_module.Input(**filtered_params)
-
+    # skill-coder の Input パラメータを tool_context.state から取得
+    params = skill_coder_module.Input(
+        skill=tool_context.state.get("skill"),
+        output_dir=tool_context.state.get("output_dir"),
+        design_path=tool_context.state.get("design_path"),
+        source_code_dir=tool_context.state.get("source_code_dir"),
+    )
     res_str = skill_coder_module.process_message(params, tool_context)
-    _update_state_from_json_response(tool_context, res_str)
+    try:
+        res_data = json.loads(res_str)
+        # skill-coder の出力を tool_context.state に更新
+        tool_context.state.update(res_data)
+    except Exception:
+        tool_context.state.update({"code_output_raw": res_str})
     return res_str
 
 def run_write_spec_step(tool_context: ToolContext) -> str:
-    """
-    skill-spec-writer スキルを実行し、仕様書を生成します。
-    """
-    # tool_context.state から必要な入力パラメータを取得
-    params_dict: Dict[str, Any] = {
-        "design_path": tool_context.state.get("design_path"),
-        "source_code_dir": tool_context.state.get("source_code_dir"),
-        "skill": tool_context.state.get("skill"),
-        "output_dir": tool_context.state.get("output_dir"),
-    }
-    # None の値を除外して、スキルに渡すパラメータを構築
-    filtered_params = {k: v for k, v in params_dict.items() if v is not None}
-    params = skill_spec_writer_module.Input(**filtered_params)
-
+    # skill-spec-writer の Input パラメータを tool_context.state から取得
+    params = skill_spec_writer_module.Input(
+        skill=tool_context.state.get("skill"),
+        source_code_dir=tool_context.state.get("source_code_dir"),
+        output_dir=tool_context.state.get("output_dir"),
+    )
     res_str = skill_spec_writer_module.process_message(params, tool_context)
-    _update_state_from_json_response(tool_context, res_str)
-    return res_str
+    try:
+        res_data = json.loads(res_str)
+        # skill-spec-writer の出力を tool_context.state に更新
+        tool_context.state.update(res_data)
+    except Exception:
+        tool_context.state.update({"spec_output_raw": res_str})
+    
+    # 最終的な出力として、Outputモデルの形式で dict を構築
+    final_output_dir = tool_context.state.get("output_dir")
+    final_status = tool_context.state.get("status", "success") # デフォルトはsuccess
+    final_message = tool_context.state.get("message", "スキル開発ワークフローが完了しました。")
+
+    # Output モデルに準拠した dict を JSON 文字列として返す
+    final_result_dict = Output(
+        status=final_status,
+        message=final_message,
+        output_dir=final_output_dir or "./" # output_dir が設定されていなければカレントディレクトリ
+    ).model_dump()
+    return json.dumps(final_result_dict)
 
 root_workflow = Workflow(
     name="skill_developer",
     edges=[
         ("START", run_design_skill_step),
         (run_design_skill_step, run_code_skill_step),
-        (run_code_skill_step, run_write_spec_step),
+        (run_code_skill_step, run_write_spec_step)
     ]
 )
