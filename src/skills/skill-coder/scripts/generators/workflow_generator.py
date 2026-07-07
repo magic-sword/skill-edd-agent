@@ -87,7 +87,7 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
             func_prompt_tmpl = self.coder_skill.load_asset("prompts/function_generator.prompt")
             agent_prompt_tmpl = self.coder_skill.load_asset("prompts/agent_generator.prompt")
 
-            # 【第 1 段階】カスタムノードの個別コード生成と別ファイル保存
+            # 【第 1 段階】カスタムノードおよびスキルノードの個別コード生成と別ファイル保存
             for step in steps:
                 s_name = step.get("name")
                 s_type = step.get("type")
@@ -96,10 +96,83 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                 func_name = f"run_{s_var}_step"
                 step_functions.append(func_name)
                 
+                node_file_path = os.path.join(nodes_dir, f"{s_var}.py")
+                imports_code_lines.append(f"from .nodes.{s_var} import {func_name}")
+                
                 if s_type == "skill":
                     target_skill = step.get("target")
                     dep_var = target_skill.replace("-", "_")
-                    imports_code_lines.append(f'{dep_var}_module = state.get_skill("{target_skill}").load_module()')
+                    
+                    # 依存スキルの入力をロードしてパラメータ名を抽出する
+                    dep_input_params = []
+                    try:
+                        dep_skill = state.get_skill(target_skill)
+                        dep_design = dep_skill.load_design()
+                        dep_input_params = [p.name for p in dep_design.parameters]
+                    except Exception as e:
+                        print(f"警告: 依存スキル {target_skill} の設計ロードに失敗しました: {e}")
+                    
+                    # inputs マッピング
+                    dep_mapping = step.get("inputs", {})
+                    param_assignments = []
+                    for param_name, mapping_val in dep_mapping.items():
+                        is_expression = (
+                            "tool_context" in mapping_val or 
+                            "(" in mapping_val or 
+                            ")" in mapping_val or 
+                            "+" in mapping_val or
+                            "*" in mapping_val or
+                            "/" in mapping_val or
+                            " " in mapping_val or
+                            "." in mapping_val
+                        )
+                        if is_expression:
+                            param_assignments.append(f'        {param_name}={mapping_val}')
+                        else:
+                            param_assignments.append(f'        {param_name}=tool_context.state.get("{mapping_val}")')
+                    
+                    # 指定されていない必要なパラメータを state.get() で自動補完
+                    assigned_names = set(dep_mapping.keys())
+                    for required_param in dep_input_params:
+                        if required_param not in assigned_names:
+                            param_assignments.append(f'        {required_param}=tool_context.state.get("{required_param}")')
+                            
+                    params_init_str = ",\n".join(param_assignments)
+                    
+                    node_lines = [
+                        "from google.adk.tools import ToolContext",
+                        "from edd_agent_tools.skills import SkillsState",
+                        "import json",
+                        "",
+                        "state = SkillsState()",
+                        "state.load()",
+                        f'{dep_var}_module = state.get_skill("{target_skill}").load_module()',
+                        "",
+                        f"def {func_name}(tool_context: ToolContext) -> str:",
+                        "    # 設計書の inputs マッピングから直接決定論的に引数を抽出"
+                    ]
+                    
+                    if params_init_str:
+                        node_lines.append(f"    params = {dep_var}_module.Input(")
+                        node_lines.append(params_init_str)
+                        node_lines.append("    )")
+                    else:
+                        node_lines.append(f"    params = {dep_var}_module.Input()")
+                        
+                    node_lines.append(f"    res_str = {dep_var}_module.process_message(params, tool_context)")
+                    node_lines.append("    try:")
+                    node_lines.append("        res_data = json.loads(res_str)")
+                    node_lines.append("        tool_context.state.update(res_data)")
+                    node_lines.append("    except Exception:")
+                    node_lines.append("        pass")
+                    node_lines.append("    return res_str")
+                    node_lines.append("")
+                    
+                    node_code = "\n".join(node_lines)
+                    with open(node_file_path, "w", encoding="utf-8") as f:
+                        f.write(node_code)
+                    print(f"他スキル呼び出しノードを書き出しました: {node_file_path}")
+                    generated_files.append(os.path.relpath(node_file_path, self.target_root_dir))
                     
                 elif s_type == "function":
                     prompt = func_prompt_tmpl.format(func_name=func_name, s_desc=s_desc)
@@ -113,13 +186,10 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                         if "```" in func_code:
                             func_code = "\n".join([line for line in func_code.split("\n") if not line.strip().startswith("```")])
                         
-                        node_file_path = os.path.join(nodes_dir, f"{s_var}.py")
                         with open(node_file_path, "w", encoding="utf-8") as f:
                             f.write(func_code)
                         print(f"カスタム関数ノードを書き出しました: {node_file_path}")
                         generated_files.append(os.path.relpath(node_file_path, self.target_root_dir))
-                        
-                        imports_code_lines.append(f"from .nodes.{s_var} import {func_name}")
                     except Exception as e:
                         print(f"警告: 関数ノード生成に失敗しました: {e}")
                         
@@ -142,29 +212,19 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                         if "```" in agent_code:
                             agent_code = "\n".join([line for line in agent_code.split("\n") if not line.strip().startswith("```")])
                         
-                        node_file_path = os.path.join(nodes_dir, f"{s_var}.py")
                         with open(node_file_path, "w", encoding="utf-8") as f:
                             f.write(agent_code)
                         print(f"エージェントノードを書き出しました: {node_file_path}")
                         generated_files.append(os.path.relpath(node_file_path, self.target_root_dir))
-                        
-                        imports_code_lines.append(f"from .nodes.{s_var} import {func_name}")
                     except Exception as e:
                         print(f"警告: エージェントノード生成に失敗しました: {e}")
-            
-            # 【第 2 段階】100%決定論的な組み立て（LLMによるマッピング推論は廃止）
+            # 【第 2 段階】100%決定論的な組み立て
             code_lines = [
                 '"""',
                 f'{workflow_name} の Workflow オブジェクト定義。',
-                'ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠した多段階関数・エージェントノード接続。',
+                'ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠した多段階接続。',
                 '"""',
                 'from google.adk import Workflow',
-                'from google.adk.tools import ToolContext',
-                'from edd_agent_tools.skills import SkillsState',
-                'import json',
-                '',
-                'state = SkillsState()',
-                'state.load()',
                 ''
             ]
             
@@ -172,53 +232,6 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
             code_lines.extend(imports_code_lines)
             code_lines.append('')
             
-            # skillタイプの関数ノードラッパーの動的レンダリング
-            for step in steps:
-                s_name = step.get("name")
-                s_type = step.get("type")
-                if s_type != "skill":
-                    continue
-                target_skill = step.get("target")
-                dep_var = target_skill.replace("-", "_")
-                func_name = f"run_{s_name.replace('-', '_')}_step"
-                
-                code_lines.append(f"def {func_name}(tool_context: ToolContext) -> str:")
-                code_lines.append("    # 設計書の inputs マッピングから直接決定論的に引数を抽出")
-                
-                # design.json の inputs から直接マッピング情報を取得
-                dep_mapping = step.get("inputs", {})
-                param_assignments = []
-                for param_name, mapping_val in dep_mapping.items():
-                    is_expression = (
-                        "tool_context" in mapping_val or 
-                        "(" in mapping_val or 
-                        ")" in mapping_val or 
-                        "+" in mapping_val or
-                        "*" in mapping_val or
-                        "/" in mapping_val or
-                        " " in mapping_val or
-                        "." in mapping_val
-                    )
-                    if is_expression:
-                        param_assignments.append(f'        {param_name}={mapping_val}')
-                    else:
-                        param_assignments.append(f'        {param_name}=tool_context.state.get("{mapping_val}")')
-                        
-                params_init_str = ",\n".join(param_assignments)
-                code_lines.append(f"    params = {dep_var}_module.Input(")
-                if params_init_str:
-                    code_lines.append(params_init_str)
-                code_lines.append("    )")
-                
-                code_lines.append(f"    res_str = {dep_var}_module.process_message(params, tool_context)")
-                code_lines.append("    try:")
-                code_lines.append("        res_data = json.loads(res_str)")
-                code_lines.append("        tool_context.state.update(res_data)")
-                code_lines.append("    except Exception:")
-                code_lines.append("        pass")
-                code_lines.append("    return res_str")
-                code_lines.append("")
-                
             # edgesの構築
             code_lines.append("root_workflow = Workflow(")
             code_lines.append(f'    name="{workflow_module_name}",')

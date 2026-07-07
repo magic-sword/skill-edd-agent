@@ -8,8 +8,7 @@ from google.adk.tools import ToolContext
 from google.adk import Agent
 from google.adk.environment import LocalEnvironment
 from google.adk.tools.environment._read_file_tool import ReadFileTool
-from google.adk.tools.environment._edit_file_tool import EditFileTool
-from google.adk.tools.environment._write_file_tool import WriteFileTool
+from edd_agent_tools import SafeWriteFileTool, SafeEditFileTool
 from google.adk.runners import Runner
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 from google.adk.artifacts.in_memory_artifact_service import InMemoryArtifactService
@@ -53,14 +52,15 @@ class SkillDeveloperAgentExecutor:
             "{prompt}", self._prompt
         )
 
+        restricted_files = ["workflow.py", "handler.py", "models.py", "__init__.py", "run_*.py"]
         developer_agent = Agent(
             model="gemini-2.5-flash",
             name='SkillDeveloperAgent',
             instruction=instruction,
             tools=[
                 ReadFileTool(local_env),
-                EditFileTool(local_env),
-                WriteFileTool(local_env),
+                SafeEditFileTool(local_env, restricted_patterns=restricted_files),
+                SafeWriteFileTool(local_env, restricted_patterns=restricted_files),
                 reader.read_documentation
             ]
         )

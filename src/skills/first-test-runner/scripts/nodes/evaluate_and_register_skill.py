@@ -1,80 +1,42 @@
 from google.adk.tools import ToolContext
-from edd_agent_tools.skills import SkillsState
-import json
 
 def run_evaluate_and_register_skill_step(tool_context: ToolContext) -> str:
-    """
-    各検証ステップの結果を評価し、すべて成功していれば対象スキルをTier 1として登録します。
-    失敗した場合はその詳細を収集します。
-    """
-    # tool_context.state から各ステップの結果を取得
-    trigger_evaluator_result = tool_context.state.get("trigger_evaluator_result", {})
-    test_executor_result = tool_context.state.get("test_executor_result", {})
-    import_validator_result = tool_context.state.get("import_validator_result", {})
-    design_validator_result = tool_context.state.get("design_validator_result", {})
+    # 先行ノードから検証結果とスキル名を取得
+    # validation_results は、各検証ステップの結果を表す辞書のリストを想定
+    # 例: [{"step_name": "Schema Validation", "status": "success"}, {"step_name": "API Test", "status": "failure", "details": "Endpoint not reachable"}]
+    validation_results = tool_context.state.get("validation_results", [])
+    skill_name = tool_context.state.get("skill_name", "Unknown Skill")
 
+    failed_validations = []
     all_successful = True
-    failed_steps_details = []
 
-    # 各ステップの結果を評価
-    # trigger-evaluator
-    if trigger_evaluator_result.get("status") != "success":
-        all_successful = False
-        failed_steps_details.append(
-            f"- Trigger Evaluator: {trigger_evaluator_result.get('message', '詳細不明')}"
-        )
-
-    # test-executor
-    # threshold_accuracy を考慮する必要がある
-    threshold_accuracy = tool_context.get_parameter("threshold_accuracy", 1.0)
-    test_accuracy = test_executor_result.get("accuracy", 0.0) # test-executor の結果に accuracy があることを期待
-    if test_executor_result.get("status") != "success" or test_accuracy < threshold_accuracy:
-        all_successful = False
-        failed_steps_details.append(
-            f"- Test Executor: {test_executor_result.get('message', '詳細不明')} (Accuracy: {test_accuracy}, Threshold: {threshold_accuracy})"
-        )
-
-    # import-validator
-    if import_validator_result.get("status") != "success":
-        all_successful = False
-        failed_steps_details.append(
-            f"- Import Validator: {import_validator_result.get('message', '詳細不明')}"
-        )
-
-    # design-validator
-    if design_validator_result.get("status") != "success":
-        all_successful = False
-        failed_steps_details.append(
-            f"- Design Validator: {design_validator_result.get('message', '詳細不明')}"
-        )
-
-    registered = False
-    message = ""
-    status = "failed"
+    for result in validation_results:
+        if result.get("status") == "failure":
+            all_successful = False
+            failed_validations.append(result)
 
     if all_successful:
-        try:
-            skill_name_to_register = tool_context.get_parameter("skill")
-            skills_state = SkillsState()
-            skills_state.load()
-            # Tier 1 は設計定義により READ_ONLY と指定
-            skills_state.promote_skill(skill_name_to_register, "READ_ONLY")
-            skills_state.save() # 変更を保存
-
-            message = f"すべての検証ステップが成功しました。スキル '{skill_name_to_register}' がTier 1（READ_ONLY）として登録されました。"
-            registered = True
-            status = "success"
-        except Exception as e:
-            message = f"スキル登録中に予期せぬエラーが発生しました: {str(e)}"
-            status = "failed"
+        # すべての検証が成功した場合、スキルをTier 1として登録
+        registration_status = {
+            "skill_name": skill_name,
+            "tier": "Tier 1",
+            "status": "registered",
+            "message": f"Skill '{skill_name}' successfully registered as Tier 1."
+        }
+        tool_context.state.set("registration_status", registration_status)
+        return_message = f"Skill '{skill_name}' successfully registered as Tier 1."
     else:
-        details_str = "\n".join(failed_steps_details)
-        message = f"スキル登録に失敗しました。以下の検証ステップで問題が見つかりました:\n{details_str}"
-        status = "failed"
-
-    # 最終結果を tool_context.state に保存
-    tool_context.state["status"] = status
-    tool_context.state["message"] = message
-    tool_context.state["registered"] = registered
-
-    return message
+        # 失敗した検証がある場合、その詳細を収集
+        failure_details = {
+            "skill_name": skill_name,
+            "status": "registration_failed",
+            "reason": "One or more validation steps failed.",
+            "failed_steps": failed_validations
+        }
+        tool_context.state.set("registration_failure_details", failure_details)
+        
+        # 失敗の詳細を文字列として返す
+        failed_step_names = [step.get("step_name", "Unknown Step") for step in failed_validations]
+        return_message = f"Skill registration failed for '{skill_name}'. Failed steps: {', '.join(failed_step_names)}. See 'registration_failure_details' for more information."
+    
+    return return_message

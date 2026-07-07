@@ -59,31 +59,42 @@
       "name": "run-trigger-evaluator",
       "type": "skill",
       "target": "trigger-evaluator",
-      "inputs": {}
+      "inputs": {
+        "skill": "skill"
+      }
     },
     {
       "name": "run-test-executor",
       "type": "skill",
       "target": "test-executor",
-      "inputs": {}
+      "inputs": {
+        "skill": "skill",
+        "threshold_accuracy": "threshold_accuracy"
+      }
     },
     {
       "name": "run-import-validator",
       "type": "skill",
       "target": "import-validator",
-      "inputs": {}
+      "inputs": {
+        "skill": "skill"
+      }
     },
     {
       "name": "run-design-validator",
       "type": "skill",
       "target": "design-validator",
-      "inputs": {}
+      "inputs": {
+        "skill": "skill"
+      }
     },
     {
       "name": "evaluate-and-register-skill",
       "type": "function",
       "description": "各検証ステップの結果を評価し、すべて成功していれば対象スキルをTier 1として登録します。失敗した場合はその詳細を収集します。",
-      "inputs": {}
+      "inputs": {
+        "skill": "skill"
+      }
     }
   ]
 }
