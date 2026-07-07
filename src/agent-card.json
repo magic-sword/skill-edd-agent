@@ -1,12 +1,107 @@
 {
-  "name": "evaluation_driven_development_agent",
-  "url": "http://localhost:8001",
-  "description": "Google ADK 2.0を利用した、自立的にスキルを開発・統合するA2Aプロトコル互換のエージェントの土台",
-  "version": "0.1.0",
-  "protocolVersion": "0.3.0",
   "capabilities": {},
-  "skills": [],
-  "defaultInputModes": ["text/plain"],
-  "defaultOutputModes": ["text/plain"],
-  "supportsAuthenticatedExtendedCard": false
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain"
+  ],
+  "description": "Google ADK を利用した、自立的にスキルを開発・統合するA2Aプロトコル互換のエージェントの土台",
+  "name": "evaluation_driven_development_agent",
+  "protocolVersion": "0.3.0",
+  "skills": [
+    {
+      "description": "Execute first-test-runner skill",
+      "id": "evaluation_driven_development_agent-first_test_runner",
+      "name": "first_test_runner",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute skill-designer skill",
+      "id": "evaluation_driven_development_agent-skill_designer",
+      "name": "skill_designer",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute skill-coder skill",
+      "id": "evaluation_driven_development_agent-skill_coder",
+      "name": "skill_coder",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute skill-spec-writer skill",
+      "id": "evaluation_driven_development_agent-skill_spec_writer",
+      "name": "skill_spec_writer",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute skill-developer skill",
+      "id": "evaluation_driven_development_agent-skill_developer",
+      "name": "skill_developer",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute design-validator skill",
+      "id": "evaluation_driven_development_agent-design_validator",
+      "name": "design_validator",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute import-validator skill",
+      "id": "evaluation_driven_development_agent-import_validator",
+      "name": "import_validator",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute test-executor skill",
+      "id": "evaluation_driven_development_agent-test_executor",
+      "name": "test_executor",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute trigger-evaluator skill",
+      "id": "evaluation_driven_development_agent-trigger_evaluator",
+      "name": "trigger_evaluator",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Run shell commands.",
+      "id": "evaluation_driven_development_agent-run_command",
+      "name": "run_command",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": false,
+  "url": "https://us-central1-aiplatform.googleapis.com/v1/projects/arc-agi-498914/locations/us-central1/reasoningEngines/1915136500085817344",
+  "version": "0.1.0"
 }
