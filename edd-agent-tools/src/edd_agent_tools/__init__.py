@@ -11,6 +11,18 @@ __version__ = "0.1.0"
 def __getattr__(name: str):
     import importlib
 
+    # サブモジュール自体への直接アクセスを許容し、インポートエラーを防ぎます。
+    submodules = {
+        "gemini",
+        "skills",
+        "evaluation",
+        "run",
+        "doc_reader",
+        "models"
+    }
+    if name in submodules:
+        return importlib.import_module(f".{name}", __package__)
+
     mapping = {
         # models
         "Parameter": (".models", "Parameter"),

@@ -24,6 +24,18 @@
     },
     "skill-developer": {
       "tier": 1
+    },
+    "design-validator": {
+      "tier": 1
+    },
+    "import-validator": {
+      "tier": 1
+    },
+    "test-executor": {
+      "tier": 1
+    },
+    "trigger-evaluator": {
+      "tier": 1
     }
   }
 }
