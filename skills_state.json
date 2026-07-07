@@ -12,6 +12,18 @@
   "skills": {
     "first-test-runner": {
       "tier": 1
+    },
+    "skill-designer": {
+      "tier": 1
+    },
+    "skill-coder": {
+      "tier": 1
+    },
+    "skill-spec-writer": {
+      "tier": 1
+    },
+    "skill-developer": {
+      "tier": 1
     }
   }
 }

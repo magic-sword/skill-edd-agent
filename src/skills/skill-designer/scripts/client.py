@@ -8,15 +8,15 @@ class GeminiDesignClient:
     def __init__(self):
         self._client = GeminiClient()
 
-    def generate_design(self, contents: list[types.ContentType]) -> str:
+    def generate_design(self, contents: list[types.ContentType], response_schema) -> str:
         """
-        Gemini API を呼び出し、スキル設計の JSON 文字列を生成します。
+        Gemini API を呼び出し、指定されたスキーマに従って JSON 文字列を生成します。
         """
         response = self._client.generate_content(
             contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=clean_pydantic_schema(ModuleDesign),
+                response_schema=clean_pydantic_schema(response_schema),
                 temperature=0.1
             )
         )

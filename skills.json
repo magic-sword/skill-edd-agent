@@ -1,7 +1,10 @@
 {
   "entries": [
     {
-      "path": "src/skills/first-test-runner"
+      "path": "src/skills"
+    },
+    {
+      "path": "src/agents"
     }
   ],
   "inherits": [],

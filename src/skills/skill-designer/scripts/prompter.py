@@ -19,7 +19,8 @@ class DesignPrompter:
         existing_constraints: str, 
         l1_skills_context: str,
         scan_target: str | None,
-        output_dir: str | None
+        output_dir: str | None,
+        existing_design_file_path: str | None = None
     ):
         """
         第 1 段階 (L1骨組み設計) 用の GeminiRequest を構築します。
@@ -36,6 +37,11 @@ class DesignPrompter:
         if scan_target:
             ref_root = output_dir if output_dir else os.path.dirname(scan_target)
             request.add_dir(scan_target, ref_root=ref_root, file_filter=lambda p: p.endswith(".py"))
+            
+        # 既存の design.json があれば LLM に対し参考コンテキストとして添付提供する
+        if existing_design_file_path and os.path.exists(existing_design_file_path):
+            request.add_file(existing_design_file_path, ref_root=output_dir)
+            
             
         # プロジェクト共通規約（README.md）をコンテキストに添付
         try:

@@ -86,12 +86,56 @@ class SkillRunner:
 
 def run_cli():
     # 最初の引数を位置引数としてスキル名を取得
-    if len(sys.argv) < 2 or sys.argv[1].startswith("-"):
+    # ただし、位置引数（スキル名）の前に --min-tier オプションがある場合は、それを除去・解析する
+    args = sys.argv[1:]
+    min_tier_val = None  # デフォルトは None (save側で READ_ONLY になる)
+    
+    filtered_args = []
+    i = 0
+    while i < len(args):
+        if args[i] in ("--min-tier", "--min_tier"):
+            if i + 1 < len(args):
+                try:
+                    # 数値（0〜3）での指定を想定
+                    min_tier_val = int(args[i+1])
+                except ValueError:
+                    # 文字列名（SANDBOX 等）での指定もサポート
+                    from edd_agent_tools.skills.models import SkillTier
+                    try:
+                        min_tier_val = SkillTier[args[i+1].upper()]
+                    except KeyError:
+                        print(f"Error: Invalid --min-tier value: {args[i+1]}", file=sys.stderr)
+                        sys.exit(1)
+                i += 2
+                continue
+        filtered_args.append(args[i])
+        i += 1
+
+    if not filtered_args or filtered_args[0].startswith("-"):
         print("Error: Skill name is required as the first argument.", file=sys.stderr)
-        print("Usage: python3 -m edd_agent_tools.run <skill_name> [options]", file=sys.stderr)
+        print("Usage: python3 -m edd_agent_tools.run [--min-tier <val>] <skill_name> [options]", file=sys.stderr)
         sys.exit(1)
 
-    skill_name = sys.argv[1]
+    skill_name = filtered_args[0]
+    
+    # sys.argv 自体を書き換えて、下流の SchemaArgumentParser などのパース処理が正しく動作するように調整する
+    # argv[0] はそのまま残し、残りの引数を filtered_args[1:] で置き換える
+    sys.argv = [sys.argv[0], skill_name] + filtered_args[1:]
+
+    # 【最新設定の同期と skills.json の出力（自動同期）】
+    try:
+        from edd_agent_tools.skills import SkillsState, SkillTier
+        state = SkillsState()
+        state.load()
+        
+        # 閾値が指定された場合は Pydantic Enum 型に変換して save に引き渡す
+        filter_tier = None
+        if min_tier_val is not None:
+            filter_tier = SkillTier(min_tier_val)
+            
+        state.save(filter_tier=filter_tier)
+    except Exception as e:
+        print(f"Warning: Failed to sync and generate skills.json: {e}", file=sys.stderr)
 
     runner = SkillRunner(skill_name)
     runner.run()

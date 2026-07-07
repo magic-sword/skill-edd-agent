@@ -1,12 +1,16 @@
 import os
 import json
 from google.adk.tools import ToolContext
+from pydantic import TypeAdapter
+from edd_agent_tools.skills import SkillsState, Skill
+from edd_agent_tools.models import ModuleDesign
 from .models import Input, Output
 from .client import GeminiDesignClient
 from .prompter import DesignPrompter
 from .resolver import PathResolver
 from .parser import ConstraintParser
 from .cleanser import DesignCleanser
+from .skeleton_models import SkeletonDesign
 
 class SkillExecutor:
     """
@@ -43,7 +47,6 @@ class SkillExecutor:
 
         # 4. プロンプトコンテンツの構築
         from edd_agent_tools.skills import SkillsState
-        from google.adk.skills._utils import _read_skill_properties
         state = SkillsState()
         
         # 4.1. L1メタデータの収集（全登録スキルの名前とトリガー説明）
@@ -51,7 +54,7 @@ class SkillExecutor:
         l1_elements = []
         for s_name, s_obj in discovered_skills.items():
             try:
-                fm = _read_skill_properties(s_obj.root_dir)
+                fm = s_obj.load_design()
                 l1_elements.append(f"- スキル名: {fm.name}\n  トリガー条件と作用: {fm.description}")
             except Exception:
                 # パースエラーのある古いスキルはスキップ
@@ -61,6 +64,9 @@ class SkillExecutor:
         designer_skill = state.get_skill("skill-designer")
         design_prompter = DesignPrompter(designer_skill=designer_skill)
         
+        output_file_path = skill_directory.design_path
+        existing_design_file_path = output_file_path if os.path.exists(output_file_path) else None
+
         # L1 (粗設計/骨組み) 用リクエストの作成
         l1_request = design_prompter.build_l1_request(
             client=gemini_client._client,
@@ -69,18 +75,12 @@ class SkillExecutor:
             existing_constraints=existing_constraints_str,
             l1_skills_context=l1_skills_context,
             scan_target=scan_target,
-            output_dir=output_dir
+            output_dir=output_dir,
+            existing_design_file_path=existing_design_file_path
         )
 
-        # 既存の design.json があれば LLM に対し参考コンテキストとして添付提供する
-        assets_output_dir = os.path.join(output_dir, "assets")
-        output_file_path = os.path.join(assets_output_dir, "design.json")
-        if os.path.exists(output_file_path):
-            l1_request.add_file(output_file_path, ref_root=output_dir)
-
-        # L1 呼び出し: スケルトンの生成
         try:
-            skeleton_text = gemini_client.generate_design(contents=l1_request)
+            skeleton_text = gemini_client.generate_design(contents=l1_request, response_schema=SkeletonDesign)
             # LLM出力から markdown 修飾などを除去
             if "```" in skeleton_text:
                 skeleton_text = "\n".join([line for line in skeleton_text.split("\n") if not line.strip().startswith("```")])
@@ -124,6 +124,8 @@ class SkillExecutor:
 
         l2_skills_context = "\n".join(l2_elements) if l2_elements else "なし"
 
+        # デバッグ出力
+
         # L2 (引数マッピング/精緻化) 用リクエストの作成
         l2_request = design_prompter.build_l2_request(
             client=gemini_client._client,
@@ -133,14 +135,14 @@ class SkillExecutor:
 
         # L2 呼び出し: 最終設計の生成
         try:
-            response_text = gemini_client.generate_design(contents=l2_request)
+            response_text = gemini_client.generate_design(contents=l2_request, response_schema=ModuleDesign)
             if "```" in response_text:
                 response_text = "\n".join([line for line in response_text.split("\n") if not line.strip().startswith("```")])
             design_data = json.loads(response_text)
         except Exception as e:
             return Output(status="failed", message=f"第二段階（L2引数マッピング）生成またはパースエラー: {e}", output_dir="")
 
-        # 5.2. 決定論的クレンジング（自動補正）
+        # パースされたデータの決定論的な自動補正
         design_data = DesignCleanser().clean(design_data)
 
         # 概要 (summary) フィールドの処理
@@ -149,8 +151,6 @@ class SkillExecutor:
             design_data["summary"] = summary_override
 
         # 5.5. Pydantic モデルによるスキーマバリデーション (スキルとワークフローの切り分けチェック)
-        from edd_agent_tools.models import ModuleDesign
-        from pydantic import TypeAdapter
         try:
             TypeAdapter(ModuleDesign).validate_python(design_data)
         except Exception as e:
@@ -160,12 +160,12 @@ class SkillExecutor:
                 output_dir=""
             )
 
-        assets_output_dir = os.path.join(output_dir, "assets")
-        output_file_path = os.path.join(assets_output_dir, "design.json")
+        output_file_path = skill_directory.design_path
+        assets_dir = os.path.dirname(output_file_path)
         
         try:
-            if not os.path.exists(assets_output_dir):
-                os.makedirs(assets_output_dir)
+            if not os.path.exists(assets_dir):
+                os.makedirs(assets_dir)
 
             with open(output_file_path, "w", encoding="utf-8") as f:
                 json.dump(design_data, f, indent=2, ensure_ascii=False)

@@ -1,10 +1,24 @@
 import os
 import sys
+from typing import Any
 
 # パス追加
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from .handler import process_message, SKILL_METADATA
-from .models import Input, Output
+def __getattr__(name: str) -> Any:
+    """遅延インポートを実現するための属性解決ハンドラ。"""
+    if name in ("process_message", "SKILL_METADATA"):
+        from .handler import process_message, SKILL_METADATA
+        if name == "process_message":
+            return process_message
+        return SKILL_METADATA
+
+    if name in ("Input", "Output"):
+        from .models import Input, Output
+        if name == "Input":
+            return Input
+        return Output
+
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 __all__ = ["process_message", "SKILL_METADATA", "Input", "Output"]

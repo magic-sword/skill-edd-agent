@@ -1,2 +1,17 @@
-from .handler import process_message, SKILL_METADATA
-from .models import Input, Output
+from typing import Any
+
+def __getattr__(name: str) -> Any:
+    """遅延インポートを実現するための属性解決ハンドラ。"""
+    if name in ("process_message", "SKILL_METADATA"):
+        from .handler import process_message, SKILL_METADATA
+        if name == "process_message":
+            return process_message
+        return SKILL_METADATA
+
+    if name in ("Input", "Output"):
+        from .models import Input, Output
+        if name == "Input":
+            return Input
+        return Output
+
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

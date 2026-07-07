@@ -43,8 +43,46 @@ class SkillsState:
             raise RuntimeError(f"エラー: {self.state_path} の読み込みまたはバリデーションに失敗しました: {e}")
         return self.data
 
-    def save(self):
-        """現在のメモリ状態を skills_state.json ファイルへ書き出し、かつ合格スキルのみを skills.json へマウントします。"""
+    def export_to_skills_json(self, filter_tier: Optional[SkillTier] = None) -> dict:
+        """skills_state.json から 'skills' 属性を除外し、Tier による exclude フィルタリングを施した ADK公式の skills.json 用データを生成します。"""
+        if self.data is None:
+            self.load()
+            
+        # 1. 基準となる閾値（デフォルトは READ_ONLY）を設定
+        threshold = SkillTier.READ_ONLY if filter_tier is None else filter_tier
+        
+        # 2. 基本データをディープコピーして辞書化
+        data_dict = json.loads(self.data.model_dump_json())
+        
+        # 'skills' フィールドを完全に削除
+        if "skills" in data_dict:
+            del data_dict["skills"]
+            
+        # 3. 各項目のパス表記をポータブルに正規化
+        if "entries" in data_dict:
+            for entry in data_dict["entries"]:
+                if "path" in entry:
+                    entry["path"] = entry["path"].replace("\\", "/")
+                    
+        if "inherits" in data_dict:
+            for inherit in data_dict["inherits"]:
+                if "path" in inherit:
+                    inherit["path"] = inherit["path"].replace("\\", "/")
+                    
+        # 4. 閾値以下のスキル（SANDBOXなど）をスキャンして自動 exclude 追加
+        # 動的スキャンを実行 (すべての検出されたスキルの中で、Tier が閾値未満のものを exclude にマージ)
+        discovered = self.scan_skills()
+        exclude_set = set(data_dict.get("exclude", []))
+        
+        for logical_name, skill_obj in discovered.items():
+            if skill_obj._tier < threshold:
+                exclude_set.add(logical_name)
+                
+        data_dict["exclude"] = sorted(list(exclude_set))
+        return data_dict
+
+    def save(self, filter_tier: Optional[SkillTier] = None):
+        """現在のメモリ状態を skills_state.json ファイルへ書き出し、かつ適正な構成で skills.json へマウントします。"""
         if self.data is None:
             raise RuntimeError("エラー: データがロードされていません。")
         
@@ -56,31 +94,15 @@ class SkillsState:
         except Exception as e:
             raise RuntimeError(f"エラー: {self.state_path} の保存に失敗しました: {e}")
 
-        # 2. 合格した（Tier 1: READ_ONLY 以上の）スキルのみを抽出し、skills.json に書き出し
-        entries = []
-        
-        # スキャン結果から、合格した（Tier >= 1）のスキルのみを抽出する (論理名から実在パスを解決)
-        discovered = self.scan_skills()
-        for name, skill_obj in discovered.items():
-            if skill_obj._tier >= SkillTier.READ_ONLY: # READ_ONLY(1) 以上の安全が確認されたもののみ
-                # CWD からの相対パスに変換して記録 (ポータビリティ確保のため)
-                rel_path = os.path.relpath(skill_obj.root_dir, os.getcwd())
-                # Windows環境を考慮し、スラッシュ区切りに統一
-                rel_path = rel_path.replace(os.sep, "/")
-                entries.append({"path": rel_path})
-
-        skills_json_data = {
-            "entries": entries,
-            "inherits": [],
-            "exclude": []
-        }
+        # 2. 公式用の skills.json データを生成して書き出し
+        skills_json_data = self.export_to_skills_json(filter_tier=filter_tier)
 
         # skills.json のパスを解決して書き出し
         os.makedirs(os.path.dirname(self.skills_json_path), exist_ok=True)
         try:
             with open(self.skills_json_path, "w", encoding="utf-8") as f:
                 json.dump(skills_json_data, f, indent=2, ensure_ascii=False)
-            print(f"ℹ️ Updated ADK config '{self.skills_json_path}' with {len(entries)} verified skills.")
+            print(f"ℹ️ Updated ADK config '{self.skills_json_path}' with {len(skills_json_data.get('entries', []))} paths.")
         except Exception as e:
             raise RuntimeError(f"エラー: skills.json の更新に失敗しました: {e}")
 
