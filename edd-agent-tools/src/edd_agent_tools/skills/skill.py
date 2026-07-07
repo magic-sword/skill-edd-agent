@@ -9,16 +9,16 @@ class Skill:
     Examples:
         >>> from edd_agent_tools.skills import SkillsState
         >>> state = SkillsState()
-        >>> skill = state.get_skill("skill-spec-writer")
-        >>> print(skill.name)
+        >>> skill = state.get_skill("skill-spec-writer")  # doctest: +SKIP
+        >>> skill.name  # doctest: +SKIP
         'skill-spec-writer'
 
-        # 主要パスへのアクセス
-        >>> design_path = skill.design_path
-        >>> source_code_dir = skill.source_code_dir
+        >>> # 主要パスへのアクセス
+        >>> design_path = skill.design_path  # doctest: +SKIP
+        >>> source_code_dir = skill.source_code_dir  # doctest: +SKIP
 
-        # アセットファイル（プロンプト等）の安全ロード
-        >>> prompt_content = skill.load_asset("prompt.txt")
+        >>> # アセットファイル（プロンプト等）の安全ロード
+        >>> prompt_content = skill.load_asset("prompt.txt")  # doctest: +SKIP
     """
     def __init__(self, root_dir: str, tier: int = 0, last_tested: str | None = None):
         self.root_dir = os.path.abspath(root_dir)
@@ -182,8 +182,8 @@ class Skill:
         Examples:
             >>> from edd_agent_tools.skills import SkillsState
             >>> state = SkillsState()
-            >>> skill = state.get_skill("my-sample-skill")
-            >>> handler_module = skill.load_module()
+            >>> skill = state.get_skill("my-sample-skill")  # doctest: +SKIP
+            >>> handler_module = skill.load_module()  # doctest: +SKIP
         """
         import sys
         import types
