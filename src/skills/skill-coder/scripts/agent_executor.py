@@ -52,7 +52,7 @@ class SkillDeveloperAgentExecutor:
             "{prompt}", self._prompt
         )
 
-        restricted_files = ["workflow.py", "handler.py", "models.py", "__init__.py", "run_*.py"]
+        restricted_files = ["workflow.py", "handler.py", "models.py", "__init__.py", "run_*.py", "design_*.txt", "design_*_template.txt"]
         developer_agent = Agent(
             model="gemini-2.5-flash",
             name='SkillDeveloperAgent',
