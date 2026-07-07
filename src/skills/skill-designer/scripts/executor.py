@@ -41,16 +41,33 @@ class SkillExecutor:
         # 3. Gemini API クライアントの初期化
         gemini_client = GeminiDesignClient()
 
-        # 4. プロンプトコンテンツ (GeminiRequest) の構築
+        # 4. プロンプトコンテンツの構築
         from edd_agent_tools.skills import SkillsState
+        from google.adk.skills._utils import _read_skill_properties
         state = SkillsState()
+        
+        # 4.1. L1メタデータの収集（全登録スキルの名前とトリガー説明）
+        discovered_skills = state.scan_skills()
+        l1_elements = []
+        for s_name, s_obj in discovered_skills.items():
+            try:
+                fm = _read_skill_properties(s_obj.root_dir)
+                l1_elements.append(f"- スキル名: {fm.name}\n  トリガー条件と作用: {fm.description}")
+            except Exception:
+                # パースエラーのある古いスキルはスキップ
+                pass
+        l1_skills_context = "\n".join(l1_elements) if l1_elements else "なし"
+
         designer_skill = state.get_skill("skill-designer")
         design_prompter = DesignPrompter(designer_skill=designer_skill)
-        request = design_prompter.build_request(
+        
+        # L1 (粗設計/骨組み) 用リクエストの作成
+        l1_request = design_prompter.build_l1_request(
             client=gemini_client._client,
             prompt=prompt,
             existing_name=existing_name,
             existing_constraints=existing_constraints_str,
+            l1_skills_context=l1_skills_context,
             scan_target=scan_target,
             output_dir=output_dir
         )
@@ -59,18 +76,69 @@ class SkillExecutor:
         assets_output_dir = os.path.join(output_dir, "assets")
         output_file_path = os.path.join(assets_output_dir, "design.json")
         if os.path.exists(output_file_path):
-            request.add_file(output_file_path, ref_root=output_dir)
+            l1_request.add_file(output_file_path, ref_root=output_dir)
 
+        # L1 呼び出し: スケルトンの生成
         try:
-            response_text = gemini_client.generate_design(contents=request)
+            skeleton_text = gemini_client.generate_design(contents=l1_request)
+            # LLM出力から markdown 修飾などを除去
+            if "```" in skeleton_text:
+                skeleton_text = "\n".join([line for line in skeleton_text.split("\n") if not line.strip().startswith("```")])
+            skeleton_design = json.loads(skeleton_text)
         except Exception as e:
-            return Output(status="failed", message=f"Gemini API 呼び出しエラー: {e}", output_dir="")
+            return Output(status="failed", message=f"第一段階（L1粗設計）生成またはパースエラー: {e}", output_dir="")
 
-        # 5. レスポンスのパースとdesign.json の保存
+        # 5. 第 2 段階 (L2引数マッピング)
+        # 骨組みで選ばれた依存スキルの詳細スキーマをオンデマンドでロード
+        l2_elements = []
+        steps = skeleton_design.get("steps", [])
+        if steps and isinstance(steps, list):
+            for step in steps:
+                if isinstance(step, dict) and step.get("type") == "skill":
+                    target_skill = step.get("target")
+                    if target_skill:
+                        try:
+                            dep_skill = state.get_skill(target_skill)
+                            dep_design = dep_skill.load_design()
+                            
+                            inputs_def = []
+                            for p in dep_design.parameters:
+                                inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")
+                            inputs_def_str = "\n".join(inputs_def) if inputs_def else "    なし"
+                            
+                            outputs_def = []
+                            if dep_design.response_parameters:
+                                for p in dep_design.response_parameters:
+                                    outputs_def.append(f"    * {p.name} ({p.type}): {p.description}")
+                            outputs_def_str = "\n".join(outputs_def) if outputs_def else "    なし"
+
+                            l2_elements.append(
+                                f"■ スキル名: {dep_design.name}\n"
+                                f"  説明: {dep_design.description}\n"
+                                f"  入力パラメータ仕様:\n{inputs_def_str}\n"
+                                f"  出力戻り値仕様:\n{outputs_def_str}\n"
+                            )
+                        except Exception as e:
+                            # 依存スキルの設計ロード失敗時は警告しつつスキップ
+                            print(f"Warning: Failed to load design for {target_skill}: {e}")
+
+        l2_skills_context = "\n".join(l2_elements) if l2_elements else "なし"
+
+        # L2 (引数マッピング/精緻化) 用リクエストの作成
+        l2_request = design_prompter.build_l2_request(
+            client=gemini_client._client,
+            skeleton_design_str=json.dumps(skeleton_design, indent=2, ensure_ascii=False),
+            l2_skills_context=l2_skills_context
+        )
+
+        # L2 呼び出し: 最終設計の生成
         try:
+            response_text = gemini_client.generate_design(contents=l2_request)
+            if "```" in response_text:
+                response_text = "\n".join([line for line in response_text.split("\n") if not line.strip().startswith("```")])
             design_data = json.loads(response_text)
-        except json.JSONDecodeError as e:
-            return Output(status="failed", message=f"Gemini API レスポンスのパースエラー: {e}", output_dir="")
+        except Exception as e:
+            return Output(status="failed", message=f"第二段階（L2引数マッピング）生成またはパースエラー: {e}", output_dir="")
 
         # 5.2. 決定論的クレンジング（自動補正）
         design_data = DesignCleanser().clean(design_data)
