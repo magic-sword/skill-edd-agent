@@ -24,6 +24,7 @@ class GeminiRequest:
         self.prompt = prompt
         self.parts = [prompt] if prompt else []
         self._client = client
+        self.attached_files = []
         if auto_attach_rules:
             self._attach_system_rules()
 
@@ -53,6 +54,7 @@ class GeminiRequest:
         ref_root = ref_root or os.path.dirname(directory)
         for file_path in sorted(target_files):
             rel_path = os.path.relpath(file_path, ref_root)
+            self.attached_files.append((os.path.abspath(file_path), ref_root))
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
                     content = f.read()
@@ -68,6 +70,7 @@ class GeminiRequest:
             
         ref_root = ref_root or os.path.dirname(file_path)
         rel_path = os.path.relpath(file_path, ref_root)
+        self.attached_files.append((os.path.abspath(file_path), ref_root))
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
