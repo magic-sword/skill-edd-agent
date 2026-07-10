@@ -73,6 +73,29 @@ class AgyGeminiClient(BaseGeminiClient):
                 for f_rel in copied_files_info:
                     instruction_lines.append(f"  * {f_rel}")
 
+            # もし JSON 形式の出力が要求されている場合は、エージェントにファイルへの出力を明示指示する
+            is_json_requested = config and getattr(config, "response_mime_type", None) == "application/json"
+            relative_output_path = None
+            absolute_output_path = None
+
+            if is_json_requested:
+                # ワークスペース (/workspace) からの相対パスを算出
+                rel_temp_dir = os.path.relpath(temp_dir, "/workspace")
+                relative_output_path = os.path.join(rel_temp_dir, "output_response.json")
+                absolute_output_path = os.path.join(temp_dir, "output_response.json")
+                
+                # アセットフォルダから指示プロンプトテンプレートをロード
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                asset_path = os.path.join(current_dir, "assets", "agy_client", "json_instructions.txt")
+                if not os.path.exists(asset_path):
+                    raise FileNotFoundError(f"Agy Gemini Client asset not found: {asset_path}")
+                
+                with open(asset_path, "r", encoding="utf-8") as f:
+                    json_instructions_tmpl = f.read()
+
+                json_instructions = "\n\n" + json_instructions_tmpl.format(relative_output_path=relative_output_path)
+                instruction_lines.append(json_instructions)
+
             agy_prompt = "\n".join(instruction_lines)
 
             # agy コマンドのパス解決
@@ -105,7 +128,21 @@ class AgyGeminiClient(BaseGeminiClient):
                     f"stderr: {result.stderr}"
                 )
 
-            response_text = result.stdout.strip()
+            response_text = ""
+            # JSON出力が要求されている場合
+            if is_json_requested:
+                if absolute_output_path and os.path.exists(absolute_output_path):
+                    with open(absolute_output_path, "r", encoding="utf-8") as f:
+                        response_text = f.read().strip()
+                else:
+                    raise RuntimeError(
+                        f"Expected JSON output file was not created by the agent.\n"
+                        f"Expected path: {absolute_output_path}\n"
+                        f"Agent stdout: {result.stdout}\n"
+                        f"Agent stderr: {result.stderr}"
+                    )
+            else:
+                response_text = result.stdout.strip()
 
             # types.GenerateContentResponse に見せかけたダミーのパースオブジェクトを構築
             dummy_part = types.Part(text=response_text)

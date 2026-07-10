@@ -60,8 +60,9 @@ class SpecGenerator:
 
         except Exception as e:
             print(f"❌ Error during specification generation: {e}", file=sys.stderr)
+            err_output_dir = output_dir if output_dir else ""
             return Output(
                 status="failed",
                 message=f"Specification generation failed: {e}",
-                output_dir=None
+                output_dir=err_output_dir
             )
