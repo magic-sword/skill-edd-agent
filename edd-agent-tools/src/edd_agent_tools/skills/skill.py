@@ -1,7 +1,7 @@
 import os
 from typing import Literal, Any
 from edd_agent_tools.models import SkillDesign
-from edd_agent_tools.evaluation import SkillEval, UnitEval, TriggerEval
+from edd_agent_tools.evaluation import SkillEval, UnitEval, TriggerEval, SimulationEval
 
 class Skill:
     """特定のスキルパッケージ全体のモデル（フォルダ構造、アセット、動的ロード、ツール化など）を表現・管理するドメインクラス。
@@ -168,6 +168,8 @@ class Skill:
         basename = os.path.basename(eval_type_or_path)
         if "trigger" in basename or eval_type_or_path == "trigger":
             return TriggerEval(self)
+        if "simulation" in basename or eval_type_or_path == "simulation" or eval_type_or_path == "sim":
+            return SimulationEval(self)
         return UnitEval(self)
 
     def load_module(self):

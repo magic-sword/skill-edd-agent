@@ -226,3 +226,42 @@ class TriggerEval(SkillEval):
 
     def get_default_config(self) -> dict:
         return {"criteria": {"response_match_score": 0.8}}
+
+
+class SimulationEval(SkillEval):
+    """シミュレーションベースの動的環境テスト（Gymnasium）を管理する評価クラス。"""
+    @property
+    def eval_type(self) -> str:
+        return "simulation"
+
+    def generate_agent_code(self) -> str:
+        """シミュレーション実行用のエージェントコードを生成します。"""
+        return self._load_base_agent_template()
+
+    def get_default_config(self) -> dict:
+        return {"max_steps": 15, "initial_prompt": "目標に向かって行動してください。"}
+
+    def execute_simulation(self, env: Any, max_steps: int = 15, initial_prompt: str = "") -> EvalRunResult:
+        """
+        指定された Gymnasium 環境とエージェントを使用してシミュレーションテストを実行します。
+
+        Args:
+            env: gymnasium.Env を継承したシミュレーション環境インスタンス。
+            max_steps: 最大シミュレーションステップ数。
+            initial_prompt: エージェントに最初に与えるタスク指示プロンプト。
+
+        Returns:
+            評価結果 (EvalRunResult)
+        """
+        from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
+        
+        # 評価対象のスキルツールを取得
+        agent_tool = self.skill.get_tool()
+        
+        runner = SimulationEvalRunner()
+        return runner.run_simulation_sync(
+            env=env,
+            agent_tool=agent_tool,
+            max_steps=max_steps,
+            initial_prompt=initial_prompt
+        )

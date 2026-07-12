@@ -208,3 +208,4 @@ class ADKEvalServiceRunner:
                 return executor.submit(asyncio.run, coro).result()
         else:
             return asyncio.run(coro)
+

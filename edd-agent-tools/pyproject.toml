@@ -20,7 +20,7 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    # 将来的に必要な依存パッケージがあればここに追記します
+    "gymnasium>=0.29.0",
 ]
 
 [project.urls]
