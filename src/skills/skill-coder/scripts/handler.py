@@ -1,3 +1,4 @@
+from .models import Output
 from .executor import SkillExecutor
 
 def code_skill(

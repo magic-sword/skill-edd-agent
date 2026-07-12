@@ -7,10 +7,9 @@ import threading
 from concurrent.futures import Future
 from typing import List
 
-from google.adk.tools import ToolContext
 from edd_agent_tools.skills import SkillsState
 from edd_agent_tools.models import SkillDesign
-from .models import Input, Output
+from .models import Output
 from .code_generator import CodeGenerator
 from .agent_executor import SkillDeveloperAgentExecutor
 

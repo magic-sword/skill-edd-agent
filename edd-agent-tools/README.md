@@ -14,11 +14,11 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
 *   **規約による設定 (Convention over Configuration)**:
     すべてのスキル・エージェントは統一されたファイル構成およびインターフェース規約に従います。動的インプロセスロードの窓口は `scripts/__init__.py` に統一され、これにより型検証、CLIランナーの動的生成、インプロセス呼び出しが自動化されます。
 *   **関心の分離 (Separation of Concerns)**:
-    *   **薄いハンドラーとロジックの分離**: エントリポイントとなる `scripts/__init__.py` および `handler.py` は自動生成されるため、手動編集は禁止です。実処理は `logic.py` 等に完全に分離します。
+    *   **薄いハンドラーとロジックの分離**: エントリーポイントとなる `handler.py` は自動生成されるため、手動編集は禁止です。実処理は `executor.py` 等に完全に分離します。
     *   **オブジェクト指向とモジュール分割 (単一責任の原則)**: コードの肥大化を防ぐため、役割に応じてモジュール（`client.py`, `parser.py` 等）を分割してください。
     *   **アセットの外部化**: プロンプト等はコード内に直書きせず、`assets/` ディレクトリに外部ファイル化し、`Skill` クラス経由でロードします。
-*   **明示的な入力とテキストフィードバック (Explicit Input & Text Feedback)**:
-    パラメータの受け渡しは Pydantic モデルを用いて関数の引数レベルで明示的に行います。また、AIツールとしての実行成否や実行結果のサマリーは関数の戻り値（`str`）として返してください。
+*   **明示的な入力と構造化フィードバック (Explicit Input & Structured Feedback)**:
+    パラメータの受け渡しは関数の引数レベルで明示的に定義します。また、実行結果の検証性を高めるため、結果のサマリーや各種メタデータは Pydantic モデル（`Output`）として返してください。
 *   **コンテキストのクリーン化 (Clean Context)**:
     プロンプト内に巨大データを直接埋め込んで結合することを禁止します。ハルシネーションを防ぐため、`GeminiContentBuilder` で添付テキストパーツとして分離送信します。
 
@@ -26,14 +26,15 @@ EDD（評価駆動開発）によるAIエージェント開発をサポートす
 
 ## 2. スキルおよびエージェントの定義規約 (Convention)
 
-### ① 統一エントリーポイント規約 (`scripts/__init__.py`)
-Entrypoint to load dynamically in-process is `scripts/__init__.py`, from which the following 3 elements are re-exported (exposed):
-1.  **`SKILL_METADATA`** (dict): 名前、説明、実行形式、出力モードなどの基本メタデータ。
-2.  **`Input`** (Pydantic `BaseModel`): パラメータ検証スキーマ。
-3.  **`process_message(params: Input, tool_context: ToolContext) -> str`**: 第1引数に `Input` インスタンスを受け取り、第2引数に `ToolContext` を受け取ります。戻り値として実行結果のサマリー（str）を返します。
+### ① 統一エントリーポイント規約 (`scripts/__init__.py` と `handler.py`)
+外部（ADK）から動的にロードされるエントリーポイントは `scripts/handler.py` 内の純粋関数（例: `def code_skill(...) -> Output`）です。
+`scripts/__init__.py` は遅延ロード規約に従い、`__getattr__` 属性解決ハンドラ経由で以下の2要素のみを露出させます。
+1.  **エントリーポイントとなる純粋関数**
+2.  **`Output`** (Pydantic `BaseModel`): 実行結果の構造化スキーマ。
 
-### ② ビジネスロジック実装規約 (`scripts/logic.py`)
-*   パラメータの取得は第1引数 `params` から行います。実行結果の永続化等は `tool_context.state` に対し行いますが、完了のサマリーメッセージは戻り値（str）として返します。
+### ② ビジネスロジック実装規約 (`scripts/executor.py` と `models.py`)
+*   **薄いハンドラーとエグゼキューターの分離**: エントリーポイントとなる `handler.py` は自動生成されるため、手動編集は禁止です。実処理は `executor.py` 内の `SkillExecutor` クラスに完全に分離します。
+*   **models.py による循環参照の防止**: `handler.py` と `executor.py` が互いに参照し合って循環参照を起こすのを防ぐため、出力モデルの定義は必ず `models.py` という独立した下流ファイルに配置します。
 
 ### ③ 実行形式の分類規約 (`execution_type`)
 `design.json` で定義される `execution_type` は、スキルの動作モデルおよびアセット設計の方針を決定する極めて重要なパラメータです。必ず以下の規約に従って適切に分類・指定してください。

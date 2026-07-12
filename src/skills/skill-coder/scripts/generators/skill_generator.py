@@ -23,7 +23,7 @@ class ToolSkillCodeGenerator(BaseCodeGenerator):
             f.write(models_code)
         print(f"決定論的モデルファイルを生成しました: {models_path}")
         generated_files.append(os.path.relpath(models_path, self.target_root_dir))
-    
+
         # 2. handler.py の自動生成
         handler_tmpl = self.coder_skill.load_asset("templates/tool/handler.py.template")
         handler_code = HandlerWriter(self.design, handler_tmpl).write()
