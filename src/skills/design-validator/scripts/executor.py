@@ -1,20 +1,15 @@
-from google.adk.tools import ToolContext
-from .models import Input, Output
-from .validator import DesignValidator # validator をインポート
+from .models import Output
+from .validator import DesignValidator
 
 class SkillExecutor:
     """ビジネスロジックを責務ごとに分割して実行するオブジェクト指向エグゼキューター。
 
     Args:
-        params: 呼び出し元から渡された型安全な入力パラメータ。
-        tool_context: ADKのセッション状態などを管理するコンテキスト。
+        skill: 検証対象のスキル名。
     """
-    def __init__(self, params: Input, tool_context: ToolContext):
-        self.params = params
-        self.tool_context = tool_context
-        # DesignValidator を初期化
-        self._validator = DesignValidator(tool_context=self.tool_context)
-
+    def __init__(self, skill: str):
+        self.skill = skill
+        self._validator = DesignValidator()
 
     def execute(self) -> Output:
         """
@@ -23,5 +18,4 @@ class SkillExecutor:
         Returns:
             処理結果の構造化データ（Output）。
         """
-        # DesignValidator を使用してスキルを検証
-        return self._validator.validate_skill(skill_name=self.params.skill)
+        return self._validator.validate_skill(skill_name=self.skill)

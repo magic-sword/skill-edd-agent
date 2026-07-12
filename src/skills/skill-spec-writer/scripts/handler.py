@@ -1,22 +1,30 @@
-from google.adk.tools import ToolContext
-from .models import Input, Output
 from .executor import SkillExecutor
 
-SKILL_METADATA = {
-    "name": "skill-spec-writer",
-    "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
-    "summary": "既存のスキル設計情報（design.json）を基に、ADK 2.0に準拠したSKILL.md仕様書を自動生成します。これにより、開発者はドキュメント作成の手間を省き、常に最新かつ正確なスキル仕様書を維持できます。",
-    "execution_type": "tool",
-    "output_mode": "STRUCTURED_JSON",
-    "dependencies": []
-}
+def write_spec(
+    design_path: str = None,
+    skill: str = None,
+    output_dir: str = None,
+    source_code_dir: str = None,
+    prompt: str = None
+) -> dict:
+    """既存のスキル設計情報（design.json）を基に、ADK 2.0に準拠したSKILL.md仕様書を自動生成します。
 
-def process_message(params: Input, tool_context: ToolContext) -> str:
-    # ビジネスロジックを呼び出す
-    executor = SkillExecutor(params, tool_context)
+    Args:
+        design_path: 読み込み対象の design.json のファイルパス。
+        skill: 対象スキル名。
+        output_dir: 生成された SKILL.md の出力先ディレクトリ。
+        source_code_dir: スキャン対象のソースコードディレクトリ。
+        prompt: 追加の設計指示（プロンプト）。
+
+    Returns:
+        生成結果（status, message, output_dir）を含む辞書。
+    """
+    executor = SkillExecutor(
+        design_path=design_path,
+        skill=skill,
+        output_dir=output_dir,
+        source_code_dir=source_code_dir,
+        prompt=prompt
+    )
     result = executor.execute()
-    if isinstance(result, Output):
-        if SKILL_METADATA.get("output_mode") in ("VALUE_ONLY", "CONVERSATIONAL"):
-            return result.value
-        return result.model_dump_json(by_alias=True)
-    return str(result)
+    return result.model_dump()

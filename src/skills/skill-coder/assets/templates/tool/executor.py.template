@@ -1,25 +1,21 @@
-from google.adk.tools import ToolContext
-from .models import Input, Output
+{imports_str}from .models import Output
 
 class SkillExecutor:
-    """ビジネスロジックを責務ごとに分割して実行するオブジェクト指向エグゼキューター。
+    """ビジネスロジックを責務ごとに分割して実行するオブジェクト指向エグゼキューター。"""
 
-    Args:
-        params: 呼び出し元から渡された型安全な入力パラメータ。
-        tool_context: ADKのセッション状態などを管理するコンテキスト。
-    """
-    def __init__(self, params: Input, tool_context: ToolContext):
-        self.params = params
-        self.tool_context = tool_context
+    def __init__(self, {args_definition}):
+        """SkillExecutor を初期化します。
+
+        Args:
+{args_docstring}
+        """
+{args_assignment}
 
     def execute(self) -> Output:
         """ビジネスロジックを実行し、結果を返します。
 
         Returns:
             処理結果の構造化データ（Output）。
-
-        Raises:
-            NotImplementedError: ロジックが未実装の場合。
         """
         # TODO: 責務ごとにメソッドや別クラスに処理を分割して実行します
         raise NotImplementedError()

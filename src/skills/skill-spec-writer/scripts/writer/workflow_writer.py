@@ -1,6 +1,5 @@
 from .base import BaseSpecWriter
 from pydantic import BaseModel, Field
-from google.adk.tools import ToolContext
 
 class WorkflowTextParts(BaseModel):
     purpose: str = Field(..., description="このワークフローの本質的な目的と提供するビジネス上の価値。")

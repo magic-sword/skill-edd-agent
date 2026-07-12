@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-from google.adk.tools import ToolContext
 from .models import Input, Output
 from .writer.factory import SpecWriterFactory
 
@@ -10,9 +9,8 @@ from edd_agent_tools.models import SkillDesign
 from edd_agent_tools.skills import SkillsState
 
 class SpecGenerator:
-    def __init__(self, params: Input, tool_context: ToolContext):
+    def __init__(self, params: Input):
         self.params = params
-        self.tool_context = tool_context
         self.state = SkillsState() # SkillsStateは一度だけ初期化
 
     def generate(self) -> Output:
@@ -42,7 +40,6 @@ class SpecGenerator:
             writer = SpecWriterFactory.create(
                 design_data=design_data,
                 source_code_dir=scan_target,
-                tool_context=self.tool_context,
                 prompt=self.params.prompt
             )
             

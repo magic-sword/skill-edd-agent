@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 
-class Input(BaseModel):
-    skill: str = Field(..., description='トリガーアセット生成および評価対象のスキル名。')
-
 class Output(BaseModel):
     value: str = Field(..., description='スキル実行結果の出力メッセージ')
+    status: str = Field(..., description='実行ステータス (success/failed)')
+    eval_set_path: str = Field(..., description='生成された評価用アセットファイルパス')

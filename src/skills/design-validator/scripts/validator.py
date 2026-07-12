@@ -1,7 +1,6 @@
 import json
 import os
 from typing import Dict, Any
-from google.adk.tools import ToolContext
 from edd_agent_tools.skills import SkillsState
 from .models import Output
 from .client import GeminiClient
@@ -10,8 +9,7 @@ from .prompter import PromptBuilder
 class DesignValidator:
     """スキル設計と実装の整合性を検証するクラス。"""
 
-    def __init__(self, tool_context: ToolContext):
-        self._tool_context = tool_context
+    def __init__(self):
         self._gemini_client = GeminiClient()
         self._prompt_builder = PromptBuilder()
 

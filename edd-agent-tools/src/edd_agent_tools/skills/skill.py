@@ -243,7 +243,10 @@ class Skill:
         target_func = None
 
         # 1. 既知の新しい関数名を探す
-        known_names = ["validate_skill_import", "run_test_evaluation", "code_skill"]
+        known_names = [
+            "validate_skill_import", "run_test_evaluation", "code_skill",
+            "validate_design", "design_skill", "write_spec", "evaluate_trigger"
+        ]
         for k_name in known_names:
             if hasattr(skill_module, k_name):
                 target_func = getattr(skill_module, k_name)

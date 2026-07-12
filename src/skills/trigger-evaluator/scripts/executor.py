@@ -1,8 +1,7 @@
 import os
 import sys
 import json
-from google.adk.tools import ToolContext
-from .models import Input, Output
+from .models import Output
 from .evaluator import StaticEvaluator
 from .generator import TriggerGenerator
 from .asset_manager import AssetManager
@@ -11,14 +10,12 @@ class SkillExecutor:
     """ビジネスロジックを責務ごとに分割して実行するオブジェクト指向エグゼキューター。
 
     Args:
-        params: 呼び出し元から渡された型安全な入力パラメータ。
-        tool_context: ADKのセッション状態などを管理するコンテキスト。
+        skill: トリガーアセット生成および評価対象のスキル名。
     """
 
-    def __init__(self, params: Input, tool_context: ToolContext):
+    def __init__(self, skill: str):
         """SkillExecutor を初期化します。"""
-        self.params = params
-        self.tool_context = tool_context
+        self.skill = skill
 
         # パッケージ初期ロード時の循環参照を回避するため、実行時に遅延ローカルインポート
         from edd_agent_tools.skills import SkillsState
@@ -40,7 +37,7 @@ class SkillExecutor:
             FileNotFoundError: 対象スキルが見つからない場合。
             ValueError: 入力パラメータが不正な場合。
         """
-        skill_name = self.params.skill
+        skill_name = self.skill
         if not skill_name:
             raise ValueError("エラー: skill がパラメータに指定されていません。")
 
@@ -87,15 +84,7 @@ class SkillExecutor:
             message = str(e)
             print(f"❌ エラー: {e}", file=sys.stderr)
 
-        # 共通の出力状態のセット
-        self.tool_context.state.update({
-            "status": status,
-            "message": message,
-            "eval_set_path": eval_set_filepath
-        })
-
         if status == "success":
-            self.tool_context.state["trig_eval_set_path"] = eval_set_filepath
             # ワークフロー用の固固有時フォルダへの書き出し (互換性のため)
             output_json_path = f"/workspace/src/.workflow_tmp/{skill_name}/05_trig_gen_out.json"
             os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
@@ -105,7 +94,5 @@ class SkillExecutor:
                     "message": message,
                     "eval_set_path": eval_set_filepath
                 }, f, indent=2, ensure_ascii=False)
-        else:
-            raise RuntimeError(message)
 
-        return Output(value=message)
+        return Output(value=message, status=status, eval_set_path=eval_set_filepath)

@@ -1,10 +1,9 @@
 import os
 import json
-from google.adk.tools import ToolContext
+from .models import Output
 from pydantic import TypeAdapter
 from edd_agent_tools.skills import SkillsState, Skill
 from edd_agent_tools.models import ModuleDesign
-from .models import Input, Output
 from .client import GeminiDesignClient
 from .prompter import DesignPrompter
 from .resolver import PathResolver
@@ -17,16 +16,19 @@ class SkillExecutor:
     自然言語の要件や既存のソースコードから ADK 2.0 互換の design.json を設計して出力する
     オブジェクト指向エグゼキューター。
     """
-    def __init__(self, params: Input, tool_context: ToolContext):
-        self.params = params
-        self.tool_context = tool_context
+    def __init__(self, prompt: str, summary: str = None, output_dir: str = None, skill: str = None, source_code_dir: str = None):
+        self.prompt = prompt
+        self.summary = summary
+        self.output_dir = output_dir
+        self.skill = skill
+        self.source_code_dir = source_code_dir
 
     def execute(self) -> Output:
-        prompt = self.params.prompt
-        summary_override = self.params.summary
-        output_dir = self.params.output_dir
-        skill = self.params.skill
-        source_code_dir = self.params.source_code_dir
+        prompt = self.prompt
+        summary_override = self.summary
+        output_dir = self.output_dir
+        skill = self.skill
+        source_code_dir = self.source_code_dir
 
         # 1. パス解決
         path_resolver = PathResolver()

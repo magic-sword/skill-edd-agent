@@ -125,7 +125,7 @@ class PydanticFieldWriter:
 
 class PydanticModelWriter:
     """
-    SkillDesignメタデータから、Pydantic Input/Outputクラス定義を含む
+    SkillDesignメタデータから、Pydantic Outputクラス定義を含む
     scripts/models.py のソースコードを決定論的に生成するライター。
     """
     def __init__(self, design: SkillDesign, template_str: str):
@@ -133,26 +133,10 @@ class PydanticModelWriter:
         self.template_str = template_str
 
     def write(self) -> str:
-        fields = []
-        
-        # パラメータ内に PromptField 対象があるかチェック
-        has_prompt_param = any(getattr(p, "is_prompt_parameter", False) for p in self.design.parameters)
-        
         imports = ["from pydantic import BaseModel, Field"]
-        if has_prompt_param:
-            imports.append("from edd_agent_tools.models import PromptField")
-            
         all_typing_imports = set()
         
-        # 1. Input クラス用のフィールド生成
-        for param in self.design.parameters:
-            field_writer = PydanticFieldWriter(param)
-            fields.append(field_writer.to_code())
-            all_typing_imports.update(field_writer.typing_imports)
-            
-        fields_str = "\n".join(fields) if fields else "    pass"
-
-        # 2. Output クラスのインナーフィールド生成
+        # Output クラスのインナーフィールド生成
         from edd_agent_tools.models import OutputMode
         output_mode = getattr(self.design, "output_mode", OutputMode.STRUCTURED_JSON)
         if self.design.response_parameters and output_mode == OutputMode.STRUCTURED_JSON:
@@ -173,16 +157,15 @@ class PydanticModelWriter:
             
         imports_str = "\n".join(imports)
         
-        # 3. テンプレートにマッピングして出力
+        # テンプレートにマッピングして出力
         return self.template_str.format(
             imports_str=imports_str,
-            input_fields_str=fields_str,
             output_fields_str=output_fields_str
         )
 
 class HandlerWriter:
     """
-    SkillDesignメタデータから、薄いルーティング処理を含む
+    SkillDesignメタデータから、ADK 2.0 規約準拠の純粋関数（@tool）を含む
     scripts/handler.py のソースコードを決定論的に生成するライター。
     """
     def __init__(self, design: SkillDesign, template_str: str):
@@ -190,21 +173,181 @@ class HandlerWriter:
         self.template_str = template_str
 
     def write(self) -> str:
-        metadata = {
-            "name": self.design.name,
-            "description": self.design.description,
-        }
-        if getattr(self.design, "summary", None):
-            metadata["summary"] = self.design.summary
+        args_def_list = []
+        args_doc_list = []
+        args_pass_list = []
+        
+        has_literal = False
+        has_any = False
+        
+        # 必須引数を先、デフォルト値ありを後にソート
+        sorted_params = sorted(self.design.parameters, key=lambda p: not p.required)
+        
+        for param in sorted_params:
+            type_str = "Any"
+            if param.choices:
+                choices_expr = ", ".join(repr(c) if isinstance(c, str) else str(c) for c in param.choices)
+                type_str = f"Literal[{choices_expr}]"
+                has_literal = True
+            else:
+                t_str = param.type.strip().lower()
+                if t_str == "list":
+                    if param.items_type:
+                        inner_type = param.items_type.strip().lower()
+                        if inner_type in ("str", "int", "bool", "float"):
+                            type_str = f"list[{inner_type}]"
+                        else:
+                            type_str = "list[Any]"
+                            has_any = True
+                    else:
+                        type_str = "list"
+                elif t_str in ("str", "int", "bool", "float"):
+                    type_str = t_str
+                else:
+                    type_str = "Any"
+                    has_any = True
 
-        metadata.update({
-            "execution_type": getattr(self.design, "execution_type", "agent"),
-            "output_mode": getattr(self.design, "output_mode", "STRUCTURED_JSON"),
-            "dependencies": self.design.dependencies
-        })
-        metadata_str = json.dumps(metadata, indent=4, ensure_ascii=False)
-        any_import = ""
+            if not param.required and param.default is None:
+                type_str = f"{type_str} | None"
+
+            if param.required:
+                arg_expr = f"{param.name}: {type_str}"
+            else:
+                if param.default is None:
+                    default_val = "None"
+                elif isinstance(param.default, bool):
+                    default_val = "True" if param.default else "False"
+                elif isinstance(param.default, (int, float)):
+                    default_val = str(param.default)
+                elif isinstance(param.default, str):
+                    default_val = repr(param.default)
+                else:
+                    default_val = repr(param.default)
+                arg_expr = f"{param.name}: {type_str} = {default_val}"
+
+            args_def_list.append(arg_expr)
+            
+            desc = param.description or ""
+            args_doc_list.append(f"        {param.name}: {desc}")
+            
+            args_pass_list.append(f"{param.name}={param.name}")
+
+        imports = []
+        typing_imports = []
+        if has_any:
+            typing_imports.append("Any")
+        if has_literal:
+            typing_imports.append("Literal")
+        if typing_imports:
+            imports.append(f"from typing import {', '.join(typing_imports)}")
+
+        imports_str = "\n".join(imports)
+        if imports_str:
+            imports_str += "\n"
+
+        args_definition = ", ".join(args_def_list)
+        args_docstring = "\n".join(args_doc_list)
+        args_passing = ", ".join(args_pass_list)
+        function_name = self.design.name.replace("-", "_")
+
         return self.template_str.format(
-            any_import=any_import,
-            metadata_str=metadata_str
+            imports_str=imports_str,
+            function_name=function_name,
+            args_definition=args_definition,
+            args_docstring=args_docstring,
+            args_passing=args_passing,
+            description=self.design.description or ""
+        )
+
+class ExecutorWriter:
+    """
+    SkillDesignメタデータから、ビジネスロジックエントリポイントである
+    scripts/executor.py のプレースホルダーソースコードを決定論的に生成するライター。
+    """
+    def __init__(self, design: SkillDesign, template_str: str):
+        self.design = design
+        self.template_str = template_str
+
+    def write(self) -> str:
+        args_def_list = []
+        args_doc_list = []
+        args_assign_list = []
+        
+        has_literal = False
+        has_any = False
+        
+        # 必須引数を先、デフォルト値ありを後にソート
+        sorted_params = sorted(self.design.parameters, key=lambda p: not p.required)
+        
+        for param in sorted_params:
+            type_str = "Any"
+            if param.choices:
+                choices_expr = ", ".join(repr(c) if isinstance(c, str) else str(c) for c in param.choices)
+                type_str = f"Literal[{choices_expr}]"
+                has_literal = True
+            else:
+                t_str = param.type.strip().lower()
+                if t_str == "list":
+                    if param.items_type:
+                        inner_type = param.items_type.strip().lower()
+                        if inner_type in ("str", "int", "bool", "float"):
+                            type_str = f"list[{inner_type}]"
+                        else:
+                            type_str = "list[Any]"
+                            has_any = True
+                    else:
+                        type_str = "list"
+                elif t_str in ("str", "int", "bool", "float"):
+                    type_str = t_str
+                else:
+                    type_str = "Any"
+                    has_any = True
+
+            if not param.required and param.default is None:
+                type_str = f"{type_str} | None"
+
+            if param.required:
+                arg_expr = f"{param.name}: {type_str}"
+            else:
+                if param.default is None:
+                    default_val = "None"
+                elif isinstance(param.default, bool):
+                    default_val = "True" if param.default else "False"
+                elif isinstance(param.default, (int, float)):
+                    default_val = str(param.default)
+                elif isinstance(param.default, str):
+                    default_val = repr(param.default)
+                else:
+                    default_val = repr(param.default)
+                arg_expr = f"{param.name}: {type_str} = {default_val}"
+
+            args_def_list.append(arg_expr)
+            
+            desc = param.description or ""
+            args_doc_list.append(f"            {param.name}: {desc}")
+            
+            args_assign_list.append(f"        self.{param.name} = {param.name}")
+
+        imports = []
+        typing_imports = []
+        if has_any:
+            typing_imports.append("Any")
+        if has_literal:
+            typing_imports.append("Literal")
+        if typing_imports:
+            imports.append(f"from typing import {', '.join(typing_imports)}")
+
+        imports_str = "\n".join(imports)
+        if imports_str:
+            imports_str += "\n"
+
+        args_definition = ", ".join(args_def_list)
+        args_docstring = "\n".join(args_doc_list)
+        args_assignment = "\n".join(args_assign_list) if args_assign_list else "        pass"
+
+        return self.template_str.format(
+            imports_str=imports_str,
+            args_definition=args_definition,
+            args_docstring=args_docstring,
+            args_assignment=args_assignment
         )

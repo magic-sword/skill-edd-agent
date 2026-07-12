@@ -1,15 +1,14 @@
-from google.adk.tools import ToolContext
-from .models import Input, Output
-{any_import}from .executor import SkillExecutor
+{imports_str}from .models import Output
+from .executor import SkillExecutor
 
-SKILL_METADATA = {metadata_str}
+def {function_name}({args_definition}) -> Output:
+    """{description}
 
-def process_message(params: Input, tool_context: ToolContext) -> str:
-    # ビジネスロジックを呼び出す
-    executor = SkillExecutor(params, tool_context)
-    result = executor.execute()
-    if isinstance(result, Output):
-        if SKILL_METADATA.get("output_mode") in ("VALUE_ONLY", "CONVERSATIONAL"):
-            return result.value
-        return result.model_dump_json(by_alias=True)
-    return str(result)
+    Args:
+{args_docstring}
+
+    Returns:
+        実行結果オブジェクト (Output)。
+    """
+    executor = SkillExecutor({args_passing})
+    return executor.execute()

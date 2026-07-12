@@ -3,7 +3,6 @@ import sys
 import json
 from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field
-from google.adk.tools import ToolContext
 
 from google import genai
 from google.genai import types
@@ -18,11 +17,10 @@ class BaseSkillTextParts(BaseModel):
     trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
 class BaseSpecWriter(ABC):
-    def __init__(self, design_data: Union[SkillDesign, WorkflowDesign], source_code_dir: str, tool_context: ToolContext, prompt: str | None = None):
+    def __init__(self, design_data: Union[SkillDesign, WorkflowDesign], source_code_dir: str, prompt: str | None = None):
         self.design_data = design_data
         self.name = design_data.name
         self.source_code_dir = source_code_dir
-        self.tool_context = tool_context
         self.prompt = prompt
         
         from edd_agent_tools import GeminiClient
