@@ -19,16 +19,18 @@ class SkillLogic:
     SkillDeveloperAgent を統制し、アセットおよびモジュールコード生成を実行する
     オブジェクト指向のビジネスロジック。
     """
-    def __init__(self, params: Input, tool_context: ToolContext):
-        self.params = params
-        self.tool_context = tool_context
+    def __init__(self, prompt: str, skill: str = None, design_path: str = None, output_dir: str = None):
+        self.prompt = prompt
+        self.skill = skill
+        self.design_path = design_path
+        self.output_dir = output_dir
         self.state = SkillsState()
 
     def execute(self) -> Output:
-        prompt = self.params.prompt or ""
-        skill = self.params.skill
-        design_path = self.params.design_path
-        output_dir = self.params.output_dir
+        prompt = self.prompt or ""
+        skill = self.skill
+        design_path = self.design_path
+        output_dir = self.output_dir
         
         if not skill and not design_path:
             raise ValueError("対象スキルを特定するために、'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。")

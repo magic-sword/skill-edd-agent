@@ -232,24 +232,47 @@ class Skill:
 
     def get_tool(self):
         """
-        このスキルに対応する ADK の FunctionTool オブジェクトをロード・構築して返します。
+        このスキルに対応する ADK の Tool オブジェクトをロード・構築して返します。
         """
         from google.adk.tools import FunctionTool
+        import inspect
 
         # モジュールをロード
         skill_module = self.load_module()
-        process_func = getattr(skill_module, "process_message")
 
-        # 設計定義（design.json）から説明を取得
-        try:
-            design_data = self.load_design()
-            description = design_data.description
-        except Exception:
-            description = f"Execute {self.name} skill"
+        target_func = None
 
-        # 関数の属性を動的に書き換えることで、FunctionTool がツール名と説明を正しく解決できるようにする
-        process_func.__name__ = self.name.replace("-", "_")
-        process_func.__doc__ = description
+        # 1. 既知の新しい関数名を探す
+        known_names = ["validate_skill_import", "run_test_evaluation", "code_skill"]
+        for k_name in known_names:
+            if hasattr(skill_module, k_name):
+                target_func = getattr(skill_module, k_name)
+                break
 
-        return FunctionTool(func=process_func)
+        # 2. 従来の process_message がある場合
+        if not target_func and hasattr(skill_module, "process_message"):
+            target_func = getattr(skill_module, "process_message")
 
+        # 3. それでも見つからない場合は、最初に見つかったプライベート以外の関数を採用
+        if not target_func:
+            for name in dir(skill_module):
+                if name.startswith('_') or name == "Output":
+                    continue
+                obj = getattr(skill_module, name)
+                if inspect.isfunction(obj):
+                    target_func = obj
+                    break
+
+        if target_func:
+            try:
+                design_data = self.load_design()
+                description = design_data.description
+            except Exception:
+                description = f"Execute {self.name} skill"
+
+            # 属性を動的に書き換えることで、FunctionTool がツール名と説明を正しく解決できるようにする
+            target_func.__name__ = self.name.replace("-", "_")
+            target_func.__doc__ = description
+            return FunctionTool(func=target_func)
+
+        raise AttributeError(f"Error: No valid tool function found in {self.name} module.")

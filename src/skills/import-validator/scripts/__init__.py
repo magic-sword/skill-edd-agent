@@ -1,2 +1,2 @@
-from .handler import process_message, SKILL_METADATA
-from .models import Input, Output
+from .handler import validate_skill_import
+from .models import Output

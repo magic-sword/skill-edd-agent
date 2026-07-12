@@ -1,22 +1,27 @@
-from google.adk.tools import ToolContext
-from .models import Input, Output
 from .executor import SkillExecutor
 
-SKILL_METADATA = {
-    "name": "skill-coder",
-    "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
-    "summary": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
-    "execution_type": "agent",
-    "output_mode": "STRUCTURED_JSON",
-    "dependencies": []
-}
+def code_skill(
+    prompt: str,
+    skill: str = None,
+    design_path: str = None,
+    output_dir: str = None
+) -> dict:
+    """設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新します。
 
-def process_message(params: Input, tool_context: ToolContext) -> str:
-    # ビジネスロジックを呼び出す
-    executor = SkillExecutor(params, tool_context)
+    Args:
+        prompt: 今回の実装・改修要望。
+        skill: 対象スキル名。
+        design_path: 設計定義ファイルのパス。
+        output_dir: コードの出力先ディレクトリ。
+
+    Returns:
+        生成されたファイルの一覧とステータスを含む辞書。
+    """
+    executor = SkillExecutor(
+        prompt=prompt,
+        skill=skill,
+        design_path=design_path,
+        output_dir=output_dir
+    )
     result = executor.execute()
-    if isinstance(result, Output):
-        if SKILL_METADATA.get("output_mode") in ("VALUE_ONLY", "CONVERSATIONAL"):
-            return result.value
-        return result.model_dump_json(by_alias=True)
-    return str(result)
+    return result.model_dump()

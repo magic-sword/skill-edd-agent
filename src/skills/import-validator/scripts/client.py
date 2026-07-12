@@ -1,18 +1,14 @@
 import traceback
-from google.adk.tools import ToolContext
 from edd_agent_tools.skills import SkillsState
 
 class SkillsStateClient:
     """ADKのSkillsStateメカニズムを操作するためのクライアント。"""
 
-    def __init__(self, tool_context: ToolContext):
+    def __init__(self):
         """
         SkillsStateClientのコンストラクタ。
-
-        Args:
-            tool_context: ADKのセッション状態などを管理するコンテキスト。
         """
-        self._tool_context = tool_context
+        pass
 
     def load_skill_module(self, skill_name: str) -> tuple[bool, str]:
         """

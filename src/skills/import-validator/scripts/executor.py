@@ -1,16 +1,13 @@
-from google.adk.tools import ToolContext
-from .models import Input, Output
+from .models import Output
 
 class SkillExecutor:
     """ビジネスロジックを責務ごとに分割して実行するオブジェクト指向エグゼキューター。
 
     Args:
-        params: 呼び出し元から渡された型安全な入力パラメータ。
-        tool_context: ADKのセッション状態などを管理するコンテキスト。
+        skill: ロードを試みる対象のスキル名。
     """
-    def __init__(self, params: Input, tool_context: ToolContext):
-        self.params = params
-        self.tool_context = tool_context
+    def __init__(self, skill: str):
+        self.skill = skill
 
     def execute(self) -> Output:
         """ビジネスロジックを実行し、結果を返します。
@@ -25,13 +22,13 @@ class SkillExecutor:
         from .skill_validator import SkillValidator
 
         # 1. SkillsStateClientのインスタンスを作成
-        skills_state_client = SkillsStateClient(self.tool_context)
+        skills_state_client = SkillsStateClient()
 
         # 2. SkillValidatorのインスタンスを作成し、クライアントを渡す
         skill_validator = SkillValidator(skills_state_client)
 
         # 3. スキルの動的ロード検証を実行
-        status, details = skill_validator.validate_skill_import(self.params.skill)
+        status, details = skill_validator.validate_skill_import(self.skill)
 
         # 4. 結果をOutputモデルにマッピングして返却
         score = 1.0 if status == 'success' else 0.0
