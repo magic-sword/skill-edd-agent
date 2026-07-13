@@ -1,0 +1,26 @@
+{
+  "rationale": "対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存するスキルです。",
+  "name": "trigger-evaluator",
+  "description": "仕様書を静的評価し、トリガーテストケースを自動生成します。",
+  "summary": "仕様書を静的評価し、トリガーテストケースを自動生成します。",
+  "module_type": "skill",
+  "execution_type": "agent",
+  "output_mode": "VALUE_ONLY",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "evaluate_trigger",
+      "description": "対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "トリガーアセット生成および評価対象のスキル名。",
+          "required": true
+        }
+      ],
+      "response_parameters": null
+    }
+  ]
+}

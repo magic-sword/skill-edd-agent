@@ -1,12 +1,12 @@
 import os
 import json
 from pydantic import Field
-from .base import BaseSpecWriter, BaseSkillTextParts
+from .skill_base import BaseSkillSpecWriter, BaseSkillTextParts
 
 class AgentSkillTextParts(BaseSkillTextParts):
     workflow_steps: list[str] = Field(..., description="このスキルが呼び出されたときにエージェント（LLM）が辿る具体的な推論思考プロセスや処理ステップのリスト。")
 
-class AgentSpecWriter(BaseSpecWriter):
+class AgentSpecWriter(BaseSkillSpecWriter):
     def __init__(self, design_data, source_code_dir: str, prompt: str | None = None):
         super().__init__(design_data, source_code_dir, prompt)
 
@@ -23,7 +23,7 @@ class AgentSpecWriter(BaseSpecWriter):
         # 共通プロンプトテンプレートのプレースホルダーを展開
         full_tmpl = prompt_tmpl.format(
             name=self.name,
-            parameters_json=json.dumps([p.model_dump() for p in self.design_data.parameters], indent=2, ensure_ascii=False),
+            parameters_json=json.dumps([fn.model_dump() for fn in self.design_data.functions], indent=2, ensure_ascii=False),
             dependencies_json=json.dumps(self.design_data.dependencies, indent=2, ensure_ascii=False),
             type_specific_instruction=specific_tmpl
         )

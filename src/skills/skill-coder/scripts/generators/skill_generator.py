@@ -33,9 +33,37 @@ class ToolSkillCodeGenerator(BaseCodeGenerator):
         print(f"決定論的ハンドラーファイルを生成しました: {handler_path}")
         generated_files.append(os.path.relpath(handler_path, self.target_root_dir))
 
-        # 3. __init__.py の決定論的自動生成 (プレースホルダー展開)
-        init_tmpl = self.coder_skill.load_asset("templates/tool/__init__.py.template")
-        init_code = init_tmpl.replace("{function_name}", function_name)
+        # 3. __init__.py の決定論的自動生成 (プレースホルダー展開 / 動的生成)
+        all_names = []
+        getattr_branches = []
+        
+        for fn in self.design.functions:
+            fn_name = fn.name
+            output_class_name = "".join(part.capitalize() for part in fn.name.replace("-", "_").split("_")) + "Output"
+            
+            all_names.append(fn_name)
+            all_names.append(output_class_name)
+            
+            branch_fn = f'    if name == "{fn_name}":\n        from .handler import {fn_name}\n        return {fn_name}'
+            branch_out = f'    if name == "{output_class_name}":\n        from .models import {output_class_name}\n        return {output_class_name}'
+            
+            getattr_branches.append(branch_fn)
+            getattr_branches.append(branch_out)
+            
+        branches_str = "\n\n".join(getattr_branches)
+        all_names_str = ", ".join(repr(n) for n in all_names)
+        
+        init_code = f"""from typing import Any
+
+def __getattr__(name: str) -> Any:
+    \"\"\"遅延インポートを実現するための属性解決ハンドラ。\"\"\"
+{branches_str}
+
+    raise AttributeError(f"module '{{__name__}}' has no attribute '{{name}}'")
+
+__all__ = [{all_names_str}]
+"""
+
         init_path = os.path.join(self.scripts_dir, "__init__.py")
         with open(init_path, "w", encoding="utf-8") as f:
             f.write(init_code)

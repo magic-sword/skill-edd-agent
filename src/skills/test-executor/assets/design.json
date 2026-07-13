@@ -1,0 +1,76 @@
+{
+  "rationale": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するためのテスト実行スキルです。",
+  "name": "test-executor",
+  "description": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証します。",
+  "summary": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証します。",
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "run_test_evaluation",
+      "description": "指定されたスキルに対してADK評価シミュレーションを実行し、結果を検証します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "評価対象スキルの名前。",
+          "required": true
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "評価セットの識別子（'trigger' または 'unit'）、あるいはファイルパス。デフォルトは 'trigger'。",
+          "required": false,
+          "default": "trigger"
+        },
+        {
+          "name": "config_file_path",
+          "type": "str",
+          "description": "評価設定ファイルのパス。指定しない場合は自動解決・自動生成されます。",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "timeout_seconds",
+          "type": "int",
+          "description": "評価のタイムアウト秒数。デフォルトは 180 秒。",
+          "required": false,
+          "default": "180"
+        },
+        {
+          "name": "threshold_accuracy",
+          "type": "float",
+          "description": "合格に必要な精度の閾値（0.0 から 1.0）。デフォルトは 1.0。",
+          "required": false,
+          "default": "1.0",
+          "ge": 0.0,
+          "le": 1.0
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "評価の結果ステータス。'success' または 'failed'。",
+          "required": true,
+          "choices": ["success", "failed"]
+        },
+        {
+          "name": "details",
+          "type": "str",
+          "description": "評価の実行結果詳細、またはエラーメッセージ。",
+          "required": true
+        },
+        {
+          "name": "score",
+          "type": "float",
+          "description": "測定された精度（0.0〜1.0）。",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

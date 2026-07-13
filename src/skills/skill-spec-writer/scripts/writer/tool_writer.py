@@ -2,12 +2,12 @@ import os
 import json
 from string import Template
 from pydantic import Field
-from .base import BaseSpecWriter, BaseSkillTextParts
+from .skill_base import BaseSkillSpecWriter, BaseSkillTextParts
 
 class ToolSkillTextParts(BaseSkillTextParts):
     workflow_steps: list[str] = Field(..., description="このスキルが呼び出されたときに内部で実行する具体的な処理手順のリスト。")
 
-class ToolSpecWriter(BaseSpecWriter):
+class ToolSpecWriter(BaseSkillSpecWriter):
     def __init__(self, design_data, source_code_dir: str, prompt: str | None = None):
         super().__init__(design_data, source_code_dir, prompt)
 
@@ -24,7 +24,7 @@ class ToolSpecWriter(BaseSpecWriter):
         # 共通プロンプトテンプレートのプレースホルダーを展開
         full_tmpl = prompt_tmpl.format(
             name=self.name,
-            parameters_json=json.dumps([p.model_dump() for p in self.design_data.parameters], indent=2, ensure_ascii=False),
+            parameters_json=json.dumps([fn.model_dump() for fn in self.design_data.functions], indent=2, ensure_ascii=False),
             dependencies_json=json.dumps(self.design_data.dependencies, indent=2, ensure_ascii=False),
             type_specific_instruction=specific_tmpl
         )
@@ -39,7 +39,7 @@ class ToolSpecWriter(BaseSpecWriter):
         if required_params:
             param_list_str = ", ".join(required_params)
         else:
-            all_params = [f"`{p.name}`" for p in self.design_data.parameters]
+            all_params = [f"`{p.name}`" for fn in self.design_data.functions for p in fn.parameters]
             param_list_str = ", ".join(all_params[:2]) if all_params else ""
 
         if not param_list_str:

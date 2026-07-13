@@ -1,0 +1,53 @@
+{
+  "rationale": "スキルパッケージの遅延ロード規約（__getattr__ および __all__ 宣言）との適合性を検証する決定論的なチェッカースキルです。",
+  "name": "import-validator",
+  "description": "スキルのインポート適合性（__getattr__ と __all__ の有無）を検証します。",
+  "summary": "スキルのインポート適合性を検証します。",
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "validate_skill_import",
+      "description": "対象スキルの scripts/__init__.py に遅延解決 __getattr__ と __all__ が正しく定義されているかを静的にインポート検証します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "検証対象のスキル名。",
+          "required": true
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "検証の成否ステータス ('success' または 'failed')",
+          "required": true,
+          "choices": ["success", "failed"]
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "description": "結果のサマリーメッセージ",
+          "required": true
+        },
+        {
+          "name": "missing_all",
+          "type": "list",
+          "items_type": "str",
+          "description": "定義されていないか漏れている __all__ の公開要素リスト",
+          "required": true
+        },
+        {
+          "name": "missing_getattr",
+          "type": "bool",
+          "description": "__getattr__ 解決ハンドラが定義されていない場合 true",
+          "required": true
+        }
+      ]
+    }
+  ]
+}

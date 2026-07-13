@@ -1,76 +1,82 @@
 {
-  "rationale": "このスキルは、自然言語の要件を受け取り、ADK 2.0互換のdesign.jsonを生成または再設計することを目的としています。このプロセスは、パス解決、既存制約の抽出、プロンプト構築、Gemini API（LLM）の呼び出し、レスポンスのパースとクレンジング、そして最終的なdesign.jsonの保存という複数の内部ステップを含みます。しかし、これらの内部ステップはすべて『design.jsonを生成する』という単一の目的のためにカプセル化されており、外部から見たときにこのスキルはアトミックな単一機能として振る舞います。したがって、複数の独立したスキルやカスタム関数をパイプラインで接続する『workflow』ではなく、単一の『skill』として設計するのが適切であると判断しました。内部でLLMを呼び出して自律的な推論を行うため、`execution_type` は `agent` となります。",
+  "rationale": "このスキルは、自然言語の要件を受け取り、ADK 2.0互換 of design.jsonを生成または再設計することを目的としています。このプロセスは、パス解決、既存制約の抽出、プロンプト構築、Gemini API（LLM）の呼び出し、レスポンスのパースとクレンジング、そして最終的なdesign.jsonの保存という複数の内部ステップを含みます。しかし、これらの内部ステップはすべて『design.jsonを生成する』という単一の目的のためにカプセル化されており、外部から見たときにこのスキルはアトミックな単一機能として振る舞います。したがって、複数の独立したスキルやカスタム関数をパイプラインで接続する『workflow』ではなく、単一の『skill』として設計するのが適切であると判断しました。内部でLLMを呼び出して自律的な推論を行うため、`execution_type` は `agent` となります。",
   "name": "skill-designer",
   "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
   "summary": "自然言語の要件や既存のソースコードを基に、ADK 2.0互換のdesign.jsonを設計・生成します。これにより、新しいスキルの定義や既存スキルの再設計を効率的に行えます。",
   "module_type": "skill",
   "execution_type": "agent",
   "output_mode": "STRUCTURED_JSON",
-  "parameters": [
-    {
-      "name": "prompt",
-      "type": "str",
-      "description": "設計するスキルの機能要件や追加の改修要望を記述した自然言語のテキスト。",
-      "required": true,
-      "is_prompt_parameter": true,
-      "prompt_instructions": "新しく作りたいスキルの概要説明、パラメータ定義、実行タイプ（tool/agent）、制約事項などを自然言語で指示できます。また、既存コードへの機能追加要望も指定可能です。",
-      "prompt_constraints": "設計書（design.json）の全体構造（スキーマ定義）はADK 2.0規約に基づいてバリデーションされるため、規約違反となるような無効なフィールド定義を出力させることはできません。"
-    },
-    {
-      "name": "summary",
-      "type": "str",
-      "description": "スキルの仕様概要（ビジネス目的や要求の要約）。指定した場合、Geminiによる自動要約より優先して design.json の summary フィールドに保存されます。",
-      "required": false,
-      "is_prompt_parameter": true,
-      "prompt_instructions": "スキルのビジネス目的や提供価値を要約した、簡潔な日本語の1〜2文を設定・上書きできます。",
-      "prompt_constraints": "値はそのまま design.json の summary フィールドに直接流し込まれ、他の構造の生成には影響を与えません。"
-    },
-    {
-      "name": "output_dir",
-      "type": "str",
-      "description": "生成されたdesign.jsonを保存するディレクトリのパス。省略時はskillから自動探索されます。",
-      "required": false,
-      "is_prompt_parameter": false
-    },
-    {
-      "name": "skill",
-      "type": "str",
-      "description": "既存のスキル名。再設計時の自動探索キーとして使用されます。",
-      "required": false,
-      "is_prompt_parameter": false
-    },
-    {
-      "name": "source_code_dir",
-      "type": "str",
-      "description": "再設計のベースとなる既存のスキル実装コードのディレクトリ（またはファイル）パス。指定しない場合、自動的に検出を試みます。",
-      "required": false,
-      "is_prompt_parameter": false
-    }
-  ],
   "dependencies": [],
   "constraints": [],
-  "response_parameters": [
+  "functions": [
     {
-      "name": "status",
-      "type": "str",
-      "description": "処理結果の成否ステータス（'success' / 'failed'）",
-      "required": true,
-      "choices": [
-        "success",
-        "failed"
+      "name": "design_skill",
+      "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計します。",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "設計するスキルの機能要件や追加の改修要望を記述した自然言語のテキスト。",
+          "required": true,
+          "is_prompt_parameter": true,
+          "prompt_instructions": "新しく作りたいスキルの概要説明、パラメータ定義、実行タイプ（tool/agent）、制約事項などを自然言語で指示できます。また、既存コードへの機能追加要望も指定可能です。",
+          "prompt_constraints": "設計書（design.json）の全体構造（スキーマ定義）はADK 2.0規約に基づいてバリデーションされるため、規約違反となるような無効なフィールド定義を出力させることはできません。"
+        },
+        {
+          "name": "summary",
+          "type": "str",
+          "description": "スキルの仕様概要（ビジネス目的や要求の要約）。指定した場合、Geminiによる自動要約より優先して design.json の summary フィールドに保存されます。",
+          "required": false,
+          "is_prompt_parameter": true,
+          "prompt_instructions": "スキルのビジネス目的や提供価値を要約した、簡潔な日本語の1〜2文を設定・上書きできます。",
+          "prompt_constraints": "値はそのまま design.json の summary フィールドに直接流し込まれ、他の構造の生成には影響を与えません。"
+        },
+        {
+          "name": "output_dir",
+          "type": "str",
+          "description": "生成されたdesign.jsonを保存するディレクトリのパス。省略時はskillから自動探索されます。",
+          "required": false,
+          "is_prompt_parameter": false
+        },
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "既存のスキル名。再設計時の自動探索キーとして使用されます。",
+          "required": false,
+          "is_prompt_parameter": false
+        },
+        {
+          "name": "source_code_dir",
+          "type": "str",
+          "description": "再設計のベースとなる既存のスキル実装コードのディレクトリ（またはファイル）パス。指定しない場合、自動的に検出を試みます。",
+          "required": false,
+          "is_prompt_parameter": false
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "処理結果の成否ステータス（'success' / 'failed'）",
+          "required": true,
+          "choices": [
+            "success",
+            "failed"
+          ]
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "description": "処理結果のメッセージサマリー",
+          "required": true
+        },
+        {
+          "name": "output_dir",
+          "type": "str",
+          "description": "成果物(design.json)が格納されたスキルディレクトリの絶対パス",
+          "required": true
+        }
       ]
-    },
-    {
-      "name": "message",
-      "type": "str",
-      "description": "処理結果のメッセージサマリー",
-      "required": true
-    },
-    {
-      "name": "output_dir",
-      "type": "str",
-      "description": "成果物(design.json)が格納されたスキルディレクトリの絶対パス",
-      "required": true
     }
   ]
 }

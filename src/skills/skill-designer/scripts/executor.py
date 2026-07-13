@@ -104,14 +104,26 @@ class SkillExecutor:
                             dep_design = dep_skill.load_design()
                             
                             inputs_def = []
-                            for p in dep_design.parameters:
-                                inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")
-                            inputs_def_str = "\n".join(inputs_def) if inputs_def else "    なし"
-                            
                             outputs_def = []
-                            if dep_design.response_parameters:
-                                for p in dep_design.response_parameters:
-                                    outputs_def.append(f"    * {p.name} ({p.type}): {p.description}")
+                            
+                            if getattr(dep_design, "functions", None):
+                                for fn in dep_design.functions:
+                                    inputs_def.append(f"  - 関数 {fn.name} の入力:")
+                                    for p in fn.parameters:
+                                        inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")
+                                    
+                                    if fn.response_parameters:
+                                        outputs_def.append(f"  - 関数 {fn.name} の出力:")
+                                        for p in fn.response_parameters:
+                                            outputs_def.append(f"    * {p.name} ({p.type}): {p.description}")
+                            else:
+                                for p in dep_design.parameters:
+                                    inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")
+                                if dep_design.response_parameters:
+                                    for p in dep_design.response_parameters:
+                                        outputs_def.append(f"    * {p.name} ({p.type}): {p.description}")
+                            
+                            inputs_def_str = "\n".join(inputs_def) if inputs_def else "    なし"
                             outputs_def_str = "\n".join(outputs_def) if outputs_def else "    なし"
 
                             l2_elements.append(

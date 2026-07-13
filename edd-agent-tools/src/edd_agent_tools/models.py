@@ -167,6 +167,14 @@ class Step(BaseModel):
     inputs: dict[str, str] | None = Field(None, description="引数マッピング辞書。キーはステップに入力される引数名、値は tool_context.state から取得する値（またはPythonの評価式）")
 
 
+class FunctionDefinition(BaseModel):
+    """複数公開関数を設計する場合の、個別関数の定義情報を表すモデル。"""
+    name: str = Field(..., description="公開関数名。小文字のスネークケース")
+    description: str = Field(..., description="関数の役割や目的の説明")
+    parameters: list[Parameter] = Field(..., description="関数の入力パラメータリスト")
+    response_parameters: list[Parameter] | None = Field(None, description="関数の構造化出力パラメータ定義（STRUCTURED_JSON時に使用されます）")
+
+
 class SkillDesign(BaseModel):
     """単一スキルの設計定義を表す Pydantic モデル。"""
     rationale: str = Field(..., description="設計の思考プロセス。要件の難易度・必要な手順を詳細に分析し、なぜ workflow ではなくアトミックな単一の skill と判定したかの設計根拠を記述してください。")
@@ -176,16 +184,16 @@ class SkillDesign(BaseModel):
     module_type: Literal[ModuleType.SKILL] = Field(ModuleType.SKILL, description="モジュールの役割分類。単一スキルは必ず 'skill'")
     execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
     output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
-    parameters: list[Parameter] = Field(..., description="スキルが受け取るパラメータのリスト")
     dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
     constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")
-    response_parameters: list[Parameter] | None = Field(None, description="出力(戻り値)JSONのパラメータ構造定義。STRUCTURED_JSON時に使用されます")
+    functions: list[FunctionDefinition] = Field(..., description="スキルパッケージが提供する公開関数の定義リスト。1つ以上の関数定義を含める必要があります")
 
     @model_validator(mode="after")
     def validate_response_parameters(self) -> "SkillDesign":
-        if self.output_mode != OutputMode.STRUCTURED_JSON:
-            if self.response_parameters:
-                raise ValueError("response_parameters can only be defined when output_mode is 'STRUCTURED_JSON'")
+        for fn in self.functions:
+            if self.output_mode != OutputMode.STRUCTURED_JSON:
+                if fn.response_parameters:
+                    raise ValueError("Function-level response_parameters can only be defined when output_mode is 'STRUCTURED_JSON'")
         return self
 
     @classmethod
