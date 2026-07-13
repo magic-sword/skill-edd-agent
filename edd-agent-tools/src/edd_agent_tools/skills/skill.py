@@ -230,52 +230,62 @@ class Skill:
         spec.loader.exec_module(module)
         return module
 
-    def get_tool(self):
-        """
-        このスキルに対応する ADK の Tool オブジェクトをロード・構築して返します。
+    def get_tools(self) -> list:
+        """このスキルパッケージに含まれるすべての公開関数を FunctionTool のリストとして構築して返します。
+
+        __all__ に宣言されている関数をスキャンし、各関数に対応する FunctionTool を生成します。
+        __all__ が定義されていない、または有効な公開関数が1つもない場合は AttributeError を投げます。
         """
         from google.adk.tools import FunctionTool
         import inspect
 
         # モジュールをロード
         skill_module = self.load_module()
+        
+        if not hasattr(skill_module, "__all__"):
+            raise AttributeError(
+                f"Error: {self.name} module has no '__all__' definition. "
+                "All skills must explicitly declare their public API functions in '__all__'."
+            )
 
-        target_func = None
+        tools = []
+        
+        try:
+            design_data = self.load_design()
+            description = design_data.description
+        except Exception:
+            description = f"Execute {self.name} skill"
 
-        # 1. 既知の新しい関数名を探す
-        known_names = [
-            "validate_skill_import", "run_test_evaluation", "code_skill",
-            "validate_design", "design_skill", "write_spec", "evaluate_trigger"
-        ]
-        for k_name in known_names:
-            if hasattr(skill_module, k_name):
-                target_func = getattr(skill_module, k_name)
-                break
+        for name in getattr(skill_module, "__all__"):
+            if name == "Output":
+                continue
+            obj = getattr(skill_module, name, None)
+            if obj and inspect.isfunction(obj):
+                # 属性を動的に書き換えることで、FunctionTool がツール名と説明を正しく解決できるようにする
+                # 個別の docstring があればそれを優先し、なければ design.json の説明にする
+                obj.__name__ = name
+                if not obj.__doc__:
+                    obj.__doc__ = description
+                tools.append(FunctionTool(func=obj))
+                    
+        if not tools:
+            raise AttributeError(
+                f"Error: No valid public tool function found in {self.name} module '__all__'."
+            )
 
-        # 2. 従来の process_message がある場合
-        if not target_func and hasattr(skill_module, "process_message"):
-            target_func = getattr(skill_module, "process_message")
+        return tools
 
-        # 3. それでも見つからない場合は、最初に見つかったプライベート以外の関数を採用
-        if not target_func:
-            for name in dir(skill_module):
-                if name.startswith('_') or name == "Output":
-                    continue
-                obj = getattr(skill_module, name)
-                if inspect.isfunction(obj):
-                    target_func = obj
-                    break
-
-        if target_func:
-            try:
-                design_data = self.load_design()
-                description = design_data.description
-            except Exception:
-                description = f"Execute {self.name} skill"
-
-            # 属性を動的に書き換えることで、FunctionTool がツール名と説明を正しく解決できるようにする
-            target_func.__name__ = self.name.replace("-", "_")
-            target_func.__doc__ = description
-            return FunctionTool(func=target_func)
-
-        raise AttributeError(f"Error: No valid tool function found in {self.name} module.")
+    def get_tool(self):
+        """このスキルに対応する ADK の単一の Tool オブジェクトをロード・構築して返します。
+        
+        エクスポートされている関数が『ちょうど1つ』の場合のみ有効です。
+        複数（2つ以上）公開されている場合は ValueError をスローします。
+        """
+        tools = self.get_tools()
+        if len(tools) == 1:
+            return tools[0]
+        
+        raise ValueError(
+            f"Error: Skill {self.name} exports multiple tools ({[t.name for t in tools]}). "
+            "Please use get_tools() instead of get_tool() to register all of them."
+        )
