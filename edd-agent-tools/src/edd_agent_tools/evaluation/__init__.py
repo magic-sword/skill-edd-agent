@@ -12,7 +12,15 @@ def __getattr__(name: str) -> Any:
     if name == "LocalWorkspaceEnv":
         from .environment import LocalWorkspaceEnv
         return LocalWorkspaceEnv
+
+    if name in ("ArtifactApplier", "LocalFileApplier"):
+        from .applier import ArtifactApplier, LocalFileApplier
+        if name == "ArtifactApplier": return ArtifactApplier
+        if name == "LocalFileApplier": return LocalFileApplier
         
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
-__all__ = ["SkillEval", "UnitEval", "TriggerEval", "SimulationEval", "LocalWorkspaceEnv"]
+__all__ = [
+    "SkillEval", "UnitEval", "TriggerEval", "SimulationEval", 
+    "LocalWorkspaceEnv", "ArtifactApplier", "LocalFileApplier"
+]

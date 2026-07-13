@@ -4,6 +4,7 @@ import subprocess
 import gymnasium as gym
 from gymnasium import spaces
 from typing import Any, Dict, Tuple, List
+from edd_agent_tools.models import WorkspaceArtifacts
 
 class LocalWorkspaceEnv(gym.Env):
     """
@@ -142,9 +143,17 @@ class LocalWorkspaceEnv(gym.Env):
             obs["pytest_output"] = pytest_output
         obs["status"] = action_status
         
+        # 現在の成果物（差分）の情報を取得
+        artifacts = self.export_artifacts()
         info = {
             "step": self.step_count,
-            "action_executed": action_type
+            "action_executed": action_type,
+            "artifacts_summary": {
+                "modified_count": len(artifacts.modified_files),
+                "deleted_count": len(artifacts.deleted_files),
+                "modified_files": list(artifacts.modified_files.keys()),
+                "deleted_files": artifacts.deleted_files
+            }
         }
         
         return obs, reward, terminated, truncated, info
@@ -156,6 +165,65 @@ class LocalWorkspaceEnv(gym.Env):
                 shutil.rmtree(self.backup_dir)
             except Exception:
                 pass
+
+    def export_artifacts(self) -> WorkspaceArtifacts:
+        """
+        初期状態（reset 時のバックアップ）と比較し、変更されたファイル、
+        新しく作成されたファイル、および削除されたファイルを抽出します。
+
+        Returns:
+            WorkspaceArtifacts: 変更差分情報を保持する Pydantic モデル
+        """
+        modified_files = {}
+        deleted_files = []
+
+        # 現在のファイルの状態を取得
+        current_obs = self._get_observation()
+        current_files = current_obs.get("files", {})
+
+        # バックアップ元のファイルを走査し、削除または変更されたファイルを特定
+        if os.path.exists(self.backup_dir):
+            for root, dirs, files in os.walk(self.backup_dir):
+                if "__pycache__" in root or ".pytest_cache" in root or ".venv" in root:
+                    continue
+                for file in files:
+                    abs_backup_path = os.path.join(root, file)
+                    rel_path = os.path.relpath(abs_backup_path, self.backup_dir)
+                    
+                    abs_current_path = os.path.join(self.workspace_dir, rel_path)
+                    
+                    if not os.path.exists(abs_current_path):
+                        # 現在のワークスペースに存在しないので、削除された
+                        deleted_files.append(rel_path)
+                    else:
+                        # 両方に存在するが、中身が異なるか比較
+                        try:
+                            with open(abs_backup_path, "r", encoding="utf-8") as f_back:
+                                back_content = f_back.read()
+                            with open(abs_current_path, "r", encoding="utf-8") as f_curr:
+                                curr_content = f_curr.read()
+                            
+                            if back_content != curr_content:
+                                modified_files[rel_path] = curr_content
+                        except Exception:
+                            pass
+
+        # 現在のファイルを走査し、新しく作成されたファイルを特定
+        for rel_path in current_files.keys():
+            abs_backup_path = os.path.join(self.backup_dir, rel_path)
+            if not os.path.exists(abs_backup_path):
+                # バックアップに存在しないので、新規作成
+                abs_current_path = os.path.join(self.workspace_dir, rel_path)
+                try:
+                    with open(abs_current_path, "r", encoding="utf-8") as f_curr:
+                        modified_files[rel_path] = f_curr.read()
+                except Exception:
+                    pass
+
+        return WorkspaceArtifacts(
+            modified_files=modified_files,
+            deleted_files=deleted_files
+        )
 
     def _setup_virtual_env(self):
         """サンドボックス内に隔離用の仮想環境（venv）を構築します。"""

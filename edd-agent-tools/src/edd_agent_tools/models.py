@@ -259,3 +259,15 @@ class SkillMetadata(BaseModel):
     dependencies: list[str] = Field([], description="依存スキルのリスト")
 
 
+class WorkspaceArtifacts(BaseModel):
+    """Gymnasium ワークスペース環境からエクスポートされる成果物のスキーマ定義。"""
+    modified_files: dict[str, str] = Field(
+        default_factory=dict,
+        description="新規作成または修正されたファイルの相対パスとコンテンツのマップ（キー: 相対パス, 値: ファイル内容）"
+    )
+    deleted_files: list[str] = Field(
+        default_factory=list,
+        description="削除されたファイルの相対パスのリスト"
+    )
+
+
