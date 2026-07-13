@@ -1,6 +1,6 @@
 import os
 from typing import Literal, Any
-from edd_agent_tools.models import SkillDesign
+from .models import SkillDesign
 from edd_agent_tools.evaluation import SkillEval, UnitEval, TriggerEval, SimulationEval
 
 class Skill:
@@ -61,7 +61,7 @@ class Skill:
                 dependencies = design.dependencies
             except Exception:
                 import json
-                from edd_agent_tools.models import ModuleType
+                from .models import ModuleType
                 
                 # 物理配置または design.json の構造からワークフローを自動検出
                 has_workflow_indicator = False
@@ -84,7 +84,7 @@ class Skill:
                 dependencies = []
 
             # 2. 統合
-            from edd_agent_tools.models import SkillMetadata
+            from .models import SkillMetadata
             self._metadata = SkillMetadata(
                 name=self.name,
                 tier=self._tier,

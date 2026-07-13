@@ -37,7 +37,7 @@ class DirectGeminiClient(BaseGeminiClient):
         # response_schema の決定論的クレンジング処理
         if config and getattr(config, "response_schema", None) is not None:
             from pydantic import BaseModel, TypeAdapter
-            from edd_agent_tools.models import clean_pydantic_schema
+            from edd_agent_tools.schema_utils import clean_pydantic_schema
             
             clean_schema = clean_pydantic_schema(config.response_schema)
             try:

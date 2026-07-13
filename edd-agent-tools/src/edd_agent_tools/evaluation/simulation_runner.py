@@ -2,7 +2,7 @@ import os
 import asyncio
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor
-from edd_agent_tools.models import EvalRunResult
+from .models import EvalRunResult
 
 class SimulationEvalRunner:
     """

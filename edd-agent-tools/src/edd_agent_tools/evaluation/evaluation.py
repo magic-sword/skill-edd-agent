@@ -2,7 +2,8 @@ import os
 import json
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
-from edd_agent_tools.models import ModuleType, EvalRunResult
+from edd_agent_tools.skills.models import ModuleType
+from .models import EvalRunResult
 
 if TYPE_CHECKING:
     from edd_agent_tools.skills import Skill

@@ -2,8 +2,9 @@ import os
 import subprocess
 import gymnasium as gym
 from gymnasium import spaces
-from typing import Any, Dict, Tuple, List
-from edd_agent_tools.models import WorkspaceArtifacts
+from typing import Any, Dict, Tuple, List, Union
+from pydantic import TypeAdapter
+from .models import WorkspaceArtifacts, WorkspaceAction
 from edd_agent_tools.evaluation.sandbox import GitSandbox
 
 class LocalWorkspaceEnv(gym.Env):
@@ -57,6 +58,9 @@ class LocalWorkspaceEnv(gym.Env):
         self.venv_dir = None
         self.venv_python = None
         self.venv_pip = None
+        
+        # アクションの検証用 TypeAdapter
+        self._action_adapter = TypeAdapter(WorkspaceAction)
 
     @property
     def sandbox_dir(self) -> str | None:
@@ -94,13 +98,31 @@ class LocalWorkspaceEnv(gym.Env):
         info = {"message": "Environment reset complete in sandbox"}
         return obs, info
 
-    def step(self, action: Dict[str, Any]) -> Tuple[Dict[str, Any], float, bool, bool, Dict[str, Any]]:
+    def step(self, action: Union[Dict[str, Any], WorkspaceAction]) -> Tuple[Dict[str, Any], float, bool, bool, Dict[str, Any]]:
         """エージェントのアクションを実行し、環境を1ステップ進めます。"""
         self.step_count += 1
         
-        action_type = action.get("action")
-        path = action.get("path")
-        content = action.get("content", "")
+        # Pydanticモデルが渡された場合はプレーンな辞書にダンプ
+        if hasattr(action, "model_dump"):
+            action_dict = action.model_dump()
+        else:
+            action_dict = action
+            
+        if not self.sandbox.sandbox_dir:
+            return self._get_observation(), -1.0, False, True, {"error": "Sandbox not initialized"}
+            
+        # Pydantic スキーマクラスによるパラメータ検証
+        try:
+            self._action_adapter.validate_python(action_dict)
+        except Exception as e:
+            obs = self._get_observation()
+            obs["status"] = f"error: validation failed: {str(e)}"
+            # バリデーションエラー時はマイナス報酬を返して早期終了
+            return obs, -0.1, False, False, {"error": f"Invalid action parameters: {str(e)}"}
+
+        action_type = action_dict.get("action")
+        path = action_dict.get("path")
+        content = action_dict.get("content", "")
         
         pytest_output = ""
         action_status = "success"
@@ -108,9 +130,6 @@ class LocalWorkspaceEnv(gym.Env):
         terminated = False
         truncated = self.step_count >= self.max_steps
         
-        if not self.sandbox.sandbox_dir:
-            return self._get_observation(), -1.0, False, True, {"error": "Sandbox not initialized"}
-            
         try:
             if action_type == "write_file" and path:
                 safe_path = self.sandbox.resolve_path(path)

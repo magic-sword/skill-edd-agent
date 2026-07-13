@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import subprocess
 from typing import Dict, List, Any
-from edd_agent_tools.models import WorkspaceArtifacts
+from .models import WorkspaceArtifacts
 
 class GitSandbox:
     """

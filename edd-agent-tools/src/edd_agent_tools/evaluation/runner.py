@@ -2,7 +2,7 @@ import os
 import json
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from edd_agent_tools.models import EvalRunResult
+from .models import EvalRunResult
 
 class ADKEvalServiceRunner:
     """ADK の LocalEvalService をインプロセスで初期化・実行する実行クラス。

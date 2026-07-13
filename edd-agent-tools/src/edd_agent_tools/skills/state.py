@@ -210,7 +210,7 @@ class SkillsState:
 
         if design_path:
             # 1. design_path から物理ディレクトリと論理名を解決
-            from edd_agent_tools.models import SkillDesign
+            from .models import SkillDesign
             design_abs_path = Path(design_path).resolve()
             if design_abs_path.name == "design.json":
                 if design_abs_path.parent.name == "assets":

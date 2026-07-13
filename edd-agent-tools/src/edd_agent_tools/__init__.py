@@ -18,23 +18,31 @@ def __getattr__(name: str):
         "evaluation",
         "run",
         "doc_reader",
-        "models"
+        "schema_utils"
     }
     if name in submodules:
         return importlib.import_module(f".{name}", __package__)
 
     mapping = {
-        # models
-        "Parameter": (".models", "Parameter"),
-        "SkillDesign": (".models", "SkillDesign"),
-        "WorkflowDesign": (".models", "WorkflowDesign"),
-        "ModuleDesign": (".models", "ModuleDesign"),
-        "Step": (".models", "Step"),
-        "StepType": (".models", "StepType"),
-        "EvalRunResult": (".models", "EvalRunResult"),
-        "SkillMetadata": (".models", "SkillMetadata"),
-        "ModuleType": (".models", "ModuleType"),
-        "clean_pydantic_schema": (".models", "clean_pydantic_schema"),
+        # skills.models
+        "Parameter": (".skills.models", "Parameter"),
+        "SkillDesign": (".skills.models", "SkillDesign"),
+        "WorkflowDesign": (".skills.models", "WorkflowDesign"),
+        "ModuleDesign": (".skills.models", "ModuleDesign"),
+        "Step": (".skills.models", "Step"),
+        "StepType": (".skills.models", "StepType"),
+        "SkillMetadata": (".skills.models", "SkillMetadata"),
+        "ModuleType": (".skills.models", "ModuleType"),
+        # evaluation.models
+        "EvalRunResult": (".evaluation.models", "EvalRunResult"),
+        "WorkspaceArtifacts": (".evaluation.models", "WorkspaceArtifacts"),
+        "WorkspaceAction": (".evaluation.models", "WorkspaceAction"),
+        "WriteFileAction": (".evaluation.models", "WriteFileAction"),
+        "ViewFileAction": (".evaluation.models", "ViewFileAction"),
+        "RunPytestAction": (".evaluation.models", "RunPytestAction"),
+        # schema_utils
+        "clean_pydantic_schema": (".schema_utils", "clean_pydantic_schema"),
+        "PromptField": (".schema_utils", "PromptField"),
         # skills
         "SkillsState": (".skills", "SkillsState"),
         "Skill": (".skills", "Skill"),
@@ -67,10 +75,10 @@ def __getattr__(name: str):
 def __dir__():
     return sorted(list(globals().keys()) + [
         "Parameter", "SkillDesign", "WorkflowDesign", "ModuleDesign", "Step", "StepType",
-        "EvalRunResult", "SkillMetadata", "ModuleType",
-        "clean_pydantic_schema",
-        "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "SafeWriteFileTool", "SafeEditFileTool", "SkillEval", "UnitEval", "TriggerEval",
-        "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
+        "SkillMetadata", "ModuleType", "EvalRunResult", "WorkspaceArtifacts", "WorkspaceAction",
+        "WriteFileAction", "ViewFileAction", "RunPytestAction",
+        "clean_pydantic_schema", "PromptField",
+        "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "SafeWriteFileTool", "SafeEditFileTool", 
+        "SkillEval", "UnitEval", "TriggerEval", "GeminiClient", "GeminiRequest", "gemini", 
+        "LibraryDocumentationReader"
     ])
-
-

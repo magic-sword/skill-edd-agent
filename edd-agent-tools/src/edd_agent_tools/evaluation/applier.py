@@ -3,7 +3,7 @@ import shutil
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 
-from edd_agent_tools.models import WorkspaceArtifacts
+from .models import WorkspaceArtifacts
 
 
 class ArtifactApplier(ABC):
