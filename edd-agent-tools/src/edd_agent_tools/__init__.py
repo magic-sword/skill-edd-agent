@@ -53,9 +53,7 @@ def __getattr__(name: str):
         "SafeWriteFileTool": (".run.tools", "SafeWriteFileTool"),
         "SafeEditFileTool": (".run.tools", "SafeEditFileTool"),
         # evaluation
-        "SkillEval": (".evaluation", "SkillEval"),
-        "UnitEval": (".evaluation", "UnitEval"),
-        "TriggerEval": (".evaluation", "TriggerEval"),
+        "SimulationEval": (".evaluation", "SimulationEval"),
         "LocalWorkspaceEnv": (".evaluation", "LocalWorkspaceEnv"),
         "RealWorkspaceEnv": (".evaluation", "RealWorkspaceEnv"),
         "WorkspaceEnvProtocol": (".evaluation", "WorkspaceEnvProtocol"),
@@ -84,6 +82,6 @@ def __dir__():
         "WriteFileAction", "ViewFileAction", "RunPytestAction", "WorkspaceObservation", "FileState",
         "clean_pydantic_schema", "PromptField",
         "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "SafeWriteFileTool", "SafeEditFileTool", 
-        "SkillEval", "UnitEval", "TriggerEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol",
+        "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol",
         "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
     ])

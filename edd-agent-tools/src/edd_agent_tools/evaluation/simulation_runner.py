@@ -81,14 +81,19 @@ class SimulationEvalRunner:
             """
             nonlocal obs, done, total_reward, step_count
             
-            # アクションを組み立てて環境に入力
-            action_dict = {
-                "action": action,
-                "path": path,
-                "content": content
-            }
+            # Pydantic アクションインスタンスへ変換
+            from edd_agent_tools.evaluation.models import WriteFileAction, ViewFileAction, RunPytestAction
             
-            obs, reward, terminated, truncated, info = env.step(action_dict)
+            if action == "write_file":
+                action_obj = WriteFileAction(path=path, content=content)
+            elif action == "view_file":
+                action_obj = ViewFileAction(path=path)
+            elif action == "run_pytest":
+                action_obj = RunPytestAction()
+            else:
+                raise ValueError(f"Unknown action: {action}")
+                
+            obs, reward, terminated, truncated, info = env.step(action_obj)
             done = terminated or truncated
             total_reward += reward
             
@@ -96,12 +101,12 @@ class SimulationEvalRunner:
                 "step": step_count,
                 "observation": obs,
                 "info": info,
-                "action": action_dict,
+                "action": action_obj.model_dump(),
                 "reward": reward,
                 "done": done
             })
             
-            print(f"[Env Action Log] Executed: {action_dict}")
+            print(f"[Env Action Log] Executed: {action_obj.model_dump()}")
             print(f"[Env Action Log] Reward: {reward}, Terminated: {terminated}, Truncated: {truncated}")
             print(f"[Env Action Log] New Obs: {obs}")
             
