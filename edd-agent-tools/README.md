@@ -118,16 +118,25 @@ AIエージェントによる自動コード書き換え時の安全性と信頼
 
 ```python
 from edd_agent_tools.evaluation import LocalWorkspaceEnv, LocalFileApplier
+from edd_agent_tools.evaluation.models import WriteFileAction, RunPytestAction
 
 # 1. 隔離された環境で検証を実行 (常に一時サンドボックスで隔離動作します)
 env = LocalWorkspaceEnv(workspace_dir="/workspace/my_project", use_host_venv=True)
 obs, info = env.reset()
 
-# エージェントがアクションを実行
-obs, reward, terminated, _, info = env.step({
-    "action": "write_file", "path": "src/logic.py", "content": "..."
-})
-obs, reward, terminated, _, info = env.step({"action": "run_pytest"})
+# Pydantic スキーマモデルを使ってアクションを実行
+action_write = WriteFileAction(
+    path="src/logic.py",
+    content="def hello(): pass"
+)
+obs, reward, terminated, _, info = env.step(action_write)
+
+# 観測値（obs）も Pydantic オブジェクトなので、IDE でプロパティが自動補完されます
+print(f"Current Status: {obs.status}")
+
+# テスト実行アクション
+obs, reward, terminated, _, info = env.step(RunPytestAction())
+print(f"Pytest Output:\n{obs.pytest_output}")
 
 # 差分（成果物）の抽出
 artifacts = env.export_artifacts()

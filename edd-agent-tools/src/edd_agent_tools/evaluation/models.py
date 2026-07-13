@@ -62,3 +62,25 @@ class RunPytestAction(BaseModel):
 
 # 統合アクションモデル
 WorkspaceAction = Union[WriteFileAction, ViewFileAction, RunPytestAction]
+
+
+class FileState(BaseModel):
+    """サンドボックス内の個別ファイルの状態を表すモデル。"""
+    size: int = Field(..., description="ファイルのサイズ（バイト単位）")
+    exists: bool = Field(..., description="ファイルがサンドボックス内に存在するかどうか")
+
+
+class WorkspaceObservation(BaseModel):
+    """Gymnasium環境から返却される観測値（Observation）のスキーマ定義。"""
+    files: dict[str, FileState] = Field(
+        default_factory=dict,
+        description="サンドボックス内に存在するファイルの相対パスと状態のマップ（キー: 相対パス）"
+    )
+    pytest_output: str = Field(
+        "",
+        description="最後に実行された pytest の標準出力および標準エラーログ。未実行時は空文字。"
+    )
+    status: str = Field(
+        "idle",
+        description="直前のアクションの実行結果ステータス（例: 'file_written', 'pytest_passed', 'pytest_failed'）"
+    )

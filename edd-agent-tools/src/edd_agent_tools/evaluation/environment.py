@@ -4,8 +4,8 @@ import gymnasium as gym
 from gymnasium import spaces
 from typing import Any, Dict, Tuple, List, Union
 from pydantic import TypeAdapter
-from .models import WorkspaceArtifacts, WorkspaceAction
 from edd_agent_tools.evaluation.sandbox import GitSandbox
+from .models import WorkspaceArtifacts, WorkspaceAction, WorkspaceObservation, FileState, WriteFileAction, ViewFileAction, RunPytestAction
 
 class LocalWorkspaceEnv(gym.Env):
     """
@@ -39,6 +39,7 @@ class LocalWorkspaceEnv(gym.Env):
         self.sandbox = GitSandbox(workspace_dir, target_files, use_git)
         
         # Gymnasium 互換のためのアクション空間と状態空間の定義
+        # (内部的には Pydantic オブジェクトを使用しますが、Gymnasiumのインターフェース規定に従い定義は残します)
         self.action_space = spaces.Dict({
             "action": spaces.Text(max_length=50),
             "path": spaces.Text(max_length=256),
@@ -67,7 +68,7 @@ class LocalWorkspaceEnv(gym.Env):
         """後方互換性のためのサンドボックスディレクトリのパスプロパティ。"""
         return self.sandbox.sandbox_dir
 
-    def reset(self, seed: int = None, options: Dict[str, Any] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def reset(self, seed: int = None, options: Dict[str, Any] = None) -> Tuple[WorkspaceObservation, Dict[str, Any]]:
         """環境をリセットし、新しいサンドボックス（一時フォルダ）を構築します。"""
         super().reset(seed=seed)
         self.step_count = 0
@@ -98,28 +99,19 @@ class LocalWorkspaceEnv(gym.Env):
         info = {"message": "Environment reset complete in sandbox"}
         return obs, info
 
-    def step(self, action: Union[Dict[str, Any], WorkspaceAction]) -> Tuple[Dict[str, Any], float, bool, bool, Dict[str, Any]]:
+    def step(self, action: WorkspaceAction) -> Tuple[WorkspaceObservation, float, bool, bool, Dict[str, Any]]:
         """エージェントのアクションを実行し、環境を1ステップ進めます。"""
         self.step_count += 1
         
-        # Pydanticモデルが渡された場合はプレーンな辞書にダンプ
-        if hasattr(action, "model_dump"):
-            action_dict = action.model_dump()
-        else:
-            action_dict = action
+        if not isinstance(action, (WriteFileAction, ViewFileAction, RunPytestAction)):
+            raise TypeError("action must be a WorkspaceAction (WriteFileAction, ViewFileAction, or RunPytestAction)")
             
         if not self.sandbox.sandbox_dir:
-            return self._get_observation(), -1.0, False, True, {"error": "Sandbox not initialized"}
-            
-        # Pydantic スキーマクラスによるパラメータ検証
-        try:
-            self._action_adapter.validate_python(action_dict)
-        except Exception as e:
             obs = self._get_observation()
-            obs["status"] = f"error: validation failed: {str(e)}"
-            # バリデーションエラー時はマイナス報酬を返して早期終了
-            return obs, -0.1, False, False, {"error": f"Invalid action parameters: {str(e)}"}
+            obs.status = "error: Sandbox not initialized"
+            return obs, -1.0, False, True, {"error": "Sandbox not initialized"}
 
+        action_dict = action.model_dump()
         action_type = action_dict.get("action")
         path = action_dict.get("path")
         content = action_dict.get("content", "")
@@ -172,8 +164,8 @@ class LocalWorkspaceEnv(gym.Env):
             
         obs = self._get_observation()
         if pytest_output:
-            obs["pytest_output"] = pytest_output
-        obs["status"] = action_status
+            obs.pytest_output = pytest_output
+        obs.status = action_status
         
         # 成果物（差分）情報をエクスポート
         artifacts = self.export_artifacts()
@@ -245,10 +237,16 @@ class LocalWorkspaceEnv(gym.Env):
                 capture_output=True
             )
 
-    def _get_observation(self) -> Dict[str, Any]:
+    def _get_observation(self) -> WorkspaceObservation:
         """現在のファイルの状態をスキャンして観測値を生成します。"""
-        return {
-            "files": self.sandbox.get_files_state(),
-            "pytest_output": "",
-            "status": "idle"
-        }
+        files_state = {}
+        for path, info in self.sandbox.get_files_state().items():
+            files_state[path] = FileState(
+                size=info.get("size", 0),
+                exists=info.get("exists", True)
+            )
+        return WorkspaceObservation(
+            files=files_state,
+            pytest_output="",
+            status="idle"
+        )

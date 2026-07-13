@@ -40,6 +40,8 @@ def __getattr__(name: str):
         "WriteFileAction": (".evaluation.models", "WriteFileAction"),
         "ViewFileAction": (".evaluation.models", "ViewFileAction"),
         "RunPytestAction": (".evaluation.models", "RunPytestAction"),
+        "WorkspaceObservation": (".evaluation.models", "WorkspaceObservation"),
+        "FileState": (".evaluation.models", "FileState"),
         # schema_utils
         "clean_pydantic_schema": (".schema_utils", "clean_pydantic_schema"),
         "PromptField": (".schema_utils", "PromptField"),
@@ -76,7 +78,7 @@ def __dir__():
     return sorted(list(globals().keys()) + [
         "Parameter", "SkillDesign", "WorkflowDesign", "ModuleDesign", "Step", "StepType",
         "SkillMetadata", "ModuleType", "EvalRunResult", "WorkspaceArtifacts", "WorkspaceAction",
-        "WriteFileAction", "ViewFileAction", "RunPytestAction",
+        "WriteFileAction", "ViewFileAction", "RunPytestAction", "WorkspaceObservation", "FileState",
         "clean_pydantic_schema", "PromptField",
         "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "SafeWriteFileTool", "SafeEditFileTool", 
         "SkillEval", "UnitEval", "TriggerEval", "GeminiClient", "GeminiRequest", "gemini", 
