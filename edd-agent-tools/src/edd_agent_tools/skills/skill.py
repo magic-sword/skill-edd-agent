@@ -1,6 +1,14 @@
 import os
+import sys
+import json
+import datetime
+import types
+import inspect
+import importlib.util
 from typing import Literal, Any
-from .models import SkillDesign
+
+from google.adk.tools import FunctionTool
+from .models import SkillDesign, ModuleType, SkillMetadata
 from edd_agent_tools.evaluation import SimulationEval
 
 class Skill:
@@ -38,7 +46,6 @@ class Skill:
         if tier not in [0, 1, 2, 3]:
             raise ValueError("Error: Tier must be 0, 1, 2, or 3.")
         self._tier = tier
-        import datetime
         self._last_tested = datetime.datetime.now().isoformat() + "Z"
         self._metadata = None  # キャッシュクリア
 
@@ -60,9 +67,6 @@ class Skill:
                 description = design.description
                 dependencies = design.dependencies
             except Exception:
-                import json
-                from .models import ModuleType
-                
                 # 物理配置または design.json の構造からワークフローを自動検出
                 has_workflow_indicator = False
                 try:
@@ -84,7 +88,6 @@ class Skill:
                 dependencies = []
 
             # 2. 統合
-            from .models import SkillMetadata
             self._metadata = SkillMetadata(
                 name=self.name,
                 tier=self._tier,
@@ -162,7 +165,6 @@ class Skill:
         Returns:
             SimulationEval: シミュレーション評価インスタンス。
         """
-        from edd_agent_tools.evaluation import SimulationEval
         return SimulationEval(self)
 
     def load_module(self):
@@ -180,10 +182,6 @@ class Skill:
             >>> skill = state.get_skill("my-sample-skill")  # doctest: +SKIP
             >>> handler_module = skill.load_module()  # doctest: +SKIP
         """
-        import sys
-        import types
-        import importlib.util
-
         script_abs_path = os.path.join(self.root_dir, "scripts", "__init__.py")
         if not os.path.exists(script_abs_path):
             raise FileNotFoundError(f"エラー: scripts/__init__.py が存在しません: {script_abs_path}")
@@ -229,9 +227,6 @@ class Skill:
         __all__ に宣言されている関数をスキャンし、各関数に対応する FunctionTool を生成します。
         __all__ が定義されていない、または有効な公開関数が1つもない場合は AttributeError を投げます。
         """
-        from google.adk.tools import FunctionTool
-        import inspect
-
         # モジュールをロード
         skill_module = self.load_module()
         
