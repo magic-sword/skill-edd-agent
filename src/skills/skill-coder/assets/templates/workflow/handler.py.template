@@ -1,21 +1,38 @@
-from google.adk.tools import ToolContext
-from edd_agent_tools import WorkflowRunner
-from .models import Input, Output
+{imports_str}from edd_agent_tools import WorkflowRunner
+from .models import Output
 from .workflow import root_workflow
 
-SKILL_METADATA = {metadata_str}
+class RuntimeInput:
+    """内部引数コンパイル用ダミーオブジェクト。"""
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+    def model_dump(self, **kwargs):
+        return self.__dict__
 
-def process_message(params: Input, tool_context: ToolContext) -> str:
-    # 共通ランナーを直接使用してワークフローを駆動
+def {function_name}({args_definition}) -> Output:
+    """{description}
+
+    Args:
+{args_docstring}
+
+    Returns:
+        実行結果オブジェクト (Output)。
+    """
+    params = RuntimeInput({args_passing})
     runner = WorkflowRunner(
-        workflow_name=SKILL_METADATA["name"],
-        root_workflow=root_workflow,
-        tool_context=tool_context
+        workflow_name="{workflow_name}",
+        root_workflow=root_workflow
     )
     result_dict = runner.run(params)
-    result = Output(**result_dict)
-    if isinstance(result, Output):
-        if SKILL_METADATA.get("output_mode") in ("VALUE_ONLY", "CONVERSATIONAL"):
-            return result.value
-        return result.model_dump_json(by_alias=True)
-    return str(result)
+    
+    output_data = {{}}
+    for field in Output.model_fields.keys():
+        if field in result_dict:
+            output_data[field] = result_dict[field]
+        elif "state" in result_dict and field in result_dict["state"]:
+            output_data[field] = result_dict["state"][field]
+            
+    if not output_data and "value" in Output.model_fields:
+        output_data["value"] = result_dict.get("message", "success")
+        
+    return Output(**output_data)

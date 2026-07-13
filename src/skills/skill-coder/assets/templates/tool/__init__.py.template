@@ -11,3 +11,5 @@ def __getattr__(name: str) -> Any:
         return Output
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+__all__ = ["{function_name}", "Output"]

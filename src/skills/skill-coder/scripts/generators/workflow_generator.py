@@ -29,6 +29,7 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
 
         # 2. handler.py の自動生成 (templates/workflow/handler.py.template を展開)
         handler_tmpl = self.coder_skill.load_asset("templates/workflow/handler.py.template")
+        handler_tmpl = handler_tmpl.replace("{workflow_name}", workflow_name)
         handler_code = HandlerWriter(self.design, handler_tmpl).write()
         handler_path = os.path.join(self.scripts_dir, "handler.py")
         with open(handler_path, "w", encoding="utf-8") as f:
@@ -152,19 +153,21 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                         "    # 設計書の inputs マッピングから直接決定論的に引数を抽出"
                     ]
                     
+                    # 個別引数の具象関数を直接呼び出すコードを組み立てる
+                    node_lines.append(f"    res = {dep_var}_module.{dep_var}(")
                     if params_init_str:
-                        node_lines.append(f"    params = {dep_var}_module.Input(")
                         node_lines.append(params_init_str)
-                        node_lines.append("    )")
-                    else:
-                        node_lines.append(f"    params = {dep_var}_module.Input()")
-                        
-                    node_lines.append(f"    res_str = {dep_var}_module.process_message(params, tool_context)")
-                    node_lines.append("    try:")
-                    node_lines.append("        res_data = json.loads(res_str)")
-                    node_lines.append("        tool_context.state.update(res_data)")
-                    node_lines.append("    except Exception:")
-                    node_lines.append("        pass")
+                    node_lines.append("    )")
+                    
+                    node_lines.append("    from pydantic import BaseModel")
+                    node_lines.append("    if isinstance(res, BaseModel):")
+                    node_lines.append("        tool_context.state.update(res.model_dump())")
+                    node_lines.append("        res_str = res.model_dump_json()")
+                    node_lines.append("    elif isinstance(res, dict):")
+                    node_lines.append("        tool_context.state.update(res)")
+                    node_lines.append("        res_str = json.dumps(res)")
+                    node_lines.append("    else:")
+                    node_lines.append("        res_str = str(res)")
                     node_lines.append("    return res_str")
                     node_lines.append("")
                     
@@ -360,17 +363,20 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                         param_assignments.append(f'        {param_name}=tool_context.state.get("{mapping_val}")')
                         
                 params_init_str = ",\n".join(param_assignments)
-                code_lines.append(f"    params = {dep_var}_module.Input(")
+                code_lines.append(f"    res = {dep_var}_module.{dep_var}(")
                 if params_init_str:
                     code_lines.append(params_init_str)
                 code_lines.append("    )")
                 
-                code_lines.append(f"    res_str = {dep_var}_module.process_message(params, tool_context)")
-                code_lines.append("    try:")
-                code_lines.append("        res_data = json.loads(res_str)")
-                code_lines.append("        tool_context.state.update(res_data)")
-                code_lines.append("    except Exception:")
-                code_lines.append("        pass")
+                code_lines.append("    from pydantic import BaseModel")
+                code_lines.append("    if isinstance(res, BaseModel):")
+                code_lines.append("        tool_context.state.update(res.model_dump())")
+                code_lines.append("        res_str = res.model_dump_json()")
+                code_lines.append("    elif isinstance(res, dict):")
+                code_lines.append("        tool_context.state.update(res)")
+                code_lines.append("        res_str = json.dumps(res)")
+                code_lines.append("    else:")
+                code_lines.append("        res_str = str(res)")
                 code_lines.append("    return res_str")
                 code_lines.append("")
                 
