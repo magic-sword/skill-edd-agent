@@ -94,15 +94,51 @@ ADK 2.0 評価器（Rouge-1）の日本語文字分割問題を解決するた�
 
 ---
 
-## 5. Gymnasium 互換シミュレーション環境 (`LocalWorkspaceEnv`)
-自動コーディングエージェントやリファクタリングスキルが動作する、Gymnasium 互換のサンドボックスシミュレーション環境を提供します。
+## 5. Gymnasium 互換サンドボックス環境と永続化モデル
 
-*   **ファイルシステム隔離とロールバック**:
-    `reset()` メソッドを呼び出すことで、ワークスペース内の対象ファイルをオリジナル状態のバックアップから自動リストアします。
-*   **仮想環境 (`venv`) の自動構築**:
-    サンドボックスディレクトリ内に隔離用仮想環境を自動構築し、`pyproject.toml` や `requirements.txt` から依存パッケージを自動的に分離インストールします。
-*   **アクションと観測**:
-    エージェントはアクション空間（ファイルの読み書き・`pytest` 実行）を通じて環境を操作し、観測空間（ファイル状態・テストログ）を通じて状態を受け取ります。
+本パッケージは、自動コーディングエージェントやリファクタリングスキルが安全かつ高速に試行錯誤できる「Gymnasium 互換のサンドボックスシミュレーション環境」および「本番への差分適用（永続化）モデル」を提供します。
+
+### ① 関心の分離：テスト検証と本番適用の明確な分離
+AIエージェントによる自動コード書き換え時の安全性と信頼性を最大化するため、**「隔離された環境でのテスト検証（シミュレーション）」** と **「本番への変更の書き戻し（永続化）」** の責務を明確に分離しています。
+
+*   **テスト検証 (LocalWorkspaceEnv / GitSandbox)**:
+    エージェントがコードを書き換えてテストを回す作業は、本番ディレクトリから OS の一時ディレクトリ領域（`/tmp` 等）に複製された **一時サンドボックス環境内で 100% 隔離して実行** されます。本番コードが直接汚染されることはありません。
+*   **本番適用 (LocalFileApplier)**:
+    サンドボックス内での検証（pytest等）に 100% 合格し、安全が確認された段階で、一時環境から抽出された変更差分（`WorkspaceArtifacts`）のみをアプライヤーを用いて明示的に本番に書き戻します。
+
+### ② Git による超高速ステート管理と差分抽出
+一時サンドボックス内は自動的に Git 管理され、以下の恩恵を受けられます。
+*   **高速ロールバック**: `reset()` 時に `git reset --hard` / `git clean` を実行し、一瞬で初期状態へ復元します。
+*   **完璧な差分抽出**: `git status` を解析し、バイナリや文字コードの制約なく、新規・変更・削除されたファイルを正確に追跡します。
+
+### ③ ホスト仮想環境の共有オプション (`use_host_venv`)
+サンドボックス起動のたびに `pip install` が走るオーバーヘッドを解消するため、親プロジェクトの既存の `.venv` の Python インタプリタを共有してテストを実行するオプションを提供します。
+
+### ④ 利用コード例
+
+```python
+from edd_agent_tools.evaluation import LocalWorkspaceEnv, LocalFileApplier
+
+# 1. 隔離された環境で検証を実行 (常に一時サンドボックスで隔離動作します)
+env = LocalWorkspaceEnv(workspace_dir="/workspace/my_project", use_host_venv=True)
+obs, info = env.reset()
+
+# エージェントがアクションを実行
+obs, reward, terminated, _, info = env.step({
+    "action": "write_file", "path": "src/logic.py", "content": "..."
+})
+obs, reward, terminated, _, info = env.step({"action": "run_pytest"})
+
+# 差分（成果物）の抽出
+artifacts = env.export_artifacts()
+
+# 2. 永続化（本番書き戻し）のコントロール
+if terminated:  # pytest に 100% 合格した場合のみ本番へ永続化
+    applier = LocalFileApplier(target_dir="/workspace/my_project")
+    applier.apply(artifacts)
+
+env.close()  # サンドボックスは消去され、本番に合格した成果物だけが残ります
+```
 
 ---
 
