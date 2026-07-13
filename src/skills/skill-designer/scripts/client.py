@@ -1,12 +1,13 @@
 from google.genai import types
-from edd_agent_tools import GeminiClient, SkillDesign, ModuleDesign, clean_pydantic_schema
+from edd_agent_tools import SkillDesign, ModuleDesign, clean_pydantic_schema
+from edd_agent_tools.gemini import client
 
 class GeminiDesignClient:
     """
     Gemini API を利用してスキル設計を生成するクライアントを提供します。
     """
     def __init__(self):
-        self._client = GeminiClient()
+        self._client = client
 
     def generate_design(self, contents: list[types.ContentType], response_schema) -> str:
         """

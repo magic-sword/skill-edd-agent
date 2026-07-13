@@ -49,6 +49,7 @@ def __getattr__(name: str):
         # gemini
         "GeminiClient": (".gemini", "GeminiClient"),
         "GeminiRequest": (".gemini", "GeminiRequest"),
+        "gemini": (".gemini", None),
         # doc_reader
         "LibraryDocumentationReader": (".doc_reader", "LibraryDocumentationReader"),
     }
@@ -56,6 +57,8 @@ def __getattr__(name: str):
     if name in mapping:
         module_path, attr_name = mapping[name]
         module = importlib.import_module(module_path, __package__)
+        if attr_name is None:
+            return module
         return getattr(module, attr_name)
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
@@ -67,7 +70,7 @@ def __dir__():
         "EvalRunResult", "SkillMetadata", "ModuleType",
         "clean_pydantic_schema",
         "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "SafeWriteFileTool", "SafeEditFileTool", "SkillEval", "UnitEval", "TriggerEval",
-        "GeminiClient", "GeminiRequest", "LibraryDocumentationReader"
+        "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
     ])
 
 

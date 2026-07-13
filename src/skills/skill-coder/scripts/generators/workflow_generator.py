@@ -62,12 +62,11 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
         workflow_path = os.path.join(self.scripts_dir, "workflow.py")
         if steps:
             from edd_agent_tools.skills import SkillsState
-            from edd_agent_tools import GeminiClient
+            from edd_agent_tools.gemini import client
             from google.genai import types
             
             state = SkillsState()
             state.load()
-            client = GeminiClient()
             
             step_functions = []
             imports_code_lines = []
@@ -249,12 +248,11 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
             
         elif self.design.dependencies:
             from edd_agent_tools.skills import SkillsState
-            from edd_agent_tools import GeminiClient
+            from edd_agent_tools.gemini import client
             from google.genai import types
             
             state = SkillsState()
             state.load()
-            client = GeminiClient()
             
             step_functions = []
             imports_code_lines = []

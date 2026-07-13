@@ -9,10 +9,11 @@
 ADK 2.0 におけるモジュールは、その本質的な役割に応じて明確に 2 つに分類されます。
 
 ### ① スキル (SKILL)
-*   **本質**: これ以上分割できない最小限の機能単位（アトミックな関数）。
+*   **本質**: 共通のデータドメインやロジックを集約した最小限の機能モジュール（マイクロサービス）。
 *   **特徴**:
+    *   特定の役割（ドメイン）に凝集した1つ以上の関連する公開関数（APIエンドポイント）を `scripts/handler.py` に定義し、`scripts/__init__.py` から同時にエクスポートできます。
     *   実行ロジック（`executor.py`）が Python スクリプトなどで自己完結しており、内部の細かい手順はプログラム的に処理されます。
-    *   スキーマレベルでは「ステップ（順序関係）」の概念を持たず、**「1つの実行処理ノード」** として機能します。
+    *   スキーマレベルでは「ステップ（順序関係）」の概念を持たず、**「公開されたAPIエンドポイント（関数リスト）」** を提供するサービスノードとして機能します。
 
 ### ② ワークフロー (WORKFLOW)
 *   **本質**: 複数の異なるスキル、カスタム Python 処理、自律エージェントを「繋ぎ合わせて一連の業務プロセスを構成する」パイプライン。
@@ -62,28 +63,38 @@ class Step(BaseModel):
 
 ### 設計定義モデル（Union 分離）
 ```python
+class FunctionDefinition(BaseModel):
+    """複数公開関数を設計する場合の、個別関数の定義情報を表すモデル。"""
+    name: str = Field(..., description="公開関数名。小文字のスネークケース")
+    description: str = Field(..., description="関数の役割や目的の説明")
+    parameters: list[Parameter] = Field(..., description="関数の入力パラメータリスト")
+    response_parameters: list[Parameter] | None = Field(None, description="関数の構造化出力パラメータ定義（STRUCTURED_JSON時に使用されます）")
+
 class SkillDesign(BaseModel):
-    """単一スキルの設計定義（stepsを持たない）"""
-    rationale: str = Field(..., description="設計の思考プロセス（なぜ単一スキルと判定したか）")
-    name: str
-    module_type: Literal[ModuleType.SKILL] = ModuleType.SKILL
-    execution_type: Literal["tool", "agent"]
-    output_mode: OutputMode
-    parameters: list[Parameter]
-    dependencies: list[str]
-    constraints: list[str]
-    response_parameters: list[Parameter] | None
+    """単一スキルの設計定義を表す Pydantic モデル。"""
+    rationale: str = Field(..., description="設計の思考プロセス。")
+    name: str = Field(..., description="スキルの名前。小文字のハイフン区切り")
+    description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明")
+    summary: str | None = Field(None, description="スキルの仕様概要")
+    module_type: Literal[ModuleType.SKILL] = Field(ModuleType.SKILL, description="モジュールの役割分類。単一スキルは必ず 'skill'")
+    execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
+    output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
+    dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
+    constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")
+    functions: list[FunctionDefinition] = Field(..., description="スキルパッケージが提供する公開関数の定義リスト。1つ以上の関数定義を含める必要があります")
 
 class WorkflowDesign(BaseModel):
-    """複数モジュールを連結するワークフローの設計仕様（stepsを必須とする）"""
-    rationale: str = Field(..., description="設計の思考プロセス（なぜワークフローと判定したか）")
-    name: str
-    module_type: Literal[ModuleType.WORKFLOW] = ModuleType.WORKFLOW
-    parameters: list[Parameter]
-    dependencies: list[str]
-    constraints: list[str]
-    response_parameters: list[Parameter] | None
-    steps: list[Step]
+    """複数モジュールを連結するワークフローの設計仕様定義。"""
+    rationale: str = Field(..., description="設計の思考プロセス。")
+    name: str = Field(..., description="ワークフローの名前。小文字のハイフン区切り")
+    description: str = Field(..., description="ワークフローの目的や役割を記述した簡潔な説明")
+    summary: str | None = Field(None, description="ワークフローの仕様概要")
+    module_type: Literal[ModuleType.WORKFLOW] = Field(ModuleType.WORKFLOW, description="モジュールの役割分類。ワークフローは必ず 'workflow'")
+    parameters: list[Parameter] = Field(..., description="ワークフロー全体が外部から受け取るパラメータのリスト")
+    dependencies: list[str] = Field([], description="依存するターゲットスキル名のリスト")
+    constraints: list[str] = Field([], description="全体の実行に関する制約")
+    response_parameters: list[Parameter] | None = Field(None, description="全体の出力JSONの構造定義")
+    steps: list[Step] = Field(..., description="ワークフローを構成するステップの定義リスト（有向グラフ）")
 
 # Discriminated Union によるロードの多態性
 ModuleDesign = Annotated[

@@ -1,11 +1,11 @@
 from typing import Any
-from edd_agent_tools.gemini import GeminiClient as EddGeminiClient
+from edd_agent_tools.gemini import client
 
 class GeminiClient:
     """Gemini API と対話するためのクライアント。"""
 
     def __init__(self):
-        self._client = EddGeminiClient()
+        pass
 
     def call_gemini_api(self, prompt: str, response_schema: Any = None) -> Any:
         """
@@ -26,4 +26,4 @@ class GeminiClient:
                 response_mime_type="application/json",
                 response_schema=response_schema
             )
-        return self._client.request(prompt).execute(config=config)
+        return client.request(prompt).execute(config=config)

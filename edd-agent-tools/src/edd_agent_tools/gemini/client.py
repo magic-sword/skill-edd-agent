@@ -5,32 +5,37 @@ from .base import BaseGeminiClient
 from .direct_client import DirectGeminiClient
 from .agy_client import AgyGeminiClient
 
+from .request import GeminiRequest
+
 class GeminiClient(BaseGeminiClient):
-    """共通の堅牢な Gemini API クライアントインターフェース。
+    """環境変数に基づき、Agy または Direct の適切な実装に処理を委譲するプロキシクライアント。"""
+    def __init__(self, client_type: str | None = None):
+        c_type = client_type or os.getenv("GEMINI_CLIENT_TYPE", "gemini")
+        if c_type == "agy":
+            self._impl = AgyGeminiClient()
+        else:
+            self._impl = DirectGeminiClient()
 
-    環境変数 GEMINI_CLIENT_TYPE="agy" が指定されている場合は、Antigravity CLI (agy) を
-    LLM バックエンドとして使用する AgyGeminiClient のインスタンスを動的に生成して返します。
+    def generate_content(
+        self,
+        contents: Any,
+        config: types.GenerateContentConfig | None = None,
+        model: str | None = None,
+        **kwargs: Any
+    ) -> types.GenerateContentResponse:
+        """内部の具象クライアント実装に呼び出しを委譲します。"""
+        return self._impl.generate_content(contents, config=config, model=model, **kwargs)
 
-    Examples:
-        >>> from edd_agent_tools.gemini import GeminiClient
-        >>> client = GeminiClient()
-        >>> response = (client.request("指示プロンプト...")
-        ...                   .add_dir(
-        ...                       directory="/workspace/src/skills/my-skill/scripts",
-        ...                       ref_root="/workspace/src/skills/my-skill",
-        ...                       file_filter=lambda path: path.endswith(".py")
-        ...                   )
-        ...                   .execute())
-    """
-    def __new__(cls, *args, **kwargs):
-        # GeminiClient 自体のインスタンス化時に、環境変数で動的に具象クラスを選択して返します。
-        if cls is GeminiClient:
-            client_type = os.getenv("GEMINI_CLIENT_TYPE", "gemini")
-            if client_type == "agy":
-                return super().__new__(AgyGeminiClient)
-            else:
-                return super().__new__(DirectGeminiClient)
-        return super().__new__(cls)
+# シングルトンオブジェクトの作成
+client = GeminiClient()
+
+def request(prompt: str) -> GeminiRequest:
+    """共通クライアントを介して GeminiRequest インスタンスを生成します。"""
+    return GeminiRequest(prompt, client=client)
+
+def generate_content(contents, config=None, **kwargs):
+    """共通クライアントを介してコンテンツ生成を実行します。"""
+    return client.generate_content(contents, config=config, **kwargs)
 
 
 

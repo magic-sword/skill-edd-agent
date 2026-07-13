@@ -1,6 +1,6 @@
 from typing import List
 from google.genai import types
-from edd_agent_tools import GeminiClient
+from edd_agent_tools.gemini import client
 from .schemas import TriggerTestCases, EvalCase
 
 class TriggerGenerator:
@@ -11,7 +11,7 @@ class TriggerGenerator:
         # パッケージ初期ロード時の循環参照を回避するため、実行時に遅延ローカルインポート
         from edd_agent_tools.skills import SkillsState
 
-        self.genai_client = GeminiClient()
+        self.genai_client = client
         self_dir = SkillsState().get_skill("trigger-evaluator")
         self.test_gen_prompt_template = self_dir.load_asset("test_case_gen_prompt.txt")
 

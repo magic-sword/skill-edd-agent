@@ -18,8 +18,8 @@ class BaseSpecWriter(ABC):
         self.source_code_dir = source_code_dir
         self.prompt = prompt
         
-        from edd_agent_tools import GeminiClient
-        self.client = GeminiClient()
+        from edd_agent_tools.gemini import client
+        self.client = client
 
     def _format_parameter_type(self, param) -> str:
         """Pydanticの型表現に近いわかりやすい型名を返す"""
