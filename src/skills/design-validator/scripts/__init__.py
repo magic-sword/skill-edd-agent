@@ -1,2 +1,15 @@
-from .handler import validate_design
-from .models import Output
+from typing import Any
+
+def __getattr__(name: str) -> Any:
+    """遅延インポートを実現するための属性解決ハンドラ。"""
+    if name == "validate_design":
+        from .handler import validate_design
+        return validate_design
+
+    if name == "Output":
+        from .models import Output
+        return Output
+
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+__all__ = ["validate_design", "Output"]
