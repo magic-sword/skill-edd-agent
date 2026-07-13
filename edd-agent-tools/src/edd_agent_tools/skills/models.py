@@ -85,6 +85,7 @@ class Parameter(BaseModel):
     is_prompt_parameter: bool | None = Field(None, description="このパラメータがプロンプト（LLMへの指示）用途かどうか")
     prompt_instructions: str | None = Field(None, description="プロンプトパラメータの有効な指定可能指示ガイドライン")
     prompt_constraints: str | None = Field(None, description="プロンプトパラメータの構造的な制約ガイドライン")
+    example: Any | None = Field(None, description="パラメータの正常系テスト用の代表的な入力値例（任意）")
 
 
 class StepType(StrEnum):
@@ -109,6 +110,7 @@ class FunctionDefinition(BaseModel):
     description: str = Field(..., description="関数の役割や目的の説明")
     parameters: list[Parameter] = Field(..., description="関数の入力パラメータリスト")
     response_parameters: list[Parameter] | None = Field(None, description="関数の構造化出力パラメータ定義（STRUCTURED_JSON時に使用されます）")
+    response_type: str | None = Field(None, description="output_mode が VALUE_ONLY または CONVERSATIONAL の場合に、関数が返すプリミティブな型（例: 'str', 'int', 'bool', 'list[str]' など。任意）")
 
 
 class SkillDesign(BaseModel):
@@ -130,6 +132,9 @@ class SkillDesign(BaseModel):
             if self.output_mode != OutputMode.STRUCTURED_JSON:
                 if fn.response_parameters:
                     raise ValueError("Function-level response_parameters can only be defined when output_mode is 'STRUCTURED_JSON'")
+            else:
+                if fn.response_type:
+                    raise ValueError("Function-level response_type cannot be defined when output_mode is 'STRUCTURED_JSON'")
         return self
 
     @classmethod
