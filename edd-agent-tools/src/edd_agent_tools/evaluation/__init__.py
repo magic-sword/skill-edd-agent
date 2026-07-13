@@ -17,10 +17,14 @@ def __getattr__(name: str) -> Any:
         from .applier import ArtifactApplier, LocalFileApplier
         if name == "ArtifactApplier": return ArtifactApplier
         if name == "LocalFileApplier": return LocalFileApplier
+
+    if name == "GitSandbox":
+        from .sandbox import GitSandbox
+        return GitSandbox
         
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
 __all__ = [
     "SkillEval", "UnitEval", "TriggerEval", "SimulationEval", 
-    "LocalWorkspaceEnv", "ArtifactApplier", "LocalFileApplier"
+    "LocalWorkspaceEnv", "ArtifactApplier", "LocalFileApplier", "GitSandbox"
 ]
