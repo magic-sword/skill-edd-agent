@@ -3,8 +3,9 @@ Unified CLI runner for executing agent skills dynamically based on their handler
 """
 import sys
 import os
-import argparse
 import json
+import inspect
+from typing import Dict, Any, Callable
 
 # 多言語パッチ（モンキーパッチ）の強制インプロセス適用
 try:
@@ -18,61 +19,88 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 from google.adk.tools import ToolContext
 from edd_agent_tools.run.mock_context import MockInvocationContext
 from edd_agent_tools.run.loader import SkillLoader
-from edd_agent_tools.run.cli_parser import SchemaArgumentParser
+from edd_agent_tools.run.cli_parser import FunctionArgumentParser
 
 class SkillRunner:
     """
-    動的にロードされたスキルを実行し、ToolContext のセットアップと結果の出力を管理するランナー。
+    動的にロードされたスキル内の関数を実行し、ToolContext のセットアップと結果の出力を管理するランナー。
     """
-    def __init__(self, skill_name: str):
+    def __init__(self, skill_name: str, functions: Dict[str, Callable]):
         self.skill_name = skill_name
-        self.loader = SkillLoader(skill_name)
+        self.functions = functions
 
     def run(self):
-        # 1. handler.py から定義をロード
-        try:
-            metadata, InputSchema, process_message = self.loader.load()
-        except Exception as e:
-            print(f"Error loading skill module: {e}", file=sys.stderr)
-            sys.exit(1)
+        # 1. 実行対象関数の決定
+        # 位置引数として関数名が指定されているか確認する
+        args = sys.argv[2:]
+        func_name = None
+        
+        if len(self.functions) == 1:
+            # 公開関数が1つだけの場合は、関数名を省略可能とする
+            func_name = list(self.functions.keys())[0]
+            # もし最初の引数がその関数名であれば消費する
+            if args and args[0] == func_name:
+                args = args[1:]
+        else:
+            # 複数ある場合は、最初の位置引数を関数名として強制
+            if not args or args[0].startswith("-"):
+                func_list = ", ".join(self.functions.keys())
+                print(f"Error: Multiple functions found in '{self.skill_name}'. You must specify which function to run as the first argument.", file=sys.stderr)
+                print(f"Available functions: {func_list}", file=sys.stderr)
+                sys.exit(1)
+            func_name = args[0]
+            if func_name not in self.functions:
+                func_list = ", ".join(self.functions.keys())
+                print(f"Error: Function '{func_name}' not found in '{self.skill_name}'.", file=sys.stderr)
+                print(f"Available functions: {func_list}", file=sys.stderr)
+                sys.exit(1)
+            args = args[1:]
 
-        description = metadata.get("description", f"CLI runner for {self.skill_name}")
-
-        # 2. Pydanticから引数パーサーを構築・実行
-        arg_parser = SchemaArgumentParser(InputSchema, description)
+        target_func = self.functions[func_name]
+        
+        # 2. パーサーの構築と引数のパース・検証
+        parser = FunctionArgumentParser(target_func, f"CLI runner for {self.skill_name}.{func_name}")
         try:
-            validated_input, parsed_args = arg_parser.parse_and_validate(sys.argv[2:])
+            validated_args, parsed_args = parser.parse_args(args)
         except Exception as e:
             print(f"Validation Error: {e}", file=sys.stderr)
             sys.exit(1)
 
-        # 3. ToolContext の初期化と Mock Context のバインド
-        tool_context = ToolContext(invocation_context=MockInvocationContext())
-        tool_context.state["validated_input"] = validated_input
+        # 3. ToolContext のインジェクション判定とバインド
+        sig = inspect.signature(target_func)
+        context_param_name = None
+        for name, param in sig.parameters.items():
+            if name in ("context", "tool_context") or "ToolContext" in str(param.annotation):
+                context_param_name = name
+                break
 
-        # 4. ビジネスロジック（process_message）の呼び出し
+        if context_param_name:
+            tool_context = ToolContext(invocation_context=MockInvocationContext())
+            validated_args[context_param_name] = tool_context
+        else:
+            tool_context = None
+
+        # 4. 関数の実行
         try:
-            result_message = process_message(validated_input, tool_context)
-            if result_message and isinstance(result_message, str):
-                tool_context.state["message"] = result_message
-                if "status" not in tool_context.state:
-                    tool_context.state["status"] = "passed"
+            result = target_func(**validated_args)
         except Exception as e:
-            print(f"Error executing business logic: {e}", file=sys.stderr)
-            tool_context.state.update({
-                "status": "failed",
-                "message": str(e)
-            })
+            print(f"Error executing function '{func_name}': {e}", file=sys.stderr)
             sys.exit(1)
 
-        # 5. 結果の出力およびファイル保存
-        state_data = tool_context.state.to_dict() if hasattr(tool_context.state, "to_dict") else dict(tool_context.state)
-        
-        # Pydanticオブジェクトはシリアライズできないため除外
-        if "validated_input" in state_data:
-            del state_data["validated_input"]
+        # 5. 結果のシリアライズと出力
+        # もし context が存在し、返り値が None や空の場合は context.state を出力
+        if result is None and tool_context:
+            result_data = tool_context.state.to_dict() if hasattr(tool_context.state, "to_dict") else dict(tool_context.state)
+        else:
+            result_data = result
 
-        result_json = json.dumps(state_data, ensure_ascii=False, indent=2)
+        # PydanticモデルやPydantic由来オブジェクトが返ってきた場合は辞書に変換
+        if hasattr(result_data, "model_dump"):
+            result_data = result_data.model_dump()
+        elif hasattr(result_data, "dict"):
+            result_data = result_data.dict()
+
+        result_json = json.dumps(result_data, ensure_ascii=False, indent=2)
         print(result_json)
 
         if parsed_args.output_json:
@@ -85,10 +113,8 @@ class SkillRunner:
                 sys.exit(1)
 
 def run_cli():
-    # 最初の引数を位置引数としてスキル名を取得
-    # ただし、位置引数（スキル名）の前に --min-tier オプションがある場合は、それを除去・解析する
     args = sys.argv[1:]
-    min_tier_val = None  # デフォルトは None (save側で READ_ONLY になる)
+    min_tier_val = None
     
     filtered_args = []
     i = 0
@@ -96,10 +122,8 @@ def run_cli():
         if args[i] in ("--min-tier", "--min_tier"):
             if i + 1 < len(args):
                 try:
-                    # 数値（0〜3）での指定を想定
                     min_tier_val = int(args[i+1])
                 except ValueError:
-                    # 文字列名（SANDBOX 等）での指定もサポート
                     from edd_agent_tools.skills.models import SkillTier
                     try:
                         min_tier_val = SkillTier[args[i+1].upper()]
@@ -113,13 +137,10 @@ def run_cli():
 
     if not filtered_args or filtered_args[0].startswith("-"):
         print("Error: Skill name is required as the first argument.", file=sys.stderr)
-        print("Usage: python3 -m edd_agent_tools.run [--min-tier <val>] <skill_name> [options]", file=sys.stderr)
+        print("Usage: python3 -m edd_agent_tools.run [--min-tier <val>] <skill_name> [function_name] [options]", file=sys.stderr)
         sys.exit(1)
 
     skill_name = filtered_args[0]
-    
-    # sys.argv 自体を書き換えて、下流の SchemaArgumentParser などのパース処理が正しく動作するように調整する
-    # argv[0] はそのまま残し、残りの引数を filtered_args[1:] で置き換える
     sys.argv = [sys.argv[0], skill_name] + filtered_args[1:]
 
     # 【最新設定の同期と skills.json の出力（自動同期）】
@@ -128,7 +149,6 @@ def run_cli():
         state = SkillsState()
         state.load()
         
-        # 閾値が指定された場合は Pydantic Enum 型に変換して save に引き渡す
         filter_tier = None
         if min_tier_val is not None:
             filter_tier = SkillTier(min_tier_val)
@@ -137,7 +157,15 @@ def run_cli():
     except Exception as e:
         print(f"Warning: Failed to sync and generate skills.json: {e}", file=sys.stderr)
 
-    runner = SkillRunner(skill_name)
+    # スキルモジュールのロード
+    try:
+        loader = SkillLoader(skill_name)
+        functions = loader.load()
+    except Exception as e:
+        print(f"Error loading skill module '{skill_name}': {e}", file=sys.stderr)
+        sys.exit(1)
+
+    runner = SkillRunner(skill_name, functions)
     runner.run()
 
 if __name__ == "__main__":

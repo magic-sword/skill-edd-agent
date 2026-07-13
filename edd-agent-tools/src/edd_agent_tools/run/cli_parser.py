@@ -1,56 +1,77 @@
 import argparse
 import json
-from typing import Type, Dict, Any, List, Tuple
-from pydantic import BaseModel
-from typing import get_origin, get_args, Union
+import inspect
+from typing import Type, Dict, Any, List, Tuple, Callable, get_origin, get_args, Union
 
-class SchemaArgumentParser:
+class FunctionArgumentParser:
     """
-    Pydanticモデル（InputSchema）から、argparse のオプション引数を動的に構築・パースし、
-    入力値の検証および型への復元を行うパーサー。
+    関数のシグネチャ（引数定義、型ヒント、デフォルト値）から argparse の引数を動的に構築し、
+    入力値のパースと型変換を行うパーサー。
     """
-    def __init__(self, InputSchema: Type[BaseModel], description: str = ""):
-        self.InputSchema = InputSchema
+    def __init__(self, func: Callable, description: str = ""):
+        self.func = func
         self.description = description
         self.parser = argparse.ArgumentParser(
-            description=description,
+            description=description or func.__doc__,
             formatter_class=argparse.RawTextHelpFormatter
         )
+        self.sig = inspect.signature(func)
+        self.parameters = self.sig.parameters
         self._build_parser()
 
     def _build_parser(self):
         # 共通引数の登録
         self.parser.add_argument("--output_json", help="Path to save the output JSON data")
 
-        # Pydanticモデルから動的に引数を登録
-        for field_name, field_info in self.InputSchema.model_fields.items():
-            if field_name in ["output_json"]:
+        # 関数のパラメータから引数を動的に登録
+        for name, param in self.parameters.items():
+            # ToolContext または context などの特殊な引数は CLI 引数から除外
+            if name in ("context", "tool_context") or "ToolContext" in str(param.annotation):
                 continue
-            opt_name = f"--{field_name}"
-            field_type = field_info.annotation
-
+                
+            opt_name = f"--{name}"
+            param_type = param.annotation
+            
             # Union（Optional）型から基本型をアンラップ
-            origin = get_origin(field_type)
+            origin = get_origin(param_type)
             if origin is Union:
-                args_types = [a for a in get_args(field_type) if a is not type(None)]
+                args_types = [a for a in get_args(param_type) if a is not type(None)]
                 if args_types:
-                    field_type = args_types[0]
-
-            origin_type = get_origin(field_type) or field_type
-            if origin_type in (int, float, bool, str):
+                    param_type = args_types[0]
+                    
+            origin_type = get_origin(param_type) or param_type
+            
+            # 型が不明または Any の場合は str にする
+            if origin_type is inspect.Parameter.empty or origin_type is Any:
+                parser_type = str
+            elif origin_type in (int, float, bool, str):
                 parser_type = origin_type
             else:
-                parser_type = str  # list, dict等のコンテナ型は一旦文字列として受け取る
+                parser_type = str  # list, dict等は一旦文字列で受け取って後でパース
 
-            required = field_info.is_required()
-            default = field_info.default if not required else None
+            required = param.default is inspect.Parameter.empty
+            default = param.default if not required else None
 
-            help_text = field_info.description or ""
+            # bool値の引数の型キャストヘルパー
+            if parser_type is bool:
+                def str2bool(v):
+                    if isinstance(v, bool):
+                        return v
+                    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+                        return True
+                    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+                        return False
+                    else:
+                        raise argparse.ArgumentTypeError('Boolean value expected.')
+                parser_type = str2bool
+
+            # ヘルプ文言の作成
+            type_name = origin_type.__name__ if hasattr(origin_type, '__name__') else str(origin_type)
+            help_text = f"Type: {type_name}"
             if required:
                 help_text = f"(必須) {help_text}"
             elif default is not None:
                 help_text = f"{help_text} (デフォルト: {default})"
-            help_text = help_text.replace("%", "%%")
 
             self.parser.add_argument(
                 opt_name,
@@ -60,26 +81,25 @@ class SchemaArgumentParser:
                 help=help_text
             )
 
-    def parse_and_validate(self, args_list: List[str]) -> Tuple[BaseModel, argparse.Namespace]:
-        """
-        引数をパースし、Pydanticのモデルクラスによるバリデーションを実施したインスタンスを返します。
-        """
+    def parse_args(self, args_list: List[str]) -> Tuple[Dict[str, Any], argparse.Namespace]:
+        """引数をパースし、型キャストされた辞書形式の引数を返します。"""
         parsed_args = self.parser.parse_args(args_list)
-
-        raw_params = {}
-        for field_name, field_info in self.InputSchema.model_fields.items():
-            val = getattr(parsed_args, field_name)
+        
+        args_dict = {}
+        for name, param in self.parameters.items():
+            if name in ("context", "tool_context") or "ToolContext" in str(param.annotation):
+                continue
+                
+            val = getattr(parsed_args, name)
             if val is not None:
-                field_type = field_info.annotation
-                origin = get_origin(field_type) or field_type
-                # リストや辞書などのコンテナ型に文字列が渡されていた場合、JSONパースを試みる
+                param_type = param.annotation
+                origin = get_origin(param_type) or param_type
+                # コンテナ型（list, dict等）の場合、JSONとしてデコードしてみる
                 if isinstance(val, str) and origin in (list, dict, set, tuple):
                     try:
                         val = json.loads(val)
                     except Exception:
                         pass
-                raw_params[field_name] = val
-
-        # バリデーションの実行
-        validated_input = self.InputSchema.model_validate(raw_params)
-        return validated_input, parsed_args
+                args_dict[name] = val
+                
+        return args_dict, parsed_args
