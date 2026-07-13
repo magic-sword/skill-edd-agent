@@ -84,3 +84,25 @@ class WorkspaceObservation(BaseModel):
         "idle",
         description="直前のアクションの実行結果ステータス（例: 'file_written', 'pytest_passed', 'pytest_failed'）"
     )
+
+from typing import Protocol, Tuple, Dict, Any, runtime_checkable
+
+@runtime_checkable
+class WorkspaceEnvProtocol(Protocol):
+    """スキルやツールが動作するために要求する、ワークスペース環境のインターフェース。"""
+    
+    def reset(self, seed: int = None, options: Dict[str, Any] = None) -> Tuple[WorkspaceObservation, Dict[str, Any]]:
+        """環境を初期状態にリセットします。"""
+        ...
+        
+    def step(self, action: WorkspaceAction) -> Tuple[WorkspaceObservation, float, bool, bool, Dict[str, Any]]:
+        """アクションを実行し、環境を1ステップ進めます。"""
+        ...
+        
+    def close(self) -> None:
+        """環境を終了し、後片付けを行います。"""
+        ...
+        
+    def export_artifacts(self) -> WorkspaceArtifacts:
+        """初期状態からの変更・新規作成・削除された差分ファイルを抽出します。"""
+        ...

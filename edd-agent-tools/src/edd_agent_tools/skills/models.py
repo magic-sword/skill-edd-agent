@@ -1,9 +1,62 @@
 import json
 import os
-from enum import StrEnum
+from enum import StrEnum, IntEnum
+from pathlib import Path
 from typing import Literal, Union, Annotated, Any
 from pydantic import BaseModel, Field, model_validator, TypeAdapter
 from edd_agent_tools.schema_utils import PromptField
+
+# ==========================================
+# 1. 元の skills/models.py 定義 (skills_state.json 管理用)
+# ==========================================
+
+class SkillTier(IntEnum):
+    """スキルのセキュリティ・権限階層を定義する列挙型"""
+    SANDBOX = 0          # 暫定 / 新規スキルのテスト用
+    READ_ONLY = 1        # Read-Only: ファイルの読み込みのみ許可
+    DRAFT_ONLY = 2       # Draft-Only: 提案ファイルの作成のみ許可
+    ACTION_ALLOWED = 3   # Action-Allowed: すべての実アクションを許可
+
+
+class SkillEntry(BaseModel):
+    """スキルまたはエージェントのディレクトリパス"""
+    path: Path = Field(..., description="カスタムスキルフォルダへのパス")
+
+
+class InheritEntry(BaseModel):
+    """継承元のマニフェスト定義ファイルパス"""
+    path: Path = Field(..., description="継承元の共通マニフェストファイルへのパス")
+
+
+class ProjectSkillInfo(BaseModel):
+    """skills_state.json で管理される各スキル/エージェントのプロジェクト品質メタデータ"""
+    tier: SkillTier = Field(SkillTier.SANDBOX, description="スキルの権限階層")
+
+
+class SkillsStateJson(BaseModel):
+    """ADK公式仕様に準拠した、3つの基本フィールドを持つ skills_state.json 用の基本スキーマモデル。
+
+    探索と優先順位のマージ規則:
+      1. entries (探索パスの優先順):
+         ローカルの entries が最優先され、その後 inherits で指定された継承先の探索パスが順に末尾へ追記されます。
+         同名のスキルが複数発見された場合は、探索リストの先頭（ローカル優先）のものがマウントされ、後続はシャドウイング（無視）されます。
+      2. inherits (継承元マニフェスト):
+         別のマニフェストファイルをインポートし、探索パスを多重解決します。
+      3. exclude (除外リストの累積):
+         ローカルの除外リストと、すべての継承元で定義された除外リストが累積（論理和マージ）されます。
+    """
+    entries: list[SkillEntry] = Field(..., description="スキル探索対象のパスリスト")
+    inherits: list[InheritEntry] = Field(default_factory=list, description="継承元設定ファイルのリスト")
+    exclude: list[str] = Field(default_factory=list, description="除外するスキル名のリスト")
+
+    # プロジェクト独自の拡張メタデータ (論理モジュール名をキーにしたオブジェクトマップ形式)
+    skills: dict[str, ProjectSkillInfo] = Field(default_factory=dict, description="登録されている各スキルおよびワークフローの品質ステータス情報")
+    agents: dict[str, ProjectSkillInfo] = Field(default_factory=dict, description="登録されている各自律エージェントの品質ステータス情報")
+
+
+# ==========================================
+# 2. 旧 root models.py から移動された定義 (Skill/Workflow設計用)
+# ==========================================
 
 class OutputMode(StrEnum):
     VALUE_ONLY = "VALUE_ONLY"
@@ -47,7 +100,7 @@ class Step(BaseModel):
     description: str | None = Field(None, description="typeが 'function' または 'agent' の場合に、ノードの役割・処理要件を記述する説明")
     instruction: str | None = Field(None, description="typeが 'agent' の場合に、エージェントへ与えるシステムプロンプト/指示")
     tools: list[str] | None = Field(None, description="typeが 'agent' の場合に、エージェントが使用可能なツールのリスト")
-    inputs: dict[str, str] | None = Field(None, description="引数マッピング辞書。キーはステップに入力される引数名、値は tool_context.state から取得する値（またはPython의 評価式）")
+    inputs: dict[str, str] | None = Field(None, description="引数マッピング辞書。キーはステップに入力される引数名、値は tool_context.state から取得する値（またはPythonの評価式）")
 
 
 class FunctionDefinition(BaseModel):
@@ -65,7 +118,7 @@ class SkillDesign(BaseModel):
     description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明（L1 description用）")
     summary: str | None = Field(None, description="スキルの仕様概要")
     module_type: Literal[ModuleType.SKILL] = Field(ModuleType.SKILL, description="モジュールの役割分類。単一スキルは必ず 'skill'")
-    execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
+    execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推推推論)")
     output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
     dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
     constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")

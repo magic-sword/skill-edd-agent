@@ -114,39 +114,69 @@ AIエージェントによる自動コード書き換え時の安全性と信頼
 ### ③ ホスト仮想環境の共有オプション (`use_host_venv`)
 サンドボックス起動のたびに `pip install` が走るオーバーヘッドを解消するため、親プロジェクトの既存の `.venv` の Python インタプリタを共有してテストを実行するオプションを提供します。
 
-### ④ 利用コード例
+### ④ 実行環境の抽象化プロトコル (`WorkspaceEnvProtocol`)
+スキルやエージェントが動作するために要求するワークスペース環境の操作は、**`WorkspaceEnvProtocol`** プロトコルとして抽象化されています。これにより、テストと本番直接適用を透過的に切り替える（DI）ことができます。
+
+*   **`LocalWorkspaceEnv` (一時サンドボックス環境)**:
+    一時ディレクトリに複製した環境で安全にテストを検証する環境クラス。
+*   **`RealWorkspaceEnv` (本番直接操作環境)**:
+    隔離を行わず、指定された `workspace_dir` に対する直接の読み書き、および pytest の直接実行を行う環境クラス（直接適用ルート）。
+
+### ⑤ CLI ランナーでの自動インジェクションと切り替え
+スキル関数の引数名が `env` / `environment` であるか、型ヒントに `WorkspaceEnvProtocol` が指定されている場合、CLI ランナー（`edd_agent_tools.run`）は実行環境を自動構築して注入します。
+
+また、CLI のオプションから環境の挙動を直接切り替えることができます。
+*   `--env` / `-e`: `sandbox`（デフォルト）または `real`。使用する具象環境クラスを切り替えます。
+*   `--workspace-dir` / `-w`: 基準となるワークスペースのパス（デフォルトは `.`）。
+*   `--apply`: `--env sandbox` でスキル関数が例外なく正常に完了した場合に、自動的に本番へ変更差分を書き戻します（安全な自動適用）。
+
+#### コマンド実行例:
+```bash
+# 安全なサンドボックスで検証し、テスト成功時のみ自動適用する
+python3 -m edd_agent_tools.run my-skill my_func --env sandbox --apply --workspace-dir /my/project
+
+# 本番環境で直接実行する
+python3 -m edd_agent_tools.run my-skill my_func --env real --workspace-dir /my/project
+```
+
+### ⑥ 利用コード例
 
 ```python
-from edd_agent_tools.evaluation import LocalWorkspaceEnv, LocalFileApplier
+from edd_agent_tools import (
+    LocalWorkspaceEnv, 
+    RealWorkspaceEnv, 
+    WorkspaceEnvProtocol,
+    LocalFileApplier
+)
 from edd_agent_tools.evaluation.models import WriteFileAction, RunPytestAction
 
-# 1. 隔離された環境で検証を実行 (常に一時サンドボックスで隔離動作します)
-env = LocalWorkspaceEnv(workspace_dir="/workspace/my_project", use_host_venv=True)
-obs, info = env.reset()
+# 1. 依存性注入 (DI) を用いた透過的なスキル関数の実装例
+def refactor_code(env: WorkspaceEnvProtocol, file_path: str):
+    # 環境の種類を意識せず、共通のプロトコルで操作可能
+    env.step(WriteFileAction(path=file_path, content="def improved_logic(): pass"))
+    obs, _, terminated, _, _ = env.step(RunPytestAction())
+    return terminated
 
-# Pydantic スキーマモデルを使ってアクションを実行
-action_write = WriteFileAction(
-    path="src/logic.py",
-    content="def hello(): pass"
-)
-obs, reward, terminated, _, info = env.step(action_write)
+# 2. 隔離された一時環境での呼び出し例 (トランザクション適用)
+env_sandbox = LocalWorkspaceEnv(workspace_dir="/workspace/my_project")
+env_sandbox.reset()
 
-# 観測値（obs）も Pydantic オブジェクトなので、IDE でプロパティが自動補完されます
-print(f"Current Status: {obs.status}")
+success = refactor_code(env_sandbox, "src/logic.py")
 
-# テスト実行アクション
-obs, reward, terminated, _, info = env.step(RunPytestAction())
-print(f"Pytest Output:\n{obs.pytest_output}")
-
-# 差分（成果物）の抽出
-artifacts = env.export_artifacts()
-
-# 2. 永続化（本番書き戻し）のコントロール
-if terminated:  # pytest に 100% 合格した場合のみ本番へ永続化
+# 差分（成果物）の抽出と本番適用
+if success:
+    artifacts = env_sandbox.export_artifacts()
     applier = LocalFileApplier(target_dir="/workspace/my_project")
     applier.apply(artifacts)
 
-env.close()  # サンドボックスは消去され、本番に合格した成果物だけが残ります
+env_sandbox.close()
+
+# 3. 本番直接操作環境での呼び出し例 (直接書き換え)
+env_real = RealWorkspaceEnv(workspace_dir="/workspace/my_project")
+env_real.reset()
+
+refactor_code(env_real, "src/logic.py") # 本番ファイルが直接書き換わります
+env_real.close()
 ```
 
 ---

@@ -56,6 +56,9 @@ def __getattr__(name: str):
         "SkillEval": (".evaluation", "SkillEval"),
         "UnitEval": (".evaluation", "UnitEval"),
         "TriggerEval": (".evaluation", "TriggerEval"),
+        "LocalWorkspaceEnv": (".evaluation", "LocalWorkspaceEnv"),
+        "RealWorkspaceEnv": (".evaluation", "RealWorkspaceEnv"),
+        "WorkspaceEnvProtocol": (".evaluation", "WorkspaceEnvProtocol"),
         # gemini
         "GeminiClient": (".gemini", "GeminiClient"),
         "GeminiRequest": (".gemini", "GeminiRequest"),
@@ -81,6 +84,6 @@ def __dir__():
         "WriteFileAction", "ViewFileAction", "RunPytestAction", "WorkspaceObservation", "FileState",
         "clean_pydantic_schema", "PromptField",
         "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "SafeWriteFileTool", "SafeEditFileTool", 
-        "SkillEval", "UnitEval", "TriggerEval", "GeminiClient", "GeminiRequest", "gemini", 
-        "LibraryDocumentationReader"
+        "SkillEval", "UnitEval", "TriggerEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol",
+        "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
     ])

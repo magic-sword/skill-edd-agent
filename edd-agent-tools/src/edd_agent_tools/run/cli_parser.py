@@ -25,8 +25,8 @@ class FunctionArgumentParser:
 
         # 関数のパラメータから引数を動的に登録
         for name, param in self.parameters.items():
-            # ToolContext または context などの特殊な引数は CLI 引数から除外
-            if name in ("context", "tool_context") or "ToolContext" in str(param.annotation):
+            # ToolContext や WorkspaceEnvProtocol (または context, env などの引数) は CLI 引数から除外して自動注入対象とする
+            if name in ("context", "tool_context", "env", "environment") or "ToolContext" in str(param.annotation) or "WorkspaceEnvProtocol" in str(param.annotation):
                 continue
                 
             opt_name = f"--{name}"
@@ -87,7 +87,7 @@ class FunctionArgumentParser:
         
         args_dict = {}
         for name, param in self.parameters.items():
-            if name in ("context", "tool_context") or "ToolContext" in str(param.annotation):
+            if name in ("context", "tool_context", "env", "environment") or "ToolContext" in str(param.annotation) or "WorkspaceEnvProtocol" in str(param.annotation):
                 continue
                 
             val = getattr(parsed_args, name)

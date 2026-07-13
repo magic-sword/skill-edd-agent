@@ -23,11 +23,21 @@ from edd_agent_tools.run.cli_parser import FunctionArgumentParser
 
 class SkillRunner:
     """
-    動的にロードされたスキル内の関数を実行し、ToolContext のセットアップと結果の出力を管理するランナー。
+    動的にロードされたスキル内の関数を実行し、ToolContext および Workspace環境 のセットアップと結果の出力を管理するランナー。
     """
-    def __init__(self, skill_name: str, functions: Dict[str, Callable]):
+    def __init__(
+        self, 
+        skill_name: str, 
+        functions: Dict[str, Callable],
+        env_type: str = "sandbox",
+        workspace_dir: str = ".",
+        apply_on_success: bool = False
+    ):
         self.skill_name = skill_name
         self.functions = functions
+        self.env_type = env_type
+        self.workspace_dir = os.path.abspath(workspace_dir)
+        self.apply_on_success = apply_on_success
 
     def run(self):
         # 1. 実行対象関数の決定
@@ -80,21 +90,57 @@ class SkillRunner:
         else:
             tool_context = None
 
-        # 4. 関数の実行
+        # 3-2. env (WorkspaceEnvProtocol) のインジェクション判定とバインド
+        env_param_name = None
+        for name, param in sig.parameters.items():
+            if name in ("env", "environment") or "WorkspaceEnvProtocol" in str(param.annotation):
+                env_param_name = name
+                break
+
+        env_instance = None
+        if env_param_name:
+            from edd_agent_tools.evaluation import LocalWorkspaceEnv, RealWorkspaceEnv
+            if self.env_type == "real":
+                env_instance = RealWorkspaceEnv(workspace_dir=self.workspace_dir)
+            else:
+                env_instance = LocalWorkspaceEnv(workspace_dir=self.workspace_dir)
+            
+            # 環境の初期化
+            env_instance.reset()
+            validated_args[env_param_name] = env_instance
+
+        # 4. 関数の実行と例外クリーンアップ
+        result = None
+        execution_success = False
         try:
             result = target_func(**validated_args)
+            execution_success = True
         except Exception as e:
             print(f"Error executing function '{func_name}': {e}", file=sys.stderr)
             sys.exit(1)
+        finally:
+            if env_instance:
+                # sandbox 実行で成功した場合に自動永続化
+                if self.env_type == "sandbox" and self.apply_on_success and execution_success:
+                    try:
+                        from edd_agent_tools.evaluation import LocalFileApplier
+                        artifacts = env_instance.export_artifacts()
+                        if artifacts.modified_files or artifacts.deleted_files:
+                            print(f"[CLI] Applying sandbox artifacts to production directory '{self.workspace_dir}'...", file=sys.stderr)
+                            applier = LocalFileApplier(target_dir=self.workspace_dir)
+                            applier.apply(artifacts)
+                        else:
+                            print("[CLI] No changes detected in sandbox. Skipping apply.", file=sys.stderr)
+                    except Exception as e:
+                        print(f"[CLI] Error applying sandbox artifacts: {e}", file=sys.stderr)
+                env_instance.close()
 
         # 5. 結果のシリアライズと出力
-        # もし context が存在し、返り値が None や空の場合は context.state を出力
         if result is None and tool_context:
             result_data = tool_context.state.to_dict() if hasattr(tool_context.state, "to_dict") else dict(tool_context.state)
         else:
             result_data = result
 
-        # PydanticモデルやPydantic由来オブジェクトが返ってきた場合は辞書に変換
         if hasattr(result_data, "model_dump"):
             result_data = result_data.model_dump()
         elif hasattr(result_data, "dict"):
@@ -115,6 +161,9 @@ class SkillRunner:
 def run_cli():
     args = sys.argv[1:]
     min_tier_val = None
+    env_type = "sandbox"
+    workspace_dir = os.getcwd()
+    apply_on_success = False
     
     filtered_args = []
     i = 0
@@ -132,12 +181,30 @@ def run_cli():
                         sys.exit(1)
                 i += 2
                 continue
+        elif args[i] in ("--env", "-e"):
+            if i + 1 < len(args):
+                env_type = args[i+1].lower()
+                if env_type not in ("sandbox", "real"):
+                    print(f"Error: Invalid --env value: {args[i+1]}. Must be 'sandbox' or 'real'.", file=sys.stderr)
+                    sys.exit(1)
+            i += 2
+            continue
+        elif args[i] in ("--workspace-dir", "--workspace_dir", "-w"):
+            if i + 1 < len(args):
+                workspace_dir = args[i+1]
+            i += 2
+            continue
+        elif args[i] == "--apply":
+            apply_on_success = True
+            i += 1
+            continue
+
         filtered_args.append(args[i])
         i += 1
 
     if not filtered_args or filtered_args[0].startswith("-"):
         print("Error: Skill name is required as the first argument.", file=sys.stderr)
-        print("Usage: python3 -m edd_agent_tools.run [--min-tier <val>] <skill_name> [function_name] [options]", file=sys.stderr)
+        print("Usage: python3 -m edd_agent_tools.run [--min-tier <val>] [--env <sandbox|real>] [--workspace-dir <path>] [--apply] <skill_name> [function_name] [options]", file=sys.stderr)
         sys.exit(1)
 
     skill_name = filtered_args[0]
@@ -165,7 +232,13 @@ def run_cli():
         print(f"Error loading skill module '{skill_name}': {e}", file=sys.stderr)
         sys.exit(1)
 
-    runner = SkillRunner(skill_name, functions)
+    runner = SkillRunner(
+        skill_name, 
+        functions, 
+        env_type=env_type, 
+        workspace_dir=workspace_dir, 
+        apply_on_success=apply_on_success
+    )
     runner.run()
 
 if __name__ == "__main__":
