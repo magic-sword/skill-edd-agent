@@ -39,21 +39,40 @@ class SkillExecutor:
                 raise ValueError("'skill' parameter is required.")
 
             target_skill = self._state.get_skill(skill_name)
-            
-            eval_set_path = self.eval_set_path
-            eval_obj = target_skill.get_eval(eval_set_path)
+            eval_obj = target_skill.get_eval()
 
-            print(f"Running mock-executor for skill: {skill_name}")
-            print(f"Eval set: {eval_set_path}")
+            print(f"Running simulation-executor for skill: {skill_name}")
+            print(f"Eval set: {self.eval_set_path}")
             
             threshold_accuracy = self.threshold_accuracy
             timeout_seconds = self.timeout_seconds
             print(f"Threshold accuracy: {threshold_accuracy:.4f}, Timeout: {timeout_seconds}s")
 
-            eval_result = eval_obj.execute(
-                timeout_seconds=timeout_seconds,
-                config_file_path=self.config_file_path
+            # 評価設定ファイルの準備
+            config_path = self.config_file_path if self.config_file_path else eval_obj.prepare_config()
+            with open(config_path, "r", encoding="utf-8") as f:
+                import json
+                config_data = json.load(f)
+            
+            max_steps = config_data.get("max_steps", 15)
+            initial_prompt = config_data.get("initial_prompt", "目標に向かって行動してください。")
+
+            # 環境を明示的に構築・破棄してシミュレーションを実行 (関心の分離)
+            from edd_agent_tools.evaluation import LocalWorkspaceEnv
+            env = LocalWorkspaceEnv(
+                workspace_dir="/workspace",
+                use_git=True,
+                use_host_venv=True
             )
+            try:
+                env.reset()
+                eval_result = eval_obj.execute_simulation(
+                    env=env,
+                    max_steps=max_steps,
+                    initial_prompt=initial_prompt
+                )
+            finally:
+                env.close()
             
             output_message, is_passed, accuracy = self._process_eval_result(eval_result, threshold_accuracy)
             status = 'success' if is_passed else 'failed'

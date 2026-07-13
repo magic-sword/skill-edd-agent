@@ -1,7 +1,7 @@
 import os
 from typing import Literal, Any
 from .models import SkillDesign
-from edd_agent_tools.evaluation import SkillEval, UnitEval, TriggerEval, SimulationEval
+from edd_agent_tools.evaluation import SimulationEval
 
 class Skill:
     """特定のスキルパッケージ全体のモデル（フォルダ構造、アセット、動的ロード、ツール化など）を表現・管理するドメインクラス。
@@ -156,21 +156,14 @@ class Skill:
         with open(spec_path, "r", encoding="utf-8") as f:
             return f.read()
 
-    def get_eval(self, eval_type_or_path: str) -> "SkillEval":
-        """適切な SkillEval（UnitEval または TriggerEval）のインスタンスを取得します。
-
-        Args:
-            eval_type_or_path: 評価タイプ名（"unit" または "trigger"）、あるいは評価ケースファイルのパス。
+    def get_eval(self) -> "SimulationEval":
+        """このスキルの SimulationEval インスタンスを取得します。
 
         Returns:
-            対応する SkillEval 派生クラスインスタンス（UnitEval または TriggerEval）。
+            SimulationEval: シミュレーション評価インスタンス。
         """
-        basename = os.path.basename(eval_type_or_path)
-        if "trigger" in basename or eval_type_or_path == "trigger":
-            return TriggerEval(self)
-        if "simulation" in basename or eval_type_or_path == "simulation" or eval_type_or_path == "sim":
-            return SimulationEval(self)
-        return UnitEval(self)
+        from edd_agent_tools.evaluation import SimulationEval
+        return SimulationEval(self)
 
     def load_module(self):
         """このスキルパッケージの scripts/__init__.py をロードしモジュールオブジェクトを返します。

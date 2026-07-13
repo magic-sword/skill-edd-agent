@@ -34,7 +34,7 @@ class AssetManager:
         # 評価設定のモデル化
         config = TriggerEvalConfig()
 
-        eval_obj = target_dir.get_eval("trigger")
+        eval_obj = target_dir.get_eval()
         eval_set_filepath = eval_obj.save_eval_set(eval_set.model_dump())
         config_filepath = eval_obj.save_config(config.model_dump())
 
