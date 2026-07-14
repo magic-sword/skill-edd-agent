@@ -1,4 +1,4 @@
-from edd_agent_tools.models import SkillDesign
+from edd_agent_tools import SkillDesign
 
 class HandlerWriter:
     """

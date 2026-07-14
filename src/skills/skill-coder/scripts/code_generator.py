@@ -3,7 +3,7 @@
 """
 from typing import List
 from edd_agent_tools.skills import Skill
-from edd_agent_tools.models import SkillDesign, ModuleType
+from edd_agent_tools import SkillDesign, ModuleType
 
 from .generators.base import BaseCodeGenerator
 from .generators.skill_generator import ToolSkillCodeGenerator

@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 from edd_agent_tools.skills import Skill
-from edd_agent_tools.models import SkillDesign
+from edd_agent_tools import SkillDesign
 
 class BaseCodeGenerator(ABC):
     """

@@ -5,7 +5,7 @@ from .workflow_writer import WorkflowSpecWriter
 class SpecWriterFactory:
     @staticmethod
     def create(design_data, source_code_dir: str, prompt: str | None = None) -> BaseSpecWriter:
-        from edd_agent_tools.models import ModuleType
+        from edd_agent_tools import ModuleType
         if design_data.module_type == ModuleType.WORKFLOW:
             return WorkflowSpecWriter(design_data, source_code_dir, prompt)
 

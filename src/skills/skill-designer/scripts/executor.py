@@ -3,7 +3,7 @@ import json
 from .models import Output
 from pydantic import TypeAdapter
 from edd_agent_tools.skills import SkillsState, Skill
-from edd_agent_tools.models import ModuleDesign
+from edd_agent_tools import ModuleDesign
 from .client import GeminiDesignClient
 from .prompter import DesignPrompter
 from .resolver import PathResolver

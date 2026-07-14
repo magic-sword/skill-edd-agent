@@ -8,5 +8,6 @@
     }
   ],
   "inherits": [],
-  "exclude": []
+  "exclude": [],
+  "agents": {}
 }

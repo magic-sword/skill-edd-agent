@@ -12,35 +12,40 @@
       "required": true,
       "is_prompt_parameter": true,
       "prompt_instructions": "スキル設計・実装の要件を具体的に記述してください。どのような機能を持つスキルが必要か、どのような入力と出力を期待するか、どのような制約があるかなどを明確に指定してください。",
-      "prompt_constraints": "スキル設計・実装の要件は、明確かつ具体的な指示である必要があります。曖昧な表現や矛盾する指示は避けてください。また、セキュリティやプライバシーに関する要件がある場合は明記してください。"
+      "prompt_constraints": "スキル設計・実装の要件は、明確かつ具体的な指示である必要があります。曖昧な表現や矛盾する指示は避けてください。また、セキュリティやプライバシーに関する要件がある場合は明記してください。",
+      "example": "新しいスキル 'my-new-skill' を設計してください。このスキルは、与えられたURLからウェブページのタイトルと本文を抽出し、JSON形式で返します。"
     },
     {
       "name": "skill",
       "type": "str",
       "description": "対象のスキル名。既存スキルを改修する場合に指定します。",
       "required": false,
-      "default": null
+      "default": null,
+      "example": "my-existing-skill"
     },
     {
       "name": "output_dir",
       "type": "str",
       "description": "成果物の出力先ディレクトリのパス。",
       "required": false,
-      "default": null
+      "default": null,
+      "example": "/tmp/my-new-skill"
     },
     {
       "name": "design_path",
       "type": "str",
       "description": "design.jsonの絶対パス。既存スキルを改修する場合に指定します。",
       "required": false,
-      "default": null
+      "default": null,
+      "example": "/tmp/my-existing-skill/assets/design.json"
     },
     {
       "name": "source_code_dir",
       "type": "str",
       "description": "実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。",
       "required": false,
-      "default": null
+      "default": null,
+      "example": "/tmp/my-existing-skill/scripts"
     }
   ],
   "dependencies": [
@@ -58,19 +63,22 @@
       "choices": [
         "success",
         "failed"
-      ]
+      ],
+      "example": "success"
     },
     {
       "name": "message",
       "type": "str",
       "description": "処理結果のメッセージサマリー。",
-      "required": true
+      "required": true,
+      "example": "スキル開発ワークフローが正常に完了しました。"
     },
     {
       "name": "output_dir",
       "type": "str",
       "description": "最終生成された成果物が格納されたスキルディレクトリの絶対パス。",
-      "required": true
+      "required": true,
+      "example": "/tmp/my-new-skill"
     }
   ],
   "steps": [
@@ -79,21 +87,37 @@
       "type": "skill",
       "target": "skill-designer",
       "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
-      "inputs": {}
+      "inputs": {
+        "prompt": "prompt",
+        "skill": "skill",
+        "output_dir": "output_dir",
+        "source_code_dir": "source_code_dir"
+      }
     },
     {
       "name": "code-skill",
       "type": "skill",
       "target": "skill-coder",
       "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
-      "inputs": {}
+      "inputs": {
+        "prompt": "prompt",
+        "skill": "skill",
+        "design_path": "design_path",
+        "output_dir": "output_dir"
+      }
     },
     {
       "name": "write-spec",
       "type": "skill",
       "target": "skill-spec-writer",
       "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
-      "inputs": {}
+      "inputs": {
+        "prompt": "prompt",
+        "skill": "skill",
+        "design_path": "design_path",
+        "output_dir": "output_dir",
+        "source_code_dir": "source_code_dir"
+      }
     }
   ]
 }

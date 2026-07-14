@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from edd_agent_tools.models import PromptField
+from edd_agent_tools import PromptField
 from typing import Literal
 
 class Input(BaseModel):

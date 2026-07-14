@@ -8,7 +8,7 @@ from google import genai
 from google.genai import types
 
 from typing import Union
-from edd_agent_tools.models import SkillDesign, WorkflowDesign
+from edd_agent_tools import SkillDesign, WorkflowDesign
 from edd_agent_tools.gemini import GeminiRequest
 
 class BaseSpecWriter(ABC):

@@ -5,7 +5,7 @@ from .models import Input, Output
 from .writer.factory import SpecWriterFactory
 
 # 循環参照を避けるため、edd_agent_tools のインポートはここに集約
-from edd_agent_tools.models import SkillDesign
+from edd_agent_tools import SkillDesign
 from edd_agent_tools.skills import SkillsState
 
 class SpecGenerator:

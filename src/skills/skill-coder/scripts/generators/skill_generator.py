@@ -1,7 +1,7 @@
 import os
 from typing import List
 
-from edd_agent_tools.models import SkillDesign
+from edd_agent_tools import SkillDesign
 from ..writer import PydanticModelWriter, HandlerWriter, ExecutorWriter
 from .base import BaseCodeGenerator
 

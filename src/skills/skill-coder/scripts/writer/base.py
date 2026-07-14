@@ -1,4 +1,4 @@
-from edd_agent_tools.models import Parameter
+from edd_agent_tools import Parameter
 
 class PydanticFieldWriter:
     """

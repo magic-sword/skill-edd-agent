@@ -1,4 +1,4 @@
-from edd_agent_tools.models import SkillDesign
+from edd_agent_tools import SkillDesign
 from .base import PydanticFieldWriter
 
 class PydanticModelWriter:
@@ -34,7 +34,7 @@ class PydanticModelWriter:
             )
             
         models_code_list = []
-        from edd_agent_tools.models import OutputMode
+        from edd_agent_tools.skills.models import OutputMode
         output_mode = getattr(self.design, "output_mode", OutputMode.STRUCTURED_JSON)
         
         for fn in self.design.functions:

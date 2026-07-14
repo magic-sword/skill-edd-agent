@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from edd_agent_tools.models import ModuleType, StepType, Parameter
+from edd_agent_tools import ModuleType, StepType, Parameter
 from typing import Literal, Union, Annotated
 
 class SkeletonStep(BaseModel):
