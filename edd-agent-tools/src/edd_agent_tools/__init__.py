@@ -57,6 +57,7 @@ def __getattr__(name: str):
         "LocalWorkspaceEnv": (".evaluation", "LocalWorkspaceEnv"),
         "RealWorkspaceEnv": (".evaluation", "RealWorkspaceEnv"),
         "WorkspaceEnvProtocol": (".evaluation", "WorkspaceEnvProtocol"),
+        "SchemaDrivenTestRunner": (".evaluation", "SchemaDrivenTestRunner"),
         # gemini
         "GeminiClient": (".gemini", "GeminiClient"),
         "GeminiRequest": (".gemini", "GeminiRequest"),
@@ -82,6 +83,6 @@ def __dir__():
         "WriteFileAction", "ViewFileAction", "RunPytestAction", "WorkspaceObservation", "FileState",
         "clean_pydantic_schema", "PromptField",
         "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "SafeWriteFileTool", "SafeEditFileTool", 
-        "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol",
+        "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol", "SchemaDrivenTestRunner",
         "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
     ])
