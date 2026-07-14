@@ -7,7 +7,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from edd_agent_tools.skills import Skill
 from edd_agent_tools.evaluation import WorkspaceEnvProtocol
-from edd_agent_tools.evaluation.models import EvalRunResult
+from edd_agent_tools.evaluation.models import EvalRunResult, EvalCaseSet
 
 class SchemaDrivenTestRunner:
     """
@@ -17,7 +17,7 @@ class SchemaDrivenTestRunner:
     def run_tests(
         self,
         skill: Skill,
-        test_cases_data: Dict[str, Any],
+        test_cases_data: Dict[str, Any] | EvalCaseSet,
         env: WorkspaceEnvProtocol,
         timeout_seconds: int = 180
     ) -> EvalRunResult:
@@ -26,14 +26,22 @@ class SchemaDrivenTestRunner:
 
         Args:
             skill: テスト対象 of Skill オブジェクト。
-            test_cases_data: テストケースデータ辞書（eval_cases を含む）。
+            test_cases_data: テストケースデータ辞書（eval_cases を含む）または EvalCaseSet オブジェクト。
             env: 隔離環境オブジェクト（WorkspaceEnvProtocol）。
             timeout_seconds: タイムアウト秒数（現状は未使用だがAPIの互換性のために残す）。
 
         Returns:
             EvalRunResult: テストの実行結果。
         """
-        eval_cases = test_cases_data.get("eval_cases", [])
+        # テストケースのパースとバリデーション
+        if isinstance(test_cases_data, dict):
+            test_case_set = EvalCaseSet.model_validate(test_cases_data)
+        elif isinstance(test_cases_data, EvalCaseSet):
+            test_case_set = test_cases_data
+        else:
+            raise TypeError("test_cases_data must be a dict or EvalCaseSet")
+
+        eval_cases = test_case_set.eval_cases
         passed = 0
         failed = 0
         total = len(eval_cases)
@@ -49,11 +57,11 @@ class SchemaDrivenTestRunner:
             return EvalRunResult(passed=0, failed=total, total=total, accuracy=0.0)
 
         for case in eval_cases:
-            case_id = case.get("eval_case_id", "unknown")
-            func_name = case.get("function_name")
-            inputs = case.get("inputs", {})
-            expected = case.get("expected", "success")
-            mock_responses = case.get("mock_responses", {})
+            case_id = case.eval_case_id
+            func_name = case.function_name
+            inputs = case.inputs
+            expected = case.expected
+            mock_responses = case.mock_responses
 
             print(f"\n[TestRunner] Running case '{case_id}' for function '{func_name}'")
             

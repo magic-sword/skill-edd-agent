@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal, Union
+from typing import Literal, Union, Any
 
 class EvalRunResult(BaseModel):
     passed: int = Field(..., description="合格したテストの件数")
@@ -106,3 +106,16 @@ class WorkspaceEnvProtocol(Protocol):
     def export_artifacts(self) -> WorkspaceArtifacts:
         """初期状態からの変更・新規作成・削除された差分ファイルを抽出します。"""
         ...
+
+
+class EvalCase(BaseModel):
+    eval_case_id: str = Field(..., description="テストケースを一意に識別するID")
+    function_name: str = Field(..., description="テスト対象となるスキルの公開関数名")
+    inputs: dict[str, Any] = Field(default_factory=dict, description="関数呼び出し時に渡す引数のマッピング")
+    expected: str = Field("success", description="期待されるテスト結果（'success' または 期待する例外クラス名）")
+    mock_responses: dict[str, Any] = Field(default_factory=dict, description="モック応答マッピング")
+
+
+class EvalCaseSet(BaseModel):
+    eval_set_id: str = Field(..., description="評価用テストセット全体の識別ID")
+    eval_cases: list[EvalCase] = Field(..., description="テストケースのリスト")

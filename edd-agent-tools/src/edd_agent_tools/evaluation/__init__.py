@@ -30,10 +30,15 @@ def __getattr__(name: str) -> Any:
     if name == "SchemaDrivenTestRunner":
         from .test_runner import SchemaDrivenTestRunner
         return SchemaDrivenTestRunner
+    if name in ("EvalCase", "EvalCaseSet"):
+        from .models import EvalCase, EvalCaseSet
+        if name == "EvalCase": return EvalCase
+        if name == "EvalCaseSet": return EvalCaseSet
         
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
 __all__ = [
     "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
-    "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "SchemaDrivenTestRunner"
+    "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "SchemaDrivenTestRunner",
+    "EvalCase", "EvalCaseSet"
 ]
