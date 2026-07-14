@@ -27,9 +27,13 @@ def __getattr__(name: str) -> Any:
         from .models import WorkspaceEnvProtocol
         return WorkspaceEnvProtocol
         
+    if name == "SchemaDrivenTestRunner":
+        from .test_runner import SchemaDrivenTestRunner
+        return SchemaDrivenTestRunner
+        
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
 __all__ = [
     "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
-    "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol"
+    "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "SchemaDrivenTestRunner"
 ]
