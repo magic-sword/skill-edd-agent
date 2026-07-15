@@ -10,7 +10,8 @@
       "type": "str",
       "description": "試験対象のスキル名。",
       "required": true,
-      "is_prompt_parameter": false
+      "is_prompt_parameter": false,
+      "example": "my-awesome-skill"
     },
     {
       "name": "threshold_accuracy",
@@ -20,7 +21,8 @@
       "default": "1.0",
       "ge": 0.0,
       "le": 1.0,
-      "is_prompt_parameter": false
+      "is_prompt_parameter": false,
+      "example": 0.95
     }
   ],
   "dependencies": [
@@ -39,19 +41,22 @@
       "choices": [
         "success",
         "failed"
-      ]
+      ],
+      "example": "success"
     },
     {
       "name": "message",
       "type": "str",
       "description": "実行結果のサマリー、または不合格テストや検証エラーの詳細。",
-      "required": true
+      "required": true,
+      "example": "すべての検証が成功し、スキル 'my-awesome-skill' がTier 1として登録されました。"
     },
     {
       "name": "registered",
       "type": "bool",
       "description": "対象スキルがSkillsStateにTier 1として登録されたかどうかの真偽値。",
-      "required": true
+      "required": true,
+      "example": true
     }
   ],
   "steps": [
@@ -59,42 +64,35 @@
       "name": "run-trigger-evaluator",
       "type": "skill",
       "target": "trigger-evaluator",
-      "inputs": {
-        "skill": "skill"
-      }
+      "description": "対象スキルのトリガー評価を実行します。",
+      "inputs": {}
     },
     {
       "name": "run-test-executor",
       "type": "skill",
       "target": "test-executor",
-      "inputs": {
-        "skill": "skill",
-        "threshold_accuracy": "threshold_accuracy"
-      }
+      "description": "対象スキルのテストを実行し、精度を検証します。",
+      "inputs": {}
     },
     {
       "name": "run-import-validator",
       "type": "skill",
       "target": "import-validator",
-      "inputs": {
-        "skill": "skill"
-      }
+      "description": "対象スキルのインポート適合性を検証します。",
+      "inputs": {}
     },
     {
       "name": "run-design-validator",
       "type": "skill",
       "target": "design-validator",
-      "inputs": {
-        "skill": "skill"
-      }
+      "description": "対象スキルの設計仕様と実装の整合性を検証します。",
+      "inputs": {}
     },
     {
       "name": "evaluate-and-register-skill",
       "type": "function",
       "description": "各検証ステップの結果を評価し、すべて成功していれば対象スキルをTier 1として登録します。失敗した場合はその詳細を収集します。",
-      "inputs": {
-        "skill": "skill"
-      }
+      "inputs": {}
     }
   ]
 }

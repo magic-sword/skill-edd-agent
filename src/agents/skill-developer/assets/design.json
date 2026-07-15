@@ -87,37 +87,21 @@
       "type": "skill",
       "target": "skill-designer",
       "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
-      "inputs": {
-        "prompt": "prompt",
-        "skill": "skill",
-        "output_dir": "output_dir",
-        "source_code_dir": "source_code_dir"
-      }
+      "inputs": {}
     },
     {
       "name": "code-skill",
       "type": "skill",
       "target": "skill-coder",
       "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
-      "inputs": {
-        "prompt": "prompt",
-        "skill": "skill",
-        "design_path": "design_path",
-        "output_dir": "output_dir"
-      }
+      "inputs": {}
     },
     {
       "name": "write-spec",
       "type": "skill",
       "target": "skill-spec-writer",
       "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
-      "inputs": {
-        "prompt": "prompt",
-        "skill": "skill",
-        "design_path": "design_path",
-        "output_dir": "output_dir",
-        "source_code_dir": "source_code_dir"
-      }
+      "inputs": {}
     }
   ]
 }
