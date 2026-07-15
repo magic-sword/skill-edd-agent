@@ -3,83 +3,107 @@
   "name": "skill-spec-writer",
   "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
   "summary": "既存のスキル設計情報（design.json）を基に、ADK 2.0に準拠したSKILL.md仕様書を自動生成します。これにより、開発者はドキュメント作成の手場を省き、常に最新かつ正確なスキル仕様書を維持できます。",
-  "module_type": "skill",
-  "execution_type": "tool",
-  "output_mode": "STRUCTURED_JSON",
+  "module_type": "workflow",
+  "parameters": [
+    {
+      "name": "design_path",
+      "type": "str",
+      "description": "design.json ファイルの直接のパス。省略された場合は skill から自動探索します。",
+      "required": false,
+      "default": null,
+      "example": "path/to/my-skill/design.json"
+    },
+    {
+      "name": "skill",
+      "type": "str",
+      "description": "対象の既存スキル名。design_path 省略時の自動探索キーとして使用されます。",
+      "required": false,
+      "default": null,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "example": "my-awesome-skill"
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "生成されたSKILL.mdを保存するディレクトリのパス。省略時は対象スキルのディレクトリに出力されます。",
+      "required": false,
+      "default": null,
+      "example": "./docs"
+    },
+    {
+      "name": "source_code_dir",
+      "type": "str",
+      "description": "実装ソースコードが格納されたディレクトリパス（または単一ファイル）。指定しない場合、自動的にスキルの scripts ディレクトリを探索します。",
+      "required": false,
+      "default": null,
+      "example": "./scripts"
+    },
+    {
+      "name": "prompt",
+      "type": "str",
+      "description": "仕様書生成における、特別に明記したい追加の表現上のこだわりや注意点などの指示。",
+      "required": false,
+      "default": null,
+      "is_prompt_parameter": true,
+      "prompt_instructions": "生成される仕様書のテキスト説明のトーンや粒度（例: 開発者向けに詳細に、あるいは初心者向けに簡単に書く）、特別に言及してほしいセキュリティ設計や注意点の強調を指定できます。",
+      "prompt_constraints": "仕様書のマークダウンレイアウト構成（見出しの順序、テーブル項目）は決定論的テンプレートに固定されているため、プロンプト指示によって構成そのものを変更することはできません。",
+      "example": "ユーザーが理解しやすいように、技術的な専門用語は避け、平易な言葉で説明してください。"
+    }
+  ],
   "dependencies": [],
   "constraints": [],
-  "functions": [
+  "response_parameters": [
     {
-      "name": "write_spec",
-      "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
-      "parameters": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "description": "仕様書生成における、特別に明記したい追加の表現上のこだわりや注意点などの指示。",
-          "required": false,
-          "default": null,
-          "is_prompt_parameter": true,
-          "prompt_instructions": "生成される仕様書のテキスト説明のトーンや粒度（例: 開発者向けに詳細に、あるいは初心者向けに簡単に書く）、特別に言及してほしいセキュリティ設計や注意点の強調を指定できます。",
-          "prompt_constraints": "仕様書のマークダウンレイアウト構成（見出しの順序、テーブル項目）は決定論的テンプレートに固定されているため、プロンプト指示によって構成そのものを変更することはできません。"
-        },
-        {
-          "name": "design_path",
-          "type": "str",
-          "description": "design.json ファイルの直接のパス。省略された場合は skill から自動探索します。",
-          "required": false,
-          "default": null,
-          "is_prompt_parameter": false
-        },
-        {
-          "name": "skill",
-          "type": "str",
-          "description": "対象の既存スキル名。design_path 省略時の自動探索キーとして使用されます。",
-          "required": false,
-          "default": null,
-          "is_prompt_parameter": false
-        },
-        {
-          "name": "output_dir",
-          "type": "str",
-          "description": "生成されたSKILL.mdを保存するディレクトリのパス。省略時は対象スキルのディレクトリに出力されます。",
-          "required": false,
-          "default": null,
-          "is_prompt_parameter": false
-        },
-        {
-          "name": "source_code_dir",
-          "type": "str",
-          "description": "実装ソースコードが格納されたディレクトリパス（または単一ファイル）。指定しない場合、自動的にスキルの scripts ディレクトリを探索します。",
-          "required": false,
-          "default": null,
-          "is_prompt_parameter": false
-        }
+      "name": "status",
+      "type": "str",
+      "description": "スキルの実行結果ステータス。'success' または 'failed'。",
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
       ],
-      "response_parameters": [
-        {
-          "name": "status",
-          "type": "str",
-          "description": "スキルの実行結果ステータス。'success' または 'failed'。",
-          "required": true,
-          "choices": [
-            "success",
-            "failed"
-          ]
-        },
-        {
-          "name": "message",
-          "type": "str",
-          "description": "実行結果に関する詳細メッセージ。",
-          "required": true
-        },
-        {
-          "name": "output_dir",
-          "type": "str",
-          "description": "仕様書(SKILL.md)が格納されたスキルディレクトリの絶対パス",
-          "required": true
-        }
-      ]
+      "example": "success"
+    },
+    {
+      "name": "message",
+      "type": "str",
+      "description": "実行結果に関する詳細メッセージ。",
+      "required": true,
+      "example": "SKILL.mdが正常に生成されました。"
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "仕様書(SKILL.md)が格納されたスキルディレクトリの絶対パス",
+      "required": true,
+      "example": "/app/skills/my-awesome-skill"
+    }
+  ],
+  "steps": [
+    {
+      "name": "validate-and-load-design",
+      "type": "function",
+      "description": "入力パラメータを検証し、対象スキルのdesign.jsonをロードします。skill名またはdesign_pathのいずれかが必須です。",
+      "inputs": {}
+    },
+    {
+      "name": "select-spec-writer",
+      "type": "function",
+      "description": "ロードされたdesign.jsonのmodule_typeとexecution_typeに基づき、適切なSpecWriter（ToolSpecWriter, AgentSpecWriter, WorkflowSpecWriter）を選択します。",
+      "inputs": {}
+    },
+    {
+      "name": "generate-spec-content",
+      "type": "agent",
+      "description": "選択されたSpecWriterを使用して、LLM（Gemini）を呼び出し、仕様書の目的、機能、トリガー条件、内部処理フローなどの非決定論的なテキストコンテンツを生成します。ソースコードディレクトリが指定されている場合は、LLMに添付して参照させます。",
+      "instruction": "与えられたスキル設計情報とソースコード（もしあれば）を基に、ADK 2.0仕様に準拠したSKILL.mdの目的、機能、トリガー条件、内部処理フローなどの非決定論的なテキストコンテンツを生成してください。ユーザーからの追加の指示があればそれに従ってください。",
+      "inputs": {}
+    },
+    {
+      "name": "render-and-save-markdown",
+      "type": "function",
+      "description": "LLMから抽出されたコンテンツと決定論的なMarkdownテンプレートを組み合わせてSKILL.mdをレンダリングし、指定された出力ディレクトリに保存します。",
+      "inputs": {}
     }
   ]
 }

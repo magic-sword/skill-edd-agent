@@ -1,70 +1,89 @@
 {
-  "rationale": "このモジュールは、設計定義ファイルのロード、決定論的なコードの生成、そしてLLM駆動の自律エージェントによるビジネスロジックの実装という内部的な複雑な処理を含みます。しかし、外部からこのモジュールを利用する視点では、「指定された設計と要件に基づいてスキルコードを生成する」という単一のアトミックな機能として提供されます。内部的な多段階処理は、この単一機能を実現するための実装詳細であり、外部インターフェースはシンプルです。したがって、ユーザーの指示に従い、複数のステップをパイプライン接続する 'workflow' ではなく、外部から見たアトミックな機能を提供する 'skill' として設計することが適切であると判断しました。また、その中核的な処理がLLMによる自律的なコード生成と修正に依存するため、'execution_type' は 'agent' とします。",
+  "rationale": "このモジュールは、設計定義ファイルのロード、決定論的なコードの生成、そしてLLM駆動の自律エージェントによるビジネスロジックの実装という複数の段階的な処理をパイプライン接続して実行します。これらの内部的な処理フローを明示的に定義することで、ワークフローとしての透明性と再利用性を高めます。したがって、複数のステップを順序立てて実行する 'workflow' として設計することが適切であると判断しました。",
   "name": "skill-coder",
-  "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
-  "summary": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
-  "module_type": "skill",
-  "execution_type": "agent",
-  "output_mode": "STRUCTURED_JSON",
+  "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するワークフロー。",
+  "summary": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するワークフロー。",
+  "module_type": "workflow",
+  "parameters": [
+    {
+      "name": "prompt",
+      "type": "str",
+      "description": "実装したいビジネスロジックの機能要件や詳細な指示。",
+      "required": false,
+      "default": null,
+      "is_prompt_parameter": true,
+      "prompt_instructions": "生成・修正したいビジネスロジック（例：APIクライアントの作成、バリデーションロジックの追加、ユーティリティ関数の実装など）の実装要件を指定できます。",
+      "prompt_constraints": "自動生成される handler.py, models.py, __init__.py は編集できません。また、エグゼキューター（scripts/executor.py）の全体的なクラス構造やインターフェース（execute() メソッド）は固定されているため、これを逸脱するシグネチャ変更はできません。",
+      "example": "新しいAPIクライアントを実装してください。エンドポイントは /api/v1/data で、GETリクエストをサポートし、JSON形式でデータを返します。"
+    },
+    {
+      "name": "skill",
+      "type": "str",
+      "description": "対象のスキル名。design_pathが省略された場合の探索キー。",
+      "required": false,
+      "default": null,
+      "example": "my-new-skill"
+    },
+    {
+      "name": "design_path",
+      "type": "str",
+      "description": "対象スキルの design.json への絶対/相対パス。",
+      "required": false,
+      "default": null,
+      "example": "./skills/my-new-skill/design.json"
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "コードの出力先ディレクトリ。省略時は対象スキルのルートディレクトリ。",
+      "required": false,
+      "default": null,
+      "example": "./skills/my-new-skill"
+    }
+  ],
   "dependencies": [],
   "constraints": [],
-  "functions": [
+  "response_parameters": [
     {
-      "name": "code_skill",
-      "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新します。",
-      "parameters": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "description": "実装したいビジネスロジックの機能要件や詳細な指示。",
-          "required": false,
-          "default": null,
-          "is_prompt_parameter": true,
-          "prompt_instructions": "生成・修正したいビジネスロジック（例：APIクライアントの作成、バリデーションロジックの追加、ユーティリティ関数の実装など）の実装要件を指定できます。",
-          "prompt_constraints": "自動生成される handler.py, models.py, __init__.py は編集できません。また、エグゼキューター（scripts/executor.py）の全体的なクラス構造やインターフェース（execute() メソッド）は固定されているため、これを逸脱するシグネチャ変更はできません。"
-        },
-        {
-          "name": "skill",
-          "type": "str",
-          "description": "対象のスキル名。design_pathが省略された場合の探索キー。",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "design_path",
-          "type": "str",
-          "description": "対象スキルの design.json への絶対/相対パス。",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "output_dir",
-          "type": "str",
-          "description": "ソースコードを出力するディレクトリ。省略時は対象スキルのルートディレクトリ。",
-          "required": false,
-          "default": null
-        }
-      ],
-      "response_parameters": [
-        {
-          "name": "status",
-          "type": "str",
-          "description": "スキルの実行結果ステータス ('success' または 'failed')",
-          "required": true
-        },
-        {
-          "name": "message",
-          "type": "str",
-          "description": "スキル実行結果の要約メッセージ",
-          "required": true
-        },
-        {
-          "name": "output_dir",
-          "type": "str",
-          "description": "実装コードが出力されたディレクトリの絶対パス",
-          "required": true
-        }
-      ]
+      "name": "status",
+      "type": "str",
+      "description": "スキルの実行結果ステータス ('success' または 'failed')",
+      "required": true,
+      "example": "success"
+    },
+    {
+      "name": "message",
+      "type": "str",
+      "description": "スキル実行結果の要約メッセージ",
+      "required": true,
+      "example": "スキルコードが正常に生成・更新されました。"
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "実装コードが出力されたディレクトリの絶対パス",
+      "required": true,
+      "example": "/app/skills/my-new-skill"
+    }
+  ],
+  "steps": [
+    {
+      "name": "load-design",
+      "type": "function",
+      "description": "指定されたスキル名またはパスから design.json をロードし、SkillDesign オブジェクトを生成して共有状態に保存する。",
+      "inputs": {}
+    },
+    {
+      "name": "generate-deterministic-code",
+      "type": "function",
+      "description": "ロードされた SkillDesign に基づき、models.py, handler.py, __init__.py, executor.py などの決定論的なコードファイルを生成する。",
+      "inputs": {}
+    },
+    {
+      "name": "agent-coding",
+      "type": "agent",
+      "description": "SkillDeveloperAgent を起動し、設計定義と機能要件に基づいてスキル実装コードを生成・修正する。コンパイルチェックと自己修正を繰り返す。",
+      "inputs": {}
     }
   ]
 }

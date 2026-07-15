@@ -1,76 +1,103 @@
 {
-  "rationale": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するためのテスト実行スキルです。",
+  "rationale": "ADK評価シミュレーションの実行と結果検証を、より柔軟かつ拡張可能なワークフローとして再構築します。既存の`test-executor`スキルを中核として利用しつつ、評価準備や結果分析のロジックを分離することで、将来的な機能拡張やカスタマイズに対応しやすくします。",
   "name": "test-executor",
-  "description": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証します。",
-  "summary": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証します。",
-  "module_type": "skill",
-  "execution_type": "tool",
-  "output_mode": "STRUCTURED_JSON",
-  "dependencies": [],
-  "constraints": [],
-  "functions": [
+  "description": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するワークフロー。",
+  "summary": "ADK評価シミュレーションの実行、結果分析、合否判定を行う。",
+  "module_type": "workflow",
+  "parameters": [
     {
-      "name": "run_test_evaluation",
-      "description": "指定されたスキルに対してADK評価シミュレーションを実行し、結果を検証します。",
-      "parameters": [
-        {
-          "name": "skill",
-          "type": "str",
-          "description": "評価対象スキルの名前。",
-          "required": true
-        },
-        {
-          "name": "eval_set_path",
-          "type": "str",
-          "description": "評価セットの識別子（'trigger' または 'unit'）、あるいはファイルパス。デフォルトは 'trigger'。",
-          "required": false,
-          "default": "trigger"
-        },
-        {
-          "name": "config_file_path",
-          "type": "str",
-          "description": "評価設定ファイルのパス。指定しない場合は自動解決・自動生成されます。",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "timeout_seconds",
-          "type": "int",
-          "description": "評価のタイムアウト秒数。デフォルトは 180 秒。",
-          "required": false,
-          "default": "180"
-        },
-        {
-          "name": "threshold_accuracy",
-          "type": "float",
-          "description": "合格に必要な精度の閾値（0.0 から 1.0）。デフォルトは 1.0。",
-          "required": false,
-          "default": "1.0",
-          "ge": 0.0,
-          "le": 1.0
-        }
+      "name": "skill",
+      "type": "str",
+      "description": "評価対象スキルの名前。",
+      "required": true,
+      "example": "my-skill"
+    },
+    {
+      "name": "eval_set_path",
+      "type": "str",
+      "description": "評価用のテストケースファイル (*.evalset.json) のパス。",
+      "required": true,
+      "example": "path/to/test.evalset.json"
+    },
+    {
+      "name": "threshold_accuracy",
+      "type": "float",
+      "description": "評価が合格するために必要な最小精度。",
+      "required": false,
+      "default": "1.0",
+      "ge": 0.0,
+      "le": 1.0,
+      "example": 0.95
+    },
+    {
+      "name": "timeout_seconds",
+      "type": "int",
+      "description": "評価タイムアウト秒数。",
+      "required": false,
+      "default": "180",
+      "example": 300
+    },
+    {
+      "name": "config_file_path",
+      "type": "str",
+      "description": "評価設定ファイルのカスタムパス。",
+      "required": false,
+      "default": null,
+      "example": "path/to/custom_config.json"
+    }
+  ],
+  "dependencies": [
+    "test-executor"
+  ],
+  "constraints": [],
+  "response_parameters": [
+    {
+      "name": "status",
+      "type": "str",
+      "description": "評価の結果ステータス。'success' または 'failed'。",
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
       ],
-      "response_parameters": [
-        {
-          "name": "status",
-          "type": "str",
-          "description": "評価の結果ステータス。'success' または 'failed'。",
-          "required": true,
-          "choices": ["success", "failed"]
-        },
-        {
-          "name": "details",
-          "type": "str",
-          "description": "評価の実行結果詳細、またはエラーメッセージ。",
-          "required": true
-        },
-        {
-          "name": "score",
-          "type": "float",
-          "description": "測定された精度（0.0〜1.0）。",
-          "required": true
-        }
-      ]
+      "example": "success"
+    },
+    {
+      "name": "details",
+      "type": "str",
+      "description": "評価の実行結果詳細、またはエラーメッセージ。",
+      "required": true,
+      "example": "Evaluation passed with 98% accuracy."
+    },
+    {
+      "name": "score",
+      "type": "float",
+      "description": "測定された精度（0.0〜1.0）。",
+      "required": true,
+      "ge": 0.0,
+      "le": 1.0,
+      "example": 0.98
+    }
+  ],
+  "steps": [
+    {
+      "name": "prepare-evaluation",
+      "type": "function",
+      "description": "評価実行に必要な環境設定やファイルパスの検証、準備を行う。eval_set_pathが識別子の場合に実際のファイルパスに解決し、config_file_pathが指定されていない場合にデフォルト設定を生成する。",
+      "inputs": {}
+    },
+    {
+      "name": "execute-test",
+      "type": "skill",
+      "target": "test-executor",
+      "description": "既存のtest-executorスキルを呼び出し、ADK評価シミュレーションを実行する。",
+      "inputs": {}
+    },
+    {
+      "name": "analyze-result",
+      "type": "function",
+      "description": "execute-testステップの結果を分析し、合否判定や詳細なフィードバックメッセージを生成する。",
+      "inputs": {}
     }
   ]
 }

@@ -1,48 +1,58 @@
 {
-  "rationale": "指定されたスキルの設計仕様（design.json）と生成されたソースコードの整合性を Gemini API を用いて検証します。",
+  "rationale": "既存のdesign-validatorスキルをADK 2.0規約に適合したワークフローとして再定義し、設計と実装の整合性検証プロセスを標準化します。これにより、検証プロセスの明確化、将来的な拡張性、および他のワークフローとの連携が容易になります。",
   "name": "design-validator",
-  "description": "設計仕様と実装の整合性を検証します。",
-  "summary": "設計仕様と実装の整合性を検証します。",
-  "module_type": "skill",
-  "execution_type": "agent",
-  "output_mode": "STRUCTURED_JSON",
-  "dependencies": [],
-  "constraints": [],
-  "functions": [
+  "description": "設計仕様と実装の整合性を検証するワークフロー。",
+  "summary": null,
+  "module_type": "workflow",
+  "parameters": [
     {
-      "name": "validate_design",
-      "description": "指定されたスキルの設計仕様（design.json）と生成されたソースコード（models.py, handler.py, executor.py）を読み込み、Gemini API を用いて仕様と実装の整合性を検証します。",
-      "parameters": [
-        {
-          "name": "skill",
-          "type": "str",
-          "description": "検証対象のスキル名。",
-          "required": true
-        }
+      "name": "skill",
+      "type": "str",
+      "description": "検証対象のスキル名。",
+      "required": true,
+      "example": "my-new-skill"
+    }
+  ],
+  "dependencies": [
+    "design-validator"
+  ],
+  "constraints": [],
+  "response_parameters": [
+    {
+      "name": "status",
+      "type": "str",
+      "description": "検証結果のステータス ('success' または 'failed')。",
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
       ],
-      "response_parameters": [
-        {
-          "name": "status",
-          "type": "str",
-          "description": "検証結果のステータス ('success' または 'failed')。",
-          "required": true,
-          "choices": ["success", "failed"]
-        },
-        {
-          "name": "details",
-          "type": "str",
-          "description": "検証が失敗した場合の不足事項やフィードバック詳細。成功時は空文字列。",
-          "required": true
-        },
-        {
-          "name": "score",
-          "type": "float",
-          "description": "設計と実装の整合性スコア（0.0〜1.0）。",
-          "required": true,
-          "ge": 0.0,
-          "le": 1.0
-        }
-      ]
+      "example": "success"
+    },
+    {
+      "name": "details",
+      "type": "str",
+      "description": "検証が失敗した場合の不足事項やフィードバック詳細。成功時は空文字列。",
+      "required": true,
+      "example": ""
+    },
+    {
+      "name": "score",
+      "type": "float",
+      "description": "設計と実装の整合性スコア（0.0〜1.0）。",
+      "required": true,
+      "ge": 0.0,
+      "le": 1.0,
+      "example": 0.95
+    }
+  ],
+  "steps": [
+    {
+      "name": "validate-skill-design",
+      "type": "skill",
+      "target": "design-validator",
+      "description": "指定されたスキルの設計と実装の整合性を検証する。",
+      "inputs": {}
     }
   ]
 }

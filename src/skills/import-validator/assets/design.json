@@ -1,53 +1,61 @@
 {
-  "rationale": "スキルパッケージの遅延ロード規約（__getattr__ および __all__ 宣言）との適合性を検証する決定論的なチェッカースキルです。",
+  "rationale": "スキルパッケージの遅延ロード規約（__getattr__ および __all__ 宣言）との適合性を検証する決定論的なチェッカーワークフローとして再設計。既存のimport-validatorスキルの機能をワークフローとして再構築し、ADK 2.0のworkflowスキーマに適合させる。",
   "name": "import-validator",
-  "description": "スキルのインポート適合性（__getattr__ と __all__ の有無）を検証します。",
-  "summary": "スキルのインポート適合性を検証します。",
-  "module_type": "skill",
-  "execution_type": "tool",
-  "output_mode": "STRUCTURED_JSON",
+  "description": "スキルのインポート適合性（__getattr__ と __all__ の有無）を検証するワークフロー。",
+  "summary": null,
+  "module_type": "workflow",
+  "parameters": [
+    {
+      "name": "skill",
+      "type": "str",
+      "description": "検証対象のスキル名。",
+      "required": true,
+      "example": "my-awesome-skill"
+    }
+  ],
   "dependencies": [],
   "constraints": [],
-  "functions": [
+  "response_parameters": [
     {
-      "name": "validate_skill_import",
-      "description": "対象スキルの scripts/__init__.py に遅延解決 __getattr__ と __all__ が正しく定義されているかを静的にインポート検証します。",
-      "parameters": [
-        {
-          "name": "skill",
-          "type": "str",
-          "description": "検証対象のスキル名。",
-          "required": true
-        }
+      "name": "status",
+      "type": "str",
+      "description": "スキルの動的ロードの成否。'success' または 'failed'。",
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
       ],
-      "response_parameters": [
-        {
-          "name": "status",
-          "type": "str",
-          "description": "検証の成否ステータス ('success' または 'failed')",
-          "required": true,
-          "choices": ["success", "failed"]
-        },
-        {
-          "name": "message",
-          "type": "str",
-          "description": "結果のサマリーメッセージ",
-          "required": true
-        },
-        {
-          "name": "missing_all",
-          "type": "list",
-          "items_type": "str",
-          "description": "定義されていないか漏れている __all__ の公開要素リスト",
-          "required": true
-        },
-        {
-          "name": "missing_getattr",
-          "type": "bool",
-          "description": "__getattr__ 解決ハンドラが定義されていない場合 true",
-          "required": true
-        }
-      ]
+      "example": "success"
+    },
+    {
+      "name": "details",
+      "type": "str",
+      "description": "動的ロードが失敗した場合のエラー詳細（トレースバックなど）。成功時は空文字列。",
+      "required": true,
+      "example": ""
+    },
+    {
+      "name": "score",
+      "type": "float",
+      "description": "動的ロード検証のスコア（成功時は 1.0、失敗時は 0.0）。",
+      "required": false,
+      "ge": 0.0,
+      "le": 1.0,
+      "example": 1.0
+    }
+  ],
+  "steps": [
+    {
+      "name": "load-skill-module",
+      "type": "function",
+      "description": "指定されたスキルモジュールを動的にロードし、成功/失敗と詳細を返す。",
+      "inputs": {}
+    },
+    {
+      "name": "validate-and-format-output",
+      "type": "function",
+      "description": "スキルモジュールのロード結果を検証し、標準の出力形式に整形する。",
+      "inputs": {}
     }
   ]
 }
