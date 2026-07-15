@@ -1,58 +1,58 @@
 {
-  "rationale": "既存のdesign-validatorスキルをADK 2.0規約に適合したワークフローとして再定義し、設計と実装の整合性検証プロセスを標準化します。これにより、検証プロセスの明確化、将来的な拡張性、および他のワークフローとの連携が容易になります。",
+  "rationale": "既存のdesign-validatorスキルは、内部で複数のクラスを協調させて設計と実装の整合性検証を行うが、外部からは単一のアトミックな機能として提供されるため、ADK 2.0規約に適合した'skill'モジュールとして再定義する。これにより、シンプルで直接的な検証機能を提供し、他のワークフローから容易に利用可能とする。",
   "name": "design-validator",
-  "description": "設計仕様と実装の整合性を検証するワークフロー。",
+  "description": "設計仕様と実装の整合性を検証するスキル。",
   "summary": null,
-  "module_type": "workflow",
-  "parameters": [
-    {
-      "name": "skill",
-      "type": "str",
-      "description": "検証対象のスキル名。",
-      "required": true,
-      "example": "my-new-skill"
-    }
-  ],
-  "dependencies": [
-    "design-validator"
-  ],
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "dependencies": [],
   "constraints": [],
-  "response_parameters": [
+  "functions": [
     {
-      "name": "status",
-      "type": "str",
-      "description": "検証結果のステータス ('success' または 'failed')。",
-      "required": true,
-      "choices": [
-        "success",
-        "failed"
+      "name": "validate_design",
+      "description": "指定されたスキル名に基づいて、設計仕様と実装の整合性を検証します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "検証対象のスキル名。小文字のハイフン区切りで指定してください。",
+          "required": true,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "min_length": 3,
+          "max_length": 64,
+          "example": "my-new-skill"
+        }
       ],
-      "example": "success"
-    },
-    {
-      "name": "details",
-      "type": "str",
-      "description": "検証が失敗した場合の不足事項やフィードバック詳細。成功時は空文字列。",
-      "required": true,
-      "example": ""
-    },
-    {
-      "name": "score",
-      "type": "float",
-      "description": "設計と実装の整合性スコア（0.0〜1.0）。",
-      "required": true,
-      "ge": 0.0,
-      "le": 1.0,
-      "example": 0.95
-    }
-  ],
-  "steps": [
-    {
-      "name": "validate-skill-design",
-      "type": "skill",
-      "target": "design-validator",
-      "description": "指定されたスキルの設計と実装の整合性を検証する。",
-      "inputs": {}
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "検証結果のステータス ('success' または 'failed')。",
+          "required": true,
+          "choices": [
+            "success",
+            "failed"
+          ],
+          "example": "success"
+        },
+        {
+          "name": "details",
+          "type": "str",
+          "description": "検証が失敗した場合の不足事項やフィードバック詳細。成功時は空文字列。",
+          "required": true,
+          "example": ""
+        },
+        {
+          "name": "score",
+          "type": "float",
+          "description": "設計と実装の整合性スコア（0.0〜1.0）。",
+          "required": true,
+          "ge": 0.0,
+          "le": 1.0,
+          "example": 0.95
+        }
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@
   "name": "trigger-evaluator",
   "description": "対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存するワークフロー。",
   "summary": null,
-  "module_type": "workflow",
+  "module_type": "skill",
   "parameters": [
     {
       "name": "skill",
@@ -35,38 +35,41 @@
       "required": true
     }
   ],
-  "steps": [
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON",
+  "functions": [
     {
-      "name": "load-skill-spec",
-      "type": "function",
-      "description": "対象スキルのSKILL.mdの内容をロードする。",
-      "inputs": {}
-    },
-    {
-      "name": "static-evaluate-skill-spec",
-      "type": "agent",
-      "description": "SKILL.mdの具体性と明確性を静的に評価する。",
-      "instruction": "提供されたSKILL.mdの内容を分析し、その具体性と明確性について詳細な評価レポートをJSON形式で生成してください。レポートには、改善点や具体的な提案を含めてください。",
-      "inputs": {}
-    },
-    {
-      "name": "generate-trigger-test-cases",
-      "type": "agent",
-      "description": "トリガー評価用のポジティブ・ネガティブテストケースを生成する。",
-      "instruction": "指定されたスキル名とSKILL.mdの内容に基づき、トリガー評価用のポジティブテストケースとネガティブテストケースをそれぞれ5つずつ、JSON配列形式で生成してください。各テストケースは、'input' (ユーザー入力例) と 'expected_output' (期待される出力) を含むオブジェクトとしてください。",
-      "inputs": {}
-    },
-    {
-      "name": "save-eval-assets",
-      "type": "function",
-      "description": "生成された評価アセット（テストケースと設定）を保存する。",
-      "inputs": {}
-    },
-    {
-      "name": "save-evaluation-report",
-      "type": "function",
-      "description": "静的評価結果と生成されたテストケースファイルパスを含む詳細レポートを保存する。",
-      "inputs": {}
+      "name": "trigger_evaluator",
+      "description": "対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存するワークフロー。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "トリガーアセット生成および評価対象のスキル名。",
+          "required": true,
+          "example": "example-skill-name"
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "value",
+          "type": "str",
+          "description": "スキル実行結果の出力メッセージ",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "str",
+          "description": "実行ステータス (success/failed)",
+          "required": true
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "生成された評価用アセットファイルパス",
+          "required": true
+        }
+      ]
     }
   ]
 }

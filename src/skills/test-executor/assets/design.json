@@ -1,9 +1,9 @@
 {
-  "rationale": "ADK評価シミュレーションの実行と結果検証を、より柔軟かつ拡張可能なワークフローとして再構築します。既存の`test-executor`スキルを中核として利用しつつ、評価準備や結果分析のロジックを分離することで、将来的な機能拡張やカスタマイズに対応しやすくします。",
+  "rationale": "ADK評価シミュレーションの実行と結果検証は、シミュレーション実行、結果解析、合否判定という複数の論理的なサブタスクから構成される。これらのサブタスクを順序立てて実行し、最終的な評価結果を生成するためには、単一のアトミックなスキルではなく、複数のステップを連携させるワークフローとして設計するのが適切である。これにより、各ステップの責務が明確になり、将来的な拡張や変更に対する柔軟性が高まる。",
   "name": "test-executor",
   "description": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するワークフロー。",
   "summary": "ADK評価シミュレーションの実行、結果分析、合否判定を行う。",
-  "module_type": "workflow",
+  "module_type": "skill",
   "parameters": [
     {
       "name": "skill",
@@ -46,15 +46,13 @@
       "example": "path/to/custom_config.json"
     }
   ],
-  "dependencies": [
-    "test-executor"
-  ],
+  "dependencies": [],
   "constraints": [],
   "response_parameters": [
     {
       "name": "status",
       "type": "str",
-      "description": "評価の結果ステータス。'success' または 'failed'。",
+      "description": "検証または評価の結果ステータス。'success' または 'failed'。",
       "required": true,
       "choices": [
         "success",
@@ -65,39 +63,97 @@
     {
       "name": "details",
       "type": "str",
-      "description": "評価の実行結果詳細、またはエラーメッセージ。",
+      "description": "検証/評価の実行結果詳細、不足事項やフィードバック、またはエラーメッセージ。",
       "required": true,
       "example": "Evaluation passed with 98% accuracy."
     },
     {
       "name": "score",
       "type": "float",
-      "description": "測定された精度（0.0〜1.0）。",
+      "description": "検証/評価のスコア（0.0〜1.0）。",
       "required": true,
       "ge": 0.0,
       "le": 1.0,
       "example": 0.98
     }
   ],
-  "steps": [
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON",
+  "functions": [
     {
-      "name": "prepare-evaluation",
-      "type": "function",
-      "description": "評価実行に必要な環境設定やファイルパスの検証、準備を行う。eval_set_pathが識別子の場合に実際のファイルパスに解決し、config_file_pathが指定されていない場合にデフォルト設定を生成する。",
-      "inputs": {}
-    },
-    {
-      "name": "execute-test",
-      "type": "skill",
-      "target": "test-executor",
-      "description": "既存のtest-executorスキルを呼び出し、ADK評価シミュレーションを実行する。",
-      "inputs": {}
-    },
-    {
-      "name": "analyze-result",
-      "type": "function",
-      "description": "execute-testステップの結果を分析し、合否判定や詳細なフィードバックメッセージを生成する。",
-      "inputs": {}
+      "name": "test_executor",
+      "description": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するワークフロー。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "評価対象スキルの名前。",
+          "required": true,
+          "example": "my-skill"
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "評価用のテストケースファイル (*.evalset.json) のパス。",
+          "required": true,
+          "example": "path/to/test.evalset.json"
+        },
+        {
+          "name": "threshold_accuracy",
+          "type": "float",
+          "description": "評価が合格するために必要な最小精度。",
+          "required": false,
+          "default": "1.0",
+          "ge": 0.0,
+          "le": 1.0,
+          "example": 0.95
+        },
+        {
+          "name": "timeout_seconds",
+          "type": "int",
+          "description": "評価タイムアウト秒数。",
+          "required": false,
+          "default": "180",
+          "example": 300
+        },
+        {
+          "name": "config_file_path",
+          "type": "str",
+          "description": "評価設定ファイルのカスタムパス。",
+          "required": false,
+          "default": null,
+          "example": "path/to/custom_config.json"
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "検証または評価の結果ステータス。'success' または 'failed'。",
+          "required": true,
+          "choices": [
+            "success",
+            "failed"
+          ],
+          "example": "success"
+        },
+        {
+          "name": "details",
+          "type": "str",
+          "description": "検証/評価の実行結果詳細、不足事項やフィードバック、またはエラーメッセージ。",
+          "required": true,
+          "example": "Evaluation passed with 98% accuracy."
+        },
+        {
+          "name": "score",
+          "type": "float",
+          "description": "検証/評価のスコア（0.0〜1.0）。",
+          "required": true,
+          "ge": 0.0,
+          "le": 1.0,
+          "example": 0.98
+        }
+      ]
     }
   ]
 }
