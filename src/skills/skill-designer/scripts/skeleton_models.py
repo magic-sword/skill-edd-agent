@@ -8,19 +8,16 @@ class SkeletonStep(BaseModel):
     target: str | None = Field(None, description="typeが 'skill' の場合に呼び出す既存のスキル名")
     description: str | None = Field(None, description="ステップの役割・処理要件を記述する説明")
 
-class WorkflowSkeletonDesign(BaseModel):
-    rationale: str = Field(..., description="設計の思考プロセス。")
-    name: str = Field(..., description="ワークフローの名前。小文字のハイフン区切り")
-    description: str = Field(..., description="ワークフローの目的や役割を記述した簡潔の説明")
+class SkeletonDesign(BaseModel):
+    rationale: str = Field(..., description="設計の思考プロセス。なぜこの module_type (skill または workflow) を選択したのかの理由。")
+    name: str = Field(..., description="モジュールの名前。小文字のハイフン区切り")
+    description: str = Field(..., description="モジュールの目的や役割を記述した簡潔な説明")
     summary: str | None = Field(None, description="仕様概要")
-    module_type: Literal[ModuleType.WORKFLOW] = Field(ModuleType.WORKFLOW, description="モジュールの役割分類。ワークフローは必ず 'workflow'")
+    module_type: ModuleType = Field(ModuleType.SKILL, description="モジュールの種類。アトミックな1機能は 'skill'、他の複数スキルを連携・調整する場合は 'workflow'")
     parameters: list[Parameter] = Field(..., description="入力パラメータのリスト")
     dependencies: list[str] = Field([], description="依存スキルのリスト")
     constraints: list[str] = Field([], description="全体の実行に関する制約")
     response_parameters: list[Parameter] | None = Field(None, description="全体の出力JSONの構造定義")
-    steps: list[SkeletonStep] = Field(..., description="ワークフローを構成するステップの定義リスト")
+    steps: list[SkeletonStep] = Field([], description="workflow の場合のみ指定するステップ定義リスト。skill の場合は空リストにしてください。")
 
-SkeletonDesign = Annotated[
-    Union[WorkflowSkeletonDesign],  # 骨組み設計は常に workflow 構造を想定
-    Field(discriminator="module_type")
-]
+

@@ -3,7 +3,7 @@
   "name": "skill-designer",
   "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
   "summary": "自然言語の要件や既存のソースコードを基に、ADK 2.0互換のdesign.jsonを設計・生成します。これにより、新しいスキルの定義や既存スキルの再設計を効率的に行えます。",
-  "module_type": "workflow",
+  "module_type": "skill",
   "parameters": [
     {
       "name": "prompt",
@@ -76,46 +76,82 @@
       "required": true
     }
   ],
-  "steps": [
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON",
+  "functions": [
     {
-      "name": "resolve-paths",
-      "type": "function",
-      "description": "スキルディレクトリ、出力ディレクトリ、ソースコードディレクトリなど、各種パスの解決と決定を行う。",
-      "inputs": {}
-    },
-    {
-      "name": "parse-constraints",
-      "type": "function",
-      "description": "既存スキルの制約事項をパースして抽出する。",
-      "inputs": {}
-    },
-    {
-      "name": "generate-l1-design-skeleton",
-      "type": "agent",
-      "description": "プロンプト、既存制約、利用可能スキルコンテキストに基づき、設計の骨組み（L1粗設計）を生成する。",
-      "instruction": "ユーザーの要求と既存の制約、スキルコンテキストを考慮し、ADK 2.0のdesign.jsonスキーマに準拠したスキルのL1設計（骨組み）を生成してください。特に、name, description, module_type, execution_type, output_mode, functionsの基本的な構造を定義することに焦点を当ててください。引数マッピングはまだ考慮不要です。",
-      "tools": [],
-      "inputs": {}
-    },
-    {
-      "name": "generate-l2-design-mapping",
-      "type": "agent",
-      "description": "L1骨組み設計と依存スキルの詳細スキーマに基づき、引数マッピングを含む最終設計（L2精緻化）を生成する。",
-      "instruction": "L1設計の骨組みを基に、ユーザーのプロンプト、提供されたサマリー、および依存スキルの詳細スキーマ（もしあれば）を考慮して、design.jsonの最終的なL2設計を生成してください。特に、functions内のparametersとresponse_parameters、およびworkflowのsteps内のinputsフィールドを正確に定義し、引数マッピングを完成させてください。ADK 2.0スキーマに厳密に準拠し、すべての必須フィールドが適切に設定されていることを確認してください。",
-      "tools": [],
-      "inputs": {}
-    },
-    {
-      "name": "clean-and-validate-design",
-      "type": "function",
-      "description": "LLMが出力した設計データに対して、命名規則やワークフロー構造の自動補正（クレンジング）とPydanticスキーマによるバリデーションを行う。",
-      "inputs": {}
-    },
-    {
-      "name": "save-design-file",
-      "type": "function",
-      "description": "最終的な設計データをdesign.jsonファイルとして指定されたパスに保存する。",
-      "inputs": {}
+      "name": "skill_designer",
+      "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "設計するスキルの機能要件や追加の改修要望を記述した自然言語のテキスト。",
+          "required": true,
+          "is_prompt_parameter": true,
+          "prompt_instructions": "新しく作りたいスキルの概要説明、パラメータ定義、実行タイプ（tool/agent）、制約事項などを自然言語で指示できます。また、既存コードへの機能追加要望も指定可能です。",
+          "prompt_constraints": "設計書（design.json）の全体構造（スキーマ定義）はADK 2.0規約に基づいてバリデーションされるため、規約違反となるような無効なフィールド定義を出力させることはできません。",
+          "example": "新しいスキルとして、ユーザーから与えられたテキストを要約するスキルを設計してください。入力は'text'という名前の文字列で必須、出力は要約された文字列です。実行タイプはagentにしてください。"
+        },
+        {
+          "name": "summary",
+          "type": "str",
+          "description": "スキルの仕様概要（ビジネス目的や要求の要約）。指定した場合、Geminiによる自動要約より優先して design.json の summary フィールドに保存されます。",
+          "required": false,
+          "is_prompt_parameter": true,
+          "prompt_instructions": "スキルのビジネス目的や提供価値を要約した、簡潔な日本語の1〜2文を設定・上書きできます。",
+          "prompt_constraints": "値はそのまま design.json の summary フィールドに直接流し込まれ、他の構造の生成には影響を与えません。",
+          "example": "ユーザーのテキストを簡潔にまとめることで、情報過多な状況での理解を助けます。"
+        },
+        {
+          "name": "output_dir",
+          "type": "str",
+          "description": "生成されたdesign.jsonを保存するディレクトリのパス。省略時はskillから自動探索されます。",
+          "required": false,
+          "is_prompt_parameter": false,
+          "example": "./output/my-new-skill"
+        },
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "既存のスキル名。再設計時の自動探索キーとして使用されます。",
+          "required": false,
+          "is_prompt_parameter": false,
+          "example": "text-summarizer"
+        },
+        {
+          "name": "source_code_dir",
+          "type": "str",
+          "description": "再設計のベースとなる既存のスキル実装コードのディレクトリ（またはファイル）パス。指定しない場合、自動的に検出を試みます。",
+          "required": false,
+          "is_prompt_parameter": false,
+          "example": "./skills/text-summarizer"
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "処理結果の成否ステータス（'success' / 'failed'）",
+          "required": true,
+          "choices": [
+            "success",
+            "failed"
+          ]
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "description": "処理結果のメッセージサマリー",
+          "required": true
+        },
+        {
+          "name": "output_dir",
+          "type": "str",
+          "description": "成果物(design.json)が格納されたスキルディレクトリの絶対パス",
+          "required": true
+        }
+      ]
     }
   ]
 }

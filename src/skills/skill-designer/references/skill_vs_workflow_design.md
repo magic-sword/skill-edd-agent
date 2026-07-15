@@ -119,3 +119,26 @@ ModuleDesign = Annotated[
    といった思考をテキストで展開させた上で、残りの `module_type` や `steps` などの具体的なパラメータ値を決定論的に決定します。これにより、判断のハルシネーション（誤判定）が劇的に低下します。
 3. **推論プロセスの静的保存**:
    生成された `design.json` には、AI がどのような論理的思考でその構成に至ったかの推論トレースが `rationale` フィールドとして静的に残ります。これは、人間が設計レビューやデバッグを行う際にも極めて重要なドキュメント情報になります。
+
+---
+
+## 5. LLM の過剰ワークフロー化（Over-Workflowing）問題とハーネス設計
+
+LLM（Gemini API）に設計を指示すると、内部手続き（パス解決、ファイルの保存、バリデーションなど）をすべて ADK の物理的な「ステップ」に過剰分割し、なんでもワークフロー（`workflow`）に仕立て上げてしまう傾向（過剰ワークフロー化）があります。これに対し、プロジェクトでは「Pydanticスキーマ」と「クレンジング処理（防錆境界）」の二段構えで構造的な制約（ハーネス）を設けています。
+
+### ① Pydantic スキーマ（骨組みモデル）による構造的制約
+粗設計（L1）のデータ定義において、当初はワークフローモデル（`WorkflowSkeletonDesign`）しか許容されていなかったため、LLMは強制的に `workflow` を選択せざるを得ませんでした。
+
+これを、アトミックなスキル設計用の項目も包含するフラットな単一の [SkeletonDesign](file:///d:/kaggle/antigravity/skill-edd-agent/src/skills/skill-designer/scripts/skeleton_models.py) モデルに統合しました。
+*   `steps` をオプショナル（デフォルト空リスト）にする。
+*   `module_type` として `"skill"` も選択できるように `description` を追加する。
+*   複雑な `Union` 分岐を避けることで、Gemini APIの制約上限（too many states）エラーを回避しつつ、LLMに対して型定義レベルで「アトミックなスキル」という正しい選択肢を提示しています。
+
+### ② 防錆境界としての決定論的クレンジング（Anticorruption Layer）
+LLMのハルシネーションに対する「お節介な自動補正」をスキーマ定義自体に `@model_validator` などとして埋め込むことは避けています。
+
+理由は以下の通りです：
+*   **関心の分離**: スキーマはデータの本質的な整合性ルール（不変条件）の検証に特化させ、LLM固有の揺らぎに対する補正処理（サニタイズ）は外部の [cleanser.py](file:///d:/kaggle/antigravity/skill-edd-agent/src/skills/skill-designer/scripts/cleanser.py) に切り分ける。
+*   **循環インポートの回避**: スキーマは他のモジュールから広くインポートされるため、そこに状態や外部依存をロードするロジックを混ぜると循環参照の原因になります。
+
+[cleanser.py](file:///d:/kaggle/antigravity/skill-edd-agent/src/skills/skill-designer/scripts/cleanser.py) は防錆境界として働き、LLMが「外部のスキル（`type: skill`）を1つも呼び出していない擬似ワークフロー」を出力した場合は、決定論的に `module_type: skill` へ強制的に引き戻し、不要な `steps` を除去した上でアトミックなスキル用必須フィールド（`execution_type`, `output_mode`, `functions`）を補完します。これにより、過剰にファイルが自動生成されてコードベースが汚染されるのを未然に防いでいます。
