@@ -2,14 +2,14 @@ from typing import Any
 
 def __getattr__(name: str) -> Any:
     """遅延インポートを実現するための属性解決ハンドラ。"""
-    if name == "design_skill":
-        from .handler import design_skill
-        return design_skill
+    if name == "skill_designer":
+        from .handler import skill_designer
+        return skill_designer
 
-    if name == "Output":
-        from .models import Output
-        return Output
+    if name == "SkillDesignerOutput":
+        from .models import SkillDesignerOutput
+        return SkillDesignerOutput
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-__all__ = ["design_skill", "Output"]
+__all__ = ['skill_designer', 'SkillDesignerOutput']

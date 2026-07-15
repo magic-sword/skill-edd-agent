@@ -61,19 +61,22 @@
       "choices": [
         "success",
         "failed"
-      ]
+      ],
+      "example": "success"
     },
     {
       "name": "message",
       "type": "str",
       "description": "処理結果のメッセージサマリー",
-      "required": true
+      "required": true,
+      "example": "スキル 'my-new-skill' の設計が完了し、'/app/output/my-new-skill/design.json' に保存されました。"
     },
     {
       "name": "output_dir",
       "type": "str",
       "description": "成果物(design.json)が格納されたスキルディレクトリの絶対パス",
-      "required": true
+      "required": true,
+      "example": "/app/output/my-new-skill"
     }
   ],
   "execution_type": "agent",
@@ -137,19 +140,22 @@
           "choices": [
             "success",
             "failed"
-          ]
+          ],
+          "example": "success"
         },
         {
           "name": "message",
           "type": "str",
           "description": "処理結果のメッセージサマリー",
-          "required": true
+          "required": true,
+          "example": "スキル 'my-new-skill' の設計が完了し、'/app/output/my-new-skill/design.json' に保存されました。"
         },
         {
           "name": "output_dir",
           "type": "str",
           "description": "成果物(design.json)が格納されたスキルディレクトリの絶対パス",
-          "required": true
+          "required": true,
+          "example": "/app/output/my-new-skill"
         }
       ]
     }

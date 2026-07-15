@@ -1,31 +1,18 @@
-from .models import Output
+from .models import SkillDesignerOutput
 from .executor import SkillExecutor
 
-def design_skill(
-    prompt: str,
-    summary: str = None,
-    output_dir: str = None,
-    skill: str = None,
-    source_code_dir: str = None
-) -> dict:
-    """自然言語の要件や既存のソースコードを基に、ADK 2.0互換のdesign.jsonを設計・生成します。
+def skill_designer(prompt: str, summary: str | None = None, output_dir: str | None = None, skill: str | None = None, source_code_dir: str | None = None) -> SkillDesignerOutput:
+    """スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。
 
     Args:
-        prompt: 設計または再設計の要件（自然言語）。
-        summary: 設計の概要（指示の上書き用）。
-        output_dir: 生成された design.json の出力先ディレクトリ。
-        skill: 対象スキル名（既存スキルの再設計時のみ）。
-        source_code_dir: スキャン対象のソースコードディレクトリ（既存スキルの再設計時のみ）。
+        prompt: 設計するスキルの機能要件や追加の改修要望を記述した自然言語のテキスト。
+        summary: スキルの仕様概要（ビジネス目的や要求の要約）。指定した場合、Geminiによる自動要約より優先して design.json の summary フィールドに保存されます。
+        output_dir: 生成されたdesign.jsonを保存するディレクトリのパス。省略時はskillから自動探索されます。
+        skill: 既存のスキル名。再設計時の自動探索キーとして使用されます。
+        source_code_dir: 再設計のベースとなる既存のスキル実装コードのディレクトリ（またはファイル）パス。指定しない場合、自動的に検出を試みます。
 
     Returns:
-        設計結果（status, message, output_dir）を含む辞書。
+        実行結果オブジェクト (SkillDesignerOutput)。
     """
-    executor = SkillExecutor(
-        prompt=prompt,
-        summary=summary,
-        output_dir=output_dir,
-        skill=skill,
-        source_code_dir=source_code_dir
-    )
-    result = executor.execute()
-    return result.model_dump()
+    executor = SkillExecutor()
+    return executor.skill_designer(prompt=prompt, summary=summary, output_dir=output_dir, skill=skill, source_code_dir=source_code_dir)
