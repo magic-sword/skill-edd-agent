@@ -142,6 +142,7 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                     node_lines = [
                         "from google.adk.tools import ToolContext",
                         "from edd_agent_tools.skills import SkillsState",
+                        "from edd_agent_tools import merge_result_to_state",
                         "import json",
                         "",
                         "state = SkillsState()",
@@ -152,22 +153,23 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                         "    # 設計書の inputs マッピングから直接決定論的に引数を抽出"
                     ]
                     
+                    # 依存スキルの実際の関数名を取得する（設計書の functions から、なければスキル名）
+                    actual_func_name = dep_var
+                    try:
+                        dep_skill = state.get_skill(target_skill)
+                        dep_design = dep_skill.load_design()
+                        if getattr(dep_design, "functions", None) and dep_design.functions:
+                            actual_func_name = dep_design.functions[0].name
+                    except Exception:
+                        pass
+
                     # 個別引数の具象関数を直接呼び出すコードを組み立てる
-                    node_lines.append(f"    res = {dep_var}_module.{dep_var}(")
+                    node_lines.append(f"    res = {dep_var}_module.{actual_func_name}(")
                     if params_init_str:
                         node_lines.append(params_init_str)
                     node_lines.append("    )")
                     
-                    node_lines.append("    from pydantic import BaseModel")
-                    node_lines.append("    if isinstance(res, BaseModel):")
-                    node_lines.append("        tool_context.state.update(res.model_dump())")
-                    node_lines.append("        res_str = res.model_dump_json()")
-                    node_lines.append("    elif isinstance(res, dict):")
-                    node_lines.append("        tool_context.state.update(res)")
-                    node_lines.append("        res_str = json.dumps(res)")
-                    node_lines.append("    else:")
-                    node_lines.append("        res_str = str(res)")
-                    node_lines.append("    return res_str")
+                    node_lines.append("    return merge_result_to_state(tool_context, res)")
                     node_lines.append("")
                     
                     node_code = "\n".join(node_lines)
@@ -361,21 +363,24 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                         param_assignments.append(f'        {param_name}=tool_context.state.get("{mapping_val}")')
                         
                 params_init_str = ",\n".join(param_assignments)
-                code_lines.append(f"    res = {dep_var}_module.{dep_var}(")
+                
+                # 依存スキルの実際の関数名を取得する（設計書の functions から、なければスキル名）
+                actual_func_name = dep_var
+                try:
+                    dep_skill = state.get_skill(dep)
+                    dep_design = dep_skill.load_design()
+                    if getattr(dep_design, "functions", None) and dep_design.functions:
+                        actual_func_name = dep_design.functions[0].name
+                except Exception:
+                    pass
+
+                code_lines.append(f"    res = {dep_var}_module.{actual_func_name}(")
                 if params_init_str:
                     code_lines.append(params_init_str)
                 code_lines.append("    )")
                 
-                code_lines.append("    from pydantic import BaseModel")
-                code_lines.append("    if isinstance(res, BaseModel):")
-                code_lines.append("        tool_context.state.update(res.model_dump())")
-                code_lines.append("        res_str = res.model_dump_json()")
-                code_lines.append("    elif isinstance(res, dict):")
-                code_lines.append("        tool_context.state.update(res)")
-                code_lines.append("        res_str = json.dumps(res)")
-                code_lines.append("    else:")
-                code_lines.append("        res_str = str(res)")
-                code_lines.append("    return res_str")
+                code_lines.append("    from edd_agent_tools import merge_result_to_state")
+                code_lines.append("    return merge_result_to_state(tool_context, res)")
                 code_lines.append("")
                 
             # edgesの生成

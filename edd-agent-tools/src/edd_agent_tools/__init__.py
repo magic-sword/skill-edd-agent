@@ -50,6 +50,7 @@ def __getattr__(name: str):
         "Skill": (".skills", "Skill"),
         "SkillTier": (".skills", "SkillTier"),
         "WorkflowRunner": (".run.workflow", "WorkflowRunner"),
+        "merge_result_to_state": (".run.workflow", "merge_result_to_state"),
         "SafeWriteFileTool": (".run.tools", "SafeWriteFileTool"),
         "SafeEditFileTool": (".run.tools", "SafeEditFileTool"),
         # evaluation
@@ -82,7 +83,7 @@ def __dir__():
         "SkillMetadata", "ModuleType", "EvalRunResult", "WorkspaceArtifacts", "WorkspaceAction",
         "WriteFileAction", "ViewFileAction", "RunPytestAction", "WorkspaceObservation", "FileState",
         "clean_pydantic_schema", "PromptField",
-        "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "SafeWriteFileTool", "SafeEditFileTool", 
+        "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "merge_result_to_state", "SafeWriteFileTool", "SafeEditFileTool", 
         "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol", "SchemaDrivenTestRunner",
         "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
     ])

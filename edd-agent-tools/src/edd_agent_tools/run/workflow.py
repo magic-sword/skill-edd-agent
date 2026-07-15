@@ -110,3 +110,20 @@ class WorkflowRunner:
         """同期実行用ラッパーメソッド。"""
         import asyncio
         return asyncio.run(self.run_async(params))
+
+
+def merge_result_to_state(tool_context: Any, res: Any) -> str:
+    """実行結果を ToolContext.state にマージし、結果の文字列を返します。"""
+    import json
+    from pydantic import BaseModel
+    
+    if isinstance(res, BaseModel):
+        tool_context.state.update(res.model_dump())
+        return res.model_dump_json()
+    elif isinstance(res, dict):
+        tool_context.state.update(res)
+        return json.dumps(res)
+    else:
+        res_str = str(res)
+        return res_str
+

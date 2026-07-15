@@ -1,32 +1,42 @@
-from google.adk.tools import ToolContext
 from edd_agent_tools import WorkflowRunner
-from .models import Input, Output
+from .models import Output
 from .workflow import root_workflow
 
-SKILL_METADATA = {
-    "name": "skill-developer",
-    "description": "スキルを設計、実装、および仕様書を作成するワークフローエージェント。",
-    "summary": "このワークフローは、ユーザーからの要件プロンプトに基づいて、skill-designer、skill-coder、skill-spec-writerの各スキルを順に実行し、新しいスキルを生成します。設計、実装、仕様書作成の一連のプロセスを自動化し、成果物を指定されたディレクトリに出力します。",
-    "execution_type": "agent",
-    "output_mode": "STRUCTURED_JSON",
-    "dependencies": [
-        "skill-designer",
-        "skill-coder",
-        "skill-spec-writer"
-    ]
-}
+class RuntimeInput:
+    """内部引数コンパイル用ダミーオブジェクト。"""
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+    def model_dump(self, **kwargs):
+        return self.__dict__
 
-def process_message(params: Input, tool_context: ToolContext) -> str:
-    # 共通ランナーを直接使用してワークフローを駆動
+def skill_developer(prompt: str, skill: str | None = None, output_dir: str | None = None, design_path: str | None = None, source_code_dir: str | None = None) -> Output:
+    """新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。
+
+    Args:
+        prompt: スキル設計・実装の要件を記述したプロンプト。
+        skill: 対象のスキル名。既存スキルを改修する場合に指定します。
+        output_dir: 成果物の出力先ディレクトリのパス。
+        design_path: design.jsonの絶対パス。既存スキルを改修する場合に指定します。
+        source_code_dir: 実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。
+
+    Returns:
+        実行結果オブジェクト (Output)。
+    """
+    params = RuntimeInput(prompt=prompt, skill=skill, output_dir=output_dir, design_path=design_path, source_code_dir=source_code_dir)
     runner = WorkflowRunner(
-        workflow_name=SKILL_METADATA["name"],
-        root_workflow=root_workflow,
-        tool_context=tool_context
+        workflow_name="skill-developer",
+        root_workflow=root_workflow
     )
     result_dict = runner.run(params)
-    result = Output(**result_dict)
-    if isinstance(result, Output):
-        if SKILL_METADATA.get("output_mode") in ("VALUE_ONLY", "CONVERSATIONAL"):
-            return result.value
-        return result.model_dump_json(by_alias=True)
-    return str(result)
+    
+    output_data = {}
+    for field in Output.model_fields.keys():
+        if field in result_dict:
+            output_data[field] = result_dict[field]
+        elif "state" in result_dict and field in result_dict["state"]:
+            output_data[field] = result_dict["state"][field]
+            
+    if not output_data and "value" in Output.model_fields:
+        output_data["value"] = result_dict.get("message", "success")
+        
+    return Output(**output_data)
