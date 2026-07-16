@@ -1,9 +1,6 @@
----
-name: ${skill_name}
-description: ${mechanical_description}
----
-
 # ${skill_name}
+
+${mechanical_description}
 
 ## 概要
 
@@ -13,33 +10,8 @@ ${human_overview}
 
 ${trigger_conditions}
 
-## AIエージェント向け使用方法
+## 公開関数 (APIエンドポイント)
 
-### 1. 実行手順（Instructions）
-
-${execution_instructions}
-
-### 2. 呼び出し方法
-- **インプロセス呼び出し (Python API)**:
-  * スキルオブジェクトからエクスポートされた各公開関数を直接呼び出すか、`get_tools()` を介して `FunctionTool` リストとして取得します。
-    ```python
-    from edd_agent_tools.skills import SkillsState
-    state = SkillsState()
-    skill = state.get_skill("${skill_name}")
-    
-    # 1. 各公開関数を直接実行する場合
-    handler = skill.load_module()
-    # 例: result = handler.[関数名]([引数])
-    
-    # 2. エージェント登録用の FunctionTool リストを取得する場合
-    tools = skill.get_tools()
-    ```
-- **出力形式 (Output Mode)**: `${output_mode}` (${output_mode_description})
-
-### 入力パラメータ
-
-${input_parameters}
-
-${output_parameters_section}
+${functions_section}
 
 ${constraints_section}

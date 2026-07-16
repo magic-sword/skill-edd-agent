@@ -10,10 +10,6 @@ def __getattr__(name: str) -> Any:
         from .models import SkillCoderOutput
         return SkillCoderOutput
 
-    if name == "Output":
-        from .models import Output
-        return Output
-
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-__all__ = ['skill_coder', 'SkillCoderOutput', 'Output']
+__all__ = ['skill_coder', 'SkillCoderOutput']

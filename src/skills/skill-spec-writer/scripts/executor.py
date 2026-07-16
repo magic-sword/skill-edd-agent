@@ -1,19 +1,22 @@
-from .models import Input, Output
+from typing import Any
+from .models import GenerateSkillSpecOutput as Output
 from .spec_generator import SpecGenerator
+
 
 class SkillExecutor:
     """
     ビジネスロジックを責務ごとに分割して実行するオブジェクト指向エグゼキューター。
     """
-    def __init__(self, design_path: str = None, skill: str = None, output_dir: str = None, source_code_dir: str = None, prompt: str = None):
-        self.params = Input(
+
+    def __init__(self):
+        pass
+
+    def generate_skill_spec(self, design_path: str | None = None, skill: str | None = None, output_dir: str | None = None, source_code_dir: str | None = None, prompt: str | None = None) -> Output:
+        generator = SpecGenerator(
             design_path=design_path,
             skill=skill,
             output_dir=output_dir,
             source_code_dir=source_code_dir,
             prompt=prompt
         )
-
-    def execute(self) -> Output:
-        generator = SpecGenerator(self.params)
         return generator.generate()

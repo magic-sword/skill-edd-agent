@@ -1,0 +1,29 @@
+# ${skill_name}
+
+${mechanical_description}
+
+## 概要
+
+${human_overview}
+
+## トリガー条件
+
+${trigger_conditions}
+
+## 実行方法
+
+${execution_instructions}
+
+## 出力仕様
+
+### 出力モード: `${output_mode}`
+
+${output_mode_description}
+
+${output_parameters_section}
+
+## パラメータ詳細
+
+${input_parameters}
+
+${constraints_section}

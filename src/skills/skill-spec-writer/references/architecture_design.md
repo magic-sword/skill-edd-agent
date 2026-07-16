@@ -13,34 +13,47 @@
 ```mermaid
 classDiagram
     class SpecWriterFactory {
-        +create(execution_type, design_data, source_code_dir, tool_context) BaseSpecWriter
+        +create(design_data, source_code_dir, prompt) BaseSpecWriter
     }
     class BaseSpecWriter {
         <<Abstract>>
-        +design_data SkillDesign
+        +design_data Union[SkillDesign, WorkflowDesign]
         +source_code_dir str
         +generate(output_dir) str
-        #_call_gemini_api(contents, schema) SkillTextParts
+        #_call_gemini_api(contents, schema) model
         +get_pydantic_schema()*
         +build_prompt(prompt_tmpl)* str
         +render_markdown(text_parts)* str
         #_format_parameter_type(param) str
         #_format_parameter_description(param) str
     }
-    class ToolSpecWriter {
-        +get_pydantic_schema() SkillTextParts
-        +build_prompt(prompt_tmpl) str
+    class BaseSkillSpecWriter {
+        <<Abstract>>
         +render_markdown(text_parts) str
+        #_build_execution_instructions(required_params)* str
+    }
+    class ToolSpecWriter {
+        +get_pydantic_schema() ToolSkillTextParts
+        +build_prompt(prompt_tmpl) str
+        #_build_execution_instructions(required_params) str
     }
     class AgentSpecWriter {
-        +get_pydantic_schema() SkillTextParts
+        +get_pydantic_schema() AgentSkillTextParts
+        +build_prompt(prompt_tmpl) str
+        #_build_execution_instructions(required_params) str
+    }
+    class WorkflowSpecWriter {
+        +get_pydantic_schema() WorkflowTextParts
         +build_prompt(prompt_tmpl) str
         +render_markdown(text_parts) str
+        #_build_execution_instructions(required_params) str
     }
 
     SpecWriterFactory ..> BaseSpecWriter : Instantiates
-    BaseSpecWriter <|-- ToolSpecWriter : Inherits
-    BaseSpecWriter <|-- AgentSpecWriter : Inherits
+    BaseSpecWriter <|-- BaseSkillSpecWriter : Inherits
+    BaseSpecWriter <|-- WorkflowSpecWriter : Inherits
+    BaseSkillSpecWriter <|-- ToolSpecWriter : Inherits
+    BaseSkillSpecWriter <|-- AgentSpecWriter : Inherits
 ```
 
 ---
@@ -52,31 +65,22 @@ classDiagram
 ### ① Factory Pattern（ファクトリ・パターン）
 * **該当クラス**: `SpecWriterFactory` ([factory.py](file:///workspace/src/skills/skill-spec-writer/scripts/writer/factory.py))
 * **採用理由**:
-  スキルの実行形式である `execution_type` (`"tool"` または `"agent"`) によって、仕様書の生成プロセスやプロンプト指示、レンダリング方法が大きく異なります。
-  呼び出し側（`spec_writer.py`）が個別の具象ライタークラスの存在やインスタンス化ロジックを直接知る必要をなくし、オブジェクトの作成責務を完全にカプセル化しています。
+  モジュールの分類（`skill` または `workflow`）および実行形式（`"tool"` または `"agent"`) によって、仕様書の生成プロセスやプロンプト指示、レンダリング方法が大きく異なります。
+  呼び出し側（`spec_generator.py`）が個別の具象ライタークラスの存在やインスタンス化ロジックを直接知る必要をなくし、オブジェクトの作成責務を完全にカプセル化しています。
 * **なぜタイプを分けるのか（ADK/Playbooksの思想背景）**:
-  ADKおよびGoogle Cloud Conversational Agents（Playbooks）のアーキテクチャ設計では、エージェントが利用するツール（スキル）の責責について、**「決定論的（確定・安定）な処理」**と**「非決定論的（自律思考・推論）な処理」**を技術的・概念的に厳格に分離しています。
+  ADKおよびGoogle Cloud Conversational Agents（Playbooks）のアーキテクチャ設計では、エージェントが利用するツール（スキル）の責務について、**「決定論的（確定・安定）な処理」**と**「非決定論的（自律思考・推論）な処理」**を技術的・概念的に厳格に分離しています。
   * **`tool` タイプ (`PythonFunction` / `ClientFunction` 等の具象)**:
     * **目的**: ファイルI/OやAPIリクエストなどの「決定論的なシステム操作」を、安全かつ確実に実行させるための概念です。エージェント（LLM）自身に操作手順を考えさせるのではなく、プログラムコードで機械的に完結させるため、厳密な引数定義と手順書の自動出力が必要になります。
   * **`agent` タイプ (`AgentTool` / `Sub-Agent` の具象)**:
     * **目的**: 複雑な課題（設計、コーディングなど）を、別の「LLMによる自律思考を持ったエージェント（Playbook）」へ委譲するための概念です。エージェントの中に別のエージェントをネストさせるため、引数の受け渡しだけでなく「思考のステップや方針（Instructions）」にフォーカスした仕様定義が必要です。
   * **仕様書を読み込むAIエージェントのトークン消費と注意力の最適化**:
     AIエージェントが利用可能なスキル群から適切なものを選択・実行する際、各スキルの仕様書（`SKILL.md`）をシステムプロンプト（コンテキスト）としてロードします。この際の**AIのトークン消費量の最小化**と、**適切な役割認識（アテンションの制御）**がタイプ分割の核心的な理由です。
-    * **`tool` スキルを読み込む時**: AIは「関数のインターフェース（正しい引数と返り値の型）」だけを正確に理解できれば十分です。もしここに無駄な思考指示やプロンプトが含まれていると、AIは**無関係な情報にコンテキストトークンを浪費し、アテンション（注意力）が散漫になってパラメータ設定エラーを引き起こします。**
+    * **`tool` スキルを読み込む時**: AIは「関数のインターフェース（正しい引数と返り値の型）」だけを正確に理解できれば十分です。もしここに無駄な思考指示やプロンプトが含まれていると、AIは**無関係な情報にコンテキストトークンを浪費し、アテンション（注意力）が散漫になってパラメータ設定エラーを引き起こします。** 本スキルでは、リファクタリングにより冗長な共通指示を廃止し、トークンの大幅なスリム化を達成しました。
     * **`agent` スキルを読み込む時**: AIは「そのサブエージェントがどのような思考指示（Instructions）に沿って自律的に推論するか」を理解する必要があります。仕様書に思考プロセスが明記されていることで、AIはこれが「機械的なツール」ではなく「仕事を委譲すべき自律的なエージェント」であると正しく認識し、適切なコンテキストを渡して委譲できるようになります。
   * **リファレンスリンク**:
     * ADK 公式スキル設計ガイド: [Skills for ADK agents](https://adk.dev/skills/index.md)
     * ADK 公式エージェント設計ガイド: [Simple agents](https://adk.dev/agents/llm-agents/index.md)
     * Google Cloud Playbooks Tools 概念詳細: [playbooks_tools_concept.md](file:///workspace/src/skills/skill-spec-writer/references/playbooks_tools_concept.md)
-* **出力内容およびプロンプトの違い**:
-  * **`tool` タイプ (決定論的スクリプト型)**:
-    * **特性**: AI自身が推論するのではなく、入力引数を受け取って Python などのスクリプト処理を完結させるツール。
-    * **仕様書の内容**: 「厳格な入力パラメータの型・必須チェック」や「スクリプトとしての具体的な関数・CLI実行手順」にフォーカスした内容を出力します。
-    * **抽出プロンプト**: スクリプトの機械的な実行手順や、引数チェックロジックの流れを箇条書きステップとして抽出させます。
-  * **`agent` タイプ (LLM自律思考型)**:
-    * **特性**: スキル内部に自律推論用のプロンプト（`prompt.txt` 等）を持ち、LLM自身が思考指示に従って生成を行うスキル。
-    * **仕様書の内容**: 「エージェントが思考テンプレートをロードして実行する手順」や、エージェントが辿る「論理的な推論思考プロセス」にフォーカスした内容を出力します。
-    * **抽出プロンプト**: LLMが思考指示ステップ（assets/prompt.txt）に沿ってどのように自律推論を実行するかのプロセスを抽出させます。
 
 ### ② Template Method Pattern（テンプレートメソッド・パターン）
 * **該当クラス**: `BaseSpecWriter` ([base.py](file:///workspace/src/skills/skill-spec-writer/scripts/writer/base.py))
@@ -86,14 +90,11 @@ classDiagram
 
 ---
 
-## 3. 拡張性の担保（Open-Closed Principle）
+## 3. 複数関数公開への適応設計（マイクロサービス型カプセル化）
 
-本設計は、オブジェクト指向設計原則の一つである「開閉原則（拡張に対して開いており、修正に対して閉じている）」を体現しています。
+1つのスキルパッケージが複数の公開関数（APIエンドポイント）をエクスポートするリファクタリング仕様に対応するため、[skill_base.py](file:///workspace/src/skills/skill-spec-writer/scripts/writer/skill_base.py)（`BaseSkillSpecWriter`）において、関数単位での情報カプセル化（概要・引数・戻り値・プロンプト警告枠の統合）をレンダリング時に決定論的に行う設計を導入しました。
 
-もし将来、ADKに新しい実行形式（例: ワークフロー全体の自動遷移を制御する `"workflow"` タイプなど）が追加された場合、既存の `ToolSpecWriter` や `AgentSpecWriter` のコードを一切変更することなく、以下の2ステップだけで安全に拡張できます。
-
-1. `BaseSpecWriter` を継承した `WorkflowSpecWriter` を新規作成する。
-2. `SpecWriterFactory` に `"workflow"` のマッピング分岐を1行追加する。
+これにより、ドキュメント全体での情報分散を防ぎ、LLMおよび人間が読み取った際の誤解の発生を根本から防いでいます。
 
 ---
 

@@ -7,4 +7,3 @@ class SkillCoderOutput(BaseModel):
     output_dir: str = Field(..., description='実装コードが出力されたディレクトリの絶対パス')
 
 Output = SkillCoderOutput
-

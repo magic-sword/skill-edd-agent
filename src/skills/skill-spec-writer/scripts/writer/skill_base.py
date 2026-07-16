@@ -26,80 +26,81 @@ class BaseSkillSpecWriter(BaseSpecWriter):
         ]
         overview_str = "\n".join(overview_lines)
 
-        # パラメータテーブルおよび出力パラメータテーブルの作成
-        # functions 配下の各関数を処理する
-        param_sections = []
-        output_sections = []
-        required_params = []
-
+        # 各公開関数（APIエンドポイント）の情報をカプセル化して構築
+        functions_sections = []
         for fn in self.design_data.functions:
+            fn_lines = [
+                f"### {fn.name}\n",
+                f"{fn.description}\n",
+                "#### 実行方法\n"
+            ]
+
+            # 関数固有の必要な引数リストを作成して build_execution_instructions に渡す
+            fn_req_params = [f"`{p.name}`" for p in fn.parameters if p.required]
+            if not fn_req_params:
+                # 必須引数がない場合は、その関数のパラメータから最大2つをフォールバックとして渡す
+                fn_req_params = [f"`{p.name}`" for p in fn.parameters[:2]]
+            fn_exec_inst = self._build_execution_instructions(fn_req_params)
+            fn_lines.append(f"{fn_exec_inst.strip()}\n")
+
             # 入力パラメータテーブル
-            param_sections.append(f"### 入力パラメータ ({fn.name})\n")
-            param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
+            fn_lines.append("#### 入力パラメータ\n")
+            input_table = [
+                "| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |",
+                "|---|---|---|---|---|",
+            ]
             for param in fn.parameters:
                 req = "はい" if param.required else "いいえ"
                 formatted_type = self._format_parameter_type(param)
                 formatted_desc = self._format_parameter_description(param)
-                param_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
-                if param.required:
-                    required_params.append(f"`{param.name}` (関数 `{fn.name}`)")
-            param_sections.append("\n".join(param_table))
+                default_val = f"`{param.default}`" if param.default is not None else "-"
+                input_table.append(f"| {param.name} | {formatted_type} | {req} | {default_val} | {formatted_desc} |")
+            fn_lines.append("\n".join(input_table) + "\n")
 
-            # 出力パラメータテーブル (STRUCTURED_JSON時のみ)
-            if self.design_data.output_mode == "STRUCTURED_JSON" and fn.response_parameters:
-                output_sections.append(f"### 出力パラメータ (構造化JSONの戻り値構造) ({fn.name})\n")
-                output_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
-                for param in fn.response_parameters:
-                    req = "はい" if param.required else "いいえ"
-                    formatted_type = self._format_parameter_type(param)
-                    formatted_desc = self._format_parameter_description(param)
-                    output_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
-                output_sections.append("\n".join(output_table))
-
-        params_str = "\n\n".join(param_sections)
-        
-        if output_sections:
-            output_params_section = "\n\n".join(output_sections)
-        else:
-            out_mode = getattr(self.design_data, "output_mode", "STRUCTURED_JSON")
-            if out_mode == "VALUE_ONLY":
-                output_params_section = "### 出力値\n\nスキル実行結果を示す単一のテキストメッセージ（プレーンテキスト）が返されます。"
-            elif out_mode == "CONVERSATIONAL":
-                output_params_section = "### 出力値\n\nユーザーへの返答メッセージ（プレーンテキスト）が返されます。"
-            else:
-                output_params_section = ""
-
-        triggers = "\n".join([f"- {cond}" for cond in text_parts.trigger_conditions])
-
-        # 決定論的な説明文の構築
-        out_mode = getattr(self.design_data, "output_mode", "STRUCTURED_JSON")
-        if out_mode == "VALUE_ONLY":
-            out_mode_desc = "出力は単純なプレーンテキストの値のみとなります。"
-        elif out_mode == "CONVERSATIONAL":
-            out_mode_desc = "ユーザーとの対話を継続する会話形式の応答を出力します。"
-        else:  # STRUCTURED_JSON
-            out_mode_desc = "特定のJSONスキーマ構造に厳密に従った構造化データを出力します。生成結果のパース成功時に生成されたファイルのパスや、エラー時にはエラーメッセージと詳細情報が含まれます。"
-
-        # 各具象クラス固有の instructions 構築
-        exec_instructions = self._build_execution_instructions(required_params)
-
-        # design.json 内に prompt_parameter メタデータが存在する場合、
-        # プロンプトパラメータの有効指示と制約ガイドを決定論的にマージする
-        prompt_guides = []
-        for fn in self.design_data.functions:
+            # プロンプトパラメータのガイドライン (対象関数内にある場合のみ挿入)
             for param in fn.parameters:
                 if getattr(param, "is_prompt_parameter", None):
                     inst = getattr(param, "prompt_instructions", None) or "指示トーンや特別に盛り込んでほしい仕様コンテキストの指定。"
                     cons = getattr(param, "prompt_constraints", None) or "出力ドキュメント全体のレイアウト構成・見出し等の構造変更は不可。"
-                    prompt_guides.append(
-                        f"\n> [!NOTE]\n"
-                        f"> **`{param.name}` パラメータの使用ガイドライン (関数 `{fn.name}`):**\n"
+                    fn_lines.append(
+                        f"> [!NOTE]\n"
+                        f"> **`{param.name}` パラメータの使用ガイドライン:**\n"
                         f"> * **指定可能な指示**: {inst}\n"
                         f"> * **構造的な制約（指定不可）**: {cons}\n"
                     )
 
-        if prompt_guides:
-            exec_instructions = f"{exec_instructions.strip()}\n" + "\n".join(prompt_guides)
+            # 出力仕様
+            fn_lines.append("#### 出力仕様\n")
+            out_mode = getattr(self.design_data, "output_mode", "STRUCTURED_JSON")
+            if out_mode == "STRUCTURED_JSON":
+                fn_lines.append(f"* **出力モード**: `STRUCTURED_JSON`\n")
+                if fn.response_parameters:
+                    output_table = [
+                        "| パラメータ名 | 型 | 必須 | 説明 |",
+                        "|---|---|---|---|",
+                    ]
+                    for param in fn.response_parameters:
+                        req = "はい" if param.required else "いいえ"
+                        formatted_type = self._format_parameter_type(param)
+                        formatted_desc = self._format_parameter_description(param)
+                        output_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
+                    fn_lines.append("\n".join(output_table) + "\n")
+                else:
+                    fn_lines.append("出力パラメータは定義されていません。\n")
+            else:
+                mode_label = "プレーンテキスト（値のみ）" if out_mode == "VALUE_ONLY" else "会話形式応答"
+                fn_lines.append(f"* **出力モード**: `{out_mode}` ({mode_label})\n")
+                resp_type = getattr(fn, "response_type", None) or "str"
+                fn_lines.append(f"* **戻り値の型**: `{resp_type}`\n")
+                if out_mode == "VALUE_ONLY":
+                    fn_lines.append("スキル実行結果を示す単一のテキストメッセージが返されます。\n")
+                else:
+                    fn_lines.append("ユーザーへの返答メッセージが返されます。\n")
+
+            functions_sections.append("\n".join(fn_lines))
+
+        functions_str = "\n\n---\n\n".join(functions_sections)
+        triggers = "\n".join([f"- {cond}" for cond in text_parts.trigger_conditions])
 
         # テンプレートのロード
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -122,10 +123,6 @@ class BaseSkillSpecWriter(BaseSpecWriter):
             mechanical_description=self.design_data.description,
             human_overview=overview_str,
             trigger_conditions=triggers,
-            execution_instructions=exec_instructions,
-            output_mode=out_mode,
-            output_mode_description=out_mode_desc,
-            input_parameters=params_str,
-            output_parameters_section=output_params_section,
+            functions_section=functions_str,
             constraints_section=constraints_section
         )

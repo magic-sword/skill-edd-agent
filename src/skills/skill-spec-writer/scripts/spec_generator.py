@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-from .models import Input, Output
+from .models import GenerateSkillSpecOutput as Output
 from .writer.factory import SpecWriterFactory
 
 # 循環参照を避けるため、edd_agent_tools のインポートはここに集約
@@ -9,15 +9,20 @@ from edd_agent_tools import SkillDesign
 from edd_agent_tools.skills import SkillsState
 
 class SpecGenerator:
-    def __init__(self, params: Input):
-        self.params = params
+    def __init__(self, design_path: str = None, skill: str = None, output_dir: str = None, source_code_dir: str = None, prompt: str = None):
+        # Input モデルは自動生成されないため、直接引数を受け取る
+        self.design_path = design_path
+        self.skill = skill
+        self.output_dir = output_dir
+        self.source_code_dir = source_code_dir
+        self.prompt = prompt
         self.state = SkillsState() # SkillsStateは一度だけ初期化
 
     def generate(self) -> Output:
-        design_path = self.params.design_path
-        skill = self.params.skill
-        output_dir = self.params.output_dir
-        source_code_dir = self.params.source_code_dir
+        design_path = self.design_path
+        skill = self.skill
+        output_dir = self.output_dir
+        source_code_dir = self.source_code_dir
 
         try:
             # 1. ディレクトリ構造の特定とメタデータのロード
@@ -40,7 +45,7 @@ class SpecGenerator:
             writer = SpecWriterFactory.create(
                 design_data=design_data,
                 source_code_dir=scan_target,
-                prompt=self.params.prompt
+                prompt=self.prompt
             )
             
             output_file_path = writer.generate(output_dir)

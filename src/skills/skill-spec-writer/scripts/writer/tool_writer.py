@@ -24,6 +24,10 @@ class ToolSpecWriter(BaseSkillSpecWriter):
         # 共通プロンプトテンプレートのプレースホルダーを展開
         full_tmpl = prompt_tmpl.format(
             name=self.name,
+            execution_type=self.design_data.execution_type,
+            description=self.design_data.description,
+            summary=getattr(self.design_data, "summary", "") or "",
+            constraints=json.dumps(self.design_data.constraints, indent=2, ensure_ascii=False),
             parameters_json=json.dumps([fn.model_dump() for fn in self.design_data.functions], indent=2, ensure_ascii=False),
             dependencies_json=json.dumps(self.design_data.dependencies, indent=2, ensure_ascii=False),
             type_specific_instruction=specific_tmpl
@@ -36,11 +40,7 @@ class ToolSpecWriter(BaseSkillSpecWriter):
         with open(inst_path, "r", encoding="utf-8") as f:
             inst_tmpl = f.read()
 
-        if required_params:
-            param_list_str = ", ".join(required_params)
-        else:
-            all_params = [f"`{p.name}`" for fn in self.design_data.functions for p in fn.parameters]
-            param_list_str = ", ".join(all_params[:2]) if all_params else ""
+        param_list_str = ", ".join(required_params) if required_params else ""
 
         if not param_list_str:
             inst_tmpl = inst_tmpl.replace("（$param_listなど）", "")

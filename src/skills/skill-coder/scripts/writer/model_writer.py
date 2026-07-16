@@ -63,7 +63,11 @@ class PydanticModelWriter:
         
         # class Output(BaseModel): という文字列部分を削除して複数モデルで置き換える
         custom_template = self.template_str.replace("class Output(BaseModel):", "")
+        models_code_str = "\n\n".join(models_code_list)
+        if models_code_list:
+            models_code_str += f"\n\nOutput = {class_name}"
+            
         return custom_template.format(
             imports_str=imports_str,
-            output_fields_str="\n\n".join(models_code_list)
+            output_fields_str=models_code_str
         )

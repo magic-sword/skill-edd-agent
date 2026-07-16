@@ -121,7 +121,7 @@ class WorkflowSpecWriter(BaseSpecWriter):
 
         # テンプレートのロード
         script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        tmpl_path = os.path.join(script_dir, "..", "assets", "skill_spec.md.template")
+        tmpl_path = os.path.join(script_dir, "..", "assets", "workflow_spec.md.template")
         with open(tmpl_path, "r", encoding="utf-8") as f:
             tmpl_content = f.read()
             
