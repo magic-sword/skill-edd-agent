@@ -1,5 +1,5 @@
 from typing import Any
-from .models import GenerateSkillSpecOutput as Output
+from .models import GenerateSkillSpecOutput
 from .spec_generator import SpecGenerator
 
 
@@ -11,7 +11,7 @@ class SkillExecutor:
     def __init__(self):
         pass
 
-    def generate_skill_spec(self, design_path: str | None = None, skill: str | None = None, output_dir: str | None = None, source_code_dir: str | None = None, prompt: str | None = None) -> Output:
+    def generate_skill_spec(self, design_path: str | None = None, skill: str | None = None, output_dir: str | None = None, source_code_dir: str | None = None, prompt: str | None = None) -> GenerateSkillSpecOutput:
         generator = SpecGenerator(
             design_path=design_path,
             skill=skill,

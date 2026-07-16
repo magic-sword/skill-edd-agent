@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-from .models import GenerateSkillSpecOutput as Output
+from .models import GenerateSkillSpecOutput
 from .writer.factory import SpecWriterFactory
 
 # 循環参照を避けるため、edd_agent_tools のインポートはここに集約
@@ -18,7 +18,7 @@ class SpecGenerator:
         self.prompt = prompt
         self.state = SkillsState() # SkillsStateは一度だけ初期化
 
-    def generate(self) -> Output:
+    def generate(self) -> GenerateSkillSpecOutput:
         design_path = self.design_path
         skill = self.skill
         output_dir = self.output_dir
@@ -54,7 +54,7 @@ class SpecGenerator:
             
             message = f"Successfully generated specification at: {output_file_path}"
             
-            return Output(
+            return GenerateSkillSpecOutput(
                 status="success",
                 message=message,
                 output_dir=output_dir
@@ -63,7 +63,7 @@ class SpecGenerator:
         except Exception as e:
             print(f"❌ Error during specification generation: {e}", file=sys.stderr)
             err_output_dir = output_dir if output_dir else ""
-            return Output(
+            return GenerateSkillSpecOutput(
                 status="failed",
                 message=f"Specification generation failed: {e}",
                 output_dir=err_output_dir

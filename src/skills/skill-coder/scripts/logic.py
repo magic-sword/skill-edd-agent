@@ -9,7 +9,7 @@ from typing import List
 
 from edd_agent_tools.skills import SkillsState
 from edd_agent_tools import SkillDesign
-from .models import Output
+from .models import SkillCoderOutput
 from .code_generator import CodeGenerator
 from .agent_executor import SkillDeveloperAgentExecutor
 
@@ -25,7 +25,7 @@ class SkillLogic:
         self.output_dir = output_dir
         self.state = SkillsState()
 
-    def execute(self) -> Output:
+    def execute(self) -> SkillCoderOutput:
         prompt = self.prompt or ""
         skill = self.skill
         design_path = self.design_path
@@ -69,7 +69,7 @@ class SkillLogic:
         all_generated_files.sort()
 
         message = f"スキルコードの実装が完了しました。生成/更新ファイル: {', '.join(all_generated_files)}"
-        return Output(status="success", message=message, output_dir=target_root)
+        return SkillCoderOutput(status="success", message=message, output_dir=target_root)
 
     def _run_safe(self, coro):
         """アクティブなイベントループが存在する場合はスレッド分離して実行、なければ通常通り asyncio.run を実行します。"""

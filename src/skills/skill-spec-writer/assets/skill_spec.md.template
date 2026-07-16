@@ -1,17 +1,32 @@
-# ${skill_name}
-
-${mechanical_description}
+# スキル仕様書: ${skill_name}
 
 ## 概要
 
+${mechanical_description}
+
+### 人間向け概要
 ${human_overview}
+
+---
 
 ## トリガー条件
 
+このスキルは、以下の条件やプロンプトでトリガーされます。
+
 ${trigger_conditions}
 
-## 公開関数 (APIエンドポイント)
+---
+
+## 公開関数
 
 ${functions_section}
 
+---
+
 ${constraints_section}
+
+---
+
+**開発者向け注記**:
+この仕様書は `skill-spec-writer` スキルによって自動生成されました。
+最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。
