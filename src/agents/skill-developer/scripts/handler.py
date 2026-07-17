@@ -1,5 +1,5 @@
 from edd_agent_tools import WorkflowRunner
-from .models import SkillDeveloperOutput
+from .models import DevelopSkillOutput
 from .workflow import root_workflow
 
 class RuntimeInput:
@@ -10,7 +10,7 @@ class RuntimeInput:
         return self.__dict__
 
 
-def skill_developer(prompt: str, skill: str | None = None, output_dir: str | None = None, design_path: str | None = None, source_code_dir: str | None = None) -> SkillDeveloperOutput:
+def develop_skill(prompt: str, skill: str | None = None, output_dir: str | None = None, design_path: str | None = None, source_code_dir: str | None = None) -> DevelopSkillOutput:
     """新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。
 
     Args:
@@ -21,7 +21,7 @@ def skill_developer(prompt: str, skill: str | None = None, output_dir: str | Non
         source_code_dir: 実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。
 
     Returns:
-        実行結果オブジェクト (SkillDeveloperOutput)。
+        実行結果オブジェクト (DevelopSkillOutput)。
     """
     params = RuntimeInput(prompt=prompt, skill=skill, output_dir=output_dir, design_path=design_path, source_code_dir=source_code_dir)
     runner = WorkflowRunner(
@@ -31,14 +31,14 @@ def skill_developer(prompt: str, skill: str | None = None, output_dir: str | Non
     result_dict = runner.run(params)
     
     output_data = {}
-    for field in SkillDeveloperOutput.model_fields.keys():
+    for field in DevelopSkillOutput.model_fields.keys():
         if field in result_dict:
             output_data[field] = result_dict[field]
         elif "state" in result_dict and field in result_dict["state"]:
             output_data[field] = result_dict["state"][field]
             
-    if not output_data and "value" in SkillDeveloperOutput.model_fields:
+    if not output_data and "value" in DevelopSkillOutput.model_fields:
         output_data["value"] = result_dict.get("message", "success")
         
-    return SkillDeveloperOutput(**output_data)
+    return DevelopSkillOutput(**output_data)
 
