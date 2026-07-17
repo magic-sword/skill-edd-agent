@@ -1,6 +1,13 @@
 import os
 import json
 from typing import List
+from string import Template
+
+def _load_template(filename: str) -> str:
+    script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    tmpl_path = os.path.join(script_dir, "assets", "templates", "coder", filename)
+    with open(tmpl_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 from edd_agent_tools import SkillDesign
 from ..writer import PydanticModelWriter, HandlerWriter
@@ -185,20 +192,6 @@ __all__ = [{}]
                             
                     params_init_str = ",\n".join(param_assignments)
                     
-                    node_lines = [
-                        "from google.adk.tools import ToolContext",
-                        "from edd_agent_tools.skills import SkillsState",
-                        "from edd_agent_tools import merge_result_to_state",
-                        "import json",
-                        "",
-                        "state = SkillsState()",
-                        "state.load()",
-                        f'{dep_var}_module = state.get_skill("{target_skill}").load_module()',
-                        "",
-                        f"def {func_name}(tool_context: ToolContext) -> str:",
-                        "    # 設計書の inputs マッピングから直接決定論的に引数を抽出"
-                    ]
-                    
                     # 依存スキルの実際の関数名を取得する（設計書の functions から、なければスキル名）
                     actual_func_name = dep_var
                     try:
@@ -209,16 +202,13 @@ __all__ = [{}]
                     except Exception:
                         pass
 
-                    # 個別引数の具象関数を直接呼び出すコードを組み立てる
-                    node_lines.append(f"    res = {dep_var}_module.{actual_func_name}(")
-                    if params_init_str:
-                        node_lines.append(params_init_str)
-                    node_lines.append("    )")
-                    
-                    node_lines.append("    return merge_result_to_state(tool_context, res)")
-                    node_lines.append("")
-                    
-                    node_code = "\n".join(node_lines)
+                    tmpl = _load_template("skill_node.py.template")
+                    node_code = Template(tmpl).safe_substitute(
+                        func_name=func_name,
+                        target_skill=target_skill,
+                        actual_func_name=actual_func_name,
+                        params_init_str=params_init_str
+                    )
                     with open(node_file_path, "w", encoding="utf-8") as f:
                         f.write(node_code)
                     print(f"他スキル呼び出しノードを書き出しました: {node_file_path}")

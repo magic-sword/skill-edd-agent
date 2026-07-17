@@ -20,9 +20,11 @@ class SkillsState:
         self.skills_json_path = self.state_path.parent / "skills.json"
             
         self.data: Optional[SkillsStateJson] = None
+        self._cached_skills: Optional[dict] = None
 
     def load(self) -> SkillsStateJson:
         """skills_state.json をロードし、メモリ上に保持します。存在しない場合はデフォルト構成で初期化します。"""
+        self._cached_skills = None
         if not self.state_path.exists():
             # デフォルトはカレントディレクトリ (.)、src/skills と src/agents を探索対象として初期化
             self.data = SkillsStateJson(
@@ -123,17 +125,21 @@ class SkillsState:
                     if key.strip() == "name":
                         # 囲みクォーテーション等を除去して返す
                         return val.strip().strip('"').strip("'")
-        except Exception:
-            pass
+        except Exception as e:
+            import warnings
+            warnings.warn(f"警告: 仕様書 {skill_md_path} の解析中にエラーが発生しました: {e}")
         return None
 
-    def scan_skills(self) -> dict[str, "Skill"]:
+    def scan_skills(self, force_reload: bool = False) -> dict[str, "Skill"]:
         """登録された entries をスキャンし、有効なスキル/エージェントの論理名と Skill インスタンスの対応辞書を返します。
         
         ADK公式規則に準拠し、探索深度は直下（深さ0）または直下のサブフォルダ（深さ1）に制限され、
         exclude リストに含まれる論理名のスキルは除外されます。
         また、発見された各スキルには、skills_state.json からロードされた Tier メタデータが自動注入されます。
         """
+        if self._cached_skills is not None and not force_reload:
+            return self._cached_skills
+
         from .skill import Skill
 
         if self.data is None:
@@ -190,6 +196,7 @@ class SkillsState:
                             tier=int(tier)
                         )
 
+        self._cached_skills = discovered_skills
         return discovered_skills
 
     def get_skill(self, name: Optional[str] = None, design_path: Optional[str] = None) -> "Skill":
@@ -273,6 +280,7 @@ class SkillsState:
         自動的に skills.json へのマウント露出も行われます。
         Tier 0 (SANDBOX) のスキルを登録・永続化する処理は行いません（動的スキャンで解決するため）。
         """
+        self._cached_skills = None
         if self.data is None:
             self.load()
             
