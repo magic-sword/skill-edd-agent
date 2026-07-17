@@ -59,15 +59,21 @@ class WorkflowSpecWriter(BaseSpecWriter):
         overview_str = "\n".join(overview_lines)
 
         # パラメータテーブルの作成
-        param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
+        param_table = [self._load_template("param_table_header.md.template").strip()]
         required_params = []
         target_params = self.design_data.functions[0].parameters
-
+        
+        row_tmpl = self._load_template("param_table_row.md.template").replace("\n", "").strip()
         for param in target_params:
             req = "はい" if param.required else "いいえ"
             formatted_type = self._format_parameter_type(param)
             formatted_desc = self._format_parameter_description(param)
-            param_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
+            param_table.append(Template(row_tmpl).safe_substitute(
+                name=param.name,
+                type=formatted_type,
+                required=req,
+                description=formatted_desc
+            ))
             if param.required:
                 required_params.append(f"`{param.name}`")
             
@@ -79,20 +85,27 @@ class WorkflowSpecWriter(BaseSpecWriter):
         target_response_params = self.design_data.functions[0].response_parameters
 
         if target_response_params:
-            output_table = ["### 出力パラメータ (構造化JSONの戻り値構造)\n", "| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
+            output_table = [
+                "### 出力パラメータ (構造化JSONの戻り値構造)\n",
+                self._load_template("param_table_header.md.template").strip()
+            ]
+            row_tmpl = self._load_template("param_table_row.md.template").replace("\n", "").strip()
             for param in target_response_params:
                 req = "はい" if param.required else "いいえ"
                 formatted_type = self._format_parameter_type(param)
                 formatted_desc = self._format_parameter_description(param)
-                output_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
+                output_table.append(Template(row_tmpl).safe_substitute(
+                    name=param.name,
+                    type=formatted_type,
+                    required=req,
+                    description=formatted_desc
+                ))
             output_params_section = "\n".join(output_table)
         else:
             # 構造化JSON以外の場合に、出力値のプレーンテキスト仕様を明記する
             out_mode = getattr(self.design_data, "output_mode", "STRUCTURED_JSON")
-            if out_mode == "VALUE_ONLY":
-                output_params_section = "### 出力値\n\nスキル実行結果を示す単一のテキストメッセージ（プレーンテキスト）が返されます。"
-            elif out_mode == "CONVERSATIONAL":
-                output_params_section = "### 出力値\n\nユーザーへの返答メッセージ（プレーンテキスト）が返されます。"
+            if out_mode in ("VALUE_ONLY", "CONVERSATIONAL"):
+                output_params_section = self._load_template("output_plain_text.md.template")
         
         # 決定論的な説明文の構築
         out_mode = getattr(self.design_data, "output_mode", "STRUCTURED_JSON")
@@ -109,16 +122,16 @@ class WorkflowSpecWriter(BaseSpecWriter):
         # design.json 内に prompt_parameter メタデータが存在する場合、
         # プロンプトパラメータの有効指示と制約ガイドを決定論的にマージする
         prompt_guides = []
+        guide_tmpl = self._load_template("prompt_guide.md.template")
         for param in target_params:
             if getattr(param, "is_prompt_parameter", None):
                 inst = getattr(param, "prompt_instructions", None) or "指示トーンや特別に盛り込んでほしい仕様コンテキストの指定。"
                 cons = getattr(param, "prompt_constraints", None) or "出力ドキュメント全体のレイアウト構成・見出し等の構造変更は不可。"
-                prompt_guides.append(
-                    f"\n> [!NOTE]\n"
-                    f"> **`{param.name}` パラメータの使用ガイドライン:**\n"
-                    f"> * **指定可能な指示**: {inst}\n"
-                    f"> * **構造的な制約（指定不可）**: {cons}\n"
-                )
+                prompt_guides.append(Template(guide_tmpl).safe_substitute(
+                    name=param.name,
+                    instructions=inst,
+                    constraints=cons
+                ))
 
         if prompt_guides:
             exec_instructions = f"{exec_instructions.strip()}\n" + "\n".join(prompt_guides)

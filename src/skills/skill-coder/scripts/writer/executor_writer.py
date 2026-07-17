@@ -1,4 +1,12 @@
+import os
+from string import Template
 from edd_agent_tools import SkillDesign
+
+def _load_template(filename: str) -> str:
+    script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    tmpl_path = os.path.join(script_dir, "assets", "templates", "coder", filename)
+    with open(tmpl_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 class ExecutorWriter:
     """
@@ -72,18 +80,14 @@ class ExecutorWriter:
         args_definition = ", ".join(["self"] + args_def_list)
         args_docstring = "\n".join(args_doc_list)
         
-        method_code = f"""    def {fn.name}({args_definition}) -> {output_class_name}:
-        \"\"\"{fn.description or ''}
-
-        Args:
-{args_docstring}
-
-        Returns:
-            処理結果の構造化データ（{output_class_name}）。
-        \"\"\"
-        # TODO: ロジックの実装
-        raise NotImplementedError()"""
-
+        tmpl = _load_template("executor_method.py.template")
+        method_code = Template(tmpl).safe_substitute(
+            fn_name=fn.name,
+            args_definition=args_definition,
+            output_class_name=output_class_name,
+            description=fn.description or "",
+            args_docstring=args_docstring
+        )
         return method_code, typing_imports
 
     def write(self) -> str:
@@ -191,14 +195,10 @@ class ExecutorWriter:
         models_import = f"from .models import {', '.join(output_classes)}"
         method_definitions = "\n\n".join(methods_code)
         
-        return f"""{imports_str}{models_import}
-
-class SkillExecutor:
-    \"\"\"ビジネスロジックを責務ごとに分割して実行するオブジェクト指向エグゼキューター。\"\"\"
-
-    def __init__(self):
-        \"\"\"SkillExecutor を初期化します。\"\"\"
-        pass
-
-{method_definitions}
-"""
+        tmpl = _load_template("executor_class.py.template")
+        return Template(tmpl).safe_substitute(
+            imports_str=imports_str,
+            models_import=models_import,
+            description=self.design.description or "",
+            method_definitions=method_definitions
+        )

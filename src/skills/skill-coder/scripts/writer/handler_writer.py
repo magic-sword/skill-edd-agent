@@ -1,4 +1,12 @@
+import os
+from string import Template
 from edd_agent_tools import SkillDesign
+
+def _load_template(filename: str) -> str:
+    script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    tmpl_path = os.path.join(script_dir, "assets", "templates", "coder", filename)
+    with open(tmpl_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 class HandlerWriter:
     """
@@ -79,45 +87,26 @@ class HandlerWriter:
         
         if self.is_workflow:
             workflow_name = self.design.name
-            func_code = f"""def {fn.name}({args_definition}) -> {output_class_name}:
-    \"\"\"{fn.description or ''}
-
-    Args:
-{args_docstring}
-
-    Returns:
-        実行結果オブジェクト ({output_class_name})。
-    \"\"\"
-    params = RuntimeInput({args_passing})
-    runner = WorkflowRunner(
-        workflow_name="{workflow_name}",
-        root_workflow=root_workflow
-    )
-    result_dict = runner.run(params)
-    
-    output_data = {{}}
-    for field in {output_class_name}.model_fields.keys():
-        if field in result_dict:
-            output_data[field] = result_dict[field]
-        elif "state" in result_dict and field in result_dict["state"]:
-            output_data[field] = result_dict["state"][field]
-            
-    if not output_data and "value" in {output_class_name}.model_fields:
-        output_data["value"] = result_dict.get("message", "success")
-        
-    return {output_class_name}(**output_data)"""
+            tmpl = _load_template("handler_workflow_function.py.template")
+            func_code = Template(tmpl).safe_substitute(
+                fn_name=fn.name,
+                args_definition=args_definition,
+                output_class_name=output_class_name,
+                description=fn.description or "",
+                args_docstring=args_docstring,
+                args_passing=args_passing,
+                workflow_name=workflow_name
+            )
         else:
-            func_code = f"""def {fn.name}({args_definition}) -> {output_class_name}:
-    \"\"\"{fn.description or ''}
-
-    Args:
-{args_docstring}
-
-    Returns:
-        実行結果オブジェクト ({output_class_name})。
-    \"\"\"
-    executor = SkillExecutor()
-    return executor.{fn.name}({args_passing})"""
+            tmpl = _load_template("handler_function.py.template")
+            func_code = Template(tmpl).safe_substitute(
+                fn_name=fn.name,
+                args_definition=args_definition,
+                output_class_name=output_class_name,
+                description=fn.description or "",
+                args_docstring=args_docstring,
+                args_passing=args_passing
+            )
 
         return func_code, typing_imports
 
@@ -147,12 +136,7 @@ class HandlerWriter:
         func_definitions = "\n\n".join(functions_code)
         
         if self.is_workflow:
-            runtime_input_def = """class RuntimeInput:
-    \"\"\"内部引数コンパイル用ダミーオブジェクト。\"\"\"
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-    def model_dump(self, **kwargs):
-        return self.__dict__"""
+            runtime_input_def = _load_template("runtime_input.py.template")
             
             return f"""{imports_str}from edd_agent_tools import WorkflowRunner
 {models_import}

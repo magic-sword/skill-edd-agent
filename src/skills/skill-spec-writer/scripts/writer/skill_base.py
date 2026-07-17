@@ -45,29 +45,33 @@ class BaseSkillSpecWriter(BaseSpecWriter):
 
             # 入力パラメータテーブル
             fn_lines.append("#### 入力パラメータ\n")
-            input_table = [
-                "| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |",
-                "|---|---|---|---|---|",
-            ]
+            input_table = [self._load_template("param_table_header_skill.md.template").strip()]
+            row_tmpl = self._load_template("param_table_row_skill.md.template").replace("\n", "").strip()
             for param in fn.parameters:
                 req = "はい" if param.required else "いいえ"
                 formatted_type = self._format_parameter_type(param)
                 formatted_desc = self._format_parameter_description(param)
                 default_val = f"`{param.default}`" if param.default is not None else "-"
-                input_table.append(f"| {param.name} | {formatted_type} | {req} | {default_val} | {formatted_desc} |")
+                input_table.append(Template(row_tmpl).safe_substitute(
+                    name=param.name,
+                    type=formatted_type,
+                    required=req,
+                    default=default_val,
+                    description=formatted_desc
+                ))
             fn_lines.append("\n".join(input_table) + "\n")
 
             # プロンプトパラメータのガイドライン (対象関数内にある場合のみ挿入)
+            guide_tmpl = self._load_template("prompt_guide.md.template")
             for param in fn.parameters:
                 if getattr(param, "is_prompt_parameter", None):
                     inst = getattr(param, "prompt_instructions", None) or "指示トーンや特別に盛り込んでほしい仕様コンテキストの指定。"
                     cons = getattr(param, "prompt_constraints", None) or "出力ドキュメント全体のレイアウト構成・見出し等の構造変更は不可。"
-                    fn_lines.append(
-                        f"> [!NOTE]\n"
-                        f"> **`{param.name}` パラメータの使用ガイドライン:**\n"
-                        f"> * **指定可能な指示**: {inst}\n"
-                        f"> * **構造的な制約（指定不可）**: {cons}\n"
-                    )
+                    fn_lines.append(Template(guide_tmpl).safe_substitute(
+                        name=param.name,
+                        instructions=inst,
+                        constraints=cons
+                    ))
 
             # 出力仕様
             fn_lines.append("#### 出力仕様\n")
@@ -75,15 +79,18 @@ class BaseSkillSpecWriter(BaseSpecWriter):
             if out_mode == "STRUCTURED_JSON":
                 fn_lines.append(f"* **出力モード**: `STRUCTURED_JSON`\n")
                 if fn.response_parameters:
-                    output_table = [
-                        "| パラメータ名 | 型 | 必須 | 説明 |",
-                        "|---|---|---|---|",
-                    ]
+                    output_table = [self._load_template("param_table_header.md.template").strip()]
+                    row_tmpl = self._load_template("param_table_row.md.template").replace("\n", "").strip()
                     for param in fn.response_parameters:
                         req = "はい" if param.required else "いいえ"
                         formatted_type = self._format_parameter_type(param)
                         formatted_desc = self._format_parameter_description(param)
-                        output_table.append(f"| {param.name} | {formatted_type} | {req} | {formatted_desc} |")
+                        output_table.append(Template(row_tmpl).safe_substitute(
+                            name=param.name,
+                            type=formatted_type,
+                            required=req,
+                            description=formatted_desc
+                        ))
                     fn_lines.append("\n".join(output_table) + "\n")
                 else:
                     fn_lines.append("出力パラメータは定義されていません。\n")

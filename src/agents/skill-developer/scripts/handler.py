@@ -9,6 +9,7 @@ class RuntimeInput:
     def model_dump(self, **kwargs):
         return self.__dict__
 
+
 def skill_developer(prompt: str, skill: str | None = None, output_dir: str | None = None, design_path: str | None = None, source_code_dir: str | None = None) -> SkillDeveloperOutput:
     """新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。
 
@@ -40,3 +41,4 @@ def skill_developer(prompt: str, skill: str | None = None, output_dir: str | Non
         output_data["value"] = result_dict.get("message", "success")
         
     return SkillDeveloperOutput(**output_data)
+

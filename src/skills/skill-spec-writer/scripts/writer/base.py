@@ -21,6 +21,13 @@ class BaseSpecWriter(ABC):
         from edd_agent_tools.gemini import client
         self.client = client
 
+    def _load_template(self, filename: str) -> str:
+        script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        tmpl_path = os.path.join(script_dir, "assets", "templates", "spec", filename)
+        with open(tmpl_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return content.replace("\r\n", "\n").replace("\r", "\n")
+
     def _format_parameter_type(self, param) -> str:
         """Pydanticの型表現に近いわかりやすい型名を返す"""
         if getattr(param, "choices", None):

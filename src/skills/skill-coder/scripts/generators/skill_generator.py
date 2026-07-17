@@ -1,5 +1,12 @@
 import os
 from typing import List
+from string import Template
+
+def _load_template(filename: str) -> str:
+    script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    tmpl_path = os.path.join(script_dir, "assets", "templates", "coder", filename)
+    with open(tmpl_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 from edd_agent_tools import SkillDesign
 from ..writer import PydanticModelWriter, HandlerWriter, ExecutorWriter
@@ -53,16 +60,11 @@ class ToolSkillCodeGenerator(BaseCodeGenerator):
         branches_str = "\n\n".join(getattr_branches)
         all_names_str = ", ".join(repr(n) for n in all_names)
         
-        init_code = f"""from typing import Any
-
-def __getattr__(name: str) -> Any:
-    \"\"\"遅延インポートを実現するための属性解決ハンドラ。\"\"\"
-{branches_str}
-
-    raise AttributeError(f"module '{{__name__}}' has no attribute '{{name}}'")
-
-__all__ = [{all_names_str}]
-"""
+        tmpl = _load_template("skill_init.py.template")
+        init_code = Template(tmpl).safe_substitute(
+            branches_str=branches_str,
+            all_names_str=all_names_str
+        )
 
         init_path = os.path.join(self.scripts_dir, "__init__.py")
         with open(init_path, "w", encoding="utf-8") as f:

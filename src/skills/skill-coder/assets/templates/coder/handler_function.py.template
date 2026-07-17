@@ -1,0 +1,11 @@
+def $fn_name($args_definition) -> $output_class_name:
+    """$description
+
+    Args:
+$args_docstring
+
+    Returns:
+        実行結果オブジェクト ($output_class_name)。
+    """
+    executor = SkillExecutor()
+    return executor.${fn_name}($args_passing)

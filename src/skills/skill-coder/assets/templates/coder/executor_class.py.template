@@ -1,0 +1,10 @@
+$imports_str
+$models_import
+
+class SkillExecutor:
+    """$description"""
+    def __init__(self):
+        # 必要な初期化処理をここに記述します
+        pass
+
+$method_definitions
