@@ -4,81 +4,87 @@
   "description": "新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。",
   "summary": "このワークフローは、ユーザーからの要件プロンプトに基づいて、skill-designer、skill-coder、skill-spec-writerの各スキルを順に実行し、新しいスキルを生成します。設計、実装、仕様書作成の一連のプロセスを自動化し、成果物を指定されたディレクトリに出力します。",
   "module_type": "workflow",
-  "parameters": [
-    {
-      "name": "prompt",
-      "type": "str",
-      "description": "スキル設計・実装の要件を記述したプロンプト。",
-      "required": true,
-      "is_prompt_parameter": true,
-      "prompt_instructions": "スキル設計・実装の要件を具体的に記述してください。どのような機能を持つスキルが必要か、どのような入力と出力を期待するか、どのような制約があるかなどを明確に指定してください。",
-      "prompt_constraints": "スキル設計・実装の要件は、明確かつ具体的な指示である必要があります。曖昧な表現や矛盾する指示は避けてください。また、セキュリティやプライバシーに関する要件がある場合は明記してください。",
-      "example": "新しいスキル 'my-new-skill' を設計してください。このスキルは、与えられたURLからウェブページのタイトルと本文を抽出し、JSON形式で返します。"
-    },
-    {
-      "name": "skill",
-      "type": "str",
-      "description": "対象のスキル名。既存スキルを改修する場合に指定します。",
-      "required": false,
-      "default": null,
-      "example": "my-existing-skill"
-    },
-    {
-      "name": "output_dir",
-      "type": "str",
-      "description": "成果物の出力先ディレクトリのパス。",
-      "required": false,
-      "default": null,
-      "example": "/tmp/my-new-skill"
-    },
-    {
-      "name": "design_path",
-      "type": "str",
-      "description": "design.jsonの絶対パス。既存スキルを改修する場合に指定します。",
-      "required": false,
-      "default": null,
-      "example": "/tmp/my-existing-skill/assets/design.json"
-    },
-    {
-      "name": "source_code_dir",
-      "type": "str",
-      "description": "実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。",
-      "required": false,
-      "default": null,
-      "example": "/tmp/my-existing-skill/scripts"
-    }
-  ],
   "dependencies": [
     "skill-designer",
     "skill-coder",
     "skill-spec-writer"
   ],
   "constraints": [],
-  "response_parameters": [
+  "functions": [
     {
-      "name": "status",
-      "type": "str",
-      "description": "処理結果の成否ステータス。",
-      "required": true,
-      "choices": [
-        "success",
-        "failed"
+      "name": "skill_developer",
+      "description": "新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "スキル設計・実装の要件を記述したプロンプト。",
+          "required": true,
+          "is_prompt_parameter": true,
+          "prompt_instructions": "スキル設計・実装の要件を具体的に記述してください。どのような機能を持つスキルが必要か、どのような入力と出力を期待するか、どのような制約があるかなどを明確に指定してください。",
+          "prompt_constraints": "スキル設計・実装の要件は、明確かつ具体的な指示である必要があります。曖昧な表現や矛盾する指示は避けてください。また、セキュリティやプライバシーに関する要件がある場合は明記してください。",
+          "example": "新しいスキル 'my-new-skill' を設計してください。このスキルは、与えられたURLからウェブページのタイトルと本文を抽出し、JSON形式で返します。"
+        },
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "対象のスキル名。既存スキルを改修する場合に指定します。",
+          "required": false,
+          "default": null,
+          "example": "my-existing-skill"
+        },
+        {
+          "name": "output_dir",
+          "type": "str",
+          "description": "成果物の出力先ディレクトリのパス。",
+          "required": false,
+          "default": null,
+          "example": "/tmp/my-new-skill"
+        },
+        {
+          "name": "design_path",
+          "type": "str",
+          "description": "design.jsonの絶対パス。既存スキルを改修する場合に指定します。",
+          "required": false,
+          "default": null,
+          "example": "/tmp/my-existing-skill/assets/design.json"
+        },
+        {
+          "name": "source_code_dir",
+          "type": "str",
+          "description": "実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。",
+          "required": false,
+          "default": null,
+          "example": "/tmp/my-existing-skill/scripts"
+        }
       ],
-      "example": "success"
-    },
-    {
-      "name": "message",
-      "type": "str",
-      "description": "処理結果のメッセージサマリー。",
-      "required": true,
-      "example": "スキル開発ワークフローが正常に完了しました。"
-    },
-    {
-      "name": "output_dir",
-      "type": "str",
-      "description": "最終生成された成果物が格納されたスキルディレクトリの絶対パス。",
-      "required": true,
-      "example": "/tmp/my-new-skill"
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "処理結果の成否ステータス。",
+          "required": true,
+          "choices": [
+            "success",
+            "failed"
+          ],
+          "example": "success"
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "description": "処理結果のメッセージサマリー。",
+          "required": true,
+          "example": "スキル開発ワークフローが正常に完了しました。"
+        },
+        {
+          "name": "output_dir",
+          "type": "str",
+          "description": "最終生成された成果物が格納されたスキルディレクトリの絶対パス。",
+          "required": true,
+          "example": "/tmp/my-new-skill"
+        }
+      ]
     }
   ],
   "steps": [
@@ -87,21 +93,44 @@
       "type": "skill",
       "target": "skill-designer",
       "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
-      "inputs": {}
+      "instruction": null,
+      "tools": null,
+      "inputs": {
+        "prompt": "tool_context.state.get('prompt')",
+        "summary": "tool_context.state.get('prompt')",
+        "output_dir": "tool_context.state.get('output_dir')",
+        "skill": "tool_context.state.get('skill')",
+        "source_code_dir": "tool_context.state.get('source_code_dir')"
+      }
     },
     {
       "name": "code-skill",
       "type": "skill",
       "target": "skill-coder",
       "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するスキル。",
-      "inputs": {}
+      "instruction": null,
+      "tools": null,
+      "inputs": {
+        "prompt": "tool_context.state.get('prompt')",
+        "skill": "tool_context.state.get('skill')",
+        "design_path": "tool_context.state.get('design_path')",
+        "output_dir": "tool_context.state.get('output_dir')"
+      }
     },
     {
       "name": "write-spec",
       "type": "skill",
       "target": "skill-spec-writer",
       "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
-      "inputs": {}
+      "instruction": null,
+      "tools": null,
+      "inputs": {
+        "design_path": "tool_context.state.get('design_path')",
+        "skill": "tool_context.state.get('skill')",
+        "output_dir": "tool_context.state.get('output_dir')",
+        "source_code_dir": "tool_context.state.get('source_code_dir')",
+        "prompt": "tool_context.state.get('prompt')"
+      }
     }
   ]
 }

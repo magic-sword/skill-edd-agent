@@ -149,10 +149,9 @@ class WorkflowDesign(BaseModel):
     description: str = Field(..., description="ワークフローの目的や役割を記述した簡潔な説明")
     summary: str | None = Field(None, description="ワークフローの仕様概要")
     module_type: Literal[ModuleType.WORKFLOW] = Field(ModuleType.WORKFLOW, description="モジュールの役割分類。ワークフローは必ず 'workflow'")
-    parameters: list[Parameter] = Field(..., description="ワークフロー全体が外部から受け取るパラメータのリスト")
+    functions: list[FunctionDefinition] = Field(..., description="ワークフローパッケージが提供する公開関数の定義リスト。1つ以上の関数定義を含める必要があります")
     dependencies: list[str] = Field([], description="依存するターゲットスキル名のリスト")
     constraints: list[str] = Field([], description="全体の実行に関する制約")
-    response_parameters: list[Parameter] | None = Field(None, description="全体の出力JSONの構造定義")
     steps: list[Step] = Field(..., description="ワークフローを構成するステップの定義リスト（有向グラフ）")
 
     @classmethod

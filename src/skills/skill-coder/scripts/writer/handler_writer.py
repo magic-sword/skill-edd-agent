@@ -8,6 +8,7 @@ class HandlerWriter:
     def __init__(self, design: SkillDesign, template_str: str):
         self.design = design
         self.template_str = template_str
+        self.is_workflow = (getattr(self.design, "module_type", None) == "workflow")
 
     def _generate_function_code(self, fn, output_class_name) -> tuple[str, set]:
         args_def_list = []
@@ -76,7 +77,37 @@ class HandlerWriter:
         args_docstring = "\n".join(args_doc_list)
         args_passing = ", ".join(args_pass_list)
         
-        func_code = f"""def {fn.name}({args_definition}) -> {output_class_name}:
+        if self.is_workflow:
+            workflow_name = self.design.name
+            func_code = f"""def {fn.name}({args_definition}) -> {output_class_name}:
+    \"\"\"{fn.description or ''}
+
+    Args:
+{args_docstring}
+
+    Returns:
+        実行結果オブジェクト ({output_class_name})。
+    \"\"\"
+    params = RuntimeInput({args_passing})
+    runner = WorkflowRunner(
+        workflow_name="{workflow_name}",
+        root_workflow=root_workflow
+    )
+    result_dict = runner.run(params)
+    
+    output_data = {{}}
+    for field in {output_class_name}.model_fields.keys():
+        if field in result_dict:
+            output_data[field] = result_dict[field]
+        elif "state" in result_dict and field in result_dict["state"]:
+            output_data[field] = result_dict["state"][field]
+            
+    if not output_data and "value" in {output_class_name}.model_fields:
+        output_data["value"] = result_dict.get("message", "success")
+        
+    return {output_class_name}(**output_data)"""
+        else:
+            func_code = f"""def {fn.name}({args_definition}) -> {output_class_name}:
     \"\"\"{fn.description or ''}
 
     Args:
@@ -91,7 +122,7 @@ class HandlerWriter:
         return func_code, typing_imports
 
     def write(self) -> str:
-        if getattr(self.design, "module_type", None) == "workflow":
+        if getattr(self.design, "module_type", None) == "workflow" and not getattr(self.design, "functions", None):
             args_def_list = []
             args_doc_list = []
             args_pass_list = []
@@ -198,7 +229,24 @@ class HandlerWriter:
         models_import = f"from .models import {', '.join(output_classes)}"
         func_definitions = "\n\n".join(functions_code)
         
-        return f"""{imports_str}{models_import}
+        if self.is_workflow:
+            runtime_input_def = """class RuntimeInput:
+    \"\"\"内部引数コンパイル用ダミーオブジェクト。\"\"\"
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+    def model_dump(self, **kwargs):
+        return self.__dict__"""
+            
+            return f"""{imports_str}from edd_agent_tools import WorkflowRunner
+{models_import}
+from .workflow import root_workflow
+
+{runtime_input_def}
+
+{func_definitions}
+"""
+        else:
+            return f"""{imports_str}{models_import}
 from .executor import SkillExecutor
 
 {func_definitions}

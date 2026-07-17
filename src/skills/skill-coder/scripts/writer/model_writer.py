@@ -14,7 +14,7 @@ class PydanticModelWriter:
         imports = ["from pydantic import BaseModel, Field"]
         all_typing_imports = set()
         
-        if getattr(self.design, "module_type", None) == "workflow":
+        if getattr(self.design, "module_type", None) == "workflow" and not getattr(self.design, "functions", None):
             output_fields = []
             for param in self.design.response_parameters or []:
                 field_writer = PydanticFieldWriter(param)
