@@ -4,79 +4,8 @@
   "description": "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するワークフロー。",
   "summary": "ADK評価シミュレーションの実行、結果分析、合否判定を行う。",
   "module_type": "skill",
-  "parameters": [
-    {
-      "name": "skill",
-      "type": "str",
-      "description": "評価対象スキルの名前。",
-      "required": true,
-      "example": "my-skill"
-    },
-    {
-      "name": "eval_set_path",
-      "type": "str",
-      "description": "評価用のテストケースファイル (*.evalset.json) のパス。",
-      "required": true,
-      "example": "path/to/test.evalset.json"
-    },
-    {
-      "name": "threshold_accuracy",
-      "type": "float",
-      "description": "評価が合格するために必要な最小精度。",
-      "required": false,
-      "default": "1.0",
-      "ge": 0.0,
-      "le": 1.0,
-      "example": 0.95
-    },
-    {
-      "name": "timeout_seconds",
-      "type": "int",
-      "description": "評価タイムアウト秒数。",
-      "required": false,
-      "default": "180",
-      "example": 300
-    },
-    {
-      "name": "config_file_path",
-      "type": "str",
-      "description": "評価設定ファイルのカスタムパス。",
-      "required": false,
-      "default": null,
-      "example": "path/to/custom_config.json"
-    }
-  ],
   "dependencies": [],
   "constraints": [],
-  "response_parameters": [
-    {
-      "name": "status",
-      "type": "str",
-      "description": "検証または評価の結果ステータス。'success' または 'failed'。",
-      "required": true,
-      "choices": [
-        "success",
-        "failed"
-      ],
-      "example": "success"
-    },
-    {
-      "name": "details",
-      "type": "str",
-      "description": "検証/評価の実行結果詳細、不足事項やフィードバック、またはエラーメッセージ。",
-      "required": true,
-      "example": "Evaluation passed with 98% accuracy."
-    },
-    {
-      "name": "score",
-      "type": "float",
-      "description": "検証/評価のスコア（0.0〜1.0）。",
-      "required": true,
-      "ge": 0.0,
-      "le": 1.0,
-      "example": 0.98
-    }
-  ],
   "execution_type": "agent",
   "output_mode": "STRUCTURED_JSON",
   "functions": [

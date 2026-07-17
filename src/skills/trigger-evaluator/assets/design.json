@@ -4,37 +4,8 @@
   "description": "対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存するワークフロー。",
   "summary": null,
   "module_type": "skill",
-  "parameters": [
-    {
-      "name": "skill",
-      "type": "str",
-      "description": "トリガーアセット生成および評価対象のスキル名。",
-      "required": true,
-      "example": "example-skill-name"
-    }
-  ],
   "dependencies": [],
   "constraints": [],
-  "response_parameters": [
-    {
-      "name": "value",
-      "type": "str",
-      "description": "スキル実行結果の出力メッセージ",
-      "required": true
-    },
-    {
-      "name": "status",
-      "type": "str",
-      "description": "実行ステータス (success/failed)",
-      "required": true
-    },
-    {
-      "name": "eval_set_path",
-      "type": "str",
-      "description": "生成された評価用アセットファイルパス",
-      "required": true
-    }
-  ],
   "execution_type": "agent",
   "output_mode": "STRUCTURED_JSON",
   "functions": [
