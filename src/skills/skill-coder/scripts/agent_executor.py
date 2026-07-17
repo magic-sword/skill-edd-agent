@@ -148,8 +148,7 @@ class SkillDeveloperAgentExecutor:
                     feedback_prompt = (
                         f"【警告: 生成されたコードにコンパイル/インポートエラーが発生しています】\n"
                         f"以下のエラー内容を確認し、該当ファイルのインポート文やクラス定義・メソッド名を正しく修正してください。\n"
-                        f"※特に `google.generativeai` ではなく `google.genai` を使用しているか、"
-                        f"また `edd_agent_tools.models` ではなく適切なモジュール（例: `edd_agent_tools.directory` 等）からインポートしているかを注意深く確認してください。\n\n"
+                        f"※正しいモジュール名やインポートパスが使用されているかを確認してください。\n\n"
                         f"エラー内容:\n{check_res.stderr}"
                     )
                     current_message = types.Content(
