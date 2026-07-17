@@ -14,25 +14,6 @@ class PydanticModelWriter:
         imports = ["from pydantic import BaseModel, Field"]
         all_typing_imports = set()
         
-        if getattr(self.design, "module_type", None) == "workflow" and not getattr(self.design, "functions", None):
-            output_fields = []
-            for param in self.design.response_parameters or []:
-                field_writer = PydanticFieldWriter(param)
-                output_fields.append(field_writer.to_code())
-                all_typing_imports.update(field_writer.typing_imports)
-
-            if all_typing_imports:
-                unique_imports = sorted(list(all_typing_imports))
-                imports.append(f"from typing import {', '.join(unique_imports)}")
-                
-            imports_str = "\n".join(imports)
-            output_fields_str = "\n".join(output_fields) if output_fields else "    value: str = Field(..., description='実行結果の出力メッセージ')"
-            
-            return self.template_str.format(
-                imports_str=imports_str,
-                output_fields_str=output_fields_str
-            )
-            
         models_code_list = []
         from edd_agent_tools.skills.models import OutputMode
         output_mode = getattr(self.design, "output_mode", OutputMode.STRUCTURED_JSON)

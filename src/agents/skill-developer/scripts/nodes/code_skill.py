@@ -10,9 +10,9 @@ skill_coder_module = state.get_skill("skill-coder").load_module()
 def run_code_skill_step(tool_context: ToolContext) -> str:
     # 設計書の inputs マッピングから直接決定論的に引数を抽出
     res = skill_coder_module.skill_coder(
-        prompt=tool_context.state.get("prompt"),
-        skill=tool_context.state.get("skill"),
-        design_path=tool_context.state.get("design_path"),
-        output_dir=tool_context.state.get("output_dir")
+        prompt=tool_context.state.get('prompt'),
+        skill=tool_context.state.get('skill'),
+        design_path=tool_context.state.get('design_path'),
+        output_dir=tool_context.state.get('output_dir')
     )
     return merge_result_to_state(tool_context, res)

@@ -61,7 +61,9 @@ class WorkflowSpecWriter(BaseSpecWriter):
         # パラメータテーブルの作成
         param_table = ["| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
         required_params = []
-        for param in self.design_data.parameters:
+        target_params = self.design_data.functions[0].parameters
+
+        for param in target_params:
             req = "はい" if param.required else "いいえ"
             formatted_type = self._format_parameter_type(param)
             formatted_desc = self._format_parameter_description(param)
@@ -74,9 +76,11 @@ class WorkflowSpecWriter(BaseSpecWriter):
         
         # 出力パラメータテーブルの作成
         output_params_section = ""
-        if getattr(self.design_data, "response_parameters", None):
+        target_response_params = self.design_data.functions[0].response_parameters
+
+        if target_response_params:
             output_table = ["### 出力パラメータ (構造化JSONの戻り値構造)\n", "| パラメータ名 | 型 | 必須 | 説明 |", "|---|---|---|---|"]
-            for param in self.design_data.response_parameters:
+            for param in target_response_params:
                 req = "はい" if param.required else "いいえ"
                 formatted_type = self._format_parameter_type(param)
                 formatted_desc = self._format_parameter_description(param)
@@ -105,7 +109,7 @@ class WorkflowSpecWriter(BaseSpecWriter):
         # design.json 内に prompt_parameter メタデータが存在する場合、
         # プロンプトパラメータの有効指示と制約ガイドを決定論的にマージする
         prompt_guides = []
-        for param in self.design_data.parameters:
+        for param in target_params:
             if getattr(param, "is_prompt_parameter", None):
                 inst = getattr(param, "prompt_instructions", None) or "指示トーンや特別に盛り込んでほしい仕様コンテキストの指定。"
                 cons = getattr(param, "prompt_constraints", None) or "出力ドキュメント全体のレイアウト構成・見出し等の構造変更は不可。"

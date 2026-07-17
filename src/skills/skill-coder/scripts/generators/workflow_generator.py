@@ -154,10 +154,7 @@ __all__ = [{}]
                     try:
                         dep_skill = state.get_skill(target_skill)
                         dep_design = dep_skill.load_design()
-                        if getattr(dep_design, "functions", None) and dep_design.functions:
-                            dep_input_params = [p.name for p in dep_design.functions[0].parameters]
-                        else:
-                            dep_input_params = [p.name for p in getattr(dep_design, "parameters", [])]
+                        dep_input_params = [p.name for p in dep_design.functions[0].parameters]
                     except Exception as e:
                         print(f"警告: 依存スキル {target_skill} の設計ロードに失敗しました: {e}")
                     
@@ -317,20 +314,14 @@ __all__ = [{}]
                     
                     inputs = []
                     outputs = []
-                    if getattr(dep_design, "functions", None) and dep_design.functions:
-                        for fn in dep_design.functions:
-                            inputs.append(f"  - 関数 {fn.name} の入力:")
-                            for param in fn.parameters:
-                                inputs.append(f"    * {param.name} ({param.type}): {param.description}")
-                            if fn.response_parameters:
-                                outputs.append(f"  - 関数 {fn.name} の出力:")
-                                for param in fn.response_parameters:
-                                    outputs.append(f"    * {param.name} ({param.type}): {param.description}")
-                    else:
-                        for param in getattr(dep_design, "parameters", []):
-                            inputs.append(f"  - {param.name} ({param.type}): {param.description}")
-                        for param in getattr(dep_design, "response_parameters", []) or []:
-                            outputs.append(f"  - {param.name} ({param.type}): {param.description}")
+                    for fn in dep_design.functions:
+                        inputs.append(f"  - 関数 {fn.name} の入力:")
+                        for param in fn.parameters:
+                            inputs.append(f"    * {param.name} ({param.type}): {param.description}")
+                        if fn.response_parameters:
+                            outputs.append(f"  - 関数 {fn.name} の出力:")
+                            for param in fn.response_parameters:
+                                outputs.append(f"    * {param.name} ({param.type}): {param.description}")
                         
                     inputs_str = "\n".join(inputs) if inputs else "  なし"
                     outputs_str = "\n".join(outputs) if outputs else "  なし"
