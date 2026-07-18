@@ -108,6 +108,21 @@ class WorkspaceEnvProtocol(Protocol):
         ...
 
 
+@runtime_checkable
+class TestGenerator(Protocol):
+    """仕様定義からテストケースJSONを生成し、指定パスに保存するプロトコル。"""
+    def generate_tests(self, skill_name: str, output_path: str) -> bool:
+        ...
+
+
+@runtime_checkable
+class TestExecutor(Protocol):
+    """テストケースJSONをロードし、テストを実行・アサーションするプロトコル。"""
+    def run_tests(self, skill_name: str, eval_set_path: str, env: WorkspaceEnvProtocol) -> EvalRunResult:
+        ...
+
+
+
 class EvalCase(BaseModel):
     eval_case_id: str = Field(..., description="テストケースを一意に識別するID")
     function_name: str = Field(..., description="テスト対象となるスキルの公開関数名")
@@ -119,3 +134,33 @@ class EvalCase(BaseModel):
 class EvalCaseSet(BaseModel):
     eval_set_id: str = Field(..., description="評価用テストセット全体の識別ID")
     eval_cases: list[EvalCase] = Field(..., description="テストケースのリスト")
+
+
+# 軌跡シミュレーション評価用のデータモデル
+class ToolUse(BaseModel):
+    name: str = Field(..., description="呼び出すツール関数名")
+    args: dict[str, Any] = Field(..., description="ツール関数に引き渡す引数")
+
+class IntermediateData(BaseModel):
+    tool_uses: list[ToolUse] = Field(..., description="中間ツール呼び出しのリスト")
+
+class ConversationTurn(BaseModel):
+    invocation_id: str = Field(..., description="ターンの識別子 (例: inv_pos_001)")
+    user_content: dict[str, Any] = Field(..., description="ユーザーからの入力コンテンツ構造")
+    final_response: dict[str, Any] = Field(..., description="モデルからの期待される最終返答コンテンツ構造")
+    intermediate_data: IntermediateData = Field(..., description="中間ツール呼び出し情報")
+
+class SessionInput(BaseModel):
+    app_name: str = Field(..., description="評価を実行するアプリケーション名")
+    user_id: str = Field(..., description="ユーザーID")
+
+class TrajectoryEvalCase(BaseModel):
+    eval_id: str = Field(..., description="評価ケースのユニーク識別子")
+    conversation: list[ConversationTurn] = Field(..., description="会話のターンのリスト")
+    session_input: SessionInput = Field(..., description="セッション初期ステート")
+
+class TrajectoryEvalSet(BaseModel):
+    eval_set_id: str = Field(..., description="評価セットID")
+    name: str = Field(..., description="評価セットの名称")
+    eval_cases: list[TrajectoryEvalCase] = Field(..., description="全評価テストケースのリスト")
+

@@ -1,0 +1,34 @@
+{
+  "rationale": "このモジュールは、指定されたスキルのdesign.jsonから関数とパラメータ定義を読み込み、正常系および異常系の単体テストケースを自動生成し、指定されたパスにJSON形式で書き出すという単一のアトミックな機能を提供します。複数の既存スキルを連携させるワークフローではなく、自己完結型の機能であるため、module_typeは'skill'として設計します。",
+  "name": "schema-test-generator",
+  "description": "指定されたスキルのdesign.jsonに基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出すスキル。",
+  "summary": null,
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "generate_tests",
+      "description": "指定されたスキルのdesign.jsonに基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出します。",
+      "parameters": [
+        {
+          "name": "skill_name",
+          "type": "str",
+          "description": "テストケースを生成する対象スキルの名前。",
+          "required": true,
+          "example": "my-new-skill"
+        },
+        {
+          "name": "output_path",
+          "type": "str",
+          "description": "生成されたテストケースを書き出すファイルのパス。",
+          "required": true,
+          "example": "tests/my-new-skill.evalset.json"
+        }
+      ],
+      "response_type": "bool"
+    }
+  ]
+}

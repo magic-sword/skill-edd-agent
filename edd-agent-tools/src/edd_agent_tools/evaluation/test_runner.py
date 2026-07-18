@@ -202,6 +202,11 @@ class SchemaDrivenTestRunner:
                 
                 DynamicModel = create_model("DynamicResponseModel", **fields)
                 
+                if hasattr(actual_result, "model_dump"):
+                    actual_result = actual_result.model_dump()
+                elif hasattr(actual_result, "dict"):
+                    actual_result = actual_result.dict()
+
                 if isinstance(actual_result, str):
                     try:
                         actual_result = json.loads(actual_result)
@@ -217,7 +222,13 @@ class SchemaDrivenTestRunner:
                 if not response_type:
                     return True
                 
+                if hasattr(actual_result, "model_dump"):
+                    actual_result = actual_result.model_dump()
+                elif hasattr(actual_result, "dict"):
+                    actual_result = actual_result.dict()
+
                 expected_type = self._resolve_type(response_type)
+
                 adapter = TypeAdapter(expected_type)
                 adapter.validate_python(actual_result)
                 print(f"[TestRunner] Response type '{type(actual_result).__name__}' matches expected '{response_type}'.")

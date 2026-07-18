@@ -23,22 +23,27 @@ def __getattr__(name: str) -> Any:
         from .sandbox import GitSandbox
         return GitSandbox
 
-    if name == "WorkspaceEnvProtocol":
-        from .models import WorkspaceEnvProtocol
-        return WorkspaceEnvProtocol
+    if name in ("WorkspaceEnvProtocol", "TestGenerator", "TestExecutor", "EvalRunResult"):
+        from .models import WorkspaceEnvProtocol, TestGenerator, TestExecutor, EvalRunResult
+        if name == "WorkspaceEnvProtocol": return WorkspaceEnvProtocol
+        if name == "TestGenerator": return TestGenerator
+        if name == "TestExecutor": return TestExecutor
+        if name == "EvalRunResult": return EvalRunResult
         
     if name == "SchemaDrivenTestRunner":
         from .test_runner import SchemaDrivenTestRunner
         return SchemaDrivenTestRunner
-    if name in ("EvalCase", "EvalCaseSet"):
-        from .models import EvalCase, EvalCaseSet
+    if name in ("EvalCase", "EvalCaseSet", "TrajectoryEvalSet"):
+        from .models import EvalCase, EvalCaseSet, TrajectoryEvalSet
         if name == "EvalCase": return EvalCase
         if name == "EvalCaseSet": return EvalCaseSet
+        if name == "TrajectoryEvalSet": return TrajectoryEvalSet
         
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
 __all__ = [
     "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
     "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "SchemaDrivenTestRunner",
-    "EvalCase", "EvalCaseSet"
+    "EvalCase", "EvalCaseSet", "TestGenerator", "TestExecutor", "EvalRunResult", "TrajectoryEvalSet"
 ]
+

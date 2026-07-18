@@ -1,0 +1,41 @@
+{
+  "rationale": "このモジュールは、単一の明確な目的（スキーマ駆動テストの実行と検証）を持つため、\"skill\" として設計します。複数の既存スキルを連携させる複雑なワークフローを必要とせず、特定のライブラリ関数を直接呼び出すアトミックな機能であるため、\"workflow\" ではなく \"skill\" が適切です。",
+  "name": "schema-test-executor",
+  "description": "指定されたスキルと評価セットパスに基づき、スキーマ駆動の単体テストを実行し、その結果を返します。",
+  "summary": null,
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "run_tests",
+      "description": "指定されたスキルと評価セットパスに基づき、スキーマ駆動の単体テストを実行し、その結果を返します。",
+      "parameters": [
+        {
+          "name": "skill_name",
+          "type": "str",
+          "description": "テストを実行する対象スキルの名前。",
+          "required": true,
+          "example": "my-new-skill"
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "テストケースが記述されたEvalCaseSetフォーマットのJSONファイルへのパス。",
+          "required": true,
+          "example": "assets/evals/my-new-skill.evalset.json"
+        },
+        {
+          "name": "env",
+          "type": "str",
+          "description": "テスト実行環境。edd_agent_tools.WorkspaceEnvProtocol に準拠したオブジェクトがCLIランナーによって自動的に注入されます。",
+          "required": true,
+          "example": "sandbox"
+        }
+      ],
+      "response_type": "EvalRunResult"
+    }
+  ]
+}

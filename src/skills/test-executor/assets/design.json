@@ -28,6 +28,13 @@
           "example": "path/to/test.evalset.json"
         },
         {
+          "name": "test_type",
+          "type": "str",
+          "description": "テストケースの種別（例: 'trigger', 'unit', 'judge', 'redteam'）。",
+          "required": true,
+          "example": "trigger"
+        },
+        {
           "name": "threshold_accuracy",
           "type": "float",
           "description": "評価が合格するために必要な最小精度。",
@@ -36,22 +43,6 @@
           "ge": 0.0,
           "le": 1.0,
           "example": 0.95
-        },
-        {
-          "name": "timeout_seconds",
-          "type": "int",
-          "description": "評価タイムアウト秒数。",
-          "required": false,
-          "default": "180",
-          "example": 300
-        },
-        {
-          "name": "config_file_path",
-          "type": "str",
-          "description": "評価設定ファイルのカスタムパス。",
-          "required": false,
-          "default": null,
-          "example": "path/to/custom_config.json"
         }
       ],
       "response_parameters": [

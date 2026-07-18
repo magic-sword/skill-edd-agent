@@ -1,0 +1,57 @@
+{
+  "rationale": "このモジュールは、指定されたスキルとテストタイプに基づいて、動的に適切なテスト生成スキルをロードし、テストケースを生成してファイルに書き出すディスパッチャーとして機能します。複数の内部処理（スキルロード、メソッド呼び出し、ファイル書き出し）を含むため、module_type は 'workflow' が適切です。これにより、テスト生成ロジックを中央で管理しつつ、具体的な生成処理は個別のスキルに委譲する柔軟な構造を実現します。",
+  "name": "test-generator",
+  "description": "指定されたスキルとテストタイプに基づき、対応するテスト生成スキルを動的にロードし、テストケースを生成してファイルに書き出すワークフロー。",
+  "summary": null,
+  "module_type": "skill",
+  "functions": [
+    {
+      "name": "generate_test_cases",
+      "description": "指定されたスキルとテストタイプに基づき、対応するテスト生成スキルを動的にロードし、テストケースを生成してファイルに書き出します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "テストケースを生成する対象のスキル名。",
+          "required": true,
+          "example": "my-awesome-skill"
+        },
+        {
+          "name": "test_type",
+          "type": "str",
+          "description": "生成するテストケースの種別（例: 'trigger', 'unit', 'judge', 'redteam'）。",
+          "required": true,
+          "example": "trigger"
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "テスト生成の成否 ('success' または 'failed')。",
+          "required": true,
+          "choices": [
+            "success",
+            "failed"
+          ]
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "description": "テスト生成処理のサマリーメッセージ。",
+          "required": true
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "生成されたテストケースJSONファイルの絶対パス。",
+          "required": true
+        }
+      ]
+    }
+  ],
+  "dependencies": [],
+  "constraints": [],
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON"
+}

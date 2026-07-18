@@ -8,6 +8,12 @@
     }
   ],
   "inherits": [],
-  "exclude": [],
+  "exclude": [
+    "schema-test-executor",
+    "schema-test-generator",
+    "test-generator",
+    "trigger-test-executor",
+    "trigger-test-generator"
+  ],
   "agents": {}
 }

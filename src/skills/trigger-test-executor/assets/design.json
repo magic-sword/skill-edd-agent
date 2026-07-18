@@ -1,0 +1,44 @@
+{
+  "rationale": "このスキルは、トリガー（インテント）評価テストの実行と検証を行うため、複数の論理ステップ（評価セットのロード、LLMによるインテント分類シミュレーション、結果の検証と集計）を順序立てて実行する必要があります。特に、LLMによるインテント分類シミュレーションは自律的な推論を伴うため、module_typeとしてworkflowを選択し、内部でagentタイプのステップを使用することが適切です。これにより、複雑な評価ロジックを複数の管理しやすいステップに分割し、それぞれの役割を明確にすることができます。",
+  "name": "trigger-test-executor",
+  "description": "トリガー（インテント）評価テストを実行し、その結果を検証するワークフロー。",
+  "summary": "指定された評価セットに基づき、対象スキルのインテント分類シミュレーションを行い、予測結果と期待値を比較して合格件数と精度を算出します。",
+  "module_type": "skill",
+  "functions": [
+    {
+      "name": "run_tests",
+      "description": "トリガー（インテント）評価テストを実行し、その結果を検証します。",
+      "parameters": [
+        {
+          "name": "skill_name",
+          "type": "str",
+          "description": "評価対象となるスキルの名前。",
+          "required": true,
+          "example": "my-new-skill"
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "TrajectoryEvalSet形式のJSONファイルへのパス。",
+          "required": true,
+          "example": "assets/my-new-skill.evalset.json"
+        },
+        {
+          "name": "env",
+          "type": "str",
+          "description": "テスト実行環境。edd_agent_tools.WorkspaceEnvProtocol に準拠したオブジェクトがCLIランナーによって自動的に注入されます。",
+          "required": true,
+          "example": "sandbox"
+        }
+      ],
+      "response_type": "EvalRunResult"
+    }
+  ],
+  "dependencies": [],
+  "constraints": [
+    "eval_set_pathで指定されるファイルは、TrajectoryEvalSet形式の有効なJSONである必要があります。",
+    "LLMによるインテント分類シミュレーションの精度は、提供されるSKILL.mdの品質とLLMの性能に依存します。"
+  ],
+  "execution_type": "agent",
+  "output_mode": "VALUE_ONLY"
+}
