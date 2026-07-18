@@ -29,19 +29,19 @@ class DesignValidator:
         except Exception as e:
             raise RuntimeError(f"ファイル '{file_path}' の読み込み中にエラーが発生しました: {e}")
 
-    def validate_skill(self, skill_name: str) -> ValidateDesignOutput:
+    def validate_skill(self, skill: str) -> ValidateDesignOutput:
         """
         指定されたスキルの設計と実装の整合性を検証します。
 
         Args:
-            skill_name: 検証対象のスキル名。
+            skill: 検証対象のスキル名。
 
         Returns:
             ValidateDesignOutput: 検証結果。
         """
         try:
             state = SkillsState()
-            skill_obj = state.get_skill(skill_name)
+            skill_obj = state.get_skill(skill)
 
             design_json_content = self._read_skill_file(skill_obj, "design.json")
             models_py_content = self._read_skill_file(skill_obj, "scripts/models.py")

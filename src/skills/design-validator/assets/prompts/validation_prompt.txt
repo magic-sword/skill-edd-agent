@@ -1,41 +1,55 @@
-あなたはAIエージェントのスキル設計と実装の整合性を検証する専門家です。
-以下の設計仕様と実装ファイルを確認し、整合性が取れているか評価してください。
+あなたは設計と実装の整合性を検証するエキスパートです。以下の情報に基づいて、指定されたスキル名の設計仕様（design.json）と実装コード（models.py, handler.py, executor.py）の整合性を詳細に検証し、JSON形式で結果を返してください。
 
-## 設計仕様 (design.json)
+特に以下の点に注意して検証してください:
+1.  **design.json の 'name' フィールドとスキル名の一致**:
+    *   `design.json` の `name` フィールドは、検証対象のスキル名と完全に一致しているか。
+    *   `models.py` 内の主要な出力スキーマクラス名（例: `ValidateDesignOutput`）が `design.json` の `name` フィールドやその派生と整合しているか。
+    *   `handler.py` 内の公開関数名が `design.json` の `functions[0].name` と一致しているか。
+2.  **design.json の 'description'/'summary' と handler.py/executor.py のDocstring**:
+    *   `design.json` の `description` と `summary` が、`handler.py` の公開関数や `executor.py` の対応するメソッドのDocstringと意味的に整合しているか。
+3.  **design.json の 'functions[0].parameters' と handler.py/executor.py の引数**:
+    *   `design.json` の `functions[0].parameters` で定義された引数が、`handler.py` の公開関数および `executor.py` の対応するメソッドの引数と、名前、型、必須性（`required`）、説明（`description`）において整合しているか。
+    *   `skill_name` パラメータの `pattern`, `min_length`, `max_length` などの制約がコードで考慮されているか（ただし、コードでの直接的な検証は必須ではないが、設計との乖離がないかを確認）。
+4.  **design.json の 'functions[0].response_parameters' と models.py の Output スキーマ**:
+    *   `design.json` の `functions[0].response_parameters` で定義された応答パラメータが、`models.py` の `ValidateDesignOutput` クラスのフィールドと、名前、型、必須性、説明、`Literal`、`ge`/`le` などの制約において整合しているか。
+    *   特に `status`, `details`, `score` フィールドが正確にマッピングされているか。
+5.  **モジュール分割と関心の分離**:
+    *   `handler.py` は薄いラッパーであり、実ビジネスロジックは `executor.py` に委譲されているか。
+    *   `executor.py` はさらに責務を `validator.py`, `prompter.py`, `client.py` などに分割し、オブジェクト指向の原則に従っているか。
+    *   プロンプトや外部設定が `assets/` に外部化されているか。
+
+以下の情報を参考に検証を行い、結果をJSONで出力してください。
+
+---
+
+### design.json:
 ```json
 {design_json}
 ```
 
-## 実装ファイル (scripts/models.py)
+### scripts/models.py:
 ```python
 {models_py}
 ```
 
-## 実装ファイル (scripts/handler.py)
+### scripts/handler.py:
 ```python
 {handler_py}
 ```
 
-## 実装ファイル (scripts/executor.py)
+### scripts/executor.py:
 ```python
 {executor_py}
 ```
 
-上記の情報を基に、設計仕様と実装の以下の項目について整合性を検証し、その結果を厳格にJSON形式で出力してください。
+---
 
-- スキル名、説明が一致しているか
-- 公開関数名、その説明、パラメータ（名前、型、説明、必須/任意、制約）が `design.json` と `handler.py` および `models.py` で一致しているか
-- 応答パラメータ（名前、型、説明、制約）が `design.json` と `models.py` で一致しているか
-- ADK 2.0 の「薄いハンドラーとエグゼキューターの分離」規約が守られているか
-- `models.py` が `design.json` の応答スキーマを正確に表現しているか
-- その他のADK 2.0 開発規約（関心の分離、オブジェクト指向など）に沿っているか
-
-出力は以下のJSONスキーマに従ってください。
-
+### 出力形式（JSON）:
 ```json
-{
-  "status": "string", // 'success' または 'failed'
-  "details": "string", // 検証が失敗した場合の不足事項やフィードバック詳細。成功時は空文字列。
-  "score": "float" // 設計と実装の整合性スコア（0.0〜1.0）。
-}
+{{
+  "status": "success" | "failed",
+  "details": "検証に失敗した具体的な項目、期待される内容、現在の内容、推奨される修正方法などを詳細に記述します。複数の問題がある場合は箇条書きにしてください。成功時は空文字列。",
+  "score": 検証項目の適合度に基づいて算出された0.0から1.0までの数値。すべて適合していれば1.0。
+}}
 ```
+score の算出は、各検証項目（上記1〜5）ごとに適合度を判断し、その平均値や重要度に応じた重み付けで算出してください。例えば、各項目が完全に一致していれば20点、部分的に一致していれば10点、一致していなければ0点など。

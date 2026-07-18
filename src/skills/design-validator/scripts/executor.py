@@ -17,4 +17,4 @@ class SkillExecutor:
         Returns:
             ValidateDesignOutput: 実行結果オブジェクト。
         """
-        return self._validator.validate_skill(skill_name=skill)
+        return self._validator.validate_skill(skill=skill)

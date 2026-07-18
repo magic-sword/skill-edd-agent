@@ -1,8 +1,8 @@
 {
-  "rationale": "既存のdesign-validatorスキルは、内部で複数のクラスを協調させて設計と実装の整合性検証を行うが、外部からは単一のアトミックな機能として提供されるため、ADK 2.0規約に適合した'skill'モジュールとして再定義する。これにより、シンプルで直接的な検証機能を提供し、他のワークフローから容易に利用可能とする。",
+  "rationale": "既存のdesign-validatorスキルは、設計と実装の整合性検証機能を提供している。今回の要件は、この検証ロジックを最適化し、より詳細なフィードバックを返すようにリファクタリングすることである。これは単一のアトミックな機能の改善であり、複数のスキルを連携させるワークフローではないため、module_typeは'skill'が適切である。また、他のスキル（skill-coder等）とのパラメータ名の一貫性を保つため、'skill_name'パラメータを'skill'に変更する。",
   "name": "design-validator",
-  "description": "設計仕様と実装の整合性を検証するスキル。",
-  "summary": "設計仕様と実装の整合性を検証する軽量なシステムメタデータ要約。",
+  "description": "設計仕様と実装の整合性を検証し、より詳細なフィードバックを提供するスキル。",
+  "summary": "設計仕様と実装の整合性を検証し、詳細なフィードバックを返すスキル。",
   "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
@@ -11,7 +11,7 @@
   "functions": [
     {
       "name": "validate_design",
-      "description": "設計仕様と実装の整合性を検証します。",
+      "description": "設計仕様と実装の整合性を検証し、詳細なフィードバックを返します。",
       "parameters": [
         {
           "name": "skill",
@@ -41,7 +41,7 @@
           "type": "str",
           "description": "検証が失敗した場合の不足事項やフィードバック詳細。成功時は空文字列。",
           "required": true,
-          "example": ""
+          "example": "design.jsonの'name'フィールドがmodels.pyのクラス名と一致しません。"
         },
         {
           "name": "score",
@@ -50,10 +50,9 @@
           "required": true,
           "ge": 0.0,
           "le": 1.0,
-          "example": 0.95
+          "example": 0.85
         }
-      ],
-      "response_type": null
+      ]
     }
   ]
 }
