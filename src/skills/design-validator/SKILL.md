@@ -1,28 +1,26 @@
+---
+name: design-validator
+description: "設計仕様と実装の整合性を検証するスキル。"
+---
+
 # スキル仕様書: design-validator
 
 ## 概要
 
-設計仕様と実装の整合性を検証するスキル。
-
-### 人間向け概要
-このスキルは、指定されたスキルの設計仕様と実際のコード実装との整合性を検証することを目的としています。これにより、開発者は設計と実装の乖離を早期に発見し、品質の高いスキル開発を促進できます。
+設計仕様と実装の整合性を検証する軽量なシステムメタデータ要約。
 
 ### 主な機能
-* 指定されたスキル（design.json, models.py, handler.py, executor.pyなど）の主要ファイルを読み込みます。
-* 読み込んだファイルの内容を基に、Gemini APIへ送信する検証プロンプトを構築します。
-* Gemini APIを呼び出し、設計と実装の整合性に関するAIによる評価を取得します。
-* 検証結果として、ステータス（成功/失敗）、詳細なフィードバック、および整合性スコア（0.0〜1.0）を提供します。
+* 指定されたスキル名の設計仕様（design.json）と実装コード（scripts/models.py, scripts/handler.py, scripts/executor.py）を読み込みます。
+* 読み込んだ設計仕様と実装コードの整合性をLLM（Gemini）を用いて検証します。
+* 検証結果として、整合性ステータス（成功/失敗）、詳細なフィードバック、および整合性スコア（0.0〜1.0）を提供します。
 
 ### 内部処理の流れ
 1. ユーザーから検証対象のスキル名を受け取ります。
-2. SkillExecutorのインスタンスを生成します。
-3. SkillExecutorは内部でDesignValidatorのインスタンスを生成します。
-4. DesignValidatorは、SkillsStateから指定されたスキルオブジェクトを取得します。
-5. スキルオブジェクトのルートディレクトリから、design.json, scripts/models.py, scripts/handler.py, scripts/executor.pyの各ファイルの内容を読み込みます。
-6. 読み込んだファイルの内容を基に、PromptBuilderを使用してGemini APIに送信する検証プロンプトを構築します。
-7. GeminiClientを通じてGemini APIを呼び出し、構築したプロンプトとValidateDesignOutputスキーマを渡して、設計と実装の整合性に関する評価をリクエストします。
-8. Gemini APIからのJSON形式の応答を解析し、ValidateDesignOutputモデルにマッピングします。
-9. 検証結果（ステータス、詳細、スコア）をユーザーに返却します。エラーが発生した場合は、適切なエラーメッセージと失敗ステータスを返却します。
+2. 指定されたスキル名のルートディレクトリから、design.json、scripts/models.py、scripts/handler.py、scripts/executor.pyの各ファイルの内容を読み込みます。
+3. 読み込んだファイル内容を基に、LLM（Gemini）に送信するための検証プロンプトを構築します。
+4. 構築したプロンプトと期待される応答スキーマ（ValidateDesignOutput）をGemini APIに送信し、設計と実装の整合性分析を依頼します。
+5. Gemini APIからの応答を受信し、その内容をValidateDesignOutputスキーマに沿ってパースします。
+6. パースされた検証結果（ステータス、詳細、スコア）をユーザーに返却します。
 
 ---
 
@@ -30,10 +28,9 @@
 
 このスキルは、以下の条件やプロンプトでトリガーされます。
 
-- 「my-new-skillというスキルの設計と実装の整合性を検証してください。」
-- 「スキルdata-processorの設計レビューをお願いします。」
-- 「user-onboardingスキルの設計とコードが一致しているか確認して。」
-- 「validate_designツールを使って、my-skillを検証して。」
+- 「〇〇スキルの設計と実装の整合性を検証して」
+- 「'my-new-skill'の設計が仕様通りか確認して」
+- 「design-validatorツールを使って、スキル'example-skill'の検証を実行してください」
 
 ---
 

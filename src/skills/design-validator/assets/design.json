@@ -2,7 +2,7 @@
   "rationale": "既存のdesign-validatorスキルは、内部で複数のクラスを協調させて設計と実装の整合性検証を行うが、外部からは単一のアトミックな機能として提供されるため、ADK 2.0規約に適合した'skill'モジュールとして再定義する。これにより、シンプルで直接的な検証機能を提供し、他のワークフローから容易に利用可能とする。",
   "name": "design-validator",
   "description": "設計仕様と実装の整合性を検証するスキル。",
-  "summary": null,
+  "summary": "設計仕様と実装の整合性を検証する軽量なシステムメタデータ要約。",
   "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",

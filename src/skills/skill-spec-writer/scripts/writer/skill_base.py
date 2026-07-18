@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 from .base import BaseSpecWriter
 
 class BaseSkillTextParts(BaseModel):
-    purpose: str = Field(..., description="このスキルの本質的な目的と提供する価値を要約した簡潔な1〜2文。")
     features: list[str] = Field(..., description="このスキルが提供する具体的な主要機能のリスト。")
     trigger_conditions: list[str] = Field(..., description="スキルがトリガーされるプロンプトや表現の具体例（箇条書き用）")
 
@@ -15,11 +14,8 @@ class BaseSkillSpecWriter(BaseSpecWriter):
     """
     def render_markdown(self, text_parts) -> str:
         # 決定論的な概要（Overview）の組み立て
-        purpose_str = getattr(self.design_data, "summary", None) or text_parts.purpose
-
         overview_lines = [
-            purpose_str,
-            "\n### 主な機能",
+            "### 主な機能",
             "\n".join([f"* {f}" for f in text_parts.features]),
             "\n### 内部処理の流れ",
             "\n".join([f"{i+1}. {step}" for i, step in enumerate(text_parts.workflow_steps)])
@@ -125,10 +121,15 @@ class BaseSkillSpecWriter(BaseSpecWriter):
                 lines.append(f"- {constraint}")
             constraints_section = "\n".join(lines)
 
+        # 概要には、design.jsonのsummary (無ければ description) をマウントする
+        mechanical_summary = getattr(self.design_data, "summary", None) or self.design_data.description
+        yaml_safe_description = self.design_data.description.replace("\n", " ").replace("\"", "\\\"")
+
         return t.substitute(
             skill_name=self.name,
-            mechanical_description=self.design_data.description,
-            human_overview=overview_str,
+            mechanical_description=mechanical_summary,
+            yaml_safe_description=yaml_safe_description,
+            overview_details=overview_str,
             trigger_conditions=triggers,
             functions_section=functions_str,
             constraints_section=constraints_section

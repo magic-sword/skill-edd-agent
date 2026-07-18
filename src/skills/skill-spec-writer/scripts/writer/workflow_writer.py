@@ -4,7 +4,6 @@ from .base import BaseSpecWriter
 from pydantic import BaseModel, Field
 
 class WorkflowTextParts(BaseModel):
-    purpose: str = Field(..., description="このワークフローの本質的な目的と提供するビジネス上の価値。")
     features: list[str] = Field(..., description="このワークフローが提供する具体的な主要機能のリスト。")
     trigger_conditions: list[str] = Field(..., description="ワークフローがトリガーされるプロンプトや表現の具体例（箇条書き用）")
     workflow_steps: list[str] = Field(..., description="各ステップ（ノード）の処理概要、順序、および役割の説明。")
@@ -47,11 +46,8 @@ class WorkflowSpecWriter(BaseSpecWriter):
 
     def render_markdown(self, text_parts) -> str:
         # 決定論的な概要（Overview）の組み立て
-        purpose_str = getattr(self.design_data, "summary", None) or text_parts.purpose
-
         overview_lines = [
-            purpose_str,
-            "\n### 主な機能",
+            "### 主な機能",
             "\n".join([f"* {f}" for f in text_parts.features]),
             "\n### 内部処理の流れ",
             "\n".join([f"{i+1}. {step}" for i, step in enumerate(text_parts.workflow_steps)])
@@ -152,10 +148,15 @@ class WorkflowSpecWriter(BaseSpecWriter):
                 lines.append(f"- {constraint}")
             constraints_section = "\n".join(lines)
         
+        # 概要には、design.jsonのsummary (無ければ description) をマウントする
+        mechanical_summary = getattr(self.design_data, "summary", None) or self.design_data.description
+        yaml_safe_description = self.design_data.description.replace("\n", " ").replace("\"", "\\\"")
+
         return t.substitute(
             skill_name=self.name,
-            mechanical_description=self.design_data.description,
-            human_overview=overview_str,
+            mechanical_description=mechanical_summary,
+            yaml_safe_description=yaml_safe_description,
+            overview_details=overview_str,
             trigger_conditions=triggers,
             execution_instructions=exec_instructions,
             output_mode=out_mode,
