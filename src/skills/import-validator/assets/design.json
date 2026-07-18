@@ -1,5 +1,5 @@
 {
-  "rationale": "既存のimport-validatorは、内部でSkillsStateClientやSkillValidatorといったクラスを使って、指定されたスキルモジュールの動的ロード検証という単一のアトミックな機能を提供しています。これは他の既存スキルをオーケストレーションするワークフローではなく、自己完結型の決定論的な処理であるため、ADK 2.0の「過剰分割せず、単一のスキルで完結するなら必ずアトミックな 'skill'」というガイドラインに準拠し、module_typeを'workflow'から'skill'に再設計します。",
+  "rationale": "既存のimport-validatorは、内部でSkillsStateClientやSkillValidatorといったクラスを使って、指定されたスキルモジュールの動的ロード検証という単一のアトミックな機能を提供しています。これは他の既存スキルをオーケストレーションするワークフローではなく、自己完結型の決定論的な処理であるため、ADK 2.0の「過剰分割せず、単一のスキルで完結するなら必ずアトミックな 'skill'」というガイドラインに準拠し、module_typeを'workflow'から'skill'に再設計します。また、入力パラメータ名を 'skill_name' から 'skill' に変更し、他のスキルとの一貫性を高めます。",
   "name": "import-validator",
   "description": "スキルのインポート適合性（__getattr__ と __all__ の有無）を検証するスキル。",
   "summary": "指定されたスキルモジュールがPythonの動的ロード要件（__getattr__と__all__の適切な実装）を満たしているかを検証し、その成否と詳細な結果を返します。",
@@ -16,7 +16,7 @@
       "description": "指定されたスキルモジュールのインポート適合性を検証します。",
       "parameters": [
         {
-          "name": "skill_name",
+          "name": "skill",
           "type": "str",
           "description": "検証対象のスキル名（例: 'my-awesome-skill'）。",
           "required": true,

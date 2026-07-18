@@ -10,12 +10,12 @@ class SkillsStateClient:
         """
         pass
 
-    def load_skill_module(self, skill_name: str) -> tuple[bool, str]:
+    def load_skill_module(self, skill: str) -> tuple[bool, str]:
         """
         指定されたスキルモジュールを動的にロードします。
 
         Args:
-            skill_name: ロードを試みる対象のスキル名。
+            skill: ロードを試みる対象のスキル名。
 
         Returns:
             スキルロードの成否を示すブール値と、失敗した場合のトレースバック文字列。
@@ -24,7 +24,7 @@ class SkillsStateClient:
         try:
             # SkillsStateを介してSkillオブジェクトを取得し、動的ロードを実行
             state = SkillsState()
-            skill_obj = state.get_skill(skill_name)
+            skill_obj = state.get_skill(skill)
             skill_obj.load_module()
             return True, ""
         except Exception:

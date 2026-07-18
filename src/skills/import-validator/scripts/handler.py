@@ -1,15 +1,15 @@
-from .models import Output
+from .models import ValidateSkillImportOutput
 from .executor import SkillExecutor
 
-def validate_skill_import(skill: str) -> dict:
-    """指定されたスキルを動的にインポートし、その成否を検証します。
+def validate_skill_import(skill: str) -> ValidateSkillImportOutput:
+    """指定されたスキルモジュールのインポート適合性を検証します。
 
     Args:
-        skill: ロードを試みる対象のスキル名。
+        skill: 検証対象のスキル名（例: 'my-awesome-skill'）。
 
     Returns:
-        検証結果（status, details, score）を含む辞書。
+        実行結果オブジェクト (ValidateSkillImportOutput)。
     """
-    executor = SkillExecutor(skill=skill)
-    result = executor.execute()
-    return result.model_dump()
+    executor = SkillExecutor()
+    return executor.validate_skill_import(skill=skill)
+

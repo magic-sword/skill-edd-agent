@@ -13,18 +13,18 @@ class SkillValidator:
         """
         self._skills_state_client = skills_state_client
 
-    def validate_skill_import(self, skill_name: str) -> tuple[str, str]:
+    def validate_skill_import(self, skill: str) -> tuple[str, str]:
         """
         指定されたスキル名の動的ロードを検証します。
 
         Args:
-            skill_name: 動的インポートを検証する対象のスキル名。
+            skill: 動的インポートを検証する対象のスキル名。
 
         Returns:
             スキルの動的ロードの成否 ('success' または 'failed') と、
             失敗した場合のエラー詳細（トレースバックなど）。
         """
-        is_success, details = self._skills_state_client.load_skill_module(skill_name)
+        is_success, details = self._skills_state_client.load_skill_module(skill)
         if is_success:
             return 'success', ''
         else:

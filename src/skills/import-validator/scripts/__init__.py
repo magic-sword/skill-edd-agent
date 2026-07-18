@@ -6,10 +6,10 @@ def __getattr__(name: str) -> Any:
         from .handler import validate_skill_import
         return validate_skill_import
 
-    if name == "Output":
-        from .models import Output
-        return Output
+    if name == "ValidateSkillImportOutput":
+        from .models import ValidateSkillImportOutput
+        return ValidateSkillImportOutput
 
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
-__all__ = ["validate_skill_import", "Output"]
+__all__ = ['validate_skill_import', 'ValidateSkillImportOutput']
