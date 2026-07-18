@@ -46,13 +46,14 @@ class WorkflowSpecWriter(BaseSpecWriter):
 
     def render_markdown(self, text_parts) -> str:
         # 決定論的な概要（Overview）の組み立て
-        overview_lines = [
-            "### 主な機能",
-            "\n".join([f"* {f}" for f in text_parts.features]),
-            "\n### 内部処理の流れ",
-            "\n".join([f"{i+1}. {step}" for i, step in enumerate(text_parts.workflow_steps)])
-        ]
-        overview_str = "\n".join(overview_lines)
+        features_list_str = "\n".join([f"* {f}" for f in text_parts.features])
+        steps_list_str = "\n".join([f"{i+1}. {step}" for i, step in enumerate(text_parts.workflow_steps)])
+
+        overview_tmpl = self._load_template("overview_details.md.template")
+        overview_str = Template(overview_tmpl).safe_substitute(
+            features=features_list_str,
+            workflow_steps=steps_list_str
+        )
 
         # パラメータテーブルの作成
         param_table = [self._load_template("param_table_header.md.template").strip()]
@@ -81,10 +82,7 @@ class WorkflowSpecWriter(BaseSpecWriter):
         target_response_params = self.design_data.functions[0].response_parameters
 
         if target_response_params:
-            output_table = [
-                "### 出力パラメータ (構造化JSONの戻り値構造)\n",
-                self._load_template("param_table_header.md.template").strip()
-            ]
+            output_table = [self._load_template("param_table_header.md.template").strip()]
             row_tmpl = self._load_template("param_table_row.md.template").replace("\n", "").strip()
             for param in target_response_params:
                 req = "はい" if param.required else "いいえ"
@@ -96,7 +94,12 @@ class WorkflowSpecWriter(BaseSpecWriter):
                     required=req,
                     description=formatted_desc
                 ))
-            output_params_section = "\n".join(output_table)
+            output_params_str = "\n".join(output_table)
+
+            output_spec_tmpl = self._load_template("output_spec_structured_workflow.md.template")
+            output_params_section = Template(output_spec_tmpl).safe_substitute(
+                output_parameters=output_params_str
+            )
         else:
             # 構造化JSON以外の場合に、出力値のプレーンテキスト仕様を明記する
             out_mode = getattr(self.design_data, "output_mode", "STRUCTURED_JSON")

@@ -1,0 +1,4 @@
+* **出力モード**: `${output_mode}` (${output_mode_label})
+* **戻り値の型**: `${response_type}`
+
+${output_mode_explanation}
