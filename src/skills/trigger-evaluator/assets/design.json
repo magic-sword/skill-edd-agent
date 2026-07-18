@@ -1,17 +1,13 @@
 {
-  "rationale": "既存のtrigger-evaluatorスキルの機能をADK 2.0規約に適合するワークフローとして再構築します。これにより、SKILL.mdの静的評価、トリガーテストケースの生成、評価アセットの保存、およびレポート生成の各処理ステップを明確に定義し、モジュール性と拡張性を向上させます。",
+  "rationale": "既存のtrigger-evaluatorスキルの機能をADK 2.0規約に適合するワークフローとして再構築します。これにより、SKILL.mdの静的評価、トリガーテストケースの生成、評価アセットの保存、およびレポート生成の各処理ステップを明確に定義し、モジュール性と拡張性を向上させます。また、handler.pyの関数名をdesign.jsonと統一し、戻り値の型をPydanticモデルに準拠させます。",
   "name": "trigger-evaluator",
   "description": "対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存するワークフロー。",
-  "summary": null,
+  "summary": "対象スキルのSKILL.mdを静的評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存するワークフロー。",
   "module_type": "skill",
-  "dependencies": [],
-  "constraints": [],
-  "execution_type": "agent",
-  "output_mode": "STRUCTURED_JSON",
   "functions": [
     {
-      "name": "trigger_evaluator",
-      "description": "対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存するワークフロー。",
+      "name": "evaluate_trigger",
+      "description": "対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存します。",
       "parameters": [
         {
           "name": "skill",
@@ -42,5 +38,9 @@
         }
       ]
     }
-  ]
+  ],
+  "dependencies": [],
+  "constraints": [],
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON"
 }

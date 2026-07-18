@@ -1,15 +1,15 @@
-from .models import Output
+from .models import EvaluateTriggerOutput
 from .executor import SkillExecutor
 
-def evaluate_trigger(skill: str) -> dict:
-    """対象スキルの仕様書（SKILL.md）を静的に具体性と明確性の観点から評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存します。
+def evaluate_trigger(skill: str) -> EvaluateTriggerOutput:
+    """対象スキルの仕様書（SKILL.md）を静的に評価し、トリガー評価用のポジティブ・ネガティブテストケースを自動生成・保存します。
 
     Args:
         skill: トリガーアセット生成および評価対象のスキル名。
 
     Returns:
-        実行結果（value, status, eval_set_path）を含む辞書。
+        実行結果オブジェクト (EvaluateTriggerOutput)。
     """
-    executor = SkillExecutor(skill=skill)
-    result = executor.execute()
-    return result.model_dump()
+    executor = SkillExecutor()
+    return executor.evaluate_trigger(skill=skill)
+

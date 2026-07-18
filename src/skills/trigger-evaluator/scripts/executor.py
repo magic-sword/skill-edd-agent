@@ -26,7 +26,7 @@ class SkillExecutor:
         self.trigger_generator = TriggerGenerator()
         self.asset_manager = AssetManager()
 
-    def execute(self) -> Output:
+    def trigger_evaluator(self) -> Output:
         """ビジネスロジックを実行し、結果を返します。
 
         Returns:
