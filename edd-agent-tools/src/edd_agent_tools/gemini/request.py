@@ -80,17 +80,40 @@ class GeminiRequest:
         return self
 
     def add_text(self, text: str) -> "GeminiRequest":
-        """任意のテキストコンテンツをパーツとして追加します。"""
+        """任意のテキストコンテンツをプロンプト添付パーツとして追加します。
+        
+        Args:
+            text: 追加するテキスト文字列。
+            
+        Returns:
+            GeminiRequest: メソッドチェーン用の自身。
+        """
         if text:
             self.parts.append(text)
         return self
 
     def build(self) -> list[str]:
-        """Gemini API に渡すための contents リストを返します。"""
+        """Gemini API に引き渡すための構造化 contents パーツリストを返します。
+        
+        Returns:
+            list[str]: 添付ファイルやルール、プロンプトテキストを含むパーツリスト。
+        """
         return self.parts
 
     def execute(self, config: Any = None, model: str | None = None, **kwargs: Any) -> Any:
-        """このリクエストで組み立てられたコンテンツを使用して、紐づくクライアントから API を呼び出します。"""
+        """組み立てられたコンテンツパーツを使用して、紐付いた GeminiClient から API を実行します。
+        
+        Args:
+            config: 生成オプション設定 (types.GenerateContentConfig)。
+            model: 生成に使用するモデル名（任意）。
+            **kwargs: クライアント実行への追加引数。
+            
+        Returns:
+            types.GenerateContentResponse: APIレスポンス。
+            
+        Raises:
+            RuntimeError: GeminiClient がバインドされていない場合。
+        """
         if not self._client:
             raise RuntimeError("Error: This GeminiRequest is not associated with a GeminiClient.")
         return self._client.generate_content(
@@ -101,7 +124,7 @@ class GeminiRequest:
         )
 
     def _attach_system_rules(self):
-        """適用されるプロジェクトルールおよびグローバルルールを動的に検出し、自動添付します。"""
+        """適用されるプロジェクトルール、パッケージ内蔵ルール、およびグローバルルールを自動検出し、添付します。"""
         # 1. プロジェクト固有ルール
         project_root = self._find_project_root()
         project_rule_path = os.path.join(project_root, ".agents", "AGENTS.md")
@@ -114,7 +137,20 @@ class GeminiRequest:
             except Exception as e:
                 print(f"Warning: Failed to load project rule: {e}")
 
-        # 2. グローバルルール (新仕様: config/AGENTS.md)
+        # 2. パッケージ内蔵ルール (edd-agent-tools/AGENTS.md)
+        try:
+            import edd_agent_tools
+            pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(edd_agent_tools.__file__)))
+            pkg_rule_path = os.path.join(pkg_root, "AGENTS.md")
+            if os.path.exists(pkg_rule_path):
+                with open(pkg_rule_path, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+                if content:
+                    self.parts.append(f"# --- System Rule: Package Rule (edd-agent-tools/AGENTS.md) ---\n{content}")
+        except Exception as e:
+            print(f"Warning: Failed to load package rule: {e}")
+
+        # 3. グローバルルール (新仕様: config/AGENTS.md)
         global_rule_path = os.path.expanduser("~/.gemini/config/AGENTS.md")
         if os.path.exists(global_rule_path):
             try:
@@ -125,7 +161,7 @@ class GeminiRequest:
             except Exception as e:
                 print(f"Warning: Failed to load global rule (AGENTS.md): {e}")
 
-        # 3. グローバルルール (旧仕様: GEMINI.md)
+        # 4. グローバルルール (旧仕様: GEMINI.md)
         old_global_rule_path = os.path.expanduser("~/.gemini/GEMINI.md")
         if os.path.exists(old_global_rule_path):
             try:

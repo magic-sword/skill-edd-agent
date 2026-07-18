@@ -89,36 +89,86 @@ from typing import Protocol, Tuple, Dict, Any, runtime_checkable
 
 @runtime_checkable
 class WorkspaceEnvProtocol(Protocol):
-    """スキルやツールが動作するために要求する、ワークスペース環境のインターフェース。"""
+    """スキルやツールが安全に動作・試行錯誤するための、隔離されたワークスペース環境のインターフェース。
+    
+    Gymnasium 互換のステップ実行およびリセット機構を提供し、環境変更の追跡とロールバックをカプセル化します。
+    """
     
     def reset(self, seed: int = None, options: Dict[str, Any] = None) -> Tuple[WorkspaceObservation, Dict[str, Any]]:
-        """環境を初期状態にリセットします。"""
+        """環境を初期状態（クローン直後、または変更の破棄後）にリセットします。
+        
+        Args:
+            seed: 乱数シード（任意）。
+            options: リセット時の挙動を制御するオプション辞書（任意）。
+            
+        Returns:
+            Tuple[WorkspaceObservation, Dict[str, Any]]: 
+                - WorkspaceObservation: 初期化後のファイル状態やテスト出力を含む観測オブジェクト。
+                - Dict[str, Any]: 環境固有のメタデータを含む追加情報辞書。
+        """
         ...
         
     def step(self, action: WorkspaceAction) -> Tuple[WorkspaceObservation, float, bool, bool, Dict[str, Any]]:
-        """アクションを実行し、環境を1ステップ進めます。"""
+        """環境に対して指定されたアクションを実行し、環境のステートを1ステップ進めます。
+        
+        Args:
+            action: 実行する環境操作アクション（WriteFileAction, ViewFileAction, RunPytestAction 等）。
+            
+        Returns:
+            Tuple[WorkspaceObservation, float, bool, bool, Dict[str, Any]]:
+                - WorkspaceObservation: アクション適用後の新しい環境観測オブジェクト。
+                - float: アクションの評価結果に対する即時報酬（シミュレーション評価用）。
+                - bool: 終了判定（terminated）。目標達成または失敗で環境が完全に終了したか。
+                - bool: 打ち切り判定（truncated）。最大ステップ数到達などで処理が途切れたか。
+                - Dict[str, Any]: デバッグログや追加のメタデータを含む情報辞書。
+        """
         ...
         
     def close(self) -> None:
-        """環境を終了し、後片付けを行います。"""
+        """環境をクローズし、一時ディレクトリの削除やリソースの解放などの後片付けを行います。"""
         ...
         
     def export_artifacts(self) -> WorkspaceArtifacts:
-        """初期状態からの変更・新規作成・削除された差分ファイルを抽出します。"""
+        """環境の初期状態（reset直後）から、現在までのファイル差分（作成・変更・削除）を抽出します。
+        
+        Returns:
+            WorkspaceArtifacts: 本番へ適用可能なファイルの追加・修正・削除差分オブジェクト。
+        """
         ...
 
 
 @runtime_checkable
 class TestGenerator(Protocol):
-    """仕様定義からテストケースJSONを生成し、指定パスに保存するプロトコル。"""
+    """スキルの仕様定義からテストケースアセットを自動生成し、ファイルに書き出すプロトコル。"""
+    
     def generate_tests(self, skill_name: str, output_path: str) -> bool:
+        """指定されたスキルの仕様（SKILL.md や design.json）からテストケースを自動生成して保存します。
+        
+        Args:
+            skill_name: テストケースの生成対象となるスキルの論理名。
+            output_path: 生成されたテストケースJSONを書き出す物理ファイルパス。
+            
+        Returns:
+            bool: テストケースの生成および保存に成功した場合は True、失敗した場合は False。
+        """
         ...
 
 
 @runtime_checkable
 class TestExecutor(Protocol):
-    """テストケースJSONをロードし、テストを実行・アサーションするプロトコル。"""
+    """テストケースをロードし、指定された隔離環境上で検証・アサーションを実行するプロトコル。"""
+    
     def run_tests(self, skill_name: str, eval_set_path: str, env: WorkspaceEnvProtocol) -> EvalRunResult:
+        """指定されたテストケースファイルを読み込み、環境上でテストを実行して精度を検証します。
+        
+        Args:
+            skill_name: テスト実行・アサーション対象となるスキルの論理名。
+            eval_set_path: テストケースが格納された *.evalset.json ファイルの物理パス。
+            env: テストが実行される WorkspaceEnvProtocol に準拠した仮想サンドボックス環境。
+            
+        Returns:
+            EvalRunResult: 合格数、不合格数、実行総数、合格精度（0.0〜1.0）および詳細結果のパスを含む型安全な結果オブジェクト。
+        """
         ...
 
 
