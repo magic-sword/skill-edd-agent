@@ -11,7 +11,7 @@
   "functions": [
     {
       "name": "validate_design",
-      "description": "指定されたスキル名に基づいて、設計仕様と実装の整合性を検証します。",
+      "description": "設計仕様と実装の整合性を検証します。",
       "parameters": [
         {
           "name": "skill",
@@ -52,7 +52,8 @@
           "le": 1.0,
           "example": 0.95
         }
-      ]
+      ],
+      "response_type": null
     }
   ]
 }

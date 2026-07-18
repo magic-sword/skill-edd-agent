@@ -2,7 +2,7 @@ import json
 import os
 from typing import Dict, Any
 from edd_agent_tools.skills import SkillsState
-from .models import Output
+from .models import ValidateDesignOutput
 from .client import GeminiClient
 from .prompter import PromptBuilder
 
@@ -29,7 +29,7 @@ class DesignValidator:
         except Exception as e:
             raise RuntimeError(f"ファイル '{file_path}' の読み込み中にエラーが発生しました: {e}")
 
-    def validate_skill(self, skill_name: str) -> Output:
+    def validate_skill(self, skill_name: str) -> ValidateDesignOutput:
         """
         指定されたスキルの設計と実装の整合性を検証します。
 
@@ -37,7 +37,7 @@ class DesignValidator:
             skill_name: 検証対象のスキル名。
 
         Returns:
-            Output: 検証結果。
+            ValidateDesignOutput: 検証結果。
         """
         try:
             state = SkillsState()
@@ -47,13 +47,7 @@ class DesignValidator:
             models_py_content = self._read_skill_file(skill_obj, "scripts/models.py")
             handler_py_content = self._read_skill_file(skill_obj, "scripts/handler.py")
             
-            # executor.py が存在すれば読み、無ければ workflow.py を読む
-            import os
-            executor_path = os.path.join(skill_obj.root_dir, "scripts/executor.py")
-            if os.path.exists(executor_path):
-                executor_py_content = self._read_skill_file(skill_obj, "scripts/executor.py")
-            else:
-                executor_py_content = self._read_skill_file(skill_obj, "scripts/workflow.py")
+            executor_py_content = self._read_skill_file(skill_obj, "scripts/executor.py")
 
             prompt = self._prompt_builder.build_validation_prompt(
                 design_json=design_json_content,
@@ -62,31 +56,31 @@ class DesignValidator:
                 executor_py=executor_py_content
             )
 
-            gemini_response = self._gemini_client.call_gemini_api(prompt, response_schema=Output)
+            gemini_response = self._gemini_client.call_gemini_api(prompt, response_schema=ValidateDesignOutput)
             gemini_output_text = gemini_response.text
 
             try:
                 validation_result: Dict = json.loads(gemini_output_text)
-                return Output(
+                return ValidateDesignOutput(
                     status=validation_result.get("status", "failed"),
                     details=validation_result.get("details", ""),
                     score=float(validation_result.get("score", 0.0))
                 )
             except json.JSONDecodeError as e:
-                return Output(
+                return ValidateDesignOutput(
                     status="failed",
                     details=f"Gemini APIからの応答が不正なJSON形式です: {e}\n応答内容: {gemini_output_text}",
                     score=0.0
                 )
 
         except RuntimeError as e:
-            return Output(
+            return ValidateDesignOutput(
                 status="failed",
                 details=f"検証中にエラーが発生しました: {e}",
                 score=0.0
             )
         except Exception as e:
-            return Output(
+            return ValidateDesignOutput(
                 status="failed",
                 details=f"予期せぬエラーが発生しました: {type(e).__name__}: {e}",
                 score=0.0

@@ -1,15 +1,15 @@
-from .models import Output
+from .models import ValidateDesignOutput
 from .executor import SkillExecutor
 
-def validate_design(skill: str) -> dict:
-    """指定されたスキルの設計仕様（design.json）と生成されたソースコードを読み込み、Gemini API を用いて仕様と実装の整合性を検証します。
+def validate_design(skill: str) -> ValidateDesignOutput:
+    """設計仕様と実装の整合性を検証します。
 
     Args:
-        skill: 検証対象のスキル名。
+        skill: 検証対象のスキル名。小文字のハイフン区切りで指定してください。
 
     Returns:
-        検証結果（status, details, score）を含む辞書。
+        実行結果オブジェクト (ValidateDesignOutput)。
     """
-    executor = SkillExecutor(skill=skill)
-    result = executor.execute()
-    return result.model_dump()
+    executor = SkillExecutor()
+    return executor.validate_design(skill=skill)
+

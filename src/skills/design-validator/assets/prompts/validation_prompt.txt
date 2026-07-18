@@ -1,51 +1,41 @@
-あなたは最高のスキル設計検証AIです。
-以下のスキル設計仕様（design.json）と、それに紐づく実装コード（models.py, handler.py, executor.py）を詳細に分析し、その整合性を評価してください。
+あなたはAIエージェントのスキル設計と実装の整合性を検証する専門家です。
+以下の設計仕様と実装ファイルを確認し、整合性が取れているか評価してください。
 
-### 評価項目
-1.  **設計と入力モデルの整合性**:
-    *   `design.json` の `parameters` と `models.py` の `Input` クラスが一致しているか？
-    *   パラメータ名、型、必須性、説明、制約（`ge`, `le`, `min_length`, `max_length`, `pattern`, `choices`）が正しく反映されているか？
-2.  **設計と出力モデルの整合性**:
-    *   `design.json` の `response_parameters` と `models.py` の `Output` クラスが一致しているか？
-    *   パラメータ名、型、必須性、説明、制約が正しく反映されているか？
-3.  **ハンドラーの整合性**:
-    *   `handler.py` の `SKILL_METADATA` が `design.json` の `name`, `description`, `summary`, `execution_type`, `output_mode` と一致しているか？
-    *   `process_message` 関数が `SkillExecutor` を正しく呼び出しているか？
-    *   `output_mode` に従って戻り値の形式が適切に処理されているか？
-4.  **エグゼキューターの構造**:
-    *   `executor.py` の `SkillExecutor` クラスが `Input` と `ToolContext` をコンストラクタで受け取っているか？
-    *   `execute` メソッドが `Output` を返却するシグネチャになっているか？
-    *   `execute` メソッド内でビジネスロジックが適切に分割され、責務が単一責任の原則に従っているか？（現在の実装段階では `NotImplementedError` が想定されるが、最終的な設計としては考慮対象とする）
-5.  **全体的な整合性と品質**:
-    *   設計と実装の間に論理的な矛盾や不足はないか？
-    *   コーディング規約（Docstring、変数名など）は守られているか？
-
-### 入力ファイル
-#### design.json
+## 設計仕様 (design.json)
 ```json
 {design_json}
 ```
 
-#### models.py
+## 実装ファイル (scripts/models.py)
 ```python
 {models_py}
 ```
 
-#### handler.py
+## 実装ファイル (scripts/handler.py)
 ```python
 {handler_py}
 ```
 
-#### executor.py
+## 実装ファイル (scripts/executor.py)
 ```python
 {executor_py}
 ```
 
-### 出力形式
-評価結果を以下のJSON形式で出力してください。
+上記の情報を基に、設計仕様と実装の以下の項目について整合性を検証し、その結果を厳格にJSON形式で出力してください。
+
+- スキル名、説明が一致しているか
+- 公開関数名、その説明、パラメータ（名前、型、説明、必須/任意、制約）が `design.json` と `handler.py` および `models.py` で一致しているか
+- 応答パラメータ（名前、型、説明、制約）が `design.json` と `models.py` で一致しているか
+- ADK 2.0 の「薄いハンドラーとエグゼキューターの分離」規約が守られているか
+- `models.py` が `design.json` の応答スキーマを正確に表現しているか
+- その他のADK 2.0 開発規約（関心の分離、オブジェクト指向など）に沿っているか
+
+出力は以下のJSONスキーマに従ってください。
+
 ```json
-{{
-  "status": "success" | "failed",
-  "details": "評価の詳細なフィードバック。問題がない場合は空文字列。",
-  "score": 0.0 から 1.0 までの整合性スコア
-}}
+{
+  "status": "string", // 'success' または 'failed'
+  "details": "string", // 検証が失敗した場合の不足事項やフィードバック詳細。成功時は空文字列。
+  "score": "float" // 設計と実装の整合性スコア（0.0〜1.0）。
+}
+```
