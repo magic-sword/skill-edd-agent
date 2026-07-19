@@ -1,15 +1,15 @@
 import json
 from edd_agent_tools import WorkspaceEnvProtocol
 from edd_agent_tools.skills import SkillsState
-from edd_agent_tools.evaluation import SchemaDrivenTestRunner, EvalCaseSet, EvalRunResult
+from edd_agent_tools.evaluation import ContractTestRunner, EvalCaseSet, EvalRunResult
 
 class SkillExecutor:
-    """指定されたスキルと評価セットパスに基づき、スキーマ駆動の単体テストを実行し、その結果を返します。"""
+    """指定されたスキルと評価セットパスに基づき、契約駆動のテストを実行し、その結果を返します。"""
     def __init__(self):
         self._skills_state = SkillsState()
 
     def run_tests(self, skill_name: str, eval_set_path: str, env: WorkspaceEnvProtocol) -> EvalRunResult:
-        """指定されたスキルと評価セットパスに基づき、スキーマ駆動の単体テストを実行し、その結果を返します。
+        """指定されたスキルと評価セットパスに基づき、契約駆動のテストを実行し、その結果を返します。
 
         Args:
             skill_name: テストを実行する対象スキルの名前。
@@ -28,8 +28,8 @@ class SkillExecutor:
                 test_cases_data = json.load(f)
             eval_case_set = EvalCaseSet.model_validate(test_cases_data)
 
-            # 3. SchemaDrivenTestRunner を用いてテスト実行
-            runner = SchemaDrivenTestRunner()
+            # 3. ContractTestRunner を用いてテスト実行
+            runner = ContractTestRunner()
             eval_run_result: EvalRunResult = runner.run_tests(
                 skill=skill_obj, 
                 test_cases_data=eval_case_set, 

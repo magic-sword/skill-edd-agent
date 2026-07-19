@@ -11,8 +11,8 @@
   ],
   "inherits": [],
   "exclude": [
-    "schema-test-executor",
-    "schema-test-generator",
+    "contract-test-executor",
+    "contract-test-generator",
     "test-generator",
     "trigger-test-executor",
     "trigger-test-generator"

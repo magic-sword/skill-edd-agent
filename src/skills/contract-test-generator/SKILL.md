@@ -1,13 +1,13 @@
 ---
-name: schema-test-generator
-description: "指定されたスキルのdesign.jsonに基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出すスキル。"
+name: contract-test-generator
+description: "指定されたスキルのdesign.jsonに基づき、正常系および異常系の契約テストケースを自動生成し、EvalCaseSetフォーマット of JSONとしてファイルに書き出すスキル。"
 ---
 
-# スキル仕様書: schema-test-generator
+# スキル仕様書: contract-test-generator
 
 ## 概要
 
-指定されたスキルのdesign.jsonに基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出すスキル。
+指定されたスキルのdesign.jsonに基づき、正常系および異常系の契約テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出すスキル。
 
 ### 主な機能
 * 指定されたスキルのdesign.jsonを読み込み、その定義に基づいてテストケースを生成します。
@@ -36,10 +36,10 @@ description: "指定されたスキルのdesign.jsonに基づき、正常系お�
 
 このスキルは、以下の条件やプロンプトでトリガーされます。
 
-- 「{スキル名}」の単体テストケースを生成してほしい。
+- 「{スキル名}」の契約テストケースを生成してほしい。
 - 新しいスキルのテストケースを自動で作成したい。
 - design.jsonからテストケースを生成し、ファイルに保存して。
-- schema-test-generator を使って、スキル「{スキル名}」のテストケースを「{出力パス}」に生成してください。
+- contract-test-generator を使って、スキル「{スキル名}」のテストケースを「{出力パス}」に生成してください。
 
 ---
 

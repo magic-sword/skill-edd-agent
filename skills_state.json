@@ -10,7 +10,10 @@
     }
   ],
   "inherits": [],
-  "exclude": [],
+  "exclude": [
+    "contract-test-executor",
+    "contract-test-generator"
+  ],
   "skills": {
     "first-test-runner": {
       "tier": 1

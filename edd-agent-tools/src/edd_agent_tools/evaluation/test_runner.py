@@ -9,9 +9,9 @@ from edd_agent_tools.skills import Skill
 from edd_agent_tools.evaluation import WorkspaceEnvProtocol
 from edd_agent_tools.evaluation.models import EvalRunResult, EvalCaseSet
 
-class SchemaDrivenTestRunner:
+class ContractTestRunner:
     """
-    スキルの design.json に定義されたスキーマおよび制約に基づき、
+    スキルの design.json に定義されたスキーマ契約（入力と出力の型・制約）に基づき、
     テストケースデータ（JSON）を用いて決定論的かつ隔離環境下で関数の単体テストを実行するクラス。
     """
     def run_tests(

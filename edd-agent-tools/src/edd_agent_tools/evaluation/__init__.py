@@ -30,9 +30,9 @@ def __getattr__(name: str) -> Any:
         if name == "TestExecutor": return TestExecutor
         if name == "EvalRunResult": return EvalRunResult
         
-    if name == "SchemaDrivenTestRunner":
-        from .test_runner import SchemaDrivenTestRunner
-        return SchemaDrivenTestRunner
+    if name == "ContractTestRunner":
+        from .test_runner import ContractTestRunner
+        return ContractTestRunner
     if name in ("EvalCase", "EvalCaseSet", "TrajectoryEvalSet"):
         from .models import EvalCase, EvalCaseSet, TrajectoryEvalSet
         if name == "EvalCase": return EvalCase
@@ -43,7 +43,7 @@ def __getattr__(name: str) -> Any:
 
 __all__ = [
     "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
-    "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "SchemaDrivenTestRunner",
+    "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "ContractTestRunner",
     "EvalCase", "EvalCaseSet", "TestGenerator", "TestExecutor", "EvalRunResult", "TrajectoryEvalSet"
 ]
 

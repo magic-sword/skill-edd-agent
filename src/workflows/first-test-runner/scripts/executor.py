@@ -57,14 +57,14 @@ class SkillExecutor:
             if trigger_result.get("status") != "success":
                 raise TestFailedError(f"Triggerテストが失敗しました: {trigger_result.get('message', '不明なエラー')}")
 
-            # 2. schema_check
-            schema_result = self._test_runner_client.run_test(
+            # 2. contract_check
+            contract_result = self._test_runner_client.run_test(
                 skill_name=skill,
-                test_type="schema",
+                test_type="contract",
                 threshold_accuracy=1.0,
             )
-            if schema_result.get("status") != "success":
-                raise TestFailedError(f"Schemaテストが失敗しました: {schema_result.get('message', '不明なエラー')}")
+            if contract_result.get("status") != "success":
+                raise TestFailedError(f"Contractテストが失敗しました: {contract_result.get('message', '不明なエラー')}")
 
             # 3. register_skill
             skill_obj = self._skills_state.get_skill(skill)
