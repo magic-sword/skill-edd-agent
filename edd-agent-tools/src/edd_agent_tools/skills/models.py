@@ -21,6 +21,7 @@ class SkillTier(IntEnum):
 class SkillEntry(BaseModel):
     """スキルまたはエージェントのディレクトリパス"""
     path: Path = Field(..., description="カスタムスキルフォルダへのパス")
+    name: str | None = Field(None, description="探索エントリの論理名（別名）")
 
 
 class InheritEntry(BaseModel):

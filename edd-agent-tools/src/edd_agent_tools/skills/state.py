@@ -199,12 +199,13 @@ class SkillsState:
         self._cached_skills = discovered_skills
         return discovered_skills
 
-    def get_skill(self, name: Optional[str] = None, design_path: Optional[str] = None) -> "Skill":
-        """指定された名前（name）または設計ファイルパス（design_path）から、メタデータ注入済みの Skill インスタンスを返します。
+    def get_skill(self, name: Optional[str] = None, design_path: Optional[str] = None, target_entry: Optional[str] = None) -> "Skill":
+        """指定された名前（name）、設計ファイルパス（design_path）、または論理配置先（target_entry）から、メタデータ注入済みの Skill インスタンスを返します。
         
         Args:
             name: 取得したいスキルの論理名。
             design_path: 設計ファイル (design.json) またはその親ディレクトリのパス。
+            target_entry: 新規スキル開発時の優先的配置先エントリーの論理名（別名）。
             
         Raises:
             ValueError: 解決に必要なパラメータが不足しているか、物理的に見つからない場合。
@@ -257,8 +258,17 @@ class SkillsState:
             if self.data is None:
                 self.load()
                 
-            # 最優先（インデックス 0）の探索エントリを書き出し先ベースフォルダとして決定論的に採用する
-            if self.data.entries:
+            selected_entry = None
+            if target_entry:
+                for entry in self.data.entries:
+                    if entry.name == target_entry:
+                        selected_entry = entry
+                        break
+                        
+            # 指定された論理エントリ、または最優先（インデックス 0）の探索エントリを書き出し先ベースフォルダとして採用
+            if selected_entry:
+                base_dir = self.project_root / selected_entry.path
+            elif self.data.entries:
                 base_dir = self.project_root / self.data.entries[0].path
             else:
                 base_dir = self.project_root / "src/skills"

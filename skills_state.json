@@ -1,10 +1,12 @@
 {
   "entries": [
     {
-      "path": "src/skills"
+      "path": "src/skills",
+      "name": "tool"
     },
     {
-      "path": "src/agents"
+      "path": "src/agents",
+      "name": "agent"
     }
   ],
   "inherits": [],

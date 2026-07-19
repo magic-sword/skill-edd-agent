@@ -27,7 +27,7 @@ class SkillExecutor:
         self._gemini_client = GeminiDesignClient()
         self._state = SkillsState()
 
-    def skill_designer(self, prompt: str, summary: str = None, output_dir: str = None, skill: str = None, source_code_dir: str = None) -> SkillDesignerOutput:
+    def skill_designer(self, prompt: str, summary: str = None, output_dir: str = None, skill: str = None, source_code_dir: str = None, target_entry: str = None) -> SkillDesignerOutput:
         """
         スキル設計のメインロジックを実行します。
 
@@ -37,12 +37,13 @@ class SkillExecutor:
             output_dir: 生成されたdesign.jsonを保存するディレクトリのパス。省略時はskillから自動探索されます。
             skill: 既存のスキル名。再設計時の自動探索キーとして使用されます。
             source_code_dir: 再設計のベースとなる既存のスキル実装コードのディレクトリ（またはファイル）パス。指定しない場合、自動的に検出を試みます。
+            target_entry: 優先する論理配置先名。
 
         Returns:
             処理結果のOutputオブジェクト。
         """
         # 1. パス解決
-        resolved_paths = self._path_resolver.resolve_paths(skill_name=skill, output_dir=output_dir, source_code_dir=source_code_dir)
+        resolved_paths = self._path_resolver.resolve_paths(skill_name=skill, output_dir=output_dir, source_code_dir=source_code_dir, target_entry=target_entry)
         
         existing_name = resolved_paths["existing_name"]
         output_dir = resolved_paths["output_dir"] # 解決されたパスで更新

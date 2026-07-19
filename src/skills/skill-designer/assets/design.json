@@ -56,6 +56,14 @@
           "required": false,
           "is_prompt_parameter": false,
           "example": "./skills/text-summarizer"
+        },
+        {
+          "name": "target_entry",
+          "type": "str",
+          "description": "新規スキル開発時の優先的配置先エントリーの論理名（別名）。",
+          "required": false,
+          "is_prompt_parameter": false,
+          "example": "agent"
         }
       ],
       "response_parameters": [

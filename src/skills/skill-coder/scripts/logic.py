@@ -35,6 +35,8 @@ class SkillLogic:
             raise ValueError("対象スキルを特定するために、'skill' または 'design_path' のいずれか一方は必ず指定する必要があります。")
             
         design_path_fallback = os.path.abspath(design_path) if design_path else None
+        if not design_path_fallback and output_dir:
+            design_path_fallback = os.path.join(os.path.abspath(output_dir), "assets", "design.json")
         skill_obj = self.state.get_skill(name=skill, design_path=design_path_fallback)
         
         skill_name = skill_obj.name

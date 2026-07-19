@@ -30,6 +30,9 @@ class SpecGenerator:
             if not skill and not design_path:
                 raise ValueError("Skill name or design path must be provided.")
 
+            if not design_path and output_dir:
+                design_path = os.path.join(os.path.abspath(output_dir), "assets", "design.json")
+
             skill_obj = self.state.get_skill(name=skill, design_path=design_path)
             design_data = skill_obj.load_design()
 

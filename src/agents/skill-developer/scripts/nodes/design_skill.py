@@ -12,6 +12,7 @@ def run_design_skill_step(tool_context: ToolContext) -> str:
         prompt=tool_context.state.get("prompt"),
         output_dir=tool_context.state.get("output_dir"),
         skill=tool_context.state.get("skill"),
-        source_code_dir=tool_context.state.get("source_code_dir")
+        source_code_dir=tool_context.state.get("source_code_dir"),
+        target_entry=tool_context.state.get("target_entry")
     )
     return merge_result_to_state(tool_context, res)
