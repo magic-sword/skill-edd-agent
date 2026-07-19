@@ -36,6 +36,9 @@
     },
     "trigger-evaluator": {
       "tier": 1
+    },
+    "my-test-skill": {
+      "tier": 1
     }
   },
   "agents": {}

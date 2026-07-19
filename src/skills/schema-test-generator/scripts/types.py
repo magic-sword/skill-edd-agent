@@ -43,7 +43,7 @@ class Function(BaseModel):
     name: str
     description: str
     parameters: List[Parameter]
-    response_parameters: List[ResponseParameter]
+    response_parameters: Optional[List[ResponseParameter]] = None
     response_type: Optional[str] = None
 
 class DesignJson(BaseModel):

@@ -20,6 +20,7 @@ description: "新規スキル開発、または既存スキルのリファクタ
 1. design-skill: スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計します。
 2. code-skill: 設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新します。
 3. write-spec: 設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。
+4. finalize-assets: 自律開発された成果物アセット（design.jsonやSKILL.mdなど）を本来の出力ディレクトリに最終同期し、重複フォルダをクリーンアップします。
 
 
 ---
@@ -43,6 +44,7 @@ description: "新規スキル開発、または既存スキルのリファクタ
 1. **design-skill** (skill): スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。
 1. **code-skill** (skill): 設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するワークフロー。
 1. **write-spec** (skill): 設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。
+1. **finalize-assets** (function): 自律開発された成果物アセット（design.jsonやSKILL.mdなど）を本来の出力ディレクトリに最終同期し、重複フォルダをクリーンアップします。
 
 引数パラメータが入力されると、STARTノードから順に状態（tool_context.state）を伝播しながら処理が進みます。
 

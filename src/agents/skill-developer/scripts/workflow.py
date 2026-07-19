@@ -7,6 +7,7 @@ from google.adk import Workflow
 from .nodes.design_skill import run_design_skill_step
 from .nodes.code_skill import run_code_skill_step
 from .nodes.write_spec import run_write_spec_step
+from .nodes.finalize_assets import run_finalize_assets_step
 
 root_workflow = Workflow(
     name="skill_developer",
@@ -14,5 +15,6 @@ root_workflow = Workflow(
         ("START", run_design_skill_step),
         (run_design_skill_step, run_code_skill_step),
         (run_code_skill_step, run_write_spec_step),
+        (run_write_spec_step, run_finalize_assets_step),
     ]
 )

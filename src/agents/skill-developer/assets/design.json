@@ -109,6 +109,12 @@
       "target": "skill-spec-writer",
       "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
       "inputs": {}
+    },
+    {
+      "name": "finalize-assets",
+      "type": "function",
+      "description": "自律開発された成果物アセット（design.jsonやSKILL.mdなど）を本来の出力ディレクトリに最終同期し、重複フォルダをクリーンアップします。",
+      "inputs": {}
     }
   ]
 }

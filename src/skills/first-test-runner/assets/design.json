@@ -1,0 +1,100 @@
+{
+  "rationale": "このモジュールは、指定されたスキルに対して複数のテストと検証ステップを順次実行し、その結果に基づいてスキルを登録するという一連の複雑な処理を調整するため、ワークフローとして設計するのが適切です。各テストステップはカスタム関数として定義され、既存のテスト生成・実行スキルを活用します。",
+  "name": "first-test-runner",
+  "description": "指定されたスキルに対して一連のテストと検証を実行し、すべて成功した場合はスキルをTier 1として登録するワークフロー。",
+  "summary": null,
+  "module_type": "skill",
+  "functions": [
+    {
+      "name": "run_first_test",
+      "description": "指定されたスキルに対して一連のテストと検証を実行し、すべて成功した場合はスキルをTier 1として登録します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "試験対象のスキル名。",
+          "required": true,
+          "default": null,
+          "choices": null,
+          "ge": null,
+          "le": null,
+          "items_type": null,
+          "pattern": null,
+          "min_length": 1,
+          "max_length": null,
+          "is_prompt_parameter": null,
+          "prompt_instructions": null,
+          "prompt_constraints": null,
+          "example": "my-test-skill"
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "ワークフローの実行結果。",
+          "required": true,
+          "default": null,
+          "choices": [
+            "success",
+            "failed"
+          ],
+          "ge": null,
+          "le": null,
+          "items_type": null,
+          "pattern": null,
+          "min_length": null,
+          "max_length": null,
+          "is_prompt_parameter": null,
+          "prompt_instructions": null,
+          "prompt_constraints": null,
+          "example": "success"
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "description": "実行結果のサマリー、または不合格テストや検証エラーの詳細。",
+          "required": true,
+          "default": null,
+          "choices": null,
+          "ge": null,
+          "le": null,
+          "items_type": null,
+          "pattern": null,
+          "min_length": null,
+          "max_length": null,
+          "is_prompt_parameter": null,
+          "prompt_instructions": null,
+          "prompt_constraints": null,
+          "example": "すべてのテストと検証が成功し、スキルがTier 1として登録されました。"
+        },
+        {
+          "name": "registered",
+          "type": "bool",
+          "description": "対象スキルがSkillsStateにTier 1として登録されたかどうかの真偽値。",
+          "required": true,
+          "default": null,
+          "choices": null,
+          "ge": null,
+          "le": null,
+          "items_type": null,
+          "pattern": null,
+          "min_length": null,
+          "max_length": null,
+          "is_prompt_parameter": null,
+          "prompt_instructions": null,
+          "prompt_constraints": null,
+          "example": true
+        }
+      ],
+      "response_type": null
+    }
+  ],
+  "dependencies": [
+    "test-generator",
+    "test-executor"
+  ],
+  "constraints": [],
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON"
+}

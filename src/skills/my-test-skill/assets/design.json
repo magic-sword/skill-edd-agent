@@ -1,0 +1,34 @@
+{
+  "rationale": "このスキルは、2つの整数を足し算するという単一のアトミックな機能を提供するため、workflowではなくskillとして設計します。複雑なロジックや複数の既存スキルとの連携は不要です。",
+  "name": "my-test-skill",
+  "description": "2つの整数を足し算して結果を返します。",
+  "summary": "引数aとbの合計を計算します。",
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "add_numbers",
+      "description": "2つの整数を足し算して結果を返します。",
+      "parameters": [
+        {
+          "name": "a",
+          "type": "int",
+          "description": "足し算の最初の整数。",
+          "required": true,
+          "example": 5
+        },
+        {
+          "name": "b",
+          "type": "int",
+          "description": "足し算の2番目の整数。",
+          "required": true,
+          "example": 3
+        }
+      ],
+      "response_type": "int"
+    }
+  ]
+}

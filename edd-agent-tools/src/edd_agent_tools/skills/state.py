@@ -297,7 +297,7 @@ class SkillsState:
         # すでに上位の権限が適用されている既存スキルはダウングレードや不要な上書きを防ぐためスキップ
         if skill._tier == SkillTier.READ_ONLY:
             if current_tier is not None and current_tier != SkillTier.SANDBOX:
-                print(f"Skipped promotion to READ_ONLY for '{skill_name}': Current tier is {current_tier.name} (only SANDBOX can be promoted).")
+                print(f"Skipped promotion to READ_ONLY for '{skill_name}': Current tier is {SkillTier(current_tier).name} (only SANDBOX can be promoted).")
                 return False
 
         # メタデータを更新 (ProjectSkillInfo)
@@ -307,5 +307,5 @@ class SkillsState:
         
         # 自身を保存。save() 内部で、自動的に合格スキルのみを skills.json にマウント更新する処理も実行されます。
         self.save()
-        print(f"Saved/Registered skill '{skill_name}' at Tier {skill._tier.name}.")
+        print(f"Saved/Registered skill '{skill_name}' at Tier {SkillTier(skill._tier).name}.")
         return True

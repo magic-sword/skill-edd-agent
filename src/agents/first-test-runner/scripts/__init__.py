@@ -1,10 +1,15 @@
-import os
-import sys
+from typing import Any
 
-# パス追加
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+def __getattr__(name: str) -> Any:
+    """遅延インポートを実現するための属性解決ハンドラ。"""
+    if name == "run_first_test":
+        from .handler import run_first_test
+        return run_first_test
 
-from .handler import process_message, SKILL_METADATA
-from .models import Input, Output
+    if name == "RunFirstTestOutput":
+        from .models import RunFirstTestOutput
+        return RunFirstTestOutput
 
-__all__ = ["process_message", "SKILL_METADATA", "Input", "Output"]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+__all__ = ['run_first_test', 'RunFirstTestOutput']
