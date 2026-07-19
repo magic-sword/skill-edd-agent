@@ -1,8 +1,9 @@
 """
-test-generator および test-executor スキルを呼び出すためのクライアントモジュール。
+test-generator および test-executor スキルをインプロセスで呼び出すクライアントモジュール。
 """
 
 from google.adk.tools import ToolContext
+from edd_agent_tools.skills import SkillsState
 
 class TestRunnerClient:
     """
@@ -13,45 +14,75 @@ class TestRunnerClient:
         TestRunnerClientのコンストラクタ。
 
         Args:
-            tool_context: ToolContextインスタンス。スキル実行のために必要。
+            tool_context: ToolContextインスタンス。
         """
         self._tool_context = tool_context
+        self._state = SkillsState()
 
     def run_test(self, skill_name: str, test_type: str, threshold_accuracy: float) -> dict:
         """
-        指定されたスキルに対してテストケースを生成し、実行する。
+        指定されたスキルに対してテストケースを生成し、実行して精度評価結果を返す。
 
         Args:
-            skill_name: テスト対象のスキル名。
-            test_type: テストのタイプ（例: "trigger", "schema"）。
+            skill_name: 試験対象のスキル名。
+            test_type: テストのタイプ（"trigger" または "schema"）。
             threshold_accuracy: 合格判定の閾値。
 
         Returns:
-            テスト実行結果の辞書。
+            テスト実行結果を表す辞書。
         """
-        # test-generator スキルを呼び出してテストケースを生成
-        generate_output = self._tool_context.run_skill(
-            skill_id="test-generator",
-            function_name="generate_test_cases",
-            parameters={
-                "skill_name": skill_name,
-                "test_type": test_type
+        try:
+            # 1. test-generator スキルを動的ロード
+            generator_skill = self._state.get_skill("test-generator")
+            generator_module = generator_skill.load_module()
+            
+            gen_result = generator_module.generate_test_cases(
+                skill=skill_name,
+                test_type=test_type
+            )
+            
+            if gen_result.status != "success":
+                return {
+                    "status": "failed",
+                    "message": f"{test_type}テストケース生成失敗: {gen_result.message}"
+                }
+
+            eval_set_path = gen_result.eval_set_path
+
+            # 2. test-executor スキルを動的ロード
+            executor_skill = self._state.get_skill("test-executor")
+            executor_module = executor_skill.load_module()
+
+            exec_result = executor_module.execute_adk_simulation(
+                skill=skill_name,
+                eval_set_path=eval_set_path,
+                test_type=test_type,
+                threshold_accuracy=threshold_accuracy
+            )
+
+            if exec_result.status != "success":
+                return {
+                    "status": "failed",
+                    "message": f"{test_type}テスト実行不合格: {exec_result.details}",
+                    "score": exec_result.score
+                }
+
+            # 閾値精度チェック
+            if exec_result.score < threshold_accuracy:
+                return {
+                    "status": "failed",
+                    "message": f"{test_type}精度 ({exec_result.score:.2f}) が閾値 ({threshold_accuracy:.2f}) 未満です。: {exec_result.details}",
+                    "score": exec_result.score
+                }
+
+            return {
+                "status": "success",
+                "message": f"{test_type}テストが合格しました。精度: {exec_result.score:.2f}",
+                "score": exec_result.score
             }
-        )
 
-        test_cases = generate_output.get("test_cases")
-        if not test_cases:
-            return {"status": "failed", "message": f"テストケースの生成に失敗しました: {generate_output.get('message', '不明なエラー')}"}
-
-        # test-executor スキルを呼び出してテストケースを実行
-        execute_output = self._tool_context.run_skill(
-            skill_id="test-executor",
-            function_name="execute_test_cases",
-            parameters={
-                "skill_name": skill_name,
-                "test_cases": test_cases,
-                "threshold_accuracy": threshold_accuracy
+        except Exception as e:
+            return {
+                "status": "failed",
+                "message": f"{test_type}テスト実行中に予期せぬエラーが発生しました: {e}"
             }
-        )
-
-        return execute_output

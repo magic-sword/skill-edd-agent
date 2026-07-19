@@ -1,0 +1,53 @@
+{
+  "rationale": "このスキルは、指定された新規開発スキルに対してトリガーチェックとスキーマテストを実行し、合格後にTier 1に登録する処理を自動化するためのゲートウェイです。",
+  "name": "first-test-runner",
+  "description": "指定されたスキルに対して一連のテストと検証を実行し、すべて成功した場合はスキルをTier 1として登録するツール。",
+  "summary": null,
+  "module_type": "skill",
+  "functions": [
+    {
+      "name": "run_first_test",
+      "description": "指定されたスキルに対して一連のテストと検証を実行し、すべて成功した場合はスキルをTier 1として登録します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "試験対象のスキル名。",
+          "required": true,
+          "example": "my-new-skill"
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "実行結果のステータス。'success' または 'failed'",
+          "required": true,
+          "example": "success"
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "description": "実行結果のメッセージ詳細",
+          "required": true,
+          "example": "すべてのテストと検証が成功し、スキルがTier 1として登録されました。"
+        },
+        {
+          "name": "registered",
+          "type": "bool",
+          "description": "登録が成功したかどうかの真偽値",
+          "required": true,
+          "example": true
+        }
+      ],
+      "response_type": null
+    }
+  ],
+  "dependencies": [
+    "test-generator",
+    "test-executor"
+  ],
+  "constraints": [],
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON"
+}

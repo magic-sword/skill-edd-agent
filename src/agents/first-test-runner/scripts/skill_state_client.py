@@ -1,9 +1,8 @@
 """
-SkillsState を操作し、スキルを登録するためのクライアントモジュール。
+SkillsState を操作し、スキルをTier 1登録するためのクライアントモジュール。
 """
 
-from google.adk.access import SkillsState
-from google.adk.models import Skill
+from edd_agent_tools.skills import SkillsState, Skill, SkillTier
 
 class SkillStateClient:
     """
@@ -14,16 +13,24 @@ class SkillStateClient:
         SkillStateClientのコンストラクタ。
 
         Args:
-            skills_state: SkillsStateインスタンス。スキルの登録のために必要。
+            skills_state: SkillsStateインスタンス。
         """
         self._skills_state = skills_state
 
     def register_skill_as_tier1(self, skill_obj: Skill) -> None:
         """
-        指定されたスキルをTier 1としてSkillsStateに登録する。
-
-        Args:
-            skill_obj: 登録対象のSkillオブジェクト。
+        指定されたスキルをTier 1 (READ_ONLY) としてSkillsStateに登録します。
+        すでに登録済みの場合は処理をスキップします。
         """
-        skill_obj.set_tier(1)
-        self._skills_state.register_skill(skill_obj)
+        # 最新情報をスキャン
+        self._skills_state.scan_skills(force_reload=True)
+        
+        # 二重登録回避
+        if skill_obj._tier >= 1:
+            print(f"INFO: Skill '{skill_obj.name}' is already registered as Tier {SkillTier(skill_obj._tier).name}. Skipping.")
+            return
+
+        skill_obj.set_tier(1) # READ_ONLY
+        registered = self._skills_state.register_skill(skill_obj)
+        if not registered:
+            raise RuntimeError(f"SkillsState.register_skill が False を返しました（登録失敗）。")

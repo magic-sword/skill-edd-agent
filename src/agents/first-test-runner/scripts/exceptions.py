@@ -1,5 +1,7 @@
-"""first-test-runner スキルで利用するカスタム例外を定義するモジュール。"""
+"""
+first-test-runner 用の例外クラスを定義するモジュール。
+"""
 
 class TestFailedError(Exception):
-    """テスト実行が失敗した場合に発生する例外。"""
+    """テストの実行または評価が失敗したときに発生する例外。"""
     pass

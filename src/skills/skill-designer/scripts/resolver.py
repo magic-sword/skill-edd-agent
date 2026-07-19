@@ -22,7 +22,7 @@ class PathResolver:
             解決されたパス情報を含む辞書。
         """
         design_path_fallback = None
-        if not skill_name and output_dir:
+        if output_dir:
             design_path_fallback = os.path.join(os.path.abspath(output_dir), "assets", "design.json")
 
         skill_obj: Skill = self._state.get_skill(name=skill_name, design_path=design_path_fallback)

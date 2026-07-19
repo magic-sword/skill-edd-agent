@@ -3,8 +3,7 @@ first-test-runner スキルの主要なビジネスロジックを定義する�
 """
 
 from google.adk.tools import ToolContext
-from google.adk.access import SkillsState
-from google.adk.models import Skill
+from edd_agent_tools.skills import SkillsState, Skill
 
 from .models import RunFirstTestOutput
 from .exceptions import TestFailedError
