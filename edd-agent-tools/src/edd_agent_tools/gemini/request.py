@@ -139,16 +139,15 @@ class GeminiRequest:
 
         # 2. パッケージ内蔵ルール (edd-agent-tools/AGENTS.md)
         try:
-            import edd_agent_tools
-            pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(edd_agent_tools.__file__)))
-            pkg_rule_path = os.path.join(pkg_root, "AGENTS.md")
-            if os.path.exists(pkg_rule_path):
-                with open(pkg_rule_path, "r", encoding="utf-8") as f:
-                    content = f.read().strip()
+            import importlib.resources
+            ref = importlib.resources.files("edd_agent_tools").joinpath("AGENTS.md")
+            if ref.exists():
+                content = ref.read_text(encoding="utf-8").strip()
                 if content:
                     self.parts.append(f"# --- System Rule: Package Rule (edd-agent-tools/AGENTS.md) ---\n{content}")
         except Exception as e:
             print(f"Warning: Failed to load package rule: {e}")
+
 
         # 3. グローバルルール (新仕様: config/AGENTS.md)
         global_rule_path = os.path.expanduser("~/.gemini/config/AGENTS.md")

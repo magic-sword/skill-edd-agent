@@ -65,3 +65,61 @@ python3 /workspace/scratch/test_agy_client.py
 ```
 
 正常に動作すると、テストスクリプト内で `agy` バックエンドが呼び出され、料金が発生しない（IDE のクレジットを共有した）状態での LLM レスポンスが返されます。
+
+---
+
+## 4. ローカル MCP サーバーのセットアップと Antigravity 連携
+
+本パッケージには、開発用の AI エージェント（Antigravity 等）に対して「設計仕様」「厳密な開発制約」を自動で受け渡し（遅延ロード）するための **MCP (Model Context Protocol) サーバー** が組み込まれています。
+
+### ① インストール方法
+公開後の利用者は、PyPI から通常の公開パッケージとしてインストールすることで、MCP サーバーが利用可能になります。
+
+```bash
+# プロジェクトの仮想環境またはグローバル環境にインストール
+pip install edd-agent-tools
+```
+
+### ② AI IDE (Antigravity 等) への登録パターン
+外部の AI IDE やエージェント実行器（仮想環境の外部で動作するプロセス）から本 MCP サーバーを呼び出すには、パスの通し方に注意する必要があります。以下のいずれかの設定パターンを使用して登録してください。
+
+#### パターン A: モダンなツールランナーによる一撃起動（推奨・最も安全）
+`uv` や `pipx` がインストールされている場合、事前インストールや環境パスの依存関係をすべて無視して、隔離された環境から即座に起動できます。
+
+```json
+{
+  "mcpServers": {
+    "edd-agent-tools": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "edd-agent-tools",
+        "edd-agent-mcp"
+      ]
+    }
+  }
+}
+```
+*(※ `pipx` を使用する場合は、`command: "pipx"`, `args: ["run", "edd-agent-tools", "edd-agent-mcp"]` と指定します)*
+
+#### パターン B: プロジェクト仮想環境のパスを直接指定する
+プロジェクトごとに隔離された `.venv` 内の実行ファイルを絶対パスで指定します。
+
+```json
+{
+  "mcpServers": {
+    "edd-agent-tools": {
+      "command": "/path/to/your/project/.venv/bin/edd-agent-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+### ③ 公開される MCP リソース (Resources)
+登録が完了すると、AIエージェントは自律的に以下の `edd://` スキーマのリソース（Markdown）を読み取り、コンテキストとして利用できるようになります。
+
+*   `edd://docs/test_architecture`: テストケースの生成・実行スキルを開発する際の実装制約、DIモデル、およびProtocol仕様。
+*   `edd://docs/eval_design`: Gymnasium 互換サンドボックス（WorkspaceEnvProtocol）の隔離設計およびテストの合否アサーション判定論理。
+*   `edd://rules/agents`: AIエージェントが厳密に遵守すべきシステム制約ルール（`AGENTS.md`）。
+

@@ -21,10 +21,19 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "gymnasium>=0.29.0",
+    "mcp>=0.1.0",
 ]
+
+[project.scripts]
+edd-agent-mcp = "edd_agent_tools.mcp.server:main"
 
 [project.urls]
 "Homepage" = "https://github.com/magic-sword/edd-agent-tools"
 
+[tool.setuptools.package-data]
+"edd_agent_tools" = ["AGENTS.md"]
+"edd_agent_tools.docs" = ["*.md"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
