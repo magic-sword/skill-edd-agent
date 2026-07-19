@@ -78,7 +78,7 @@ class Skill:
                 except Exception:
                     pass
 
-                if "src/agents" in self.root_dir or "/agents/" in self.root_dir or has_workflow_indicator:
+                if "src/workflows" in self.root_dir or "/workflows/" in self.root_dir or has_workflow_indicator:
                     module_type = ModuleType.WORKFLOW
                 else:
                     module_type = ModuleType.SKILL

@@ -45,13 +45,13 @@ src/skills/{skill-name}/
 ```json
 "entries": [
   { "path": "src/skills", "name": "tool" },
-  { "path": "src/agents", "name": "agent" }
+  { "path": "src/workflows", "name": "workflow" }
 ]
 ```
 
 ### ② 新規スキル開発時の配置先解決
 新規にスキルを自動設計・作成する際、物理的な出力先ディレクトリ（`output_dir`）を毎回直接指定する代わりに、論理名 `target_entry` を指定するだけで配置先を切り替えられます。
-*   `target_entry: "agent"` ➔ `src/agents/` 配下に自動解決して新規作成
+*   `target_entry: "workflow"` ➔ `src/workflows/` 配下に自動解決して新規作成
 *   `target_entry: "tool"` (または未指定時のデフォルト) ➔ `src/skills/` 配下に自動解決して新規作成
 
 `SkillsState` を介して、開発ツール（designer, coder, spec-writer）は一貫してこの決定論的パスを共有して動き、一時的なゴミフォルダの発生を抑えます。

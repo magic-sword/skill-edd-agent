@@ -5,8 +5,8 @@
       "name": "tool"
     },
     {
-      "path": "src/agents",
-      "name": "agent"
+      "path": "src/workflows",
+      "name": "workflow"
     }
   ],
   "inherits": [],

@@ -144,7 +144,7 @@ ADK 2.0 標準の評価エンジンで用いられる `rouge-score` ライブラ
 
 > [!TIP]
 > **本リポジトリの実証性**
-> 本プロジェクトのリポジトリ（[src/skills](file:///workspace/src/skills) や [src/agents](file:///workspace/src/agents)）に含まれるスキルの大半は、**この自己進化型EDDエージェントによって実際に自律生成されたもの**です。
+> 本プロジェクトのリポジトリ（[src/skills](file:///workspace/src/skills) や [src/workflows](file:///workspace/src/workflows)）に含まれるスキルの大半は、**この自己進化型EDDエージェントによって実際に自律生成されたもの**です。
 > 人間が「○○をするためのスキルを追加して」と曖昧な要件（Vibe）をエージェントに提示し、エージェントが設計・実装・テストを行い、テストに合格して `Tier 1` に昇格し、自動的に自身の武器としてマウントされるプロセスを繰り返すことで、このリポジトリ自体が構築されました。
 
 ---

@@ -24,7 +24,7 @@
 │           ├── eval_design.md       # サンドボックス隔離・アサーションポリシー
 │           └── sandbox_design.md    # Gymnasium仮想環境（DI）とCLI仕様
 └── src/                    # 自己進化エージェントの本体およびスキル（Tier管理下）
-    ├── agents/             # 自己進化ワークフローエージェント（skill-developer等）
+    ├── workflows/          # 自己進化ワークフローエージェント（skill-developer等）
     └── skills/             # 自動生成・マウントされる個別スキル群
 ```
 
