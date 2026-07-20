@@ -18,6 +18,7 @@
     "judge-test-executor",
     "judge-test-generator",
     "test-generator",
+    "tier2-test-runner",
     "trigger-test-executor",
     "trigger-test-generator"
   ],

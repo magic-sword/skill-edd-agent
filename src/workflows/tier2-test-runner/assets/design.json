@@ -1,0 +1,53 @@
+{
+  "rationale": "このワークフローは、指定されたスキルに対して契約、ゴールデン、およびルーブリックジャッジの3つのテストを順次実行し、すべて合格した場合はスキルをTier 2 (Draft-Only)として登録する処理を自動化するためのゲートウェイです。",
+  "name": "tier2-test-runner",
+  "description": "指定されたスキルに対して contract, golden, judge テストを実行し、すべて成功した場合はスキルをTier 2として登録するワークフロー。",
+  "summary": null,
+  "module_type": "skill",
+  "functions": [
+    {
+      "name": "run_tier2_test",
+      "description": "指定されたスキルに対して contract, golden, judge テストを実行し、すべて成功した場合はスキルをTier 2として登録します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "検証および昇格対象のスキル名。",
+          "required": true,
+          "example": "my-test-skill"
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "実行結果のステータス。'success' または 'failed'",
+          "required": true,
+          "example": "success"
+        },
+        {
+          "name": "message",
+          "type": "str",
+          "description": "実行結果の詳細メッセージ",
+          "required": true,
+          "example": "すべてのテストが成功し、スキルがTier 2として登録されました。"
+        },
+        {
+          "name": "registered",
+          "type": "bool",
+          "description": "登録が成功したかどうかの真偽値",
+          "required": true,
+          "example": true
+        }
+      ],
+      "response_type": null
+    }
+  ],
+  "dependencies": [
+    "test-generator",
+    "test-executor"
+  ],
+  "constraints": [],
+  "execution_type": "agent",
+  "output_mode": "STRUCTURED_JSON"
+}
