@@ -1,31 +1,41 @@
-from google.adk.tools import ToolContext
-from edd_agent_tools.skills import SkillsState
-from .models import RunFirstTestOutput
-from .executor import SkillExecutor
-from .test_runner_client import TestRunnerClient
-from .skill_state_client import SkillStateClient
+from edd_agent_tools import WorkflowRunner
+from .models import Tier1SkillOnboardingOutput
+from .workflow import root_workflow
 
-def run_first_test(skill: str, tool_context: ToolContext = None) -> RunFirstTestOutput:
-    """指定されたスキルに対して一連のテストと検証を実行し、すべて成功した場合はスキルをTier 1として登録します。
+class RuntimeInput:
+    """内部引数コンパイル用ダミーオブジェクト。"""
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+    def model_dump(self, **kwargs):
+        return self.__dict__
+
+
+def tier1_skill_onboarding(skill_name: str, eval_set_base_path: str) -> Tier1SkillOnboardingOutput:
+    """試験対象のスキル名と評価セットのパスを受け取り、依存関係の検証、トリガーテスト、契約テストを実行し、すべてに合格した場合にスキルをTier 1として登録するワークフロー。
 
     Args:
-        skill: 試験対象のスキル名。
-        tool_context: ADKのToolContextインスタンス。
+        skill_name: Tier 1としてオンボーディングするスキルの名前。
+        eval_set_base_path: 評価用のテストケースファイルが格納されているベースディレクトリのパス。
 
     Returns:
-        実行結果オブジェクト (RunFirstTestOutput)。
+        実行結果オブジェクト (Tier1SkillOnboardingOutput)。
     """
-    if tool_context is None:
-        raise ValueError("Error: ToolContext が提供されていません。")
-
-    skills_state = SkillsState()
-    test_runner_client = TestRunnerClient(tool_context=tool_context)
-    skill_state_client = SkillStateClient(skills_state=skills_state)
-
-    executor = SkillExecutor(
-        tool_context=tool_context,
-        skills_state=skills_state,
-        test_runner_client=test_runner_client,
-        skill_state_client=skill_state_client
+    params = RuntimeInput(skill_name=skill_name, eval_set_base_path=eval_set_base_path)
+    runner = WorkflowRunner(
+        workflow_name="tier1-skill-onboarding",
+        root_workflow=root_workflow
     )
-    return executor.run_first_test(skill=skill)
+    result_dict = runner.run(params)
+    
+    output_data = {}
+    for field in Tier1SkillOnboardingOutput.model_fields.keys():
+        if field in result_dict:
+            output_data[field] = result_dict[field]
+        elif "state" in result_dict and field in result_dict["state"]:
+            output_data[field] = result_dict["state"][field]
+            
+    if not output_data and "value" in Tier1SkillOnboardingOutput.model_fields:
+        output_data["value"] = result_dict.get("message", "success")
+        
+    return Tier1SkillOnboardingOutput(**output_data)
+

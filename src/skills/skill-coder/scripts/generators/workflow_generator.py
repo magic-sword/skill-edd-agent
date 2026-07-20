@@ -115,7 +115,10 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                     try:
                         dep_skill = state.get_skill(target_skill)
                         dep_design = dep_skill.load_design()
-                        dep_input_params = [p.name for p in dep_design.functions[0].parameters]
+                        if getattr(dep_design, "module_type", None) == "workflow":
+                            dep_input_params = [p.name for p in getattr(dep_design, "parameters", [])]
+                        else:
+                            dep_input_params = [p.name for p in dep_design.functions[0].parameters]
                     except Exception as e:
                         print(f"警告: 依存スキル {target_skill} の設計ロードに失敗しました: {e}")
                     
@@ -123,6 +126,12 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                     dep_mapping = step.get("inputs", {})
                     param_assignments = []
                     for param_name, mapping_val in dep_mapping.items():
+                        is_literal = (
+                            (mapping_val.startswith('"') and mapping_val.endswith('"')) or
+                            (mapping_val.startswith("'") and mapping_val.endswith("'")) or
+                            mapping_val.replace('.', '', 1).replace('-', '', 1).isdigit() or
+                            mapping_val in ("True", "False", "None")
+                        )
                         is_expression = (
                             "tool_context" in mapping_val or 
                             "(" in mapping_val or 
@@ -133,7 +142,7 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                             " " in mapping_val or
                             "." in mapping_val
                         )
-                        if is_expression:
+                        if is_literal or is_expression:
                             param_assignments.append(f'        {param_name}={mapping_val}')
                         else:
                             param_assignments.append(f'        {param_name}=tool_context.state.get("{mapping_val}")')
@@ -151,7 +160,9 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                     try:
                         dep_skill = state.get_skill(target_skill)
                         dep_design = dep_skill.load_design()
-                        if getattr(dep_design, "functions", None) and dep_design.functions:
+                        if getattr(dep_design, "module_type", None) == "workflow":
+                            actual_func_name = dep_design.name.replace("-", "_")
+                        elif getattr(dep_design, "functions", None) and dep_design.functions:
                             actual_func_name = dep_design.functions[0].name
                     except Exception:
                         pass
@@ -258,14 +269,23 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                     
                     inputs = []
                     outputs = []
-                    for fn in dep_design.functions:
-                        inputs.append(f"  - 関数 {fn.name} の入力:")
-                        for param in fn.parameters:
+                    if getattr(dep_design, "module_type", None) == "workflow":
+                        inputs.append(f"  - ワークフロー {dep_design.name} の入力:")
+                        for param in getattr(dep_design, "parameters", []):
                             inputs.append(f"    * {param.name} ({param.type}): {param.description}")
-                        if fn.response_parameters:
-                            outputs.append(f"  - 関数 {fn.name} の出力:")
-                            for param in fn.response_parameters:
+                        if getattr(dep_design, "response_parameters", None):
+                            outputs.append(f"  - ワークフロー {dep_design.name} の出力:")
+                            for param in dep_design.response_parameters:
                                 outputs.append(f"    * {param.name} ({param.type}): {param.description}")
+                    else:
+                        for fn in dep_design.functions:
+                            inputs.append(f"  - 関数 {fn.name} の入力:")
+                            for param in fn.parameters:
+                                inputs.append(f"    * {param.name} ({param.type}): {param.description}")
+                            if fn.response_parameters:
+                                outputs.append(f"  - 関数 {fn.name} の出力:")
+                                for param in fn.response_parameters:
+                                    outputs.append(f"    * {param.name} ({param.type}): {param.description}")
                         
                     inputs_str = "\n".join(inputs) if inputs else "  なし"
                     outputs_str = "\n".join(outputs) if outputs else "  なし"
@@ -340,8 +360,18 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                 dep_mapping = mapping_data.get(dep, {})
                 param_assignments = []
                 for param_name, mapping_val in dep_mapping.items():
+                    is_literal = (
+                        (mapping_val.startswith('"') and mapping_val.endswith('"')) or
+                        (mapping_val.startswith("'") and mapping_val.endswith("'")) or
+                        mapping_val.replace('.', '', 1).replace('-', '', 1).isdigit() or
+                        mapping_val in ("True", "False", "None")
+                    )
                     is_expression = (
                         "tool_context" in mapping_val or 
+                        "{" in mapping_val or
+                        "}" in mapping_val or
+                        "[" in mapping_val or
+                        "]" in mapping_val or
                         "(" in mapping_val or 
                         ")" in mapping_val or 
                         "+" in mapping_val or
@@ -350,7 +380,7 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                         " " in mapping_val or
                         "." in mapping_val
                     )
-                    if is_expression:
+                    if is_literal or is_expression:
                         param_assignments.append(f'        {param_name}={mapping_val}')
                     else:
                         param_assignments.append(f'        {param_name}=tool_context.state.get("{mapping_val}")')
@@ -362,7 +392,9 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                 try:
                     dep_skill = state.get_skill(dep)
                     dep_design = dep_skill.load_design()
-                    if getattr(dep_design, "functions", None) and dep_design.functions:
+                    if getattr(dep_design, "module_type", None) == "workflow":
+                        actual_func_name = dep_design.name.replace("-", "_")
+                    elif getattr(dep_design, "functions", None) and dep_design.functions:
                         actual_func_name = dep_design.functions[0].name
                 except Exception:
                     pass

@@ -1,53 +1,76 @@
 {
-  "rationale": "このスキルは、指定された新規開発スキルに対してトリガーチェックと契約（Contract）テストを実行し、合格後にTier 1に登録する処理を自動化するためのゲートウェイです。",
-  "name": "first-test-runner",
-  "description": "指定されたスキルに対して一連のテストと検証を実行し、すべて成功した場合はスキルをTier 1として登録するツール。",
-  "summary": null,
-  "module_type": "skill",
-  "functions": [
+  "rationale": "このワークフローは、新しいスキルをTier 1としてシステムにオンボーディングするための標準化されたプロセスを定義します。スキルがTier 1として登録される前に、その依存関係が適切に解決され、トリガーメカニズムが意図通りに機能し、かつ機能契約が完全に満たされていることを保証するための検証ステップを順序立てて実行します。これにより、システムの安定性と信頼性を維持し、高品質なスキルのみがTier 1として利用可能となることを目指します。",
+  "name": "tier1-skill-onboarding",
+  "description": "試験対象のスキル名と評価セットのパスを受け取り、依存関係の検証、トリガーテスト、契約テストを実行し、すべてに合格した場合にスキルをTier 1として登録するワークフロー。",
+  "module_type": "workflow",
+  "parameters": [
     {
-      "name": "run_first_test",
-      "description": "指定されたスキルに対して一連のテストと検証を実行し、すべて成功した場合はスキルをTier 1として登録します。",
-      "parameters": [
-        {
-          "name": "skill",
-          "type": "str",
-          "description": "試験対象のスキル名。",
-          "required": true,
-          "example": "my-new-skill"
-        }
-      ],
-      "response_parameters": [
-        {
-          "name": "status",
-          "type": "str",
-          "description": "実行結果のステータス。'success' または 'failed'",
-          "required": true,
-          "example": "success"
-        },
-        {
-          "name": "message",
-          "type": "str",
-          "description": "実行結果のメッセージ詳細",
-          "required": true,
-          "example": "すべてのテストと検証が成功し、スキルがTier 1として登録されました。"
-        },
-        {
-          "name": "registered",
-          "type": "bool",
-          "description": "登録が成功したかどうかの真偽値",
-          "required": true,
-          "example": true
-        }
-      ],
-      "response_type": null
+      "name": "skill_name",
+      "type": "str",
+      "description": "Tier 1としてオンボーディングするスキルの名前。",
+      "required": true
+    },
+    {
+      "name": "eval_set_base_path",
+      "type": "str",
+      "description": "評価用のテストケースファイルが格納されているベースディレクトリのパス。",
+      "required": true
     }
   ],
   "dependencies": [
-    "test-generator",
     "test-executor"
   ],
   "constraints": [],
-  "execution_type": "agent",
-  "output_mode": "STRUCTURED_JSON"
+  "response_parameters": [
+    {
+      "name": "onboarding_status",
+      "type": "str",
+      "description": "スキルオンボーディングの全体的なステータス ('success' または 'failed')。",
+      "required": true
+    },
+    {
+      "name": "message",
+      "type": "str",
+      "description": "オンボーディングプロセスに関する詳細メッセージ。",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "name": "validate-dependencies",
+      "type": "function",
+      "description": "スキルの依存関係が適切に解決されているかを検証するカスタム関数。",
+      "inputs": {}
+    },
+    {
+      "name": "run-trigger-test",
+      "type": "skill",
+      "target": "test-executor",
+      "description": "指定されたスキルに対してトリガーテストを実行し、インテント評価のしきい値0.9で合格を検証します。",
+      "inputs": {
+        "skill": "skill_name",
+        "eval_set_path": "eval_set_base_path",
+        "test_type": "\"trigger\"",
+        "threshold_accuracy": "0.9"
+      }
+    },
+    {
+      "name": "run-contract-test",
+      "type": "skill",
+      "target": "test-executor",
+      "description": "指定されたスキルに対して契約テストを実行し、機能契約のしきい値1.0で合格を検証します。",
+      "inputs": {
+        "skill": "skill_name",
+        "eval_set_path": "eval_set_base_path",
+        "test_type": "\"contract\"",
+        "threshold_accuracy": "1.0"
+      }
+    },
+    {
+      "name": "register-tier1",
+      "type": "function",
+      "description": "すべてのテストに合格したスキルをTier 1としてシステムに登録するカスタム関数。",
+      "inputs": {}
+    }
+  ]
 }

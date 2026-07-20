@@ -58,7 +58,10 @@ class WorkflowSpecWriter(BaseSpecWriter):
         # パラメータテーブルの作成
         param_table = [self._load_template("param_table_header.md.template").strip()]
         required_params = []
-        target_params = self.design_data.functions[0].parameters
+        if getattr(self.design_data, "module_type", None) == "workflow":
+            target_params = getattr(self.design_data, "parameters", [])
+        else:
+            target_params = self.design_data.functions[0].parameters
         
         row_tmpl = self._load_template("param_table_row.md.template").replace("\n", "").strip()
         for param in target_params:
@@ -79,7 +82,10 @@ class WorkflowSpecWriter(BaseSpecWriter):
         
         # 出力パラメータテーブルの作成
         output_params_section = ""
-        target_response_params = self.design_data.functions[0].response_parameters
+        if getattr(self.design_data, "module_type", None) == "workflow":
+            target_response_params = getattr(self.design_data, "response_parameters", [])
+        else:
+            target_response_params = self.design_data.functions[0].response_parameters
 
         if target_response_params:
             output_table = [self._load_template("param_table_header.md.template").strip()]
