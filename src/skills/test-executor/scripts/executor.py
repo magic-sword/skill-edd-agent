@@ -31,7 +31,7 @@ class SkillExecutor:
 
             # 3. 隔離環境（サンドボックス）を構築して実行に移譲
             env = LocalWorkspaceEnv(
-                workspace_dir="/workspace",
+                workspace_dir=str(self._skills_state.project_root),
                 use_git=True,
                 use_host_venv=True
             )
