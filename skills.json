@@ -13,11 +13,13 @@
   "exclude": [
     "contract-test-executor",
     "contract-test-generator",
+    "developer-router",
     "golden-test-executor",
     "golden-test-generator",
     "judge-test-executor",
     "judge-test-generator",
     "test-generator",
+    "tier1-skill-onboarding",
     "tier2-test-runner",
     "trigger-test-executor",
     "trigger-test-generator",

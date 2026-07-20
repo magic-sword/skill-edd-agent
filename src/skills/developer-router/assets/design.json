@@ -1,0 +1,44 @@
+{
+  "rationale": "ユーザーの要件プロンプトから、新規に単体スキルを作るべきか、それとも既存スキルを連携させたワークフローを作るべきかを自動判定するための設計定義です。",
+  "name": "developer-router",
+  "description": "要件プロンプトを分析し、単体スキル(skill)かワークフロー(workflow)かを分類してルーティングするスキル。",
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "developer_router",
+      "description": "要件プロンプトを分析し、単体スキルかワークフローかを分類してルーティングする。",
+      "parameters": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "開発したい機能の要件プロンプト。",
+          "required": true
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "route",
+          "type": "str",
+          "description": "判定されたルート（'skill' または 'workflow'）。",
+          "required": true
+        },
+        {
+          "name": "rationale",
+          "type": "str",
+          "description": "そのルートに決定した分析理由。",
+          "required": true
+        },
+        {
+          "name": "recommended_dependencies",
+          "type": "list[str]",
+          "description": "ワークフローと判定された場合に推奨される既存スキル名のリスト。単体スキルの場合は空リストになります。",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
