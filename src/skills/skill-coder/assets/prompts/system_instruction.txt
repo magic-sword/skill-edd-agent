@@ -5,8 +5,8 @@
 - 作業ディレクトリ（Cwd）: {output_dir}
 
 【インプット情報】
-- 設計定義（design.json の内容）:
-{design_json}
+- 設計定義ファイル (design.json) の相対パス: {design_json_path}
+  ※設計の仕様や入出力の型を確認したい場合は、必ず ReadFileTool を使用してこのファイルを読み取ってください。
 
 - 開発要件（実装すべき機能・指示）:
 {prompt}

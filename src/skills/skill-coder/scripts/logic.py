@@ -44,7 +44,6 @@ class SkillLogic:
 
         # 1. design.json のロード
         design_data: SkillDesign = skill_obj.load_design()
-        design_json_str = json.dumps(design_data.model_dump(), indent=2, ensure_ascii=False)
         
         # 2. 決定論的コードの生成（models.py, handler.py, __init__.py, executor.pyプレースホルダー）
         coder_skill = self.state.get_skill("skill-coder")
@@ -54,17 +53,12 @@ class SkillLogic:
         generated_files_by_generator = code_generator.generate_all()
                 
         # 3. SkillDeveloperAgent の起動とコーディング実行
-        # design.json 内の summary (仕様概要) とユーザーの prompt (実装のこだわり) をマージ
-        full_prompt = ""
-        if getattr(design_data, "summary", None):
-            full_prompt = f"=== 基本仕様概要（What） ===\n{design_data.summary}\n\n"
-        full_prompt += f"=== 今回の実装・改修要望（How） ===\n{prompt}"
-
         agent_executor = SkillDeveloperAgentExecutor(skill_name=skill_name,
-                                                     prompt=full_prompt,
+                                                     prompt=prompt,
                                                      target_root_dir=target_root,
                                                      coder_skill=coder_skill)
-        generated_files_by_agent = self._run_safe(agent_executor.execute(design_json_str))
+        summary_val = getattr(design_data, "summary", "")
+        generated_files_by_agent = self._run_safe(agent_executor.execute(skill_obj.design_path, summary_val))
         
         # 生成されたファイルを統合
         all_generated_files = list(set(generated_files_by_generator + generated_files_by_agent))

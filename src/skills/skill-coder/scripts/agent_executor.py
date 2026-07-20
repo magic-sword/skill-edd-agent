@@ -33,7 +33,7 @@ class SkillDeveloperAgentExecutor:
         self._scripts_dir = os.path.join(self._target_root_dir, "scripts")
         self._coder_skill = coder_skill
 
-    async def execute(self, design_json_str: str) -> List[str]:
+    async def execute(self, design_path: str, summary: str) -> List[str]:
         """
         SkillDeveloperAgent を起動し、コード生成プロセスを実行します。
         生成されたファイルの相対パスリストを返します。
@@ -42,12 +42,16 @@ class SkillDeveloperAgentExecutor:
         reader = LibraryDocumentationReader(library_name="edd_agent_tools")
 
         system_instruction_tmpl = self._coder_skill.load_asset("prompts/system_instruction.txt")
+        
+        # design.json は Cwd からの相対パスに解決してエージェントに渡す
+        rel_design_path = os.path.relpath(design_path, self._target_root_dir)
+        
         instruction = system_instruction_tmpl.replace(
             "{skill_name}", self._skill_name
         ).replace(
             "{output_dir}", self._target_root_dir
         ).replace(
-            "{design_json}", design_json_str
+            "{design_json_path}", rel_design_path
         ).replace(
             "{prompt}", self._prompt
         )
@@ -72,6 +76,7 @@ class SkillDeveloperAgentExecutor:
         user_prompt_tmpl = self._coder_skill.load_asset("prompts/user_prompt.txt")
         user_prompt = user_prompt_tmpl.format(
             skill_name=self._skill_name,
+            summary=summary or "(仕様概要はありません)",
             prompt=self._prompt
         )
 

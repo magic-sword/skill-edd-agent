@@ -17,7 +17,6 @@
     "golden-test-generator",
     "judge-test-executor",
     "judge-test-generator",
-    "sample-calc-skill",
     "test-generator",
     "trigger-test-executor",
     "trigger-test-generator"
