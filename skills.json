@@ -20,7 +20,8 @@
     "test-generator",
     "tier2-test-runner",
     "trigger-test-executor",
-    "trigger-test-generator"
+    "trigger-test-generator",
+    "workflow-designer"
   ],
   "agents": {}
 }

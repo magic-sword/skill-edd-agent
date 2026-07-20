@@ -29,8 +29,6 @@
 4. 【思考プロセス (rationale) の最優先記述 (CoT)】
    - JSON の最上部にある `rationale` フィールドには、他のあらゆる値を決定する前に、与えられた要件の難易度や必要な手順、とくに "skill" または "workflow" と判定したのかの設計的根拠を、必ず詳細に自己分析しながら記述してください。この思考内容（CoT）に基づいて、残りのフィールド（module_type や steps など）を整合的に決定します。
 
-5. 【公開関数（functions）によるスキーマ定義の一本化】
-   - モジュールタイプ（"skill" または "workflow"）を問わず、すべての外部公開パラメータおよび戻り値の定義は、`functions` フィールド内に記述してください。
-   - `functions` には、各関数ごとに名前（`name`）、説明（`description`）、引数（`parameters`）、および戻り値（`response_parameters`）を定義したオブジェクトのリストを指定します。
-   - ワークフロー（"workflow"）の場合、通常はワークフロー名と同じスネークケースの関数が1つだけ `functions` リスト内に定義されます。
-   - 旧設計であったトップレベルの `parameters` および `response_parameters` は、モデル定義から完全に廃止されたため、決して指定しないでください。
+5. 【スキーマ定義の完全分離（functions と parameters/response_parameters）】
+   - アトミック・スキル（"skill"）の場合： すべての外部公開パラメータおよび戻り値の定義は、`functions` フィールド内にリスト形式で記述してください（トップレベルの `parameters`/`response_parameters` は使用しません）。
+   - ワークフロー（"workflow"）の場合： ワークフロー全体が受け取る入力引数はトップレベルの `parameters` フィールドに、全体の出力はトップレベルの `response_parameters` フィールドに直接記述してください（`functions` リストは定義しません）。

@@ -35,69 +35,23 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
         generated_files.append(os.path.relpath(models_path, self.target_root_dir))
 
         # 2. handler.py の自動生成
-        if self.design.functions:
-            # design.functions が定義されている場合は、tool スタイルで handler.py を生成
-            handler_tmpl = self.coder_skill.load_asset("templates/tool/handler.py.template") # tool のテンプレートを使用
-            handler_code = HandlerWriter(self.design, handler_tmpl).write()
-            handler_path = os.path.join(self.scripts_dir, "handler.py")
-            with open(handler_path, "w", encoding="utf-8") as f:
-                f.write(handler_code)
-            print(f"決定論的ハンドラーファイルを生成しました (tool-like workflow): {handler_path}")
-            generated_files.append(os.path.relpath(handler_path, self.target_root_dir))
-        else:
-            # design.functions がない場合は、従来の workflow テンプレートで handler.py を生成
-            handler_tmpl = self.coder_skill.load_asset("templates/workflow/handler.py.template")
-            handler_tmpl = handler_tmpl.replace("{workflow_name}", workflow_name)
-            handler_code = HandlerWriter(self.design, handler_tmpl).write()
-            handler_path = os.path.join(self.scripts_dir, "handler.py")
-            with open(handler_path, "w", encoding="utf-8") as f:
-                f.write(handler_code)
-            print(f"決定論的ハンドラーファイルを生成しました (workflow): {handler_path}")
-            generated_files.append(os.path.relpath(handler_path, self.target_root_dir))
+        handler_tmpl = self.coder_skill.load_asset("templates/workflow/handler.py.template")
+        handler_tmpl = handler_tmpl.replace("{workflow_name}", workflow_name)
+        handler_code = HandlerWriter(self.design, handler_tmpl).write()
+        handler_path = os.path.join(self.scripts_dir, "handler.py")
+        with open(handler_path, "w", encoding="utf-8") as f:
+            f.write(handler_code)
+        print(f"決定論的ハンドラーファイルを生成しました (workflow): {handler_path}")
+        generated_files.append(os.path.relpath(handler_path, self.target_root_dir))
 
         # 3. __init__.py の自動生成
-        if self.design.functions:
-            # design.functions が定義されている場合は、tool スタイルで __init__.py を生成
-            all_names = []
-            getattr_branches = []
-            
-            for fn in self.design.functions:
-                fn_name = fn.name
-                all_names.append(fn_name)
-                
-                branch_fn = f'''    if name == "{fn_name}":
-        from .handler import {fn_name}
-        return {fn_name}'''
-                
-                getattr_branches.append(branch_fn)
-                
-            branches_str = "\n\n".join(getattr_branches)
-            all_names_str = ", ".join(repr(n) for n in all_names)
-            
-            init_code = '''from typing import Any
-
-def __getattr__(name: str) -> Any:
-    """Attribute handler for lazy imports."""
-{}
-
-    raise AttributeError(f"module '{{__name__}}' has no attribute '{{name}}'")
-
-__all__ = [{}]
-'''.format(branches_str, all_names_str)
-            init_path = os.path.join(self.scripts_dir, "__init__.py")
-            with open(init_path, "w", encoding="utf-8") as f:
-                f.write(init_code)
-            print(f"決定論的パッケージ初期化ファイルを生成しました (tool-like workflow): {init_path}")
-            generated_files.append(os.path.relpath(init_path, self.target_root_dir))
-        else:
-            # design.functions がない場合は、従来の workflow テンプレートで __init__.py を生成
-            init_tmpl = self.coder_skill.load_asset("templates/workflow/__init__.py.template")
-            init_code = init_tmpl.replace("{workflow_name}", workflow_name).replace("{workflow_module_name}", workflow_module_name)
-            init_path = os.path.join(self.scripts_dir, "__init__.py")
-            with open(init_path, "w", encoding="utf-8") as f:
-                f.write(init_code)
-            print(f"決定論的パッケージ初期化ファイルを生成しました (workflow): {init_path}")
-            generated_files.append(os.path.relpath(init_path, self.target_root_dir))
+        init_tmpl = self.coder_skill.load_asset("templates/workflow/__init__.py.template")
+        init_code = init_tmpl.replace("{workflow_name}", workflow_name).replace("{workflow_module_name}", workflow_module_name)
+        init_path = os.path.join(self.scripts_dir, "__init__.py")
+        with open(init_path, "w", encoding="utf-8") as f:
+            f.write(init_code)
+        print(f"決定論的パッケージ初期化ファイルを生成しました (workflow): {init_path}")
+        generated_files.append(os.path.relpath(init_path, self.target_root_dir))
 
         # raw design をロードして steps 拡張がないか確認
         raw_design = {}

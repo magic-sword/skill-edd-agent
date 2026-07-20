@@ -76,22 +76,18 @@ class SkillExecutor:
         except Exception as e:
             return SkillDesignerOutput(status="failed", message=f"第一段階（L1粗設計）生成またはパースエラー: {e}", output_dir="")
 
-        # 5. 第 2 段階 (L2引数マッピング)
-        # 骨組みで選ばれた依存スキルの詳細スキーマをオンデマンドでロード
-        l2_skills_context = self._get_l2_skills_context(skeleton_design.get("steps", []))
-
-        # L2 (引数マッピング/精緻化) 用リクエストの作成
+        # 5. 第 2 段階 (L2引数マッピング・精緻化)
+        # L2 (パラメータ精緻化) 用リクエストの作成
         l2_request = design_prompter.build_l2_request(
             client=self._gemini_client._client,
-            skeleton_design_str=json.dumps(skeleton_design, indent=2, ensure_ascii=False),
-            l2_skills_context=l2_skills_context
+            skeleton_design_str=json.dumps(skeleton_design, indent=2, ensure_ascii=False)
         )
 
         # L2 呼び出し: 最終設計の生成
         try:
             design_data = self._generate_l2_design(l2_request, summary_override=summary)
         except Exception as e:
-            return SkillDesignerOutput(status="failed", message=f"第二段階（L2引数マッピング）生成またはパースエラー: {e}", output_dir="")
+            return SkillDesignerOutput(status="failed", message=f"第二段階（L2パラメータ精緻化）生成またはパースエラー: {e}", output_dir="")
 
         # 5.5. Pydantic モデルによるスキーマバリデーション (スキルとワークフローの切り分けチェック)
         try:
@@ -125,62 +121,8 @@ class SkillExecutor:
         """L1設計用のリクエストを構築します。"""
         # 4.1. L1メタデータの収集（全登録スキルの名前とトリガー説明）
         discovered_skills = self._state.scan_skills()
-        l1_elements = []
-        for s_name, s_obj in discovered_skills.items():
-            try:
-                fm = s_obj.load_design()
-                l1_elements.append(f"""- スキル名: {fm.name}
-  トリガー条件と作用: {fm.description}""")
-            except Exception:
-                # パースエラーのある古いスキルはスキップ
-                pass
-        l1_skills_context = "\n".join(l1_elements) if l1_elements else "なし"
-
-        return design_prompter.build_l1_request(
-            client=self._gemini_client._client,
-            prompt=prompt,
-            existing_name=existing_name,
-            existing_constraints=existing_constraints,
-            l1_skills_context=l1_skills_context,
-            scan_target=scan_target,
-            output_dir=output_dir,
-            existing_design_file_path=existing_design_file_path
-        )
-
-    def _generate_l1_design(self, l1_request: types.GenerateContentRequest) -> dict:
-        """L1設計を生成します。"""
-        skeleton_text = self._gemini_client.generate_design(contents=l1_request, response_schema=SkeletonDesign)
-        # LLM出力から markdown 修飾などを除去
-        if "```" in skeleton_text:
-            skeleton_text = "\n".join([line for line in skeleton_text.split("\n") if not line.strip().startswith("```")])
-        return json.loads(skeleton_text)
-
-    def _get_l2_skills_context(self, steps: list) -> str:
-        """L2設計用の依存スキルのコンテキストを生成します。"""
-        l2_elements = []
-        if steps and isinstance(steps, list):
-            for step in steps:
-                if isinstance(step, dict) and step.get("type") == "skill":
-                    target_skill = step.get("target")
-                    if target_skill:
-                        try:
-                            dep_skill = self._state.get_skill(target_skill)
-                            dep_design = dep_skill.load_design()
-                            
-                            inputs_def = []
-                            outputs_def = []
-                            
-                            if getattr(dep_design, "functions", None):
-                                for fn in dep_design.functions:
-                                    inputs_def.append(f"  - 関数 {fn.name} の入力:")
-                                    for p in fn.parameters:
-                                        inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")
-                                    
-                                    if fn.response_parameters:
-                                        outputs_def.append(f"  - 関数 {fn.name} の出力:")
-                                        for p in fn.response_parameters:
-                                            outputs_def.append(f"    * {p.name} ({p.type}): {p.description}")
-                            elif dep_design.parameters: # functions がなく、かつ parameters が存在する場合
+        l1_elements =
+��、かつ parameters が存在する場合
                                 inputs_def.append(f"  - 入力パラメータ:")
                                 for p in dep_design.parameters:
                                     inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")

@@ -111,31 +111,34 @@ class HandlerWriter:
         return func_code, typing_imports
 
     def write(self) -> str:
-        functions_code = []
-        all_typing_imports = set()
-        output_classes = []
-        
-        for fn in self.design.functions:
-            output_class_name = "".join(part.capitalize() for part in fn.name.replace("-", "_").split("_")) + "Output"
-            output_classes.append(output_class_name)
-            
-            func_code, typing_imports = self._generate_function_code(fn, output_class_name)
-            functions_code.append(func_code)
-            all_typing_imports.update(typing_imports)
-            
-        imports = []
-        if all_typing_imports:
-            unique_imports = sorted(list(all_typing_imports))
-            imports.append(f"from typing import {', '.join(unique_imports)}")
-        
-        imports_str = "\n".join(imports)
-        if imports_str:
-            imports_str += "\n"
-            
-        models_import = f"from .models import {', '.join(output_classes)}"
-        func_definitions = "\n\n".join(functions_code)
-        
         if self.is_workflow:
+            func_name = self.design.name.replace("-", "_")
+            output_class_name = "".join(part.capitalize() for part in func_name.split("_")) + "Output"
+            
+            class DummyFunction:
+                def __init__(self, name, parameters, description):
+                    self.name = name
+                    self.parameters = parameters
+                    self.description = description
+                    
+            dummy_fn = DummyFunction(
+                name=func_name,
+                parameters=getattr(self.design, "parameters", []),
+                description=getattr(self.design, "description", "")
+            )
+            
+            func_code, typing_imports = self._generate_function_code(dummy_fn, output_class_name)
+            
+            imports = []
+            if typing_imports:
+                unique_imports = sorted(list(typing_imports))
+                imports.append(f"from typing import {', '.join(unique_imports)}")
+            
+            imports_str = "\n".join(imports)
+            if imports_str:
+                imports_str += "\n"
+                
+            models_import = f"from .models import {output_class_name}"
             runtime_input_def = _load_template("runtime_input.py.template")
             
             return f"""{imports_str}from edd_agent_tools import WorkflowRunner
@@ -144,9 +147,33 @@ from .workflow import root_workflow
 
 {runtime_input_def}
 
-{func_definitions}
+{func_code}
 """
         else:
+            functions_code = []
+            all_typing_imports = set()
+            output_classes = []
+            
+            for fn in self.design.functions:
+                output_class_name = "".join(part.capitalize() for part in fn.name.replace("-", "_").split("_")) + "Output"
+                output_classes.append(output_class_name)
+                
+                func_code, typing_imports = self._generate_function_code(fn, output_class_name)
+                functions_code.append(func_code)
+                all_typing_imports.update(typing_imports)
+                
+            imports = []
+            if all_typing_imports:
+                unique_imports = sorted(list(all_typing_imports))
+                imports.append(f"from typing import {', '.join(unique_imports)}")
+            
+            imports_str = "\n".join(imports)
+            if imports_str:
+                imports_str += "\n"
+                
+            models_import = f"from .models import {', '.join(output_classes)}"
+            func_definitions = "\n\n".join(functions_code)
+            
             return f"""{imports_str}{models_import}
 from .executor import SkillExecutor
 
