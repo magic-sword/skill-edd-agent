@@ -229,3 +229,10 @@ class SkillExecutor:
 
         with open(design_file_path, "w", encoding="utf-8") as f:
             json.dump(design_data, f, indent=2, ensure_ascii=False)
+
+        # 設計保存後に、プロジェクト全体の依存整合性（欠落・循環参照）を動的にチェックする（ハーネス）
+        try:
+            self._state.validate_dependencies()
+        except ValueError as e:
+            # 循環依存などのエラーが発生した場合は警告を表示してフィードバックする
+            print(f"⚠️ 警告: 依存関係検証エラーが検出されました:\n{e}")

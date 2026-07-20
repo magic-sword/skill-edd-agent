@@ -48,6 +48,12 @@ class SkillExecutor:
             TestFailedError: テスト実行が失敗した場合。
         """
         try:
+            # 0. 依存関係の動的整合性検証（欠落・循環参照）
+            try:
+                self._skills_state.validate_dependencies()
+            except ValueError as ve:
+                raise TestFailedError(str(ve))
+
             # 1. trigger_check
             trigger_result = self._test_runner_client.run_test(
                 skill_name=skill,

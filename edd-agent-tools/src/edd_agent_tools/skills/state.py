@@ -199,6 +199,55 @@ class SkillsState:
         self._cached_skills = discovered_skills
         return discovered_skills
 
+    def validate_dependencies(self) -> None:
+        """登録された全スキルの依存関係を動的スキャンし、不足や循環依存を検証します。
+
+        Raises:
+            ValueError: 依存関係に欠落がある場合、または循環参照が検出された場合。
+        """
+        discovered = self.scan_skills(force_reload=True)
+        
+        # 1. 依存関係の欠落チェック
+        for name, skill_obj in discovered.items():
+            try:
+                deps = skill_obj.metadata.dependencies
+            except Exception:
+                continue # design.json が存在しない、またはパースエラーの場合はスキップ
+                
+            for dep in deps:
+                if dep not in discovered:
+                    raise ValueError(
+                        f"依存関係エラー: スキル '{name}' は '{dep}' に依存していますが、"
+                        f"該当のスキルが探索パスに見つかりません。"
+                    )
+
+        # 2. 循環依存の検出 (DFS による閉路検出)
+        # visited の状態: 0 = 未探索, 1 = 探索中(スタック内), 2 = 探索完了
+        visited = {name: 0 for name in discovered.keys()}
+
+        def dfs(node: str) -> None:
+            visited[node] = 1 # 探索中
+            skill_obj = discovered[node]
+            try:
+                deps = skill_obj.metadata.dependencies
+            except Exception:
+                deps = []
+
+            for dep in deps:
+                if dep not in discovered:
+                    continue # 欠落チェックで検知されるためスキップ
+                if visited[dep] == 1:
+                    raise ValueError(
+                        f"依存関係エラー: 循環参照が検出されました: {node} ➔ {dep}"
+                    )
+                if visited[dep] == 0:
+                    dfs(dep)
+            visited[node] = 2 # 探索完了
+
+        for name in discovered.keys():
+            if visited[name] == 0:
+                dfs(name)
+
     def get_skill(self, name: Optional[str] = None, design_path: Optional[str] = None, target_entry: Optional[str] = None) -> "Skill":
         """指定された名前（name）、設計ファイルパス（design_path）、または論理配置先（target_entry）から、メタデータ注入済みの Skill インスタンスを返します。
         
