@@ -360,25 +360,26 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                 dep_mapping = mapping_data.get(dep, {})
                 param_assignments = []
                 for param_name, mapping_val in dep_mapping.items():
+                    val_str = str(mapping_val)
                     is_literal = (
-                        (mapping_val.startswith('"') and mapping_val.endswith('"')) or
-                        (mapping_val.startswith("'") and mapping_val.endswith("'")) or
-                        mapping_val.replace('.', '', 1).replace('-', '', 1).isdigit() or
-                        mapping_val in ("True", "False", "None")
+                        (val_str.startswith('"') and val_str.endswith('"')) or
+                        (val_str.startswith("'") and val_str.endswith("'")) or
+                        val_str.replace('.', '', 1).replace('-', '', 1).isdigit() or
+                        val_str in ("True", "False", "None")
                     )
-                    is_expression = (
-                        "tool_context" in mapping_val or 
-                        "{" in mapping_val or
-                        "}" in mapping_val or
-                        "[" in mapping_val or
-                        "]" in mapping_val or
-                        "(" in mapping_val or 
-                        ")" in mapping_val or 
-                        "+" in mapping_val or
-                        "*" in mapping_val or
-                        "/" in mapping_val or
-                        " " in mapping_val or
-                        "." in mapping_val
+                    is_expression = isinstance(mapping_val, str) and (
+                        "tool_context" in val_str or 
+                        "{" in val_str or
+                        "}" in val_str or
+                        "[" in val_str or
+                        "]" in val_str or
+                        "(" in val_str or 
+                        ")" in val_str or 
+                        "+" in val_str or
+                        "*" in val_str or
+                        "/" in val_str or
+                        " " in val_str or
+                        "." in val_str
                     )
                     if is_literal or is_expression:
                         param_assignments.append(f'        {param_name}={mapping_val}')

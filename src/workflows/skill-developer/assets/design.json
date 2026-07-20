@@ -1,127 +1,158 @@
 {
-  "rationale": "このワークフローは、スキル開発のライフサイクル（設計、実装、仕様書作成）を自動化するために設計されています。ユーザーからの要件プロンプトを起点とし、skill-designerで設計を行い、その設計に基づいてskill-coderでコードを生成し、最後にskill-spec-writerで仕様書を生成するという一連のプロセスをパイプラインで接続します。これにより、開発者は要件定義に集中でき、実装とドキュメント作成の労力を削減できます。入力パラメータは各ステップに適切に引き継がれ、最終的な成果物（設計ファイル、ソースコード、仕様書）は指定された出力ディレクトリに格納されます。",
+  "rationale": "このワークフローは、スキル開発のライフサイクル（設計、実装、仕様書作成）を自動化するために設計されています。前段に要件ルーター (developer-router) を配置し、要件に応じて単体スキル設計 (skill-designer) またはワークフロー設計 (workflow-designer) に動的分岐し、その後一貫して実装 (skill-coder) と仕様書生成 (skill-spec-writer) を実行します。",
   "name": "skill-developer",
   "description": "新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。",
-  "summary": "このワークフローは、ユーザーからの要件プロンプトに基づいて、skill-designer、skill-coder、skill-spec-writerの各スキルを順に実行し、新しいスキルを生成します。設計、実装、仕様書作成の一連のプロセスを自動化し、成果物を指定されたディレクトリに出力します。",
+  "summary": "要件プロンプトに基づいて、単体スキル設計またはワークフロー設計を動的に選択・実行し、実装コードと仕様書を一気に生成する自律開発ワークフロー。",
   "module_type": "workflow",
-  "functions": [
+  "parameters": [
     {
-      "name": "develop_skill",
-      "description": "新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。",
-      "parameters": [
-        {
-          "name": "prompt",
-          "type": "str",
-          "description": "スキル設計・実装の要件を記述したプロンプト。",
-          "required": true,
-          "is_prompt_parameter": true,
-          "prompt_instructions": "スキル設計・実装の要件を具体的に記述してください。どのような機能を持つスキルが必要か、どのような入力と出力を期待するか、どのような制約があるかなどを明確に指定してください。",
-          "prompt_constraints": "スキル設計・実装の要件は、明確かつ具体的な指示である必要があります。曖昧な表現や矛盾する指示は避けてください。また、セキュリティやプライバシーに関する要件がある場合は明記してください。",
-          "example": "新しいスキル 'my-new-skill' を設計してください。このスキルは、与えられたURLからウェブページのタイトルと本文を抽出し、JSON形式で返します。"
-        },
-        {
-          "name": "skill",
-          "type": "str",
-          "description": "対象のスキル名。既存スキルを改修する場合に指定します。",
-          "required": false,
-          "default": null,
-          "example": "my-existing-skill"
-        },
-        {
-          "name": "output_dir",
-          "type": "str",
-          "description": "成果物の出力先ディレクトリのパス。",
-          "required": false,
-          "default": null,
-          "example": "/tmp/my-new-skill"
-        },
-        {
-          "name": "design_path",
-          "type": "str",
-          "description": "design.jsonの絶対パス。既存スキルを改修する場合に指定します。",
-          "required": false,
-          "default": null,
-          "example": "/tmp/my-existing-skill/assets/design.json"
-        },
-        {
-          "name": "source_code_dir",
-          "type": "str",
-          "description": "実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。",
-          "required": false,
-          "default": null,
-          "example": "/tmp/my-existing-skill/scripts"
-        },
-        {
-          "name": "target_entry",
-          "type": "str",
-          "description": "新規スキル開発時の優先的配置先エントリーの論理名（別名）。",
-          "required": false,
-          "default": null,
-          "example": "agent"
-        }
-      ],
-      "response_parameters": [
-        {
-          "name": "status",
-          "type": "str",
-          "description": "処理結果の成否ステータス。",
-          "required": true,
-          "choices": [
-            "success",
-            "failed"
-          ],
-          "example": "success"
-        },
-        {
-          "name": "message",
-          "type": "str",
-          "description": "処理結果のメッセージサマリー。",
-          "required": true,
-          "example": "スキル開発ワークフローが正常に完了しました。"
-        },
-        {
-          "name": "output_dir",
-          "type": "str",
-          "description": "最終生成された成果物が格納されたスキルディレクトリの絶対パス。",
-          "required": true,
-          "example": "/tmp/my-new-skill"
-        }
-      ],
-      "response_type": null
+      "name": "prompt",
+      "type": "str",
+      "description": "スキル設計・実装の要件を記述したプロンプト。",
+      "required": true,
+      "is_prompt_parameter": true,
+      "prompt_instructions": "スキル設計・実装の要件を具体的に記述してください。どのような機能を持つスキルが必要か、どのような入力と出力を期待するか、どのような制約があるかなどを明確に指定してください。",
+      "prompt_constraints": "スキル設計・実装の要件は、明確かつ具体的な指示である必要があります。曖昧な表現や矛盾する指示は避けてください。また、セキュリティやプライバシーに関する要件がある場合は明記してください。",
+      "example": "新しいスキル 'my-new-skill' を設計してください。このスキルは、与えられたURLからウェブページのタイトルと本文を抽出し、JSON形式で返します。"
+    },
+    {
+      "name": "skill",
+      "type": "str",
+      "description": "対象のスキル名。既存スキルを改修する場合に指定します。",
+      "required": false,
+      "default": null,
+      "example": "my-existing-skill"
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "成果物の出力先ディレクトリ of パス。",
+      "required": false,
+      "default": null,
+      "example": "/tmp/my-new-skill"
+    },
+    {
+      "name": "design_path",
+      "type": "str",
+      "description": "design.jsonの絶対パス。既存スキルを改修する場合に指定します。",
+      "required": false,
+      "default": null,
+      "example": "/tmp/my-existing-skill/assets/design.json"
+    },
+    {
+      "name": "source_code_dir",
+      "type": "str",
+      "description": "実装コード of ソースコードディレクトリ of パス。既存スキルを改修する場合に指定します。",
+      "required": false,
+      "default": null,
+      "example": "/tmp/my-existing-skill/scripts"
+    },
+    {
+      "name": "target_entry",
+      "type": "str",
+      "description": "新規スキル開発時の優先的配置先エントリー of 論理名（別名）。",
+      "required": false,
+      "default": null,
+      "example": "agent"
     }
   ],
   "dependencies": [
+    "developer-router",
     "skill-designer",
+    "workflow-designer",
     "skill-coder",
     "skill-spec-writer"
   ],
   "constraints": [],
+  "response_parameters": [
+    {
+      "name": "status",
+      "type": "str",
+      "description": "処理結果 of 成否ステータス。",
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
+      ],
+      "example": "success"
+    },
+    {
+      "name": "message",
+      "type": "str",
+      "description": "処理結果 of メッセージサマリー。",
+      "required": true,
+      "example": "スキル開発ワークフローが正常に完了しました。"
+    },
+    {
+      "name": "output_dir",
+      "type": "str",
+      "description": "最終生成された成果物が格納されたスキルディレクトリ of 絶対パス。",
+      "required": true,
+      "example": "/tmp/my-new-skill"
+    }
+  ],
   "steps": [
+    {
+      "name": "route-requirement",
+      "type": "skill",
+      "target": "developer-router",
+      "description": "要件プロンプトを分析し、単体スキルかワークフローかを分類してルーティングする。",
+      "inputs": {
+        "prompt": "prompt"
+      }
+    },
     {
       "name": "design-skill",
       "type": "skill",
       "target": "skill-designer",
       "description": "スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。",
-      "inputs": {}
+      "inputs": {
+        "prompt": "prompt",
+        "output_dir": "output_dir",
+        "skill": "skill",
+        "source_code_dir": "source_code_dir",
+        "target_entry": "target_entry"
+      }
+    },
+    {
+      "name": "design-workflow",
+      "type": "skill",
+      "target": "workflow-designer",
+      "description": "ワークフロー設計要件に基づいて新しいワークフロー設計書を自動生成するツール。",
+      "inputs": {
+        "prompt": "prompt",
+        "output_dir": "output_dir",
+        "target_entry": "target_entry"
+      }
     },
     {
       "name": "code-skill",
       "type": "skill",
       "target": "skill-coder",
-      "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するワークフロー。",
-      "inputs": {}
+      "description": "設計定義ファイル(design.json)と機能要件(prompt)に基づき、実装コードを自動生成・更新する。",
+      "inputs": {
+        "prompt": "prompt",
+        "skill": "skill",
+        "design_path": "design_path",
+        "output_dir": "output_dir"
+      }
     },
     {
       "name": "write-spec",
       "type": "skill",
       "target": "skill-spec-writer",
-      "description": "設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。",
-      "inputs": {}
+      "description": "設計情報（Pydanticスキーマ等）を動的にロードし、SKILL.mdを生成します。",
+      "inputs": {
+        "prompt": "prompt",
+        "skill": "skill",
+        "design_path": "design_path",
+        "output_dir": "output_dir"
+      }
     },
     {
       "name": "finalize-assets",
       "type": "function",
-      "description": "自律開発された成果物アセット（design.jsonやSKILL.mdなど）を本来の出力ディレクトリに最終同期し、重複フォルダをクリーンアップします。",
+      "description": "自律開発された成果物アセットを本来の出力ディレクトリに最終同期し、クリーンアップします。",
       "inputs": {}
     }
   ]

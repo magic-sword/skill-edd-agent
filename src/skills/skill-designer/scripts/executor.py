@@ -72,7 +72,7 @@ class SkillExecutor:
         )
 
         try:
-            skeleton_design = self._generate_l1_design(l1_request)
+            skeleton_design = self._generate_design(l1_request)
         except Exception as e:
             return SkillDesignerOutput(status="failed", message=f"第一段階（L1粗設計）生成またはパースエラー: {e}", output_dir="")
 
@@ -85,7 +85,7 @@ class SkillExecutor:
 
         # L2 呼び出し: 最終設計の生成
         try:
-            design_data = self._generate_l2_design(l2_request, summary_override=summary)
+            design_data = self._generate_design(l2_request, summary_override=summary)
         except Exception as e:
             return SkillDesignerOutput(status="failed", message=f"第二段階（L2パラメータ精緻化）生成またはパースエラー: {e}", output_dir="")
 
@@ -120,34 +120,49 @@ class SkillExecutor:
     ) -> types.GenerateContentRequest:
         """L1設計用のリクエストを構築します。"""
         # 4.1. L1メタデータの収集（全登録スキルの名前とトリガー説明）
+        l2_elements = []
         discovered_skills = self._state.scan_skills()
-        l1_elements =
-��、かつ parameters が存在する場合
-                                inputs_def.append(f"  - 入力パラメータ:")
-                                for p in dep_design.parameters:
-                                    inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")
-                                if dep_design.response_parameters:
-                                    outputs_def.append(f"  - 出力戻り値:")
-                                    for p in dep_design.response_parameters:
-                                        outputs_def.append(f"    * {p.name} ({p.type}): {p.description}")
-                            
-                            inputs_def_str = "\n".join(inputs_def) if inputs_def else "    なし"
-                            outputs_def_str = "\n".join(outputs_def) if outputs_def else "    なし"
+        for target_skill, skill_obj in discovered_skills.items():
+            try:
+                dep_design = skill_obj.load_design()
+                inputs_def = []
+                outputs_def = []
+                
+                if getattr(dep_design, 'functions', None):
+                    for fn in dep_design.functions:
+                        inputs_def.append(f"  - 関数 {fn.name} の入力:")
+                        for p in fn.parameters:
+                            inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")
+                        if fn.response_parameters:
+                            outputs_def.append(f"  - 関数 {fn.name} の出力:")
+                            for p in fn.response_parameters:
+                                outputs_def.append(f"    * {p.name} ({p.type}): {p.description}")
+                elif getattr(dep_design, 'parameters', None):
+                    inputs_def.append(f"  - 入力パラメータ:")
+                    for p in dep_design.parameters:
+                        inputs_def.append(f"    * {p.name} ({p.type}) {'(必須)' if p.required else '(任意)'}: {p.description}")
+                    if dep_design.response_parameters:
+                        outputs_def.append(f"  - 出力戻り値:")
+                        for p in dep_design.response_parameters:
+                            outputs_def.append(f"    * {p.name} ({p.type}): {p.description}")
 
-                            l2_elements.append(
-                                f"■ スキル名: {dep_design.name}\n"
-                                f"  説明: {dep_design.description}\n"
-                                f"  入力パラメータ仕様:\n{inputs_def_str}\n"
-                                f"  出力戻り値仕様:\n{outputs_def_str}\n"
-                            )
-                        except Exception as e:
-                            # 依存スキルの設計ロード失敗時は警告しつつスキップ
-                            print(f"Warning: Failed to load design for {target_skill}: {e}")
+                inputs_def_str = "\n".join(inputs_def) if inputs_def else "    なし"
+                outputs_def_str = "\n".join(outputs_def) if outputs_def else "    なし"
+
+                l2_elements.append(
+                    f"■ スキル名: {dep_design.name}\n"
+                    f"  説明: {dep_design.description}\n"
+                    f"  入力パラメータ仕様:\n{inputs_def_str}\n"
+                    f"  出力戻り値仕様:\n{outputs_def_str}\n"
+                )
+            except Exception as e:
+                print(f"Warning: Failed to load design for {target_skill}: {e}")
+
         return "\n".join(l2_elements) if l2_elements else "なし"
 
-    def _generate_l2_design(self, l2_request: types.GenerateContentRequest, summary_override: str | None) -> dict:
-        """L2設計を生成します。"""
-        response_text = self._gemini_client.generate_design(contents=l2_request, response_schema=ModuleDesign)
+    def _generate_design(self, request: types.GenerateContentRequest, summary_override: str | None = None) -> dict:
+        """設計仕様（L1粗設計またはL2詳細設計）をGeminiから生成し、クレンジングを適用して返します。"""
+        response_text = self._gemini_client.generate_design(contents=request, response_schema=ModuleDesign)
         if "```" in response_text:
             response_text = "\n".join([line for line in response_text.split("\n") if not line.strip().startswith("```")])
         

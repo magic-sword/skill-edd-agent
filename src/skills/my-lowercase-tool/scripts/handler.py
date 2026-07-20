@@ -1,3 +1,4 @@
+from typing import Literal
 from edd_agent_tools import WorkflowRunner
 from .models import SkillDeveloperOutput
 from .workflow import root_workflow
@@ -10,16 +11,16 @@ class RuntimeInput:
         return self.__dict__
 
 
-def skill_developer(prompt: str, skill: str | None = None, output_dir: str | None = None, design_path: str | None = None, source_code_dir: str | None = None, target_entry: str | None = None) -> SkillDeveloperOutput:
+def skill_developer(prompt: str, skill: str | None = None, output_dir: str | None = None, design_path: str | None = None, source_code_dir: str | None = None, target_entry: Literal['tool', 'workflow'] | None = None) -> SkillDeveloperOutput:
     """新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。
 
     Args:
         prompt: スキル設計・実装の要件を記述したプロンプト。
         skill: 対象のスキル名。既存スキルを改修する場合に指定します。
-        output_dir: 成果物の出力先ディレクトリ of パス。
+        output_dir: 成果物の出力先ディレクトリのパス。
         design_path: design.jsonの絶対パス。既存スキルを改修する場合に指定します。
-        source_code_dir: 実装コード of ソースコードディレクトリ of パス。既存スキルを改修する場合に指定します。
-        target_entry: 新規スキル開発時の優先的配置先エントリー of 論理名（別名）。
+        source_code_dir: 実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。
+        target_entry: 新規スキル開発時の優先的配置先エントリーの論理名（別名）。
 
     Returns:
         実行結果オブジェクト (SkillDeveloperOutput)。
