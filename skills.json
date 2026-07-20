@@ -13,6 +13,8 @@
   "exclude": [
     "contract-test-executor",
     "contract-test-generator",
+    "golden-test-executor",
+    "golden-test-generator",
     "test-generator",
     "trigger-test-executor",
     "trigger-test-generator"

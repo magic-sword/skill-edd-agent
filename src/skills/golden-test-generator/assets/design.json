@@ -1,0 +1,34 @@
+{
+  "rationale": "このモジュールは、指定されたスキルに対して多様なユースケース入力値と期待される正解（意味的ゴールデンアウトプット）のペアをLLMで自動生成し、評価セットファイルとして書き出すことを目的としています。このプロセスは、スキル定義の読み込み、LLMによるテストケース生成、ファイル書き出しという複数の論理ステップから構成されるため、module_typeとして'workflow'を選択しました。特に、テストケースの生成にはLLMの高度な推論能力が必要であるため、'agent'タイプのステップを含めています。",
+  "name": "golden-test-generator",
+  "description": "design.jsonおよびSKILL.mdをインプットとして、多様なユースケース入力値と、期待される正解（意味的ゴールデンアウトプット）のペアをLLMで自動生成し、[skill_name]_golden.evalset.jsonとして書き出すワークフロー。",
+  "summary": null,
+  "module_type": "skill",
+  "functions": [
+    {
+      "name": "generate_tests",
+      "description": "指定されたスキルのdesign.jsonおよびSKILL.mdを分析し、ゴールデンテストケースを生成して指定されたパスに書き出します。",
+      "parameters": [
+        {
+          "name": "skill_name",
+          "type": "str",
+          "description": "テストケースを生成する対象スキルの名前。",
+          "required": true,
+          "example": "my-test-skill"
+        },
+        {
+          "name": "output_path",
+          "type": "str",
+          "description": "生成されたゴールデンテストファイルを保存する絶対パス。",
+          "required": true,
+          "example": "/workspace/src/skills/my-test-skill/tests/my_test_skill_golden.evalset.json"
+        }
+      ],
+      "response_type": "bool"
+    }
+  ],
+  "dependencies": [],
+  "constraints": [],
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY"
+}
