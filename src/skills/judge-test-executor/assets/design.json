@@ -1,0 +1,41 @@
+{
+  "rationale": "このモジュールは、指定されたスキルとルーブリック評価セットを用い、サンドボックス環境上でテストを実行し、LLM-as-Judgeで多角的な評価を行うという単一のアトミックな機能を提供します。module_typeは'skill'が適切です。",
+  "name": "judge-test-executor",
+  "description": "LocalWorkspaceEnv上でスキルを実行し、得られた出力を各テストケースの複数ルーブリック項目に沿って採点LLMで多角的に採点（0〜10点）し、合格判定をアサートします。",
+  "summary": null,
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "run_tests",
+      "description": "指定されたスキルとルーブリック評価セットを用い、サンドボックス環境上でテストを実行し、LLM-as-Judgeで評価します。",
+      "parameters": [
+        {
+          "name": "skill_name",
+          "type": "str",
+          "description": "テストを実行する対象スキルの名前。",
+          "required": true,
+          "example": "my-test-skill"
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "ルーブリックテストケースが記述されたJSONファイルの絶対パス。",
+          "required": true,
+          "example": "/workspace/src/skills/my-test-skill/tests/my_test_skill_judge.evalset.json"
+        },
+        {
+          "name": "env",
+          "type": "str",
+          "description": "テストを実行するサンドボックス環境（WorkspaceEnvProtocol）。",
+          "required": true,
+          "example": "sandbox"
+        }
+      ],
+      "response_type": "EvalRunResult"
+    }
+  ]
+}
