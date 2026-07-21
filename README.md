@@ -66,17 +66,22 @@ flowchart TD
 ワークフローエージェントは、個別の「スキル」をDAG（非巡回有向グラフ）として接続し、多段階の複雑なプロセスをオーケストレーションする上位エージェントです。
 
 ### ① `skill-developer` ワークフローエージェント
-スキル開発に必要な「設計 -> 実装 -> 仕様書作成」の3つのスキル（ステップ）を順次実行し、新しいスキルを自動生成します。
+要件プロンプトから単体スキルかワークフローかを事前に自動判定し、最適なデザイナー（`skill-designer` / `workflow-designer`）を動的に切り替えた上で「設計 -> 実装 -> 仕様書作成 -> 成果物同期」の各ステップを順次実行し、新スキルを自動構築します。
 
 ```mermaid
-flowchart LR
-    Start([START]) --> Designer[skill-designer <br/> 入出力Pydanticモデルの設計]
-    Designer --> Coder[skill-coder <br/> handler.py / logic.py のコード生成]
-    Coder --> SpecWriter[skill-spec-writer <br/> 仕様書 SKILL.md の自動生成]
-    SpecWriter --> End([END: 成果物出力])
+flowchart TD
+    Start([START]) --> Router[developer-router <br/> 要件分析＆構造判定]
+    Router -->|単体スキル (skill)| SkillDes[skill-designer <br/> スキル設計書作成]
+    Router -->|ワークフロー (workflow)| WfDes[workflow-designer <br/> ワークフロー設計書作成]
+    SkillDes --> Coder[skill-coder <br/> コード決定論的自動生成]
+    WfDes --> Coder
+    Coder --> SpecWriter[skill-spec-writer <br/> 仕様書 SKILL.md 自動生成]
+    SpecWriter --> Finalize[finalize-assets <br/> 成果物アセットの最終同期]
+    Finalize --> End([END: 成果物出力])
 ```
 
 *   **優れた点**: 
+    *   **事前ルーティングの導入**: 要件分析を行う `developer-router` により、アトミックな単体スキルと複数スキル連携のワークフローを自動識別し、最適な設計ステップへ動的分岐します。
     *   実行時に毎回LLMに接続方法を解決させるのではなく、**事前ビルドの仕組み**を採用しています。
     *   スキル間の入出力結合ロジックのみを LLM に記述させ、残りは決定論的に書き出すため、トークン消費量を最小限に抑えつつ、確実で高速な結合を実現しています。
 

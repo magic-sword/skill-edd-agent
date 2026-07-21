@@ -17,10 +17,11 @@ description: "新規スキル開発、または既存スキルのリファクタ
 * ADK 2.0仕様に準拠したSKILL.mdの自動生成
 
 ### 内部処理の流れ
-1. design-skill: スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計します。
-2. code-skill: 設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新します。
-3. write-spec: 設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。
-4. finalize-assets: 自律開発された成果物アセット（design.jsonやSKILL.mdなど）を本来の出力ディレクトリに最終同期し、重複フォルダをクリーンアップします。
+1. route-requirement: 要件プロンプトを事前分析し、単体スキル (`skill`) かワークフロー (`workflow`) かを自動判別します。
+2. design-skill / design-workflow: 判定結果に基づき動的分岐し、単体スキル設計書 (`skill-designer`) またはワークフロー設計書 (`workflow-designer`) を作成します。
+3. code-skill: 設計定義ファイル (`design.json`) と要件プロンプトに基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新します。
+4. write-spec: 設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠した `SKILL.md` を生成します。
+5. finalize-assets: 自律開発された成果物アセット（`design.json` や `SKILL.md` など）を本来の出力ディレクトリに最終同期し、重複フォルダをクリーンアップします。
 
 
 ---
@@ -38,13 +39,14 @@ description: "新規スキル開発、または既存スキルのリファクタ
 
 ## 実行方法
 
-このワークフローは、複数の処理ノードをパイプラインで実行する自律接続システムです。
-以下の順番でステップが接続・順次実行されます：
+このワークフローは、複数の処理ノードをパイプラインおよび動的分岐で実行する自律接続システムです。
+以下の順番でステップが接続・分岐実行されます：
 
-1. **design-skill** (skill): スキル設計要件に基づいて新しいスキルを設計し、または既存スキルを再設計するツール。
-1. **code-skill** (skill): 設計定義ファイル(design.json)と機能要件(prompt)に基づき、ADK 2.0規約およびオブジェクト指向設計に準拠したスキル実装コードを自動生成・更新するワークフロー。
-1. **write-spec** (skill): 設計情報（Pydanticスキーマ等）を動的にロードし、ADK 2.0仕様に準拠したSKILL.mdを生成します。
-1. **finalize-assets** (function): 自律開発された成果物アセット（design.jsonやSKILL.mdなど）を本来の出力ディレクトリに最終同期し、重複フォルダをクリーンアップします。
+1. **route-requirement** (function): 要件プロンプトを `developer-router` で事前分析し、単体スキルかワークフローかを判定する分岐ルーティングツール。
+2. **design-skill** (skill) または **design-workflow** (skill): 要件に応じて動的分岐し、設計書を自動生成するデザイナーツール。
+3. **code-skill** (skill): 設計定義ファイル (`design.json`) と機能要件に基づき、ADK 2.0規約に準拠したスキル実装コードを自動生成するワークフロー。
+4. **write-spec** (skill): 設計情報を動的にロードし、ADK 2.0仕様に準拠した `SKILL.md` を生成します。
+5. **finalize-assets** (function): 自律開発された成果物アセット（`design.json` や `SKILL.md` など）を本来の出力ディレクトリに最終同期し、重複フォルダをクリーンアップします。
 
 引数パラメータが入力されると、STARTノードから順に状態（tool_context.state）を伝播しながら処理が進みます。
 
