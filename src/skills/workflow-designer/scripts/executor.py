@@ -93,7 +93,7 @@ class SkillExecutor:
             return WorkflowDesignerOutput(status="failed", message=f"design.json の保存エラー: {e}", output_dir="")
 
         message = f"ワークフロー設計書 design.json が '{skill_directory.design_path}' に正常に生成されました。"
-        return WorkflowDesignerOutput(status="success", message=message, output_dir=output_dir)
+        return WorkflowDesignerOutput(status="success", message=message, output_dir=output_dir, design_path=skill_directory.design_path)
 
     def _generate_l1_design(self, l1_request: types.GenerateContentRequest) -> dict:
         """L1設計を生成します。"""

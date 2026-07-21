@@ -1,46 +1,16 @@
 {
-  "rationale": "このワークフローは、指定されたスキルに対して契約、ゴールデン、およびルーブリックジャッジの3つのテストを順次実行し、すべて合格した場合はスキルをTier 2 (Draft-Only)として登録する処理を自動化するためのゲートウェイです。",
+  "rationale": "このワークフローは、指定されたスキルに対して contract, golden, および judge テストを順次実行し、すべて合格した場合はスキルを Tier 2 (Draft-Only) として登録する品質保証ゲートウェイです。",
   "name": "tier2-test-runner",
   "description": "指定されたスキルに対して contract, golden, judge テストを実行し、すべて成功した場合はスキルをTier 2として登録するワークフロー。",
-  "summary": null,
-  "module_type": "skill",
-  "functions": [
+  "summary": "検証対象のスキル名を受け取り、contract/golden/judge テストを順次実行し、条件を満たした場合に Tier 2 へ登録します。",
+  "module_type": "workflow",
+  "parameters": [
     {
-      "name": "run_tier2_test",
-      "description": "指定されたスキルに対して contract, golden, judge テストを実行し、すべて成功した場合はスキルをTier 2として登録します。",
-      "parameters": [
-        {
-          "name": "skill",
-          "type": "str",
-          "description": "検証および昇格対象のスキル名。",
-          "required": true,
-          "example": "my-test-skill"
-        }
-      ],
-      "response_parameters": [
-        {
-          "name": "status",
-          "type": "str",
-          "description": "実行結果のステータス。'success' または 'failed'",
-          "required": true,
-          "example": "success"
-        },
-        {
-          "name": "message",
-          "type": "str",
-          "description": "実行結果の詳細メッセージ",
-          "required": true,
-          "example": "すべてのテストが成功し、スキルがTier 2として登録されました。"
-        },
-        {
-          "name": "registered",
-          "type": "bool",
-          "description": "登録が成功したかどうかの真偽値",
-          "required": true,
-          "example": true
-        }
-      ],
-      "response_type": null
+      "name": "skill",
+      "type": "str",
+      "description": "検証および昇格対象のスキル名。",
+      "required": true,
+      "example": "my-test-skill"
     }
   ],
   "dependencies": [
@@ -48,6 +18,41 @@
     "test-executor"
   ],
   "constraints": [],
-  "execution_type": "agent",
-  "output_mode": "STRUCTURED_JSON"
+  "response_parameters": [
+    {
+      "name": "status",
+      "type": "str",
+      "description": "実行結果のステータス ('success' または 'failed')",
+      "required": true,
+      "choices": [
+        "success",
+        "failed"
+      ],
+      "example": "success"
+    },
+    {
+      "name": "message",
+      "type": "str",
+      "description": "実行結果の詳細メッセージ",
+      "required": true,
+      "example": "すべてのテストが成功し、スキルがTier 2として登録されました。"
+    },
+    {
+      "name": "registered",
+      "type": "bool",
+      "description": "Tier 2 として登録が成功したかどうかの真偽値",
+      "required": true,
+      "example": true
+    }
+  ],
+  "steps": [
+    {
+      "name": "run-tier2-test",
+      "type": "function",
+      "description": "contract, golden, judge テストを順次実行し、成功時に Tier 2 昇格処理を行います。",
+      "inputs": {
+        "skill": "skill"
+      }
+    }
+  ]
 }

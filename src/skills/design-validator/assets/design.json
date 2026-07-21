@@ -1,199 +1,55 @@
 {
-  "rationale": "「skill-developer」は、新規スキルの開発または既存スキルのリファクタリングを自律的に行うワークフローとして定義されています。このプロセスは、単一のアトミックな操作では完結せず、複数の複雑なステップを順序立てて実行する必要があります。具体的には、要件のルーティング（スキルかワークフローかの判定）、設計書の作成/更新、コードの実装/更新、仕様書の生成、各種テストケースの生成、設計と実装の整合性検証、インポート適合性検証、そして生成されたテストの実行といった一連の工程が含まれます。これらの各工程は、それぞれが独立したスキルやエージェントによって担われるため、それらをパイプラインとして接続し、条件分岐や状態管理を伴うオーケストレーションが必要となります。したがって、この機能は単一のスキルではなく、複数のステップから構成されるワークフローとして設計するのが適切であると判断しました。",
-  "name": "skill-developer",
-  "description": "新規スキル開発、または既存スキルのリファクタリングを自律的に行うワークフロー。",
-  "summary": "このワークフローは、ユーザーからの要件プロンプトに基づいて、新規スキルの開発または既存スキルのリファクタリングを自動化します。設計、コード生成、仕様書作成、各種テスト生成と実行、および設計と実装の整合性検証を含む一連のプロセスをオーケストレーションし、最終的な開発成果物とステータスを報告します。",
-  "module_type": "workflow",
-  "parameters": [
+  "rationale": "設計仕様（design.json）とスキル実装コードの整合性を多角的に検証し、ステータス、詳細フィードバック、および整合性スコアを返却するアトミックな検証スキルです。",
+  "name": "design-validator",
+  "description": "設計仕様と実装の整合性を検証し、より詳細なフィードバックを提供するスキル。",
+  "summary": "指定されたスキル名に基づき、設計仕様と実装コードの整合性を検証し、その結果をステータス、詳細なフィードバック、および整合性スコアとして提供します。",
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
     {
-      "name": "prompt",
-      "type": "str",
-      "description": "スキル設計・実装の要件を記述したプロンプト。",
-      "required": true,
-      "min_length": 10,
-      "is_prompt_parameter": true,
-      "prompt_instructions": "新規スキル開発または既存スキル改修の具体的な要件を詳細に記述してください。目的、機能、入力、出力、制約、既存スキルとの関連性などを含めてください。",
-      "example": "ユーザーが指定したURLからWebページの内容を抽出し、そのテキストを要約するスキルを開発してください。要約は最大200文字とし、日本語で行うこと。スキル名は`web-page-summarizer`としてください。"
-    },
-    {
-      "name": "skill",
-      "type": "str",
-      "description": "対象のスキル名。既存スキルを改修する場合に指定します。",
-      "required": false,
-      "default": null,
-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-      "example": "existing-skill-name"
-    },
-    {
-      "name": "output_dir",
-      "type": "str",
-      "description": "成果物の出力先ディレクトリのパス。",
-      "required": false,
-      "default": null,
-      "pattern": "^(/[^/ ]*)+/?$",
-      "example": "/workspace/src/skills/new-skill"
-    },
-    {
-      "name": "design_path",
-      "type": "str",
-      "description": "design.jsonの絶対パス。既存スキルを改修する場合に指定します。",
-      "required": false,
-      "default": null,
-      "pattern": "^(/[^/ ]*)+/design.json$",
-      "example": "/workspace/src/skills/existing-skill/design.json"
-    },
-    {
-      "name": "source_code_dir",
-      "type": "str",
-      "description": "実装コードのソースコードディレクトリのパス。既存スキルを改修する場合に指定します。",
-      "required": false,
-      "default": null,
-      "pattern": "^(/[^/ ]*)+/?$",
-      "example": "/workspace/src/skills/existing-skill"
-    },
-    {
-      "name": "target_entry",
-      "type": "str",
-      "description": "新規スキル開発時の優先的配置先エントリーの論理名（別名）。",
-      "required": false,
-      "default": null,
-      "choices": [
-        "tool",
-        "workflow"
+      "name": "validate_design",
+      "description": "設計仕様と実装の整合性を検証し、より詳細なフィードバックを提供します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "検証対象のスキル名。小文字のハイフン区切りで指定してください。",
+          "required": true,
+          "example": "my-new-skill"
+        }
       ],
-      "example": "tool"
-    }
-  ],
-  "dependencies": [
-    "developer-router",
-    "skill-designer",
-    "workflow-designer",
-    "skill-coder",
-    "skill-spec-writer",
-    "test-generator",
-    "design-validator",
-    "import-validator",
-    "test-executor"
-  ],
-  "constraints": [
-    "開発対象は単一のスキルまたはワークフローであること。",
-    "既存スキル改修の場合、`skill`、`design_path`、`source_code_dir` のいずれか、または全てが提供されること。",
-    "新規スキル開発の場合、`skill`、`design_path`、`source_code_dir` は提供されないこと。"
-  ],
-  "response_parameters": [
-    {
-      "name": "status",
-      "type": "str",
-      "description": "処理結果の成否ステータス。",
-      "required": true,
-      "choices": [
-        "success",
-        "failed",
-        "partially_succeeded"
-      ],
-      "example": "success"
-    },
-    {
-      "name": "message",
-      "type": "str",
-      "description": "処理結果のメッセージサマリー。",
-      "required": true,
-      "min_length": 10,
-      "example": "スキル開発が正常に完了しました。全てのテストに合格し、設計と実装の整合性も確認されました。"
-    },
-    {
-      "name": "output_dir",
-      "type": "str",
-      "description": "最終生成された成果物が格納されたスキルディレクトリの絶対パス。",
-      "required": true,
-      "pattern": "^(/[^/ ]*)+/?$",
-      "example": "/workspace/src/skills/new-skill"
-    }
-  ],
-  "steps": [
-    {
-      "name": "route-request",
-      "type": "skill",
-      "target": "developer-router",
-      "inputs": {}
-    },
-    {
-      "name": "design-module",
-      "type": "agent",
-      "description": "ルーティング結果に基づいて、スキルまたはワークフローの設計を行う。",
-      "instruction": "You are an expert designer. Based on the `route` from the previous step, call either `skill-designer` or `workflow-designer` to create/update the design.json. Pass the original `prompt`, `skill` (if provided), `output_dir` (if provided), `source_code_dir` (if provided), and `target_entry` (if provided) to the appropriate designer skill. If `output_dir` is not provided, the designer will determine it. Capture the `output_dir` from the designer's response as `final_skill_output_dir`. If `skill` was not provided initially, infer the skill name from `final_skill_output_dir` and store it as `developed_skill_name` in the state.",
-      "tools": [
-        "skill-designer",
-        "workflow-designer"
-      ],
-      "inputs": {}
-    },
-    {
-      "name": "generate-code",
-      "type": "skill",
-      "target": "skill-coder",
-      "inputs": {}
-    },
-    {
-      "name": "write-spec",
-      "type": "skill",
-      "target": "skill-spec-writer",
-      "inputs": {}
-    },
-    {
-      "name": "generate-trigger-tests",
-      "type": "skill",
-      "target": "test-generator",
-      "inputs": {}
-    },
-    {
-      "name": "generate-golden-tests",
-      "type": "skill",
-      "target": "test-generator",
-      "inputs": {}
-    },
-    {
-      "name": "generate-judge-tests",
-      "type": "skill",
-      "target": "test-generator",
-      "inputs": {}
-    },
-    {
-      "name": "validate-design-impl",
-      "type": "skill",
-      "target": "design-validator",
-      "inputs": {}
-    },
-    {
-      "name": "validate-import",
-      "type": "skill",
-      "target": "import-validator",
-      "inputs": {}
-    },
-    {
-      "name": "execute-trigger-tests",
-      "type": "skill",
-      "target": "test-executor",
-      "inputs": {}
-    },
-    {
-      "name": "execute-golden-tests",
-      "type": "skill",
-      "target": "test-executor",
-      "inputs": {}
-    },
-    {
-      "name": "execute-judge-tests",
-      "type": "skill",
-      "target": "test-executor",
-      "inputs": {}
-    },
-    {
-      "name": "final-status",
-      "type": "agent",
-      "description": "全てのテスト結果と検証結果を集計し、最終的な開発ステータスとメッセージを決定する。",
-      "instruction": "Aggregate the statuses from `validate_design_impl`, `validate_import`, `execute_trigger_tests`, `execute_golden_tests`, and `execute_judge_tests`. If all statuses are 'success' and scores are high (e.g., >= 0.8), the overall status is 'success'. Otherwise, it's 'failed'. Construct a detailed message summarizing the results of each step, including any failures or low scores. The `output_dir` should be the final skill directory from the design step (`final_skill_output_dir`).",
-      "inputs": {}
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "検証結果のステータス ('success' または 'failed')。",
+          "required": true,
+          "choices": [
+            "success",
+            "failed"
+          ],
+          "example": "success"
+        },
+        {
+          "name": "details",
+          "type": "str",
+          "description": "検証が失敗した場合の不足事項やフィードバック詳細。成功時は空文字列。",
+          "required": true,
+          "example": "設計と実装の間に不整合はありません。"
+        },
+        {
+          "name": "score",
+          "type": "float",
+          "description": "設計と実装の整合性スコア（0.0〜1.0）。",
+          "required": true,
+          "ge": 0.0,
+          "le": 1.0,
+          "example": 1.0
+        }
+      ]
     }
   ]
 }

@@ -91,6 +91,13 @@
           "description": "成果物(design.json)が格納されたスキルディレクトリの絶対パス",
           "required": true,
           "example": "/app/output/my-new-skill"
+        },
+        {
+          "name": "design_path",
+          "type": "str",
+          "description": "生成された design.json の絶対パス",
+          "required": true,
+          "example": "/app/output/my-new-skill/assets/design.json"
         }
       ]
     }

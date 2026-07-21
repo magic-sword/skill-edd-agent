@@ -67,6 +67,13 @@
           "description": "成果物が格納されたディレクトリの絶対パス",
           "required": true,
           "example": "/workspace/src/workflows/my-workflow"
+        },
+        {
+          "name": "design_path",
+          "type": "str",
+          "description": "生成された design.json の絶対パス",
+          "required": true,
+          "example": "/workspace/src/workflows/my-workflow/assets/design.json"
         }
       ]
     }

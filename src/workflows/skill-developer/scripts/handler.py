@@ -21,9 +21,11 @@ def skill_developer(prompt: str, skill: str | None = None, output_dir: str | Non
         source_code_dir: 実装コード of ソースコードディレクトリ of パス。既存スキルを改修する場合に指定します。
         target_entry: 新規スキル開発時の優先的配置先エントリー of 論理名（別名）。
 
-    Returns:
-        実行結果オブジェクト (SkillDeveloperOutput)。
     """
+    import os
+    if not skill and output_dir:
+        skill = os.path.basename(output_dir.rstrip("/"))
+
     params = RuntimeInput(prompt=prompt, skill=skill, output_dir=output_dir, design_path=design_path, source_code_dir=source_code_dir, target_entry=target_entry)
     runner = WorkflowRunner(
         workflow_name="skill-developer",

@@ -16,7 +16,4 @@ def run_design_skill_step(tool_context: ToolContext) -> str:
         target_entry=tool_context.state.get("target_entry"),
         summary=tool_context.state.get("summary")
     )
-    print("DEBUG design_skill_step: status =", getattr(res, "status", None))
-    print("DEBUG design_skill_step: message =", getattr(res, "message", None))
-    print("DEBUG design_skill_step: output_dir =", getattr(res, "output_dir", None))
     return merge_result_to_state(tool_context, res)

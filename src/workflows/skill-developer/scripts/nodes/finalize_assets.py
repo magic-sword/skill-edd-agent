@@ -4,14 +4,18 @@ from google.adk.tools import ToolContext
 
 def run_finalize_assets_step(tool_context: ToolContext) -> str:
     generated_assets_path = tool_context.state.get("generated_assets_path")
-    output_directory = tool_context.state.get("output_directory")
+    output_directory = tool_context.state.get("output_dir") or tool_context.state.get("output_directory")
 
     if not generated_assets_path:
+        # 直接 output_dir に成果物が正常に生成されている場合は成功として終了
+        if output_directory and os.path.exists(output_directory):
+            tool_context.state["finalization_status"] = "completed"
+            return f"Finalization complete. Assets are already situated in '{output_directory}'."
         tool_context.state["finalization_status"] = "failed"
         return "Error: 'generated_assets_path' not found in tool_context.state. Cannot finalize assets."
     if not output_directory:
         tool_context.state["finalization_status"] = "failed"
-        return "Error: 'output_directory' not found in tool_context.state. Cannot finalize assets."
+        return "Error: 'output_dir' not found in tool_context.state. Cannot finalize assets."
 
     sync_message = ""
     cleanup_message = ""

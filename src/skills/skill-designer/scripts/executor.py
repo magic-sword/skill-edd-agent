@@ -106,7 +106,7 @@ class SkillExecutor:
             return SkillDesignerOutput(status="failed", message=f"design.json の保存エラー: {e}", output_dir="")
 
         message = f"design.json が '{skill_directory.design_path}' に正常に生成されました。"
-        return SkillDesignerOutput(status="success", message=message, output_dir=output_dir)
+        return SkillDesignerOutput(status="success", message=message, output_dir=output_dir, design_path=skill_directory.design_path)
 
     def _build_l1_request(
         self, 

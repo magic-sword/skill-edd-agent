@@ -10,18 +10,6 @@ def run_route_requirement_step(tool_context: ToolContext) -> Event:
     state = SkillsState()
     module = state.get_skill("developer-router").load_module()
     
-    import os
-    
-    # もし新規開発で skill が None、かつ output_dir が指定されている場合、
-    # output_dir のベースディレクトリ名をターゲット名として設定する。
-    if not tool_context.state.get("skill") and tool_context.state.get("output_dir"):
-        target_name = os.path.basename(tool_context.state.get("output_dir"))
-        tool_context.state["skill"] = target_name
-        print(f"DEBUG route_requirement: resolved fallback skill/workflow name = {target_name}")
-
-    print("DEBUG route_requirement: initial state skill =", tool_context.state.get("skill"))
-    print("DEBUG route_requirement: initial state prompt =", tool_context.state.get("prompt"))
-    print("DEBUG route_requirement: initial state output_dir =", tool_context.state.get("output_dir"))
     res = module.developer_router(
         prompt=tool_context.state.get("prompt")
     )
