@@ -17,5 +17,10 @@
      * "agent": LLMの高度な自律推論によって処理を実行する場合。
    - 依存スキルを呼び出す場合は、原則として必ず `type: "skill"` を選択し、`target` に「利用可能な既存の登録済みスキル一覧」に記載されている正確なスキル名を設定してください。
    - inputs フィールドは、この段階では出力しないでください（steps 内に含めないでください）。
+3. 【制御フロー (control_flow) の定義】
+   - start に開始ステップ名、nodes に各ステップの遷移情報（target, next, または条件分岐 transitions）を正確に定義してください。
+4. 【評価シナリオ (eval_scenarios) の定義】
+   - ワークフローの動作・経路評価（Golden Test / Trajectory Evaluation）用の代表的なシナリオを1〜2件定義してください。
+   - 各シナリオには scenario_id, description, input, および期待されるツール呼び出し順序（expected_trajectory: nameとargsのリスト）を含めてください。
 
 最終出力は、マークダウン修飾（```json など）を含まない、パース可能な純粋な JSON 形式の文字列のみにしてください。

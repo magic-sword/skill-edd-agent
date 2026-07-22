@@ -26,6 +26,9 @@
 └── src/                    # 自己進化エージェントの本体およびスキル（Tier管理下）
     ├── workflows/          # 自己進化ワークフローエージェント（skill-developer等）
     └── skills/             # 自動生成・マウントされる個別スキル群
+        └── workflow-designer/
+            └── references/ # ワークフロー設計および経路評価の専門仕様書
+                └── workflow_trajectory_eval_design.md
 ```
 
 ---
