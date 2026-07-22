@@ -67,6 +67,35 @@ class SkillExecutor:
             # バリデーション
             generated = GoldenCaseSet.model_validate_json(json_str)
 
+            # design.json に eval_scenarios が定義されている場合、決定論的ケースとしてマージ/反映
+            if "eval_scenarios" in design_json_content and isinstance(design_json_content["eval_scenarios"], list):
+                from .models import GoldenCase, InputParameter, ExpectedToolUse
+                for idx, scenario in enumerate(design_json_content["eval_scenarios"]):
+                    scen_id = scenario.get("scenario_id", f"scenario_{idx+1}")
+                    scen_desc = scenario.get("description", "デザイン仕様で定義された代表シナリオ")
+                    scen_input = scenario.get("input", {})
+                    scen_traj = scenario.get("expected_trajectory", [])
+
+                    inputs_list = [
+                        InputParameter(name=k, value=str(v))
+                        for k, v in scen_input.items()
+                    ]
+                    traj_list = [
+                        ExpectedToolUse(name=t.get("name", ""), args=t.get("args", {}))
+                        for t in scen_traj if isinstance(t, dict) and t.get("name")
+                    ]
+
+                    deterministic_case = GoldenCase(
+                        eval_case_id=scen_id,
+                        function_name=skill_name.replace("-", "_"),
+                        inputs=inputs_list,
+                        expected_response_rubric=scen_desc,
+                        expected_trajectory=traj_list
+                    )
+                    # 重複しないように追加
+                    if not any(c.eval_case_id == scen_id for c in generated.eval_cases):
+                        generated.eval_cases.insert(0, deterministic_case)
+
             # 5. 生成されたゴールデンテストデータをファイルに書き出す
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:

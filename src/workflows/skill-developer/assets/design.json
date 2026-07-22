@@ -155,5 +155,96 @@
       "description": "自律開発された成果物アセットを本来の出力ディレクトリに最終同期し、クリーンアップします。",
       "inputs": {}
     }
+  ],
+  "control_flow": {
+    "start": "route-requirement",
+    "nodes": {
+      "route-requirement": {
+        "target": "developer-router",
+        "transitions": {
+          "skill": "design-skill",
+          "workflow": "design-workflow",
+          "proposal": "handle-proposal"
+        }
+      },
+      "design-skill": {
+        "target": "skill-designer",
+        "next": "code-skill"
+      },
+      "design-workflow": {
+        "target": "workflow-designer",
+        "next": "code-skill"
+      },
+      "handle-proposal": {
+        "target": null,
+        "next": null
+      },
+      "code-skill": {
+        "target": "skill-coder",
+        "next": "write-spec"
+      },
+      "write-spec": {
+        "target": "skill-spec-writer",
+        "next": "finalize-assets"
+      },
+      "finalize-assets": {
+        "target": null,
+        "next": null
+      }
+    }
+  },
+  "eval_scenarios": [
+    {
+      "scenario_id": "single_skill_creation",
+      "description": "単体スキルの要件定義から開発・仕様書生成までの一連フロー",
+      "input": {
+        "prompt": "URLからWebページのタイトルを抽出するスキルを作成してください"
+      },
+      "expected_trajectory": [
+        {
+          "name": "developer-router",
+          "args": { "prompt": "URLからWebページのタイトルを抽出するスキルを作成してください" }
+        },
+        {
+          "name": "skill-designer",
+          "args": { "prompt": "URLからWebページのタイトルを抽出するスキルを作成してください" }
+        },
+        {
+          "name": "skill-coder",
+          "args": { "prompt": "URLからWebページのタイトルを抽出するスキルを作成してください" }
+        },
+        {
+          "name": "skill-spec-writer",
+          "args": { "prompt": "URLからWebページのタイトルを抽出するスキルを作成してください" }
+        }
+      ],
+      "expected_final_status": "success"
+    },
+    {
+      "scenario_id": "workflow_creation",
+      "description": "複数ステップからなるワークフローの開発フロー",
+      "input": {
+        "prompt": "指定されたテキストを翻訳し、要約して出力するワークフローを作成してください"
+      },
+      "expected_trajectory": [
+        {
+          "name": "developer-router",
+          "args": { "prompt": "指定されたテキストを翻訳し、要約して出力するワークフローを作成してください" }
+        },
+        {
+          "name": "workflow-designer",
+          "args": { "prompt": "指定されたテキストを翻訳し、要約して出力するワークフローを作成してください" }
+        },
+        {
+          "name": "skill-coder",
+          "args": { "prompt": "指定されたテキストを翻訳し、要約して出力するワークフローを作成してください" }
+        },
+        {
+          "name": "skill-spec-writer",
+          "args": { "prompt": "指定されたテキストを翻訳し、要約して出力するワークフローを作成してください" }
+        }
+      ],
+      "expected_final_status": "success"
+    }
   ]
 }

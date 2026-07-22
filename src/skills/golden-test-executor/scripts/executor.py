@@ -9,18 +9,18 @@ from edd_agent_tools.gemini import GeminiClient
 from edd_agent_tools.evaluation.models import EvalRunResult
 from .models import JudgeResult
 
-# テストケース側のデータパース用
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
-class InputParameter(BaseModel):
+class ExpectedToolUse(BaseModel):
     name: str
-    value: str
+    args: Dict[str, Any] = Field(default_factory=dict)
 
 class GoldenCase(BaseModel):
     eval_case_id: str
     function_name: str
     inputs: List[InputParameter]
     expected_response_rubric: str
+    expected_trajectory: Optional[List[ExpectedToolUse]] = Field(default_factory=list)
 
 class GoldenCaseSet(BaseModel):
     eval_set_id: str
@@ -127,9 +127,15 @@ class SkillExecutor:
                     })
                     continue
 
+                # 期待される経路（expected_trajectory）の埋め込み
+                trajectory_rubric = ""
+                if case.expected_trajectory and len(case.expected_trajectory) > 0:
+                    traj_str = json.dumps([t.model_dump() for t in case.expected_trajectory], indent=2, ensure_ascii=False)
+                    trajectory_rubric = f"\n\n【期待される実行経路（ツール呼び出しシーケンス）】\n{traj_str}\n※出力結果だけでなく、上記の期待されるツールの実行順序や引数の目的が適切に満たされているかも評価してください。"
+
                 # LLM-as-Judge 判定プロンプトの構築
                 judge_prompt = f"""あなたは公正な判定を行うLLM Judgeです。
-テスト対象スキルに以下の引数を入力して実行した結果、得られた出力が、期待される「ルーブリック（合格基準）」を満たしているかを厳格に判定してください。
+テスト対象スキルに以下の引数を入力して実行した結果、得られた出力が、期待される「ルーブリック（合格基準）」および「期待される実行経路」を満たしているかを厳格に判定してください。
 
 【入力引数】
 {json.dumps(inputs, indent=2, ensure_ascii=False)}
@@ -138,7 +144,7 @@ class SkillExecutor:
 {output_str}
 
 【満たすべきルーブリック（合格基準）】
-{rubric}
+{rubric}{trajectory_rubric}
 """
 
                 # Geminiでの採点（構造化出力）

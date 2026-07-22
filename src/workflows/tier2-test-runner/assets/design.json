@@ -54,5 +54,38 @@
         "skill": "skill"
       }
     }
+  ],
+  "control_flow": {
+    "start": "run-tier2-test",
+    "nodes": {
+      "run-tier2-test": {
+        "target": null,
+        "next": null
+      }
+    }
+  },
+  "eval_scenarios": [
+    {
+      "scenario_id": "tier2_promotion_success",
+      "description": "指定スキルのテストが全て成功しTier 2昇格に成功するシナリオ",
+      "input": {
+        "skill": "sample-skill"
+      },
+      "expected_trajectory": [
+        {
+          "name": "contract-test-executor",
+          "args": { "skill": "sample-skill" }
+        },
+        {
+          "name": "golden-test-executor",
+          "args": { "skill": "sample-skill" }
+        },
+        {
+          "name": "judge-test-executor",
+          "args": { "skill": "sample-skill" }
+        }
+      ],
+      "expected_final_status": "success"
+    }
   ]
 }
