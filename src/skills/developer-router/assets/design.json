@@ -1,7 +1,7 @@
 {
-  "rationale": "ユーザーの要件プロンプトから、新規に単体スキルを作るべきか、それとも既存スキルを連携させたワークフローを作るべきかを自動判定するための設計定義です。",
+  "rationale": "ユーザーの要件プロンプトから、新規に単体スキルを作るべきか、既存スキルを連携させたワークフローを作るべきか、あるいは事前開発すべきスキルを提案（proposal）すべきかを自動判定するための設計定義です。",
   "name": "developer-router",
-  "description": "要件プロンプトを分析し、単体スキル(skill)かワークフロー(workflow)かを分類してルーティングするスキル。",
+  "description": "要件プロンプトを分析し、単体スキル(skill)、ワークフロー(workflow)、または事前スキル開発提案(proposal)へ分類してルーティングするスキル。",
   "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
@@ -10,7 +10,7 @@
   "functions": [
     {
       "name": "developer_router",
-      "description": "要件プロンプトを分析し、単体スキルかワークフローかを分類してルーティングする。",
+      "description": "要件プロンプトを分析し、単体スキル、ワークフロー、または事前スキル開発提案へ分類してルーティングする。",
       "parameters": [
         {
           "name": "prompt",
@@ -23,7 +23,7 @@
         {
           "name": "route",
           "type": "str",
-          "description": "判定されたルート（'skill' または 'workflow'）。",
+          "description": "判定されたルート（'skill', 'workflow', または 'proposal'）。",
           "required": true
         },
         {
@@ -35,8 +35,14 @@
         {
           "name": "recommended_dependencies",
           "type": "list[str]",
-          "description": "ワークフローと判定された場合に推奨される既存スキル名のリスト。単体スキルの場合は空リストになります。",
+          "description": "ワークフローと判定された場合に推奨される既存スキル名のリスト。",
           "required": true
+        },
+        {
+          "name": "proposed_skill",
+          "type": "dict",
+          "description": "proposal と判定された場合に提案される、事前に開発しておくべき単体スキルの情報（name, description）。",
+          "required": false
         }
       ]
     }

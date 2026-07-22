@@ -7,6 +7,7 @@ from google.adk import Workflow
 from .nodes.route_requirement import run_route_requirement_step
 from .nodes.design_skill import run_design_skill_step
 from .nodes.design_workflow import run_design_workflow_step
+from .nodes.handle_proposal import run_handle_proposal_step
 from .nodes.code_skill import run_code_skill_step
 from .nodes.write_spec import run_write_spec_step
 from .nodes.finalize_assets import run_finalize_assets_step
@@ -17,7 +18,8 @@ root_workflow = Workflow(
         ("START", run_route_requirement_step),
         (run_route_requirement_step, {
             "skill": run_design_skill_step,
-            "workflow": run_design_workflow_step
+            "workflow": run_design_workflow_step,
+            "proposal": run_handle_proposal_step
         }),
         (run_design_skill_step, run_code_skill_step),
         (run_design_workflow_step, run_code_skill_step),

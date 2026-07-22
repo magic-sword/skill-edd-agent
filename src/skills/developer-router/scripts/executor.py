@@ -10,8 +10,8 @@ from .prompter import build_routing_prompt
 
 class DeveloperRouterExecutor:
     """
-    要件プロンプトを分析し、単体スキルかワークフローかを分類してルーティングする
-    ビジネスロジックエグゼキューター。
+    要件プロンプトを分析し、単体スキル（skill）、ワークフロー（workflow）、
+    または事前スキル提案（proposal）に分類してルーティングするビジネスロジックエグゼキューター。
     """
     def __init__(self):
         self._state = SkillsState()
@@ -56,5 +56,6 @@ class DeveloperRouterExecutor:
             return DeveloperRouterOutput(
                 route="skill",
                 rationale=f"Error occurred during routing: {str(e)}. Fallback to atomic skill development.",
-                recommended_dependencies=[]
+                recommended_dependencies=[],
+                proposed_skill=None
             )
