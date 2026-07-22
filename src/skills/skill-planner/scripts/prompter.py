@@ -3,7 +3,7 @@ from google.genai import types
 
 
 class PromptBuilder:
-    """Gemini API に送信するルーティング判定プロンプトを構築する責務を持つクラス。"""
+    """Gemini API に送信する計画立案プロンプトを構築する責務を持つクラス。"""
 
     def __init__(self):
         self._prompt_template = self._load_prompt_template()
@@ -11,16 +11,16 @@ class PromptBuilder:
     def _load_prompt_template(self) -> str:
         """プロンプトテンプレートファイルを読み込みます。"""
         current_dir = os.path.dirname(__file__)
-        template_path = os.path.join(current_dir, "../assets/prompts/routing_prompt.txt")
+        template_path = os.path.join(current_dir, "../assets/prompts/planning_prompt.txt")
         try:
             with open(template_path, "r", encoding="utf-8") as f:
                 return f.read()
         except FileNotFoundError:
             raise RuntimeError(f"プロンプトテンプレートファイルが見つかりません: {template_path}")
 
-    def build_routing_prompt(self, prompt: str, existing_skills: list[dict]) -> list[types.ContentType]:
+    def build_planning_prompt(self, prompt: str, existing_skills: list[dict]) -> list[types.ContentType]:
         """
-        既存スキル一覧と機能要件から、ルーティング判定用の Gemini プロンプトを構築します。
+        既存スキル一覧と機能要件から、計画立案用の Gemini プロンプトを構築します。
 
         Args:
             prompt: 開発したい機能の要件プロンプト。
@@ -40,7 +40,6 @@ class PromptBuilder:
             requirement_prompt=prompt
         )
 
-        # ContentType 構造に準拠した形式で返却
         return [
             types.Content(
                 role="user",
@@ -51,17 +50,13 @@ class PromptBuilder:
         ]
 
 
-def build_routing_prompt(prompt: str, existing_skills: list[dict]) -> list[types.ContentType]:
+def build_planning_prompt(prompt: str, existing_skills: list[dict]) -> list[types.ContentType]:
     """
-    既存スキル一覧と機能要件から、ルーティング判定用の Gemini プロンプトを構築します。
-
-    Args:
-        prompt: 開発したい機能の要件プロンプト。
-        existing_skills: 既存スキルの情報のリスト。
-
-    Returns:
-        list[types.ContentType]: Gemini API に渡す Content オブジェクトのリスト。
+    既存スキル一覧と機能要件から、計画立案用の Gemini プロンプトを構築します。
     """
     builder = PromptBuilder()
-    return builder.build_routing_prompt(prompt, existing_skills)
+    return builder.build_planning_prompt(prompt, existing_skills)
 
+
+# 後方互換用のエイリアス
+build_routing_prompt = build_planning_prompt

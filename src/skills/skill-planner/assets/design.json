@@ -1,7 +1,7 @@
 {
-  "rationale": "ユーザーの要件プロンプトから、新規に単体スキルを作るべきか、既存スキルを連携させたワークフローを作るべきか、あるいは事前開発すべきスキルを提案（proposal）すべきかを自動判定するための設計定義です。",
-  "name": "developer-router",
-  "description": "要件プロンプトを分析し、単体スキル(skill)、ワークフロー(workflow)、または事前スキル開発提案(proposal)へ分類してルーティングするスキル。",
+  "rationale": "ユーザーの要件プロンプトから、新規に単体スキルを作るべきか、既存スキルを連携させたワークフローを作るべきか、あるいは事前開発すべきスキルを提案（proposal）すべきかを自動判定・計画するための設計定義です。",
+  "name": "skill-planner",
+  "description": "要件プロンプトを分析し、単体スキル(skill)、ワークフロー(workflow)、または事前スキル開発提案(proposal)へ分類して計画立案するスキル。",
   "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
@@ -9,8 +9,8 @@
   "constraints": [],
   "functions": [
     {
-      "name": "developer_router",
-      "description": "要件プロンプトを分析し、単体スキル、ワークフロー、または事前スキル開発提案へ分類してルーティングする。",
+      "name": "skill_planner",
+      "description": "要件プロンプトを分析し、単体スキル、ワークフロー、または事前スキル開発提案へ分類して計画立案する。",
       "parameters": [
         {
           "name": "prompt",

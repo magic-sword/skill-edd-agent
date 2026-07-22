@@ -7,7 +7,7 @@ class ProposedSkill(BaseModel):
     description: str = Field(..., description="提案する事前開発スキルの具体的な役割・機能要件の説明。")
 
 
-class DeveloperRouterOutput(BaseModel):
+class SkillPlannerOutput(BaseModel):
     route: Literal['skill', 'workflow', 'proposal'] = Field(
         ...,
         description="判定された開発ルート（'skill': 単体スキル, 'workflow': ワークフロー, 'proposal': 事前スキル開発の提案）。"
@@ -22,3 +22,6 @@ class DeveloperRouterOutput(BaseModel):
         description="route が 'proposal' の場合に提案される、事前に開発しておくべき単体スキルの情報。"
     )
 
+
+# 後方互換性のためのエイリアス
+DeveloperRouterOutput = SkillPlannerOutput
