@@ -224,30 +224,62 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                     except Exception as e:
                         print(f"警告: エージェントノード生成に失敗しました: {e}")
             # 【第 2 段階】100%決定論的な組み立て
-            code_lines = [
-                '"""',
-                f'{workflow_name} の Workflow オブジェクト定義。',
-                'ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠した多段階接続。',
-                '"""',
-                'from google.adk import Workflow',
-                ''
-            ]
-            
-            # インポート
-            code_lines.extend(imports_code_lines)
-            code_lines.append('')
-            
             # edgesの構築
-            code_lines.append("root_workflow = Workflow(")
-            code_lines.append(f'    name="{workflow_module_name}",')
-            code_lines.append("    edges=[")
-            code_lines.append(f'        ("START", {step_functions[0]}),')
-            for i in range(len(step_functions) - 1):
-                code_lines.append(f'        ({step_functions[i]}, {step_functions[i+1]}),')
-            code_lines.append("    ]")
-            code_lines.append(")")
+            control_flow = raw_design.get("control_flow")
+            edges_lines = []
+
+            if control_flow and isinstance(control_flow, dict) and "nodes" in control_flow:
+                start_step_name = control_flow.get("start")
+                start_var = start_step_name.replace("-", "_") if start_step_name else step_functions[0].replace("run_", "").replace("_step", "")
+                start_func = f"run_{start_var}_step" if not start_step_name.startswith("run_") else start_step_name
+                if start_func in step_functions:
+                    edges_lines.append(f'        ("START", {start_func}),')
+                else:
+                    edges_lines.append(f'        ("START", {step_functions[0]}),')
+
+                nodes_def = control_flow.get("nodes", {})
+                for node_name, node_info in nodes_def.items():
+                    n_var = node_name.replace("-", "_")
+                    from_func = f"run_{n_var}_step"
+                    if from_func not in step_functions:
+                        continue
+
+                    # 単一接続またはファンアウト並行接続 (next)
+                    next_target = node_info.get("next")
+                    if next_target:
+                        next_targets = next_target if isinstance(next_target, list) else [next_target]
+                        for nt in next_targets:
+                            if isinstance(nt, str):
+                                next_var = nt.replace("-", "_")
+                                to_func = f"run_{next_var}_step"
+                                if to_func in step_functions:
+                                    edges_lines.append(f'        ({from_func}, {to_func}),')
+
+                    # 条件分岐接続 (transitions)
+                    if node_info.get("transitions") and isinstance(node_info["transitions"], dict):
+                        for branch_key, target_step in node_info["transitions"].items():
+                            t_var = target_step.replace("-", "_")
+                            to_func = f"run_{t_var}_step"
+                            if to_func in step_functions:
+                                edges_lines.append(f'        ({from_func}, {to_func}),')
             
-            workflow_code = "\n".join(code_lines)
+            # control_flow から edges が生成されなかった場合のフォールバック（従来の直線連結）
+            if not edges_lines:
+                edges_lines.append(f'        ("START", {step_functions[0]}),')
+                for i in range(len(step_functions) - 1):
+                    edges_lines.append(f'        ({step_functions[i]}, {step_functions[i+1]}),')
+
+            # アセットテンプレートからのレンダリング
+            workflow_tmpl = self.coder_skill.load_asset("templates/workflow/workflow.py.template")
+            node_imports_str = "\n".join(imports_code_lines)
+            edges_str = "\n".join(edges_lines)
+
+            workflow_code = workflow_tmpl.format(
+                workflow_name=workflow_name,
+                workflow_module_name=workflow_module_name,
+                node_imports=node_imports_str,
+                edges=edges_str
+            )
             
         elif self.design.dependencies:
             from edd_agent_tools.skills import SkillsState

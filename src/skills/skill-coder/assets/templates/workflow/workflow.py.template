@@ -1,6 +1,6 @@
 """
 {workflow_name} の Workflow オブジェクト定義。
-ADK 2.0 に準拠した接続定義。
+ADK 2.0 の「ToolContext ＆ 共有セッション状態」に準拠した多段階接続。
 """
 from google.adk import Workflow
 
@@ -9,6 +9,6 @@ from google.adk import Workflow
 root_workflow = Workflow(
     name="{workflow_module_name}",
     edges=[
-        {edges}
+{edges}
     ]
 )

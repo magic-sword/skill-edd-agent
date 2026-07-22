@@ -24,23 +24,37 @@ class WorkflowSpecWriter(BaseSpecWriter):
             if step.description:
                 steps_str += f"  処理要件: {step.description}\n"
 
-        prompt = (
-            f"{prompt_tmpl}\n\n"
-            f"=== ワークフロー設計書 (Workflow Design) ===\n"
-            f"名称: {self.name}\n"
-            f"説明: {self.design_data.description}\n"
-            f"制約事項: {self.design_data.constraints}\n"
-            f"構成ステップ:\n{steps_str}\n"
-            "上記の情報から、ワークフローの『ビジネス上の価値(purpose)』、『主要な特徴・機能(features)』、『起動トリガーの具体例(trigger_conditions)』、および『各ステップの連携手順(workflow_steps)』を考察・抽出し、指定された JSON スキーマに従って返却してください。"
+        control_flow_str = ""
+        control_flow = getattr(self.design_data, "control_flow", None)
+        if control_flow:
+            if isinstance(control_flow, dict):
+                control_flow_str = f"制御フロー (control_flow):\n{control_flow}\n"
+            elif hasattr(control_flow, "model_dump"):
+                control_flow_str = f"制御フロー (control_flow):\n{control_flow.model_dump()}\n"
+
+        prompt_workflow_asset = self._load_asset("prompt_workflow.txt")
+        design_block_tmpl = self._load_asset("prompt_workflow_design_block.txt")
+
+        design_block_str = Template(design_block_tmpl).safe_substitute(
+            name=self.name,
+            description=self.design_data.description,
+            constraints=self.design_data.constraints,
+            steps_str=steps_str,
+            control_flow_str=control_flow_str
         )
+
+        prompt = f"{prompt_tmpl}\n\n{prompt_workflow_asset}\n\n{design_block_str}"
         return prompt
 
     def _build_execution_instructions(self, required_params: list[str]) -> str:
         steps_str = "\n".join([f"1. **{step.name}** ({step.type}): {step.description or step.target or ''}" for step in self.design_data.steps])
-        inst = (
-            "このワークフローは、複数の処理ノードをパイプラインで実行する自律接続システムです。\n"
-            f"以下の順番でステップが接続・順次実行されます：\n\n{steps_str}\n\n"
-            "引数パラメータが入力されると、STARTノードから順に状態（tool_context.state）を伝播しながら処理が進みます。"
+        control_flow = getattr(self.design_data, "control_flow", None)
+        flow_note = "動的分岐" if control_flow and (getattr(control_flow, "nodes", None) or (isinstance(control_flow, dict) and "nodes" in control_flow)) else "順次実行"
+        
+        exec_tmpl = self._load_asset("execution_instructions_workflow.txt")
+        inst = Template(exec_tmpl).safe_substitute(
+            flow_note=flow_note,
+            steps_str=steps_str
         )
         return inst
 

@@ -52,10 +52,14 @@ class DesignJson(BaseModel):
     description: str
     summary: Optional[str] = None
     module_type: str
-    execution_type: str
-    output_mode: str
-    dependencies: List[Any]
-    constraints: List[Any]
-    functions: List[Function]
+    execution_type: Optional[str] = None
+    output_mode: Optional[str] = None
+    dependencies: List[Any] = Field(default_factory=list)
+    constraints: List[Any] = Field(default_factory=list)
+    functions: Optional[List[Function]] = None
+    parameters: Optional[List[Parameter]] = None
+    response_parameters: Optional[List[ResponseParameter]] = None
+    control_flow: Optional[Any] = None
+    eval_scenarios: Optional[Any] = None
 
 

@@ -28,6 +28,13 @@ class BaseSpecWriter(ABC):
             content = f.read()
         return content.replace("\r\n", "\n").replace("\r", "\n")
 
+    def _load_asset(self, filename: str) -> str:
+        script_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        asset_path = os.path.join(script_dir, "assets", filename)
+        with open(asset_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return content.replace("\r\n", "\n").replace("\r", "\n")
+
     def _format_parameter_type(self, param) -> str:
         """Pydanticの型表現に近いわかりやすい型名を返す"""
         if getattr(param, "choices", None):
