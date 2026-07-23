@@ -100,7 +100,7 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                 s_type = step.get("type")
                 s_desc = step.get("description", "")
                 s_var = s_name.replace("-", "_")
-                func_name = f"run_{s_var}_step"
+                func_name = s_var
                 step_functions.append(func_name)
                 
                 node_file_path = os.path.join(nodes_dir, f"{s_var}.py")
@@ -230,8 +230,7 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
 
             if control_flow and isinstance(control_flow, dict) and "nodes" in control_flow:
                 start_step_name = control_flow.get("start")
-                start_var = start_step_name.replace("-", "_") if start_step_name else step_functions[0].replace("run_", "").replace("_step", "")
-                start_func = f"run_{start_var}_step" if not start_step_name.startswith("run_") else start_step_name
+                start_func = start_step_name.replace("-", "_") if start_step_name else step_functions[0]
                 if start_func in step_functions:
                     edges_lines.append(f'        ("START", {start_func}),')
                 else:
@@ -239,8 +238,7 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
 
                 nodes_def = control_flow.get("nodes", {})
                 for node_name, node_info in nodes_def.items():
-                    n_var = node_name.replace("-", "_")
-                    from_func = f"run_{n_var}_step"
+                    from_func = node_name.replace("-", "_")
                     if from_func not in step_functions:
                         continue
 
@@ -250,16 +248,14 @@ class WorkflowAgentCodeGenerator(BaseCodeGenerator):
                         next_targets = next_target if isinstance(next_target, list) else [next_target]
                         for nt in next_targets:
                             if isinstance(nt, str):
-                                next_var = nt.replace("-", "_")
-                                to_func = f"run_{next_var}_step"
+                                to_func = nt.replace("-", "_")
                                 if to_func in step_functions:
                                     edges_lines.append(f'        ({from_func}, {to_func}),')
 
                     # 条件分岐接続 (transitions)
                     if node_info.get("transitions") and isinstance(node_info["transitions"], dict):
                         for branch_key, target_step in node_info["transitions"].items():
-                            t_var = target_step.replace("-", "_")
-                            to_func = f"run_{t_var}_step"
+                            to_func = target_step.replace("-", "_")
                             if to_func in step_functions:
                                 edges_lines.append(f'        ({from_func}, {to_func}),')
             
