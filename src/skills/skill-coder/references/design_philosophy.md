@@ -39,11 +39,11 @@ ADK 2.0 規約との整合性と、実装のメンテナンス性を高めるた
 * **通常のスキルとワークフロー型スキルの「対称性」**:
   * ツール（`tool`）とワークフロー（`workflow`）で外部向け API の対称性を 100% 確保します。どちらも、エントリーポイントは個別引数を受け取る純粋関数（`def function_name(arg1, arg2) -> [固有Outputモデル名]`）とし、明確な出力モデルを戻り値型とします。これにより、呼び出し側は内部実装詳細を意識せずに対称的な呼び出しが可能です。
 * **入力パラメータの型安全**:
-  * スキルの引数は、`handler.py` 内の関数のシグネチャとして明示的に宣言されます（`Input` クラスは廃止されました）。これによって、ADK 2.0 の `FunctionTool` は自動的にツールの JSON Schema を構築でき、型安全な呼び出しを保証します。
+  * スキルの引数は、`handler.py` 内の関数のシグネチャとして明示的に宣言されます。これによって、ADK 2.0 の `FunctionTool` は自動的にツールの JSON Schema を構築でき、型安全な呼び出しを保証します。
 * **出力モデル（固有のOutputモデル）による構造化応答と models.py の独立**:
   * 処理結果は、必ず Pydantic (V2) のそのスキル固有の出力モデル（例: `SkillCoderOutput`, `GenerateSkillSpecOutput` 等）のインスタンスとしてカプセル化して返却されます。
   * `handler.py` と `executor.py` の間での**循環参照（Circular Import）を完全に排除するため**、出力モデルクラスの定義は専用の **`models.py`** ファイルに物理的に独立させます。
-  * 静的解析ツールやエディタでの**コード補完（静的型ヒント）の恩恵を100%受けるため**、`executor.py` や `logic.py` 等の手書きロジック内では、`from .models import Output` のような曖昧なエイリアスは使用せず、`from .models import GenerateSkillSpecOutput` のように**固有の具象モデルを直接インポートして戻り値型アノテーションに指定します。** (互換用の `Output` エイリアス定義は models.py から完全に排除されました)
+  * 静的解析ツールやエディタでの**コード補完（静的型ヒント）の恩恵を100%受けるため**、`executor.py` や `logic.py` 等の手書きロジック内では、`from .models import Output` のような曖昧なエイリアスは使用せず、`from .models import GenerateSkillSpecOutput` のように**固有の具象モデルを直接インポートして戻り値型アノテーションに指定します。**
 
 ---
 

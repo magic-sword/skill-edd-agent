@@ -1,0 +1,40 @@
+{
+  "rationale": "このスキルは、指定されたTrajectoryEvalSet形式のJSONファイルを読み込み、WorkspaceEnvProtocol環境上でスキルの実行軌跡（ツール呼び出し順序および引数）を決定論的にアサート評価し、EvalRunResultを出力するツールです。",
+  "name": "trajectory-test-executor",
+  "description": "TrajectoryEvalSetフォーマットのテストケースファイルをロードし、スキル実行時のツール呼び出し順序および引数を決定論的にアサート評価するスキル。",
+  "summary": null,
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "run_tests",
+      "description": "TrajectoryEvalSet形式の評価ファイルに基づき、ツール呼び出し軌跡の決定論的テストを実行して結果を返します。",
+      "parameters": [
+        {
+          "name": "skill_name",
+          "type": "str",
+          "description": "テストを実行する対象スキルの名前。",
+          "required": true,
+          "example": "contract-test-executor"
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "TrajectoryEvalSet形式のJSONファイルへの絶対パス。",
+          "required": true,
+          "example": "tests/contract-test-executor_trajectory.evalset.json"
+        },
+        {
+          "name": "env",
+          "type": "str",
+          "description": "テスト実行環境（WorkspaceEnvProtocol）。CLIランナー等から自動注入されます。",
+          "required": true
+        }
+      ],
+      "response_type": "EvalRunResult"
+    }
+  ]
+}
