@@ -10,9 +10,8 @@ from .prompter import build_planning_prompt
 
 
 class SkillPlannerExecutor:
-    """
-    要件プロンプトを分析し、単体スキル（skill）、ワークフロー（workflow）、
-    または事前スキル提案（proposal）に分類して計画立案するビジネスロジックエグゼキューター。
+    """要件プロンプトを分析し、新規作成 (create_skill/create_workflow)、
+    既存更新 (update_skill/update_workflow)、または事前提案 (proposal) に分類して計画立案するビジネスロジック。
     """
     def __init__(self):
         self._state = SkillsState()
@@ -38,7 +37,7 @@ class SkillPlannerExecutor:
             contents = build_planning_prompt(prompt, existing_skills)
 
             # 3. Gemini API による構造化 JSON の生成
-            print("Gemini API を呼び出して要件を分析中...")
+            print("Gemini API を呼び出して要件を分析・ルーティング中...")
             response = self._client.generate_content(
                 contents=contents,
                 config=types.GenerateContentConfig(
@@ -53,17 +52,11 @@ class SkillPlannerExecutor:
             return SkillPlannerOutput(**result_data)
 
         except Exception as e:
-            print(f"❌ 計画立案中に致命的なエラーが発生しました: {e}", file=sys.stderr)
+            print(f"❌ 計画立案中にエラーが発生しました: {e}", file=sys.stderr)
             return SkillPlannerOutput(
-                route="skill",
-                rationale=f"Error occurred during planning: {str(e)}. Fallback to atomic skill development.",
+                route="create_skill",
+                target_skill=None,
+                rationale=f"Error occurred during planning: {str(e)}. Fallback to create_skill.",
                 recommended_dependencies=[],
                 proposed_skill=None
             )
-
-    # 後方互換用のメソッドエイリアス
-    route_requirement = plan_requirement
-
-
-# 後方互換用のクラスエイリアス
-DeveloperRouterExecutor = SkillPlannerExecutor

@@ -8,9 +8,13 @@ class ProposedSkill(BaseModel):
 
 
 class SkillPlannerOutput(BaseModel):
-    route: Literal['skill', 'workflow', 'proposal'] = Field(
+    route: Literal['create_skill', 'create_workflow', 'update_skill', 'update_workflow', 'proposal'] = Field(
         ...,
-        description="判定された開発ルート（'skill': 単体スキル, 'workflow': ワークフロー, 'proposal': 事前スキル開発の提案）。"
+        description="判定された開発ルート（'create_skill': 新規単体スキル, 'create_workflow': 新規ワークフロー, 'update_skill': 既存の単体スキル化更新, 'update_workflow': 既存のワークフロー化更新, 'proposal': 事前提案）。"
+    )
+    target_skill: Optional[str] = Field(
+        default=None,
+        description="route が 'update_skill' または 'update_workflow' の場合に特定された既存スキル/ワークフローの名前。"
     )
     rationale: str = Field(..., description="そのルートに決定した分析理由。")
     recommended_dependencies: list[str] = Field(
@@ -21,7 +25,3 @@ class SkillPlannerOutput(BaseModel):
         default=None,
         description="route が 'proposal' の場合に提案される、事前に開発しておくべき単体スキルの情報。"
     )
-
-
-# 後方互換性のためのエイリアス
-DeveloperRouterOutput = SkillPlannerOutput

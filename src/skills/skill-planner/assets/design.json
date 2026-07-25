@@ -1,7 +1,7 @@
 {
-  "rationale": "ユーザーの要件プロンプトから、新規に単体スキルを作るべきか、既存スキルを連携させたワークフローを作るべきか、あるいは事前開発すべきスキルを提案（proposal）すべきかを自動判定・計画するための設計定義です。",
+  "rationale": "ユーザーの要件プロンプトから、新規の単体スキル(create_skill)、新規のワークフロー(create_workflow)、既存スキルの単体スキルとしての更新(update_skill)、既存スキルのワークフローとしての更新(update_workflow)、あるいは事前開発の提案(proposal)を自動判定・計画するための設計定義です。",
   "name": "skill-planner",
-  "description": "要件プロンプトを分析し、単体スキル(skill)、ワークフロー(workflow)、または事前スキル開発提案(proposal)へ分類して計画立案するスキル。",
+  "description": "要件プロンプトを分析し、新規作成（単体/ワークフロー）、既存更新（単体/ワークフロー）、または事前提案へ分類して計画立案するスキル。",
   "module_type": "skill",
   "execution_type": "tool",
   "output_mode": "STRUCTURED_JSON",
@@ -10,7 +10,7 @@
   "functions": [
     {
       "name": "skill_planner",
-      "description": "要件プロンプトを分析し、単体スキル、ワークフロー、または事前スキル開発提案へ分類して計画立案する。",
+      "description": "要件プロンプトを分析し、開発ルートおよび対象スキルを特定して計画立案する。",
       "parameters": [
         {
           "name": "prompt",
@@ -23,8 +23,21 @@
         {
           "name": "route",
           "type": "str",
-          "description": "判定されたルート（'skill', 'workflow', または 'proposal'）。",
-          "required": true
+          "description": "判定されたルート（'create_skill', 'create_workflow', 'update_skill', 'update_workflow', 'proposal'）。",
+          "required": true,
+          "choices": [
+            "create_skill",
+            "create_workflow",
+            "update_skill",
+            "update_workflow",
+            "proposal"
+          ]
+        },
+        {
+          "name": "target_skill",
+          "type": "str",
+          "description": "update_skill または update_workflow の場合に指定される更新対象の既存スキル名。",
+          "required": false
         },
         {
           "name": "rationale",
@@ -35,7 +48,7 @@
         {
           "name": "recommended_dependencies",
           "type": "list[str]",
-          "description": "ワークフローと判定された場合に推奨される既存スキル名のリスト。",
+          "description": "ワークフローの場合に推奨される既存スキル名のリスト。",
           "required": true
         },
         {

@@ -1,7 +1,6 @@
 from google.adk.tools import ToolContext
 from edd_agent_tools.skills import SkillsState
 from edd_agent_tools import merge_result_to_state
-import json
 
 def run_design_skill_step(tool_context: ToolContext) -> str:
     # 設計書の inputs マッピングから直接決定論的に引数を抽出
@@ -17,3 +16,9 @@ def run_design_skill_step(tool_context: ToolContext) -> str:
         summary=tool_context.state.get("summary")
     )
     return merge_result_to_state(tool_context, res)
+
+def run_create_skill_step(tool_context: ToolContext) -> str:
+    return run_design_skill_step(tool_context)
+
+def run_update_skill_step(tool_context: ToolContext) -> str:
+    return run_design_skill_step(tool_context)
