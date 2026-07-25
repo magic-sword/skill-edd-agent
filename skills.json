@@ -11,6 +11,7 @@
   ],
   "inherits": [],
   "exclude": [
+    "adversarial-test-generator",
     "contract-test-executor",
     "contract-test-generator",
     "golden-test-executor",

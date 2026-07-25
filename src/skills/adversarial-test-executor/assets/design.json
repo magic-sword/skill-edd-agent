@@ -1,0 +1,40 @@
+{
+  "rationale": "指定されたスキルおよび敵対的・限界テストケースファイル(*.evalset.json)に基づき、サンドボックス環境で敵対的テストを実行して合否・精度(EvalRunResult)を返すスキル。",
+  "name": "adversarial-test-executor",
+  "description": "指定されたスキルに対し敵対的・限界テストケース(EvalCaseSet)を実行し、結果(EvalRunResult)を返します。",
+  "summary": null,
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "run_tests",
+      "description": "敵対的・限界テストを実行し、その結果(EvalRunResult)を返します。",
+      "parameters": [
+        {
+          "name": "skill_name",
+          "type": "str",
+          "description": "テストを実行する対象スキルの名前。",
+          "required": true,
+          "example": "skill-coder"
+        },
+        {
+          "name": "eval_set_path",
+          "type": "str",
+          "description": "敵対的テストケース(EvalCaseSet)のJSONファイルパス。",
+          "required": true,
+          "example": "tests/skill-coder_adversarial.evalset.json"
+        },
+        {
+          "name": "env",
+          "type": "WorkspaceEnvProtocol",
+          "description": "テスト実行環境。",
+          "required": true
+        }
+      ],
+      "response_type": "EvalRunResult"
+    }
+  ]
+}
