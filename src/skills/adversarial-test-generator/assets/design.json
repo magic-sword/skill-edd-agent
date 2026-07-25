@@ -1,0 +1,34 @@
+{
+  "rationale": "指定されたスキルの仕様（design.jsonおよびSKILL.md）を分析し、敵対的プロンプト、限界ケース、境界値、不正入力などに対するエージェントの堅牢性を検証するためのテストケース（EvalCaseSet形式）をLLMを用いて自動生成するスキル。",
+  "name": "adversarial-test-generator",
+  "description": "design.jsonおよびSKILL.mdをインプットとして、敵対的プロンプトや限界値テストケースを含むEvalCaseSetフォーマットのJSONを自動生成して保存するスキル。",
+  "summary": null,
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "VALUE_ONLY",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "generate_tests",
+      "description": "指定されたスキルの仕様に基づき、敵対的・限界テストケースを含むEvalCaseSetフォーマットのJSONファイルを生成し保存します。",
+      "parameters": [
+        {
+          "name": "skill_name",
+          "type": "str",
+          "description": "テストケースを生成する対象スキルの名前。",
+          "required": true,
+          "example": "skill-coder"
+        },
+        {
+          "name": "output_path",
+          "type": "str",
+          "description": "生成されたテストケースを保存するJSONファイルの絶対パス。",
+          "required": true,
+          "example": "tests/skill-coder_adversarial.evalset.json"
+        }
+      ],
+      "response_type": "bool"
+    }
+  ]
+}
