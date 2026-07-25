@@ -127,5 +127,20 @@ def my_skill_function(param_a: str, param_b: int = 10) -> str:
 4. **`update_workflow` (既存アセットのワークフロー化更新)**: 既存アセット（スキルまたはワークフロー）を改修し、**最終成果物をワークフロー (`module_type="workflow"`) として完成・昇格させる場合**。
 5. **`proposal` (事前スキル開発提案)**: 要求が大きすぎ基盤技術が不足しているため、前提となる小規模スキルの開発を提案して安全に中断。
 
-### ③ 形態変化（Skill ⇄ Workflow マイグレーション）の適合性
-判定基準を「更新前の元形態」ではなく「**更新後（最終成果物）として目指す形態**」に固定することで、単体スキルのワークフローへの拡張昇格、あるいはワークフローの単体スキルへの統合・抽象化といった構造変化に対しても決定論的に対応可能です。
+---
+
+## 7. 型駆動設計による不変条件の保証 (Type-Driven Design: Make Illegal States Unrepresentable)
+
+設計データのスキーマ定義において、場当たり的な辞書クレンジングや `if` 条件文による属性補正を全廃し、**「無効な状態を型レベルで表現不可能な構造にする (Make Illegal States Unrepresentable)」** という型駆動設計を採用しています。
+
+### ① `output_mode` によるモデルの Discriminated Union 分離
+`output_mode` (`STRUCTURED_JSON` vs `VALUE_ONLY` / `CONVERSATIONAL`) を識別キーとし、型レベルで独立したモデルに分離しています。
+
+* **`StructuredJsonSkillDesign`**: `response_parameters` フィールドのみを持ち、`response_type` は型として存在しません。
+* **`ValueOnlySkillDesign`**: `response_type` フィールドのみを持ち、`response_parameters` は型として存在しません。
+* **`ConfigDict(extra="forbid")`**: 各モデルに厳格な `extra="forbid"` 制約を付与し、枠外の属性混入を Pydantic のバリデータで物理的に排除します。
+
+### ② アーキテクチャ上のメリット
+1. **アドホックな辞書クレンジング処理の全廃**: 後続処理やサニタイズ用の `cleanser.py` で手動の `if` 分岐や `pop()` 処理を書く必要が1行もなくなります。
+2. **LLM (Gemini API) の決定論的出力保証**: LLM への出力スキーマ自体が Discriminator で厳密分岐するため、LLM が誤ったパラメータを同時生成するハルシネーションが原理的に防止されます。
+3. **型安全なディスパッチ**: 下流ツール (`skill-spec-writer` 等) での属性存在エラーが根本解決されます。

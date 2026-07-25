@@ -10,7 +10,7 @@
 *   **参照クラス定義**: `edd_agent_tools.evaluation.models.TestGenerator`
 *   **参照クラス定義**: `edd_agent_tools.evaluation.models.TestExecutor`
 
-各クラスのシグネチャ、引数の名前、戻り値の型、発生すべき例外については、上記コード内の **Pydoc (Docstring) および Type Hints** を唯一の真実のソース (Single Source of Truth) として厳密に従ってください。
+各クラスのシグネチャ、引数の名前, 戻り値の型、発生すべき例外については、上記コード内の **Pydoc (Docstring) および Type Hints** を唯一の真実のソース (Single Source of Truth) として厳密に従ってください。
 
 ---
 
@@ -102,5 +102,16 @@ AIエージェント自身が新規コード（スキル、クラス、ヘルパ
     新規開発 (`create_skill`, `create_workflow`) か既存改修 (`update_skill`, `update_workflow`) かの分類、および改修対象となる既存スキル名 (`target_skill`) の特定は、最前段のルーター (`skill-planner`) に一元化しなければなりません。
 *   **下流デザイナーでの暗黙推測の禁止**:
     `skill-designer` および `workflow-designer` は、自然言語プロンプトから既存スキル名を自前で暗黙推測・探索してはなりません。必ず上位から渡された明示的な `target_skill` または新規フラグのみに従って確定動作させてください。
-*   **更新ターゲット形態によるルーティング分岐**:
-    既存アセットの改修時、ルーティングキー `update_skill` / `update_workflow` は元形態ではなく**「最終的に目指す成果物の姿 (`module_type`)」**に基づいて決定してください（単体スキルからワークフローへの昇格、あるいはワークフローから単体スキルへの統合改修に対応するため）。
+
+---
+
+## 10. 型駆動設計と無効状態の型レベル排除ルール (What/How)
+
+Pydantic スキーマモデルを新規設計または変更する際は、以下の型駆動設計制約を厳格に遵守してください。
+
+*   **無効状態の型レベル排除 (Make Illegal States Unrepresentable)**:
+    1つのモデルに互いに矛盾するオプショナルフィールドを同居させ、後から `if` 文や `pop()` 処理で手動サニタイズする場当たり的設計を禁止します。
+*   **Discriminated Union の徹底**:
+    出力形式やモジュール種別によって入力・出力フィールドが変化する場合は、判別キー（Discriminator）を用いた Pydantic Discriminated Union モデルとして型レベルで独立化させてください。
+*   **`ConfigDict(extra="forbid")` の指定**:
+    特定フォーマット専用モデルには `ConfigDict(extra="forbid")` を付与し、型枠外の属性混入を物理的に排除してください。

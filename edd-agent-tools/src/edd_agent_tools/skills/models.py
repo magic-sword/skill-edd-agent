@@ -3,7 +3,7 @@ import os
 from enum import StrEnum, IntEnum
 from pathlib import Path
 from typing import Literal, Union, Annotated, Any
-from pydantic import BaseModel, Field, model_validator, TypeAdapter
+from pydantic import BaseModel, Field, TypeAdapter, ConfigDict, model_validator
 from edd_agent_tools.schema_utils import PromptField
 
 # ==========================================
@@ -56,7 +56,7 @@ class SkillsStateJson(BaseModel):
 
 
 # ==========================================
-# 2. 旧 root models.py から移動された定義 (Skill/Workflow設計用)
+# 2. 型駆動設計 (Type-Driven Design) による Skill/Workflow設計モデル
 # ==========================================
 
 class OutputMode(StrEnum):
@@ -105,47 +105,86 @@ class Step(BaseModel):
     inputs: dict[str, str] | None = Field(None, description="引数マッピング辞書。キーはステップに入力される引数名、値は tool_context.state から取得する値（またはPythonの評価式）")
 
 
-class FunctionDefinition(BaseModel):
-    """複数公開関数を設計する場合の、個別関数の定義情報を表すモデル。"""
+# --- 関数定義モデル (Discriminated by OutputMode) ---
+
+class PrimitiveFunctionDefinition(BaseModel):
+    """output_mode が VALUE_ONLY または CONVERSATIONAL の場合の関数定義モデル。
+    response_type のみを持ち、response_parameters は型レベルで存在しません。
+    """
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., description="公開関数名。小文字のスネークケース")
     description: str = Field(..., description="関数の役割や目的の説明")
     parameters: list[Parameter] = Field(..., description="関数の入力パラメータリスト")
-    response_parameters: list[Parameter] | None = Field(None, description="関数の構造化出力パラメータ定義（STRUCTURED_JSON時に使用されます）")
-    response_type: str | None = Field(None, description="output_mode が VALUE_ONLY または CONVERSATIONAL の場合に、関数が返すプリミティブな型（例: 'str', 'int', 'bool', 'list[str]' など。任意）")
+    response_type: str | None = Field("str", description="関数が返す単一のプリミティブ型（例: 'str', 'int', 'bool', 'list[str]', 'EvalRunResult' など）")
+
+
+class StructuredFunctionDefinition(BaseModel):
+    """output_mode が STRUCTURED_JSON の場合の関数定義モデル。
+    response_parameters のみを持ち、response_type は型レベルで存在しません。
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(..., description="公開関数名。小文字のスネークケース")
+    description: str = Field(..., description="関数の役割や目的の説明")
+    parameters: list[Parameter] = Field(..., description="関数の入力パラメータリスト")
+    response_parameters: list[Parameter] = Field(..., description="関数の構造化出力パラメータ定義リスト")
+
+
+FunctionDefinition = Union[StructuredFunctionDefinition, PrimitiveFunctionDefinition]
+
+
+# --- スキル設計モデル ---
+
+class BaseSkillDesign(BaseModel):
+    rationale: str = Field(..., description="設計の思考プロセス。")
+    name: str = Field(..., description="スキルの名前。小文字のハイフン区切り")
+    description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明")
+    summary: str | None = Field(None, description="スキルの仕様概要")
+    module_type: Literal[ModuleType.SKILL] = Field(ModuleType.SKILL, description="モジュールの役割分類。単一スキルは必ず 'skill'")
+    execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
+    dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
+    constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")
+
+
+class ValueOnlySkillDesign(BaseSkillDesign):
+    """output_mode が VALUE_ONLY または CONVERSATIONAL の単一スキル設計モデル。"""
+    output_mode: Literal[OutputMode.VALUE_ONLY, OutputMode.CONVERSATIONAL] = Field(OutputMode.VALUE_ONLY, description="出力形式")
+    functions: list[PrimitiveFunctionDefinition] = Field(..., description="単一戻り値関数定義のリスト")
+
+
+class StructuredJsonSkillDesign(BaseSkillDesign):
+    """output_mode が STRUCTURED_JSON の単一スキル設計モデル。"""
+    output_mode: Literal[OutputMode.STRUCTURED_JSON] = Field(OutputMode.STRUCTURED_JSON, description="出力形式")
+    functions: list[StructuredFunctionDefinition] = Field(..., description="構造化出力関数定義のリスト")
 
 
 class SkillDesign(BaseModel):
-    """単一スキルの設計定義を表す Pydantic モデル。"""
-    rationale: str = Field(..., description="設計の思考プロセス。要件の難易度・必要な手順を詳細に分析し、なぜ workflow ではなくアトミックな単一の skill と判定したかの設計根拠を記述してください。")
-    name: str = Field(..., description="スキルの名前。小文字のハイフン区切り")
-    description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明（L1 description用）")
-    summary: str | None = Field(None, description="スキルの仕様概要")
-    module_type: Literal[ModuleType.SKILL] = Field(ModuleType.SKILL, description="モジュールの役割分類。単一スキルは必ず 'skill'")
-    execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推推推論)")
-    output_mode: OutputMode = Field(..., description="出力形式（VALUE_ONLY, CONVERSATIONAL, STRUCTURED_JSON）")
-    dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
-    constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")
-    functions: list[FunctionDefinition] = Field(..., description="スキルパッケージが提供する公開関数の定義リスト。1つ以上の関数定義を含める必要があります")
-
-    @model_validator(mode="after")
-    def validate_response_parameters(self) -> "SkillDesign":
-        for fn in self.functions:
-            if self.output_mode != OutputMode.STRUCTURED_JSON:
-                if fn.response_parameters:
-                    raise ValueError("Function-level response_parameters can only be defined when output_mode is 'STRUCTURED_JSON'")
-            else:
-                if fn.response_type:
-                    raise ValueError("Function-level response_type cannot be defined when output_mode is 'STRUCTURED_JSON'")
-        return self
+    """単一スキルの設計定義を表す Pydantic モデル（型安全ディスパッチャー兼後方互換インターフェース）。"""
 
     @classmethod
-    def load_from_file(cls, filepath: str) -> "Union[SkillDesign, WorkflowDesign]":
+    def load_from_file(cls, filepath: str) -> "Union[StructuredJsonSkillDesign, ValueOnlySkillDesign, WorkflowDesign]":
         return load_design_from_file(filepath)
 
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate(cls, value, handler):
+        if isinstance(value, (StructuredJsonSkillDesign, ValueOnlySkillDesign)):
+            return value
+        if isinstance(value, dict):
+            out_mode = value.get("output_mode", OutputMode.VALUE_ONLY)
+            if out_mode == OutputMode.STRUCTURED_JSON:
+                return StructuredJsonSkillDesign.model_validate(value)
+            else:
+                return ValueOnlySkillDesign.model_validate(value)
+        return handler(value)
+
+
+# --- ワークフロー設計モデル ---
 
 class WorkflowDesign(BaseModel):
     """複数モジュールを連結するワークフローの設計仕様定義。"""
-    rationale: str = Field(..., description="設計の思考プロセス。要件の難易度・必要な手順を詳細に分析し、複数のステップ（既存スキル・カスタム関数・自律エージェントのパイプライン接続）が必要であると判定した設計根拠を記述してください。")
+    rationale: str = Field(..., description="設計の思考プロセス。")
     name: str = Field(..., description="ワークフローの名前。小文字のハイフン区切り")
     description: str = Field(..., description="ワークフローの目的や役割を記述した簡潔な説明")
     summary: str | None = Field(None, description="ワークフローの仕様概要")
@@ -157,25 +196,33 @@ class WorkflowDesign(BaseModel):
     steps: list[Step] = Field(..., description="ワークフローを構成するステップの定義リスト（有向グラフ）")
 
     @classmethod
-    def load_from_file(cls, filepath: str) -> "Union[SkillDesign, WorkflowDesign]":
-        return load_design_from_file(filepath)
+    def load_from_file(cls, filepath: str) -> "WorkflowDesign":
+        res = load_design_from_file(filepath)
+        if not isinstance(res, WorkflowDesign):
+            raise TypeError(f"Expected WorkflowDesign but got {type(res).__name__}")
+        return res
 
 
-# Discriminated Union による統合定義
-ModuleDesign = Annotated[
-    Union[SkillDesign, WorkflowDesign],
-    Field(discriminator="module_type")
-]
+# --- モジュール統合設計モデル ---
+
+ModuleDesign = Union[StructuredJsonSkillDesign, ValueOnlySkillDesign, WorkflowDesign]
 
 
-def load_design_from_file(filepath: str) -> Union[SkillDesign, WorkflowDesign]:
+def load_design_from_file(filepath: str) -> Union[StructuredJsonSkillDesign, ValueOnlySkillDesign, WorkflowDesign]:
     if not os.path.exists(filepath):
         raise FileNotFoundError(f"design.json not found at: {filepath}")
     with open(filepath, "r", encoding="utf-8") as f:
         data = json.loads(f.read())
         
-    adapter = TypeAdapter(ModuleDesign)
-    return adapter.validate_python(data)
+    m_type = data.get("module_type", ModuleType.SKILL)
+    if m_type == ModuleType.WORKFLOW:
+        return WorkflowDesign.model_validate(data)
+    
+    out_mode = data.get("output_mode", OutputMode.VALUE_ONLY)
+    if out_mode == OutputMode.STRUCTURED_JSON:
+        return StructuredJsonSkillDesign.model_validate(data)
+    else:
+        return ValueOnlySkillDesign.model_validate(data)
 
 
 class SkillMetadata(BaseModel):
