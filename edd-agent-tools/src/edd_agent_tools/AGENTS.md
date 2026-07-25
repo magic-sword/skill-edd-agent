@@ -42,6 +42,7 @@
 本システム全体の Generator-Executor ペアリングパターンの目的、プラグイン型ディスパッチの有向グラフ設計思想、背景、ダイアグラムについては、必要に応じて以下のドキュメントを自律的にロード（遅延参照）して確認してください。
 
 *   **設計ドキュメントパス**: `edd_agent_tools/docs/test_architecture.md` (または MCP リソース `edd://docs/test_architecture`)
+*   **設計思想パス**: `edd_agent_tools/docs/design_philosophy.md` (または MCP リソース `edd://docs/design_philosophy`)
 
 ---
 
@@ -90,3 +91,16 @@ AIエージェント自身が新規コード（スキル、クラス、ヘルパ
     そのスキルが依存する他のスキルは、個別の `design.json` 内の `"dependencies"` 配列にのみ記述してください。
 *   **動的アサーションと品質登録ゲート**:
     設計完了時（`skill-designer`）および Tier 1 への昇格テスト前（`first-test-runner`）に、パッケージの **`SkillsState.validate_dependencies()`** メソッドが呼び出され、プロジェクト全体の依存関係の「欠落（物理的な不足）」および「循環参照（無限ループ）」が動的にアサートされます。この動的検証を通らないスキルは、Tier 1 として登録できません。
+
+---
+
+## 9. 開発ルーティングと既存改修コンテキスト伝播の制約 (What/How)
+
+スキル開発ワークフロー（`skill-developer`）を利用した機能生成・改修時は、以下の決定論的コンテキスト伝播ルールを厳密に遵守してください。
+
+*   **ルーティング判定の最前段集約 (`skill-planner`)**:
+    新規開発 (`create_skill`, `create_workflow`) か既存改修 (`update_skill`, `update_workflow`) かの分類、および改修対象となる既存スキル名 (`target_skill`) の特定は、最前段のルーター (`skill-planner`) に一元化しなければなりません。
+*   **下流デザイナーでの暗黙推測の禁止**:
+    `skill-designer` および `workflow-designer` は、自然言語プロンプトから既存スキル名を自前で暗黙推測・探索してはなりません。必ず上位から渡された明示的な `target_skill` または新規フラグのみに従って確定動作させてください。
+*   **更新ターゲット形態によるルーティング分岐**:
+    既存アセットの改修時、ルーティングキー `update_skill` / `update_workflow` は元形態ではなく**「最終的に目指す成果物の姿 (`module_type`)」**に基づいて決定してください（単体スキルからワークフローへの昇格、あるいはワークフローから単体スキルへの統合改修に対応するため）。
