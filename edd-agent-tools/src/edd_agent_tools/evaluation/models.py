@@ -173,11 +173,24 @@ class TestExecutor(Protocol):
 
 
 
+from enum import StrEnum
+
+class ExpectedResultType(StrEnum):
+    SUCCESS = "success"
+    VALUE_ERROR = "ValueError"
+    TYPE_ERROR = "TypeError"
+    RUNTIME_ERROR = "RuntimeError"
+    KEY_ERROR = "KeyError"
+    INDEX_ERROR = "IndexError"
+    ZERO_DIVISION_ERROR = "ZeroDivisionError"
+    EXCEPTION = "Exception"
+
+
 class EvalCase(BaseModel):
     eval_case_id: str = Field(..., description="テストケースを一意に識別するID")
     function_name: str = Field(..., description="テスト対象となるスキルの公開関数名")
     inputs: dict[str, Any] = Field(default_factory=dict, description="関数呼び出し時に渡す引数のマッピング")
-    expected: str = Field("success", description="期待されるテスト結果（'success' または 期待する例外クラス名）")
+    expected: ExpectedResultType = Field(ExpectedResultType.SUCCESS, description="期待されるテスト結果 ('success' または定義された Python 例外クラス名のみ選択可能)")
     mock_responses: dict[str, Any] = Field(default_factory=dict, description="モック応答マッピング")
 
 

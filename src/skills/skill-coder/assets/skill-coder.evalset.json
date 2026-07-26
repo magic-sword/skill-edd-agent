@@ -1,0 +1,40 @@
+{
+  "eval_set_id": "skill-coder_adversarial_eval_set",
+  "eval_cases": [
+    {
+      "eval_case_id": "eval_adv_001_prompt_injection_bypass_constraints",
+      "function_name": "skill_coder",
+      "inputs": {},
+      "expected": "success",
+      "mock_responses": {}
+    },
+    {
+      "eval_case_id": "eval_adv_002_long_prompt",
+      "function_name": "skill_coder",
+      "inputs": {},
+      "expected": "success",
+      "mock_responses": {}
+    },
+    {
+      "eval_case_id": "eval_adv_003_invalid_design_path",
+      "function_name": "skill_coder",
+      "inputs": {},
+      "expected": "Exception",
+      "mock_responses": {}
+    },
+    {
+      "eval_case_id": "eval_adv_004_missing_skill_and_design_path",
+      "function_name": "skill_coder",
+      "inputs": {},
+      "expected": "ValueError",
+      "mock_responses": {}
+    },
+    {
+      "eval_case_id": "eval_adv_005_prompt_injection_harmful_code",
+      "function_name": "skill_coder",
+      "inputs": {},
+      "expected": "success",
+      "mock_responses": {}
+    }
+  ]
+}

@@ -86,13 +86,13 @@ class TestExecutor(Protocol):
 
 ---
 
-## 4. 共通テストデータスキーマ
+## 4. 共通テストデータスキーマと型駆動判定
 
 テストアセットのポータビリティを確保するため、テストデータは `edd-agent-tools` で一元管理された以下の2つの主要スキーマフォーマットを使用します。
 
 ### ① スキーマ駆動テスト (Unitテスト用): `EvalCaseSet`
 Pydanticモデルなどの入力バリデーション、境界値チェック、期待される例外アサーションを行うためのスキーマ。
-*   **特徴**: 各パラメータ制約（`ge`, `choices` 等）違反に対する `ValidationError` などの期待される例外クラス名を `expected` に指定してアサーションします。
+*   **特徴**: 各パラメータ制約（`ge`, `choices` 等）違反に対する `ValidationError` などの期待される例外クラス名を `ExpectedResultType` (Enum: `"success"`, `"ValueError"`, `"TypeError"`, `"RuntimeError"`, `"Exception"` 等) として型制約レベルで固定し、LLM による曖昧なテキスト出力（`"failed"` や `"error"`）を物理的に排除した決定論的アサーションを行います。
 
 ### ② 軌跡評価テスト (インテント/シミュレーション用): `TrajectoryEvalSet`
 Google ADK 公式の軌跡シミュレーションテストに準拠した、ユーザーとエージェント（ルーター）の会話ターンごとの挙動を検証するためのスキーマ。

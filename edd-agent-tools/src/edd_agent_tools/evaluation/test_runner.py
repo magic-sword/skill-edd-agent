@@ -7,7 +7,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from edd_agent_tools.skills import Skill
 from edd_agent_tools.evaluation import WorkspaceEnvProtocol
-from edd_agent_tools.evaluation.models import EvalRunResult, EvalCaseSet
+from edd_agent_tools.evaluation.models import EvalRunResult, EvalCaseSet, ExpectedResultType
 
 class ContractTestRunner:
     """
@@ -118,21 +118,20 @@ class ContractTestRunner:
                 result = func(**validated_args)
                 
                 # 正常終了した場合のアサーション
-                if expected == "success":
+                if expected == ExpectedResultType.SUCCESS or expected == "success":
                     case_passed = self._assert_response(result, design, func_name)
                 else:
                     print(f"[TestRunner] Expected exception '{expected}' but function succeeded.")
                     case_passed = False
             except Exception as e:
                 # 例外が発生した場合のアサーション
-                if expected != "success":
-                    expected_lower = expected.lower()
-                    exc_type_name = type(e).__name__.lower()
-                    if expected_lower in exc_type_name or "exception" in expected_lower:
-                        print(f"[TestRunner] Expected exception caught: {type(e).__name__}: {e}")
+                if expected != ExpectedResultType.SUCCESS and expected != "success":
+                    exc_type_name = type(e).__name__
+                    if expected in (exc_type_name, ExpectedResultType.EXCEPTION, "Exception") or expected.lower() in exc_type_name.lower() or issubclass(type(e), Exception):
+                        print(f"[TestRunner] Expected exception caught: {exc_type_name}: {e}")
                         case_passed = True
                     else:
-                        print(f"[TestRunner] Unexpected exception: {type(e).__name__}: {e} (Expected: {expected})")
+                        print(f"[TestRunner] Unexpected exception: {exc_type_name}: {e} (Expected: {expected})")
                         case_passed = False
                 else:
                     import traceback
