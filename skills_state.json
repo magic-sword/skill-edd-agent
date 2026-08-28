@@ -43,7 +43,7 @@
       "tier": 1
     },
     "my-test-skill": {
-      "tier": 1
+      "tier": 3
     }
   },
   "agents": {}

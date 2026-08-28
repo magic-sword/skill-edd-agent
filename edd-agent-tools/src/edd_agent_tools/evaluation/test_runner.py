@@ -175,8 +175,9 @@ class ContractTestRunner:
             response_type = None
         else:
             output_mode = getattr(design, "output_mode", "VALUE_ONLY")
-            response_parameters = fn_def.response_parameters
-            response_type = fn_def.response_type
+            response_parameters = getattr(fn_def, "response_parameters", None)
+            response_type = getattr(fn_def, "response_type", None)
+
 
         from edd_agent_tools.skills.models import OutputMode
         

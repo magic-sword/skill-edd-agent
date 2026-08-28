@@ -11,6 +11,10 @@ from .models import JudgeResult
 
 from typing import List, Dict, Any, Optional
 
+class InputParameter(BaseModel):
+    name: str
+    value: str
+
 class ExpectedToolUse(BaseModel):
     name: str
     args: Dict[str, Any] = Field(default_factory=dict)
@@ -25,6 +29,7 @@ class GoldenCase(BaseModel):
 class GoldenCaseSet(BaseModel):
     eval_set_id: str
     eval_cases: List[GoldenCase]
+
 
 
 class SkillExecutor:
