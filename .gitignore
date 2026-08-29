@@ -19,3 +19,5 @@ edd-agent-tools/dist/
 edd-agent-tools/build/
 *.egg-info/
 .env
+
+awesome-claude-skills-master
