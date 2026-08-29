@@ -6,11 +6,14 @@
     }
   ],
   "inherits": [],
-  "exclude": [
-    "contract-test-executor",
-    "contract-test-generator"
-  ],
+  "exclude": [],
   "skills": {
+    "contract-test-generator": {
+      "tier": 1
+    },
+    "contract-test-executor": {
+      "tier": 1
+    },
     "skill-creator": {
       "tier": 1
     },
@@ -66,6 +69,9 @@
       "tier": 1
     },
     "tier3-test-runner": {
+      "tier": 1
+    },
+    "case-converter": {
       "tier": 1
     }
   },

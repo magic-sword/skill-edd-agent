@@ -1,7 +1,7 @@
 from .executor import SkillExecutor
 
 def generate_tests(skill_name: str, output_path: str) -> bool:
-    """指定されたスキルのdesign.jsonに基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出します。
+    """指定されたスキルのSKILL.mdおよびスクリプト実装に基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出します。
 
     Args:
         skill_name: テストケースを生成する対象スキルの名前.

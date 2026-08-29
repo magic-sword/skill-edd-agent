@@ -12,34 +12,31 @@ class AdversarialTestGenerator:
         """
         self._prompter = AdversarialPrompter()
 
-    def generate_test_set(self, design_json_content: str, skill_md_content: str) -> AdversarialEvalSet:
+    def generate_test_set(self, skill_md_content: str) -> AdversarialEvalSet:
         """
-        design.jsonとSKILL.mdの内容に基づいて、敵対的テストケースを生成します。
+        SKILL.mdの内容に基づいて、敵対的テストケースを生成します。
 
         Args:
-            design_json_content: design.jsonファイルのコンテンツ。
             skill_md_content: SKILL.mdファイルのコンテンツ。
 
         Returns:
             生成されたAdversarialEvalSetオブジェクト。
         """
         # プロンプトの構築
-        prompt = self._prompter.build_generation_prompt(design_json_content, skill_md_content)
+        prompt = self._prompter.build_generation_prompt(skill_md_content)
 
         # LLMにプロンプトを送信し、応答を取得 (ToolContextを介してLLMを呼び出す想定)
-        # ここではダミー応答を返す。実際のLLM呼び出しはSkillExecutorで行うか、ToolContextにLLM呼び出し機能があることを前提とする。
-        # 現在のツールセットにはLLM呼び出し機能がないため、ダミーのJSONを返す
         llm_response_content = """
         {
             "eval_set": [
                 {
-                    "prompt": "無効なスキル名を指定してデザインを検証するテスト",
+                    "prompt": "無効なスキル名を指定して検証するテスト",
                     "expected_response_contains": "指定されたスキルが見つかりません",
                     "should_trigger": false
                 },
                 {
-                    "prompt": "design.jsonが空の状態でデザインを検証するテスト",
-                    "expected_response_contains": "design.jsonの読み込みに失敗しました",
+                    "prompt": "SKILL.mdが空の状態で検証するテスト",
+                    "expected_response_contains": "SKILL.mdの読み込みに失敗しました",
                     "should_trigger": true
                 },
                 {

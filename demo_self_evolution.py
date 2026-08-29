@@ -53,8 +53,9 @@ def main():
     print(f"➔ skill-creator (4段階品質保証パイプライン) を起動中...")
 
     # Stage 1〜4 によるスキル生成
-    from src.skills.skill_creator.scripts.main import create_skill
-    res = create_skill(
+    creator_skill = state.get_skill("skill-creator")
+    create_skill_fn = creator_skill.load_module().create_skill
+    res = create_skill_fn(
         prompt="文字列を大文字(UPPER), 小文字(lower), キャメルケース(camelCase), スネークケース(snake_case)に変換するテキスト変換ユーティリティスキルを作成してください。",
         name=demo_skill_name,
         pattern="task_based"
@@ -81,8 +82,9 @@ def main():
     print(f"\n🛠 [Phase 3: Self-Improvement Loop (自律改善・最適化)]")
     print(f"➔ skill-optimizer を呼び出し、テスト実行・診断・連鎖回帰テストを実行中...")
 
-    from src.skills.skill_optimizer.scripts.main import optimize_skill
-    opt_res = optimize_skill(skill_name=demo_skill_name, max_retries=2)
+    optimizer_skill = state.get_skill("skill-optimizer")
+    optimize_skill_fn = optimizer_skill.load_module().optimize_skill
+    opt_res = optimize_skill_fn(skill_name=demo_skill_name, max_retries=2)
 
     print(f"最適化ステータス: {opt_res.get('status')}")
     print(f"昇格権限ステータス: {opt_res.get('tier')}")

@@ -38,7 +38,7 @@ pattern: workflow
 
 ### `scripts/` (Executable Tools)
 - **`scripts/executor.py`**: 契約テスト生成実行エンジン
-- **`scripts/eval_case_set_writer.py`**: ファイル出力モジュール
+- **`scripts/handler.py`**: 公開関数エントリポイント
 
 ## Guidelines & Best Practices
 

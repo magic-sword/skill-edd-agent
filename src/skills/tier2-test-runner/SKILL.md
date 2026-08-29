@@ -1,92 +1,53 @@
 ---
 name: tier2-test-runner
-description: "指定されたスキルに対して依存関係検証、契約テスト、ゴールデンテスト、ジャッジテストを実行し、全て成功した場合にスキルをTier 2として登録するワークフロー。"
+description: "対象スキルに対して契約テスト、ゴールデンテスト、およびジャッジテストを実行し、すべて合格した場合に Tier 2 として登録する評価実行スキル。"
 license: Complete terms in LICENSE.txt
 pattern: workflow
 dependencies:
-  - test-executor
+  - contract-test-executor
   - golden-test-executor
   - judge-test-executor
 ---
 
-# ワークフロー仕様書: tier2-test-runner
+# Tier 2 Test Runner
 
-## 概要
+## Overview
 
-このワークフローは、指定されたスキルがTier 2として登録されるための品質基準を満たしているかを検証します。具体的には、スキルの依存関係を検証し、契約テスト、ゴールデンテスト、ジャッジテストを順次実行します。全てのテストに合格した場合のみ、スキルをTier 2としてシステムに登録します。
+対象スキルに対して、契約テスト（単体テスト）、ゴールデンテスト（正解例マッチング）、および LLM ジャッジテスト（主観品質評価）を実行し、全テストに合格したスキルをシステムに Tier 2 スキルとして登録するワークフロー。
 
-### 主な機能
-* 指定されたスキルの依存関係を自動的に検証します。
-* スキルの契約テスト、ゴールデンテスト、ジャッジテストを連続して実行します。
-* LLM-as-Judgeを用いてスキルの出力品質と意味的整合性を評価します。
-* 全てのテストに合格した場合、スキルを自動的にTier 2としてシステムに登録します。
+## Workflow Decision Tree
 
-### 内部処理の流れ
-1. ステップ1: 依存関係検証 (validate-dependencies) - 評価対象スキルの依存関係を検証し、必要なスキルがすべて利用可能であることを確認します。
-2. ステップ2: 契約テスト実行 (run-contract-test) - `test-executor`スキルを呼び出し、スキルの基本的な動作とインターフェースの整合性を検証する契約テストを実行します。
-3. ステップ3: ゴールデンテスト実行 (run-golden-test) - `golden-test-executor`スキルを呼び出し、LLM-as-Judgeを用いてスキルの出力が期待される意味的ゴールデンアウトプットと一致するかを評価するゴールデンテストを実行します。
-4. ステップ4: ジャッジテスト実行 (run-judge-test) - `judge-test-executor`スキルを呼び出し、複数のルーブリック項目に沿って採点LLMで多角的にスキルを採点するジャッジテストを実行します。
-5. ステップ5: Tier 2登録 (register-tier2) - 上記全てのテストに合格した場合、対象スキルをシステムにTier 2として登録します。
+- **If** 対象スキル名と各評価セットパスが提供された場合 ➔ **Then** `scripts/runner.py` の `tier2_test_runner` を呼び出し、一連の Tier 2 防壁テストと昇格処理を実行する
 
+## Step-by-Step Instructions
 
----
+### Step 1: 依存関係の検証 *(Target: `scripts/runner.py`)*
 
-## トリガー条件
+`SkillsState` を通じて対象スキルの依存関係グラフを検証し、DAG構造にエラーがないことを確認する。
 
-このワークフローは、以下の条件やプロンプトでトリガーされます。
+### Step 2: 契約テストの実行 *(Target: `scripts/runner.py`)*
 
-- 「新しいスキル`my-new-skill`をTier 2に昇格させるためのテストを実行してください。」
-- 「スキル`data-analyzer`の品質検証を行い、Tier 2として登録してください。」
-- 「指定された評価セットを用いて、`image-generator`スキルの契約、ゴールデン、ジャッジテストを実行し、合格すればTier 2に登録してください。」
+`ContractTestRunner` を用いて、公開関数の契約適合性および境界値動作を検証する。
 
----
+### Step 3: ゴールデンテストおよびジャッジテストの実行 *(Target: `scripts/runner.py`)*
 
-## 実行方法
+`SimulationEvalRunner` を用いて、ゴールデン入出力ペア（しきい値 90% 以上）および LLM ジャッジ（しきい値 85% 以上）を実行・評価する。
 
-このワークフローは、複数の処理ノードをパイプラインおよび動的分岐で実行する自律接続システムです。
-以下の順番でステップが接続・順次実行されます：
+### Step 4: Tier 2 昇格と登録 *(Target: `scripts/runner.py`)*
 
-1. **validate-dependencies** (function): スキルの依存関係を検証し、必要なスキルがすべて利用可能であることを確認します。
-1. **run-contract-test** (skill): 契約テストを実行し、スキルの基本的な動作とインターフェースの整合性を検証します。
-1. **run-golden-test** (skill): ゴールデンテストを実行し、LLM-as-Judgeを用いてスキルの出力が期待される意味的ゴールデンアウトプットと一致するかを評価します。
-1. **run-judge-test** (skill): ジャッジテストを実行し、複数のルーブリック項目に沿って採点LLMで多角的にスキルを採点します。
-1. **register-tier2** (agent): 全てのテストに合格した場合、スキルをTier 2としてシステムに登録します。
+すべてのテストが合格した場合にのみ、`SkillsState` において対象スキルのステータスを `SkillTier.TIER2` に更新・永続化する。
 
-引数パラメータが入力されると、STARTノードから順に状態（tool_context.state）を伝播しながら処理が進みます。
+## Usage Scenarios & Trigger Examples
 
+- "pdf-tools スキルを Tier 2 にオンボーディングしてください。"
+- "ゴールデンテストとジャッジテストを実行して Tier 2 へ昇格させて。"
 
----
+## Bundled Resources
 
-## 入力パラメータ
+### `scripts/` (Executable Tools)
+- **`scripts/runner.py`**: 契約テスト、ゴールデンテスト、ジャッジテスト、Tier 2 登録を一括実行するメインスクリプト
 
-| パラメータ名 | 型 | 必須 | 説明 |
-|---|---|---|---|
-| skill_name | str | はい | 評価対象スキルの名前。 |
-| contract_eval_set_path | str | はい | 契約テスト用のテストケースファイル (*.evalset.json) のパス。 |
-| golden_eval_set_path | str | はい | ゴールデンテスト用のテストケースファイル (*.evalset.json) のパス。 |
-| judge_eval_set_path | str | はい | ジャッジテスト用のテストケースファイル (*.evalset.json) のパス。 |
-| env | str | はい | テストを実行するサンドボックス環境（WorkspaceEnvProtocol）。 |
+## Guidelines & Best Practices
 
----
-
-## 出力仕様
-
-*   **出力モード**: `STRUCTURED_JSON`
-*   **詳細**: 特定のJSONスキーマ構造に厳密に従った構造化データを出力します。生成結果のパース成功時に生成されたファイルのパスや、エラー時にはエラーメッセージと詳細情報が含まれます。
-
-### 出力パラメータ (構造化JSONの戻り値構造)
-
-| パラメータ名 | 型 | 必須 | 説明 |
-|---|---|---|---|
-| overall_status | str | はい | ワークフロー全体の最終ステータス（'success'または'failed'）。 |
-| contract_test_status | str | はい | 契約テストの実行ステータス。 |
-| golden_test_status | str | はい | ゴールデンテストの実行ステータス。 |
-| judge_test_status | str | はい | ジャッジテストの実行ステータス。 |
-| tier2_registration_status | str | はい | Tier 2登録の最終ステータス。 |
-
-
----
-
-
-
----
+- いずれかのテストで不合格となった場合は、Tier 2 への昇格を行わずに失敗詳細を返すこと。
+- テスト実行環境は隔離された仮想環境（`LocalWorkspaceEnv`）を使用すること。

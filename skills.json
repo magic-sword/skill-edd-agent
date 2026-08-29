@@ -6,9 +6,6 @@
     }
   ],
   "inherits": [],
-  "exclude": [
-    "contract-test-executor",
-    "contract-test-generator"
-  ],
+  "exclude": [],
   "agents": {}
 }

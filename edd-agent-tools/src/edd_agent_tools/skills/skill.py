@@ -34,6 +34,11 @@ class Skill:
         self._spec: Optional[SkillSpec] = None
         self._metadata: Optional[SkillMetadata] = None
 
+    @property
+    def tier(self) -> int:
+        """このスキルの Tier (0: UNVALIDATED, 1: TIER1, 2: TIER2, 3: TIER3)"""
+        return self._tier
+
     def set_tier(self, tier: int):
         """このスキルの Tier を設定し、テスト時刻を更新します。"""
         if tier not in [0, 1, 2, 3]:

@@ -55,15 +55,11 @@ class TrajectoryTestExecutor:
                     # ユーザー入力からの引数復元
                     actual_tool_calls = []
 
-                    # design.jsonから主要関数名を取得
-                    func_names = []
-                    if design_json and "functions" in design_json:
-                        func_names = [f["name"] for f in design_json["functions"]]
-                    if not func_names:
-                        func_names = [
-                            attr for attr in dir(skill_module) 
-                            if not attr.startswith("_") and inspect.isfunction(getattr(skill_module, attr))
-                        ]
+                    # モジュールから公開関数名を取得
+                    func_names = [
+                        attr for attr in dir(skill_module) 
+                        if not attr.startswith("_") and inspect.isfunction(getattr(skill_module, attr))
+                    ]
 
                     for func_name in func_names:
                         if hasattr(skill_module, func_name):

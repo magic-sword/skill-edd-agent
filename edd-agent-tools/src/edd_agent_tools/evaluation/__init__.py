@@ -2,7 +2,7 @@ from typing import Any
 
 def __getattr__(name: str) -> Any:
     """evaluation パッケージ内のクラスをアクセス時に初めて動的ロードする遅延インポートハンドラ。"""
-    if name == "SimulationEval":
+    if name in ("SimulationEval", "SimulationEvalRunner"):
         from .evaluation import SimulationEval
         return SimulationEval
         
@@ -47,7 +47,7 @@ def __getattr__(name: str) -> Any:
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
 __all__ = [
-    "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
+    "SimulationEval", "SimulationEvalRunner", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
     "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "ContractTestRunner",
     "EvalCase", "EvalCaseSet", "TestGenerator", "TestExecutor", "EvalRunResult", "TrajectoryEvalSet",
     "CascadeTestRunner"

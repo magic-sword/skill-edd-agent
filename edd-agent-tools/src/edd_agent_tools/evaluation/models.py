@@ -169,7 +169,7 @@ class TestGenerator(Protocol):
     """スキルの仕様定義からテストケースアセットを自動生成し、ファイルに書き出すプロトコル。"""
     
     def generate_tests(self, skill_name: str, output_path: str) -> bool:
-        """指定されたスキルの仕様（SKILL.md や design.json）からテストケースを自動生成して保存します。
+        """指定されたスキルの仕様（SKILL.md）からテストケースを自動生成して保存します。
         
         Args:
             skill_name: テストケースの生成対象となるスキルの論理名。

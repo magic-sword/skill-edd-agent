@@ -118,20 +118,26 @@ class SkillValidator:
 
         # 5. リソース参照の整合性検証 (実在チェック)
         if skill_dir:
-            referenced_scripts = re.findall(r"`?scripts/([a-zA-Z0-9_\-\./]+)`?", body_str)
+            referenced_scripts = [s.rstrip(".,;:)[]`'\"") for s in re.findall(r"`?scripts/([a-zA-Z0-9_\-\./]+)", body_str)]
             for s in referenced_scripts:
+                if not s:
+                    continue
                 target = skill_dir / "scripts" / s
                 if not target.exists():
                     res.add_error("resources", f"Referenced script does not exist on disk: scripts/{s}")
 
-            referenced_refs = re.findall(r"`?references/([a-zA-Z0-9_\-\./]+)`?", body_str)
+            referenced_refs = [r.rstrip(".,;:)[]`'\"") for r in re.findall(r"`?references/([a-zA-Z0-9_\-\./]+)", body_str)]
             for r in referenced_refs:
+                if not r:
+                    continue
                 target = skill_dir / "references" / r
                 if not target.exists():
                     res.add_error("resources", f"Referenced documentation does not exist on disk: references/{r}")
 
-            referenced_assets = re.findall(r"`?assets/([a-zA-Z0-9_\-\./]+)`?", body_str)
+            referenced_assets = [a.rstrip(".,;:)[]`'\"") for a in re.findall(r"`?assets/([a-zA-Z0-9_\-\./]+)", body_str)]
             for a in referenced_assets:
+                if not a:
+                    continue
                 target = skill_dir / "assets" / a
                 if not target.exists():
                     res.add_error("resources", f"Referenced asset does not exist on disk: assets/{a}")

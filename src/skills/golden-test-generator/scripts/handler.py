@@ -1,7 +1,7 @@
 from .executor import SkillExecutor
 
 def generate_tests(skill_name: str, output_path: str) -> bool:
-    """design.jsonおよびSKILL.mdをインプットとして、多様なユースケース入力値と、期待される正解のペアをLLMで自動生成し、指定されたパスに書き出します。
+    """SKILL.mdおよびスクリプト実装をインプットとして、多様なユースケース入力値と、期待される正解のペアをLLMで自動生成し、指定されたパスに書き出します。
 
     Args:
         skill_name: ゴールデンテストを生成する対象スキルの名前。

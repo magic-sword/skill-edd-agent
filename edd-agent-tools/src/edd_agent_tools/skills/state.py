@@ -332,8 +332,6 @@ class SkillsState:
             if p_abs.is_file():
                 if p_abs.name == "SKILL.md":
                     skill_dir = p_abs.parent
-                elif p_abs.name == "design.json":
-                    skill_dir = p_abs.parent.parent if p_abs.parent.name == "assets" else p_abs.parent
                 else:
                     skill_dir = p_abs.parent
             else:
