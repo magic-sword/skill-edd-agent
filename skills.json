@@ -3,32 +3,12 @@
     {
       "path": "src/skills",
       "name": "tool"
-    },
-    {
-      "path": "src/workflows",
-      "name": "workflow"
     }
   ],
   "inherits": [],
   "exclude": [
-    "adversarial-test-executor",
-    "adversarial-test-generator",
     "contract-test-executor",
-    "contract-test-generator",
-    "golden-test-executor",
-    "golden-test-generator",
-    "judge-test-executor",
-    "judge-test-generator",
-    "skill-diagnoser",
-    "skill-planner",
-    "test-generator",
-    "tier1-skill-onboarding",
-    "tier2-test-runner",
-    "trajectory-test-executor",
-    "trajectory-test-generator",
-    "trigger-test-executor",
-    "trigger-test-generator",
-    "workflow-designer"
+    "contract-test-generator"
   ],
   "agents": {}
 }

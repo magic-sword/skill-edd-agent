@@ -10,25 +10,29 @@
 
 ```
 /workspace/ (リポジトリルート)
-├── README.md               # プロジェクト全体の「玄関口」（Why / 実証結果）
+├── README.md               # プロジェクト全体の「玄関口」（Why / アーキテクチャ / クイックスタート）
 ├── CONTRIBUTING.md         # 【本書】共同開発者（人間）向けの全体開発規約
+├── demo_self_evolution.py  # 自己進化エージェントの End-to-End 実演デモスクリプト
+├── skills_state.json       # プロジェクト全体のスキルの Tier 状態管理ファイル
 ├── edd-agent-tools/        # EDD開発を支援する共有ヘルパーライブラリ（Pythonパッケージ）
 │   ├── README.md           # パッケージの「スリム化インデックス玄関口」（docs/へのリンク）
 │   ├── SETUP.md            # 人間向けの環境構築・LLM認証・MCP起動ガイド
-│   ├── CONTRIBUTING.md     # パッケージ開発の貢献リンクガイド（AGENTS.mdへ誘導）
 │   └── src/edd_agent_tools/
 │       ├── AGENTS.md       # AIエージェント向けシステム制約（ドキュメント規約の真実のソース）
 │       └── docs/           # パッケージドキュメントセンター（Whyの集約先）
-│           ├── design_philosophy.md # スキル設計思想・フォルダ構成規約
-│           ├── test_architecture.md # テスト Generator-Executor ペアリング仕様
-│           ├── eval_design.md       # サンドボックス隔離・アサーションポリシー
-│           └── sandbox_design.md    # Gymnasium仮想環境（DI）とCLI仕様
+│           ├── progressive_disclosure.md # 3層リソース分離（scripts, references, assets）規約
+│           ├── prompt_syntax.md          # Imperative文体・客観的プロンプト規約
+│           ├── skill_patterns.md         # 4大スキル構造パターン
+│           ├── design_philosophy.md      # スキル設計思想・フォルダ構成規約
+│           ├── test_architecture.md      # テスト Generator-Executor ペアリング仕様
+│           ├── eval_design.md            # サンドボックス隔離・アサーションポリシー
+│           └── sandbox_design.md         # Gymnasium仮想環境（DI）とCLI仕様
 └── src/                    # 自己進化エージェントの本体およびスキル（Tier管理下）
-    ├── workflows/          # 自己進化ワークフローエージェント（skill-developer等）
-    └── skills/             # 自動生成・マウントされる個別スキル群
-        └── workflow-designer/
-            └── references/ # ワークフロー設計および経路評価の専門仕様書
-                └── workflow_trajectory_eval_design.md
+    └── skills/             # すべてのスキルおよび合成ワークフロー（3層リソース構造）
+        ├── skill-creator/  # 4段階品質保証パイプラインによるスキル自律生成エンジン
+        ├── skill-optimizer/# テスト・診断・差分修復・連鎖回帰テストの自律改善ループ
+        ├── skill-diagnoser/# テスト失敗根本原因分析・3層差分改善計画エンジン
+        └── ...
 ```
 
 ---
@@ -37,11 +41,9 @@
 
 本プロジェクトでは、情報の陳腐化、不整合、ハルシネーションを防ぐために、ドキュメント配置の **「関心の完全分離」** を徹底しています。
 
-*   **API個別仕様 (What / How to Call) ➔ ソースコード内 (Pydoc)**:
-    *   クラスや関数の引数、型、戻り値、例外などの仕様は、コード内の Google スタイル Docstring (Pydoc) および型ヒントのみに記述し、Markdownには絶対に重複記述しないでください。
+*   **API個別仕様 (What / How to Call) ➔ ソースコード内 (Docstring)**:
+    *   クラスや関数の引数、型、戻り値、例外などの仕様は、コード内の Google スタイル Docstring および型ヒントのみに記述し、Markdownには絶対に重複記述しないでください。
 *   **横断的システム制約 (How / System Rules) ➔ パッケージ内 [AGENTS.md](edd-agent-tools/src/edd_agent_tools/AGENTS.md)**:
     *   AIエージェントがコード生成時に遵守すべき厳密な制約は、パッケージ内蔵の `AGENTS.md` に一元管理（シングルソース）されています。
 *   **設計の背景・意図 (Why / Architecture) ➔ パッケージ内 `docs/`**:
     *   なぜその設計になっているのかという背景やダイアグラムは、パッケージ内の `docs/` 配下の Markdown 設計書にのみ集中配置します。
-
-詳細な規約ルール（Googleスタイル Docstring の記述規約など）については、システム規約の唯一の真実のソースである **[edd_agent_tools/AGENTS.md](edd-agent-tools/src/edd_agent_tools/AGENTS.md)** を必ず確認し、遵守してください。
