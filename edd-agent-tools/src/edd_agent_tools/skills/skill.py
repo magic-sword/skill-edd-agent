@@ -120,11 +120,6 @@ class Skill:
         """assets/ ディレクトリの絶対パス"""
         return os.path.join(self.root_dir, "assets")
 
-    @property
-    def source_code_dir(self) -> str:
-        """scripts ディレクトリへのエイリアス（後方互換用）"""
-        return self.scripts_dir
-
     def list_scripts(self) -> list[str]:
         """内包されている実行スクリプトの相対ファイル名リストを取得"""
         if not os.path.exists(self.scripts_dir):

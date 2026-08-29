@@ -65,7 +65,7 @@ class LocalWorkspaceEnv(gym.Env):
 
     @property
     def sandbox_dir(self) -> str | None:
-        """後方互換性のためのサンドボックスディレクトリのパスプロパティ。"""
+        """サンドボックスディレクトリの絶対パスプロパティ。"""
         return self.sandbox.sandbox_dir
 
     def reset(self, seed: int = None, options: Dict[str, Any] = None) -> Tuple[WorkspaceObservation, Dict[str, Any]]:

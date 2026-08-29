@@ -160,7 +160,7 @@ class GeminiRequest:
             except Exception as e:
                 print(f"Warning: Failed to load global rule (AGENTS.md): {e}")
 
-        # 4. グローバルルール (旧仕様: GEMINI.md)
+        # 4. グローバルルール (GEMINI.md)
         old_global_rule_path = os.path.expanduser("~/.gemini/GEMINI.md")
         if os.path.exists(old_global_rule_path):
             try:

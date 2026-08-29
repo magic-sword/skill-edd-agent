@@ -307,19 +307,18 @@ class SkillsState:
             return []
         return order
 
-    def get_skill(self, name: Optional[str] = None, skill_path: Optional[str] = None, design_path: Optional[str] = None, target_entry: Optional[str] = None) -> "Skill":
-        """指定された名前（name）、スキルパス（skill_path または旧 design_path）、または論理配置先（target_entry）から、メタデータ注入済みの Skill インスタンスを返します。
+    def get_skill(self, name: Optional[str] = None, skill_path: Optional[str] = None, target_entry: Optional[str] = None) -> "Skill":
+        """指定された名前（name）、スキルパス（skill_path）、または論理配置先（target_entry）から、メタデータ注入済みの Skill インスタンスを返します。
         
         Args:
             name: 取得したいスキルの論理名。
             skill_path: スキルディレクトリまたは SKILL.md のパス。
-            design_path: （後方互換用）旧設計パス。
             target_entry: 新規スキル開発時の優先的配置先エントリーの論理名（別名）。
             
         Raises:
             ValueError: 解決に必要なパラメータが不足しているか、物理的に見つからない場合。
         """
-        path_input = skill_path or design_path
+        path_input = skill_path
         if name is None and path_input is None:
             raise ValueError("エラー: name または skill_path のいずれかを指定する必要があります。")
 
@@ -389,7 +388,7 @@ class SkillsState:
             from edd_agent_tools.skills import Skill
             return Skill(root_dir=str(skill_dir), tier=int(SkillTier.SANDBOX))
 
-        raise ValueError(f"エラー: スキル '{target_name or name or design_path}' を物理的に解決できません。")
+        raise ValueError(f"エラー: スキル '{target_name or name or skill_path}' を物理的に解決できません。")
 
     def list_skills(self) -> list["Skill"]:
         """現在スキャンされたすべての有効なスキルおよびエージェントの Skill オブジェクトリストを返します。"""

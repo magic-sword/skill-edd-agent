@@ -56,7 +56,3 @@ def build_planning_prompt(prompt: str, existing_skills: list[dict]) -> list[type
     """
     builder = PromptBuilder()
     return builder.build_planning_prompt(prompt, existing_skills)
-
-
-# 後方互換用のエイリアス
-build_routing_prompt = build_planning_prompt

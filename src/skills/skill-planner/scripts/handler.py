@@ -12,7 +12,3 @@ def skill_planner(prompt: str) -> SkillPlannerOutput:
     """
     executor = SkillPlannerExecutor()
     return executor.plan_requirement(prompt=prompt)
-
-
-# 後方互換用の関数エイリアス
-developer_router = skill_planner
