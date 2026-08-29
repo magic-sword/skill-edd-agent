@@ -1,6 +1,8 @@
 ---
 name: trigger-test-executor
 description: "トリガー（インテント）評価テストを実行し、その結果を検証するワークフロー。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: trigger-test-executor
@@ -82,6 +84,3 @@ ${skill_name}(課題="〇〇を解決したい")
 
 ---
 
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

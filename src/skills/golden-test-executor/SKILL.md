@@ -1,6 +1,8 @@
 ---
 name: golden-test-executor
 description: "LocalWorkspaceEnv上でテスト対象スキルを実行し、得られたテキスト出力をゴールデンデータの期待値とLLM-as-Judgeを用いて意味的整合性でアサーション評価し、正解率スコアを算出します。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: golden-test-executor
@@ -75,6 +77,3 @@ ${skill_name}(`skill_name`, `eval_set_path`, `env`)
 
 ---
 
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

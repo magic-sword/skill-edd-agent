@@ -12,7 +12,7 @@ class ExpectedToolUse(BaseModel):
 class GoldenCase(BaseModel):
     eval_case_id: str = Field(..., description="テストケースの一意なID。例: case_normal_01")
     function_name: str = Field(..., description="呼び出す関数名。")
-    inputs: List[InputParameter] = Field(..., description="関数に引き渡す入力引数リスト。design.jsonで定義されている各引数を必ずこのリストに含めてください。")
+    inputs: list[InputParameter] = Field(..., description="関数に引き渡す入力引数リスト。SKILL.mdおよびスクリプトで定義されている引数をこのリストに含めてください。")
     expected_response_rubric: str = Field(..., description="出力が満たすべき意味的基準・チェックリストの説明。LLM-as-Judgeが合否を判定する際の基準文言になります。")
     expected_trajectory: Optional[List[ExpectedToolUse]] = Field(default_factory=list, description="ワークフロー評価時に比較・検証するツール呼び出し経路の期待値シーケンス。")
 

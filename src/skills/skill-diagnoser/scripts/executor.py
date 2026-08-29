@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any
 
 from edd_agent_tools.skills import SkillsState, Skill
 from edd_agent_tools.evaluation.models import EvalDetailReport
-from edd_agent_tools.gemini import GeminiClient
+from edd_agent_tools.gemini import client, GeminiRequest
 
 from .models import (
     DiagnoseSkillFailureOutput,
@@ -32,6 +32,7 @@ class SkillExecutor:
         self.test_type = test_type
         self._skills_state = SkillsState()
         self._prompter = DiagnosisPrompter()
+        self._client = client
 
     def execute(self) -> DiagnoseSkillFailureOutput:
         """診断処理を実行し、構造化された改善計画（ImprovementPlan）を返却します。"""
@@ -72,7 +73,7 @@ class SkillExecutor:
                     skill_name=self.skill_name,
                     test_type=resolved_test_type,
                     verdict="no_issues_found",
-                    target_layer=TargetLayer.LOGIC,
+                    target_layer=TargetLayer.SCRIPT,
                     failure_category=FailureCategory.LOGIC_EXCEPTION,
                     root_cause="すべてのテストケースが合格しており、修復すべき問題は検出されませんでした。",
                     recommended_action="追加の改善は不要です。Tier昇格または本番利用が可能です。"
@@ -83,12 +84,7 @@ class SkillExecutor:
                     plan=plan
                 )
 
-            # 3. 関連アセット（design.json, SKILL.md, ソースコード）の収集
-            design_content = ""
-            if os.path.isfile(skill_obj.design_path):
-                with open(skill_obj.design_path, "r", encoding="utf-8") as f:
-                    design_content = f.read()
-
+            # 3. 関連アセット（SKILL.md, scripts/, references/）の収集
             spec_content = ""
             if os.path.isfile(skill_obj.spec_path):
                 try:
@@ -97,8 +93,8 @@ class SkillExecutor:
                     pass
 
             source_files: Dict[str, str] = {}
-            if os.path.isdir(skill_obj.source_code_dir):
-                for py_file in glob.glob(os.path.join(skill_obj.source_code_dir, "**", "*.py"), recursive=True):
+            if os.path.isdir(skill_obj.scripts_dir):
+                for py_file in glob.glob(os.path.join(skill_obj.scripts_dir, "**", "*.py"), recursive=True):
                     rel_path = os.path.relpath(py_file, skill_obj.root_dir).replace("\\", "/")
                     try:
                         with open(py_file, "r", encoding="utf-8") as f:
@@ -111,21 +107,19 @@ class SkillExecutor:
                 skill_name=self.skill_name,
                 test_type=resolved_test_type,
                 report=report,
-                design_content=design_content,
+                design_content="",
                 spec_content=spec_content,
                 source_files=source_files
             )
 
             # 5. Gemini API の呼び出し
-            # 5. Gemini API の呼び出し
-            gemini_client = GeminiClient()
-            try:
-                from google.genai import types
-                config = types.GenerateContentConfig(response_mime_type="application/json")
-            except Exception:
-                config = None
-
-            response = gemini_client.generate_content(contents=prompt, config=config)
+            from google.genai import types
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2
+            )
+            req = GeminiRequest(prompt=prompt, client=self._client)
+            response = req.execute(config=config)
             raw_response = response.text if hasattr(response, "text") else str(response)
 
             # 6. レスポンスのパースと ImprovementPlan の構築
@@ -133,15 +127,15 @@ class SkillExecutor:
 
             # target_layer に応じたパッチデータのサニタイズ
             target_layer = plan_data.get("target_layer")
-            if target_layer == "logic":
-                plan_data["design_patch"] = None
+            if target_layer == "script":
+                plan_data["spec_patch"] = None
                 plan_data["test_case_patch"] = None
-            elif target_layer == "design":
-                plan_data["logic_patch"] = None
+            elif target_layer == "spec":
+                plan_data["script_patch"] = None
                 plan_data["test_case_patch"] = None
             elif target_layer == "test_case":
-                plan_data["design_patch"] = None
-                plan_data["logic_patch"] = None
+                plan_data["spec_patch"] = None
+                plan_data["script_patch"] = None
 
             improvement_plan = ImprovementPlan.model_validate(plan_data)
 
@@ -150,7 +144,6 @@ class SkillExecutor:
                 details=f"診断が完了しました。修正対象レイヤー: {improvement_plan.target_layer.value}, 原因: {improvement_plan.failure_category.value}",
                 plan=improvement_plan
             )
-
 
         except Exception as e:
             import traceback
@@ -167,7 +160,6 @@ class SkillExecutor:
         
         # ```json ... ``` または ``` ... ``` の除去
         if "```" in cleaned:
-            # 最初のコードブロックを抽出
             match = re.search(r"```(?:json)?\s*(.*?)\s*```", cleaned, re.DOTALL)
             if match:
                 cleaned = match.group(1).strip()
@@ -183,7 +175,5 @@ class SkillExecutor:
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
-            # 改行やエスケープ文字のクレンジング試行
             cleaned_escaped = re.sub(r'[\x00-\x1f\x7f-\x9f]', lambda m: ' ' if m.group(0) in '\n\r\t' else '', cleaned)
             return json.loads(cleaned_escaped)
-

@@ -1,6 +1,8 @@
 ---
 name: contract-test-generator
-description: "指定されたスキルのdesign.jsonに基づき、正常系および異常系の契約テストケースを自動生成し、EvalCaseSetフォーマット of JSONとしてファイルに書き出すスキル。"
+description: "指定されたスキルのSKILL.mdに基づき、正常系および異常系の契約テストケースを自動生成し、EvalCaseSetフォーマット of JSONとしてファイルに書き出すスキル。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: contract-test-generator
@@ -76,6 +78,3 @@ ${skill_name}(`skill_name`, `output_path`)
 
 ---
 
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

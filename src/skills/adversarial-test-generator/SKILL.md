@@ -1,6 +1,8 @@
 ---
 name: adversarial-test-generator
-description: "design.jsonおよびSKILL.mdをインプットとして、敵対的プロンプトや限界値テストケースを含むEvalCaseSetフォーマットのJSONを自動生成して保存するスキル。"
+description: "SKILL.mdをインプットとして、敵対的プロンプトや限界値テストケースを含むEvalCaseSetフォーマットのJSONを自動生成して保存するスキル。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: adversarial-test-generator
@@ -72,6 +74,3 @@ ${skill_name}(`skill_name`, `output_path`)
 
 ---
 
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

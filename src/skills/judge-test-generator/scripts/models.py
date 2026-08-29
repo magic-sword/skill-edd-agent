@@ -13,7 +13,7 @@ class RubricItem(BaseModel):
 class JudgeCase(BaseModel):
     eval_case_id: str = Field(..., description="テストケースの一意なID。例: case_judge_01")
     function_name: str = Field(..., description="呼び出す関数名。")
-    inputs: List[InputParameter] = Field(..., description="関数に引き渡す入力引数リスト。design.jsonで定義されている各引数を必ず含めてください。")
+    inputs: list[InputParameter] = Field(..., description="関数に引き渡す入力引数リスト。SKILL.mdおよびスクリプトで定義されている引数をこのリストに含めてください。")
     rubrics: List[RubricItem] = Field(..., description="このケースの出力が満たすべき多角的な評価ルーブリック項目リスト。")
 
 class JudgeCaseSet(BaseModel):

@@ -1,6 +1,8 @@
 ---
 name: contract-test-executor
 description: "指定されたスキルと評価セットパスに基づき、契約駆動のテストを実行し、その結果を返します。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: contract-test-executor
@@ -72,6 +74,3 @@ ${skill_name}(`skill_name`, `eval_set_path`, `env`)
 
 ---
 
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

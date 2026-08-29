@@ -1,6 +1,8 @@
 ---
 name: test-generator
 description: "指定されたスキルとテストタイプに基づき、対応するテスト生成スキルを動的にロードし、テストケースを生成してファイルに書き出すワークフロー。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: test-generator
@@ -72,6 +74,3 @@ ${skill_name}(課題="〇〇を解決したい")
 
 ---
 
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

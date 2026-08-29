@@ -1,6 +1,8 @@
 ---
 name: judge-test-executor
 description: "LocalWorkspaceEnv上でスキルを実行し、得られた出力を各テストケースの複数ルーブリック項目に沿って採点LLMで多角的に採点（0〜10点）し、合格判定をアサートするスキル。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: judge-test-executor
@@ -81,6 +83,3 @@ ${skill_name}(`skill_name`, `eval_set_path`, `env`)
 
 ---
 
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

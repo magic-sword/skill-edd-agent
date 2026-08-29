@@ -5,10 +5,11 @@ from enum import StrEnum
 
 class TargetLayer(StrEnum):
     """修正を適用すべきシステムの階層・レイヤー。"""
-    DESIGN = "design"          # assets/design.json の修正（トリガー説明文、入出力スキーマ）
-    LOGIC = "logic"            # scripts/nodes/*.py の実装ロジック修正
+    SPEC = "spec"              # SKILL.md の修正（トリガー説明文、意思決定ツリー、手順）
+    SCRIPT = "script"          # scripts/*.py の実装ロジック修正
+    REFERENCE = "reference"    # references/*.md のドキュメント修正
+    ASSET = "asset"            # assets/ のテンプレート修正
     TEST_CASE = "test_case"    # tests/*.evalset.json の不備・期待値修正
-    META_SKILL = "meta_skill"  # ジェネレータ（skill-coder等）側のテンプレート不備
 
 
 class FailureCategory(StrEnum):
@@ -21,31 +22,25 @@ class FailureCategory(StrEnum):
     TEST_EXPECTATION_BUG = "test_expectation_bug"    # テスト期待値側の誤り
 
 
-class DesignPatch(BaseModel):
-    """design.json に対する修正データモデル。"""
+class SpecPatch(BaseModel):
+    """SKILL.md に対する修正データモデル。"""
     model_config = {"extra": "ignore"}
-    patch_type: Literal["merge", "full_replace"] = Field(
-        "merge", description="修正の適用方式 ('merge' または 'full_replace')"
+    description_patch: str | None = Field(
+        None, description="更新後のスキル説明文（トリガー精度向上用）"
     )
-    description: str | None = Field(
-        None, description="更新後のスキル/関数の説明文（トリガー精度向上用）"
+    decision_tree_patch: list[dict[str, str]] | None = Field(
+        None, description="更新後の意思決定ツリー項目（condition, action）"
     )
-    parameters_patch: list[dict[str, Any]] | None = Field(
-        None, description="更新後の入力パラメータ定義"
-    )
-    response_parameters_patch: list[dict[str, Any]] | None = Field(
-        None, description="更新後の出力パラメータ定義"
-    )
-    response_type_patch: str | None = Field(
-        None, description="更新後の戻り値型"
+    instructions_patch: list[str] | None = Field(
+        None, description="更新後の手順指示"
     )
 
 
-class LogicPatchInstruction(BaseModel):
-    """scripts/nodes/*.py に対するコード修正指示モデル。"""
+class ScriptPatchInstruction(BaseModel):
+    """scripts/*.py に対するコード修正指示モデル。"""
     model_config = {"extra": "ignore"}
     target_file: str = Field(
-        "scripts/handler.py", description="修正対象ファイルの相対パス（例: scripts/nodes/my_node.py）"
+        "scripts/main.py", description="修正対象ファイルの相対パス（例: scripts/analyze.py）"
     )
     problematic_code_snippet: str | None = Field(
         None, description="問題のある既存コード箇所"
@@ -78,16 +73,15 @@ class ImprovementPlan(BaseModel):
     failure_category: FailureCategory = Field(..., description="失敗の原因カテゴリ")
     root_cause: str = Field(..., description="根本原因の分析詳細サマリー")
     recommended_action: str = Field(..., description="後続フェーズで実行すべき推奨アクション")
-    design_patch: DesignPatch | None = Field(
-        None, description="設計層（design.json）修正時の差分データ"
+    spec_patch: SpecPatch | None = Field(
+        None, description="仕様層（SKILL.md）修正時の差分データ"
     )
-    logic_patch: LogicPatchInstruction | None = Field(
-        None, description="ロジック層（nodes/*.py）修正時の指示データ"
+    script_patch: ScriptPatchInstruction | None = Field(
+        None, description="ロジック層（scripts/*.py）修正時の指示データ"
     )
     test_case_patch: TestCasePatch | None = Field(
         None, description="テストケース層修正時の指示データ"
     )
-
 
 
 class DiagnoseSkillFailureOutput(BaseModel):

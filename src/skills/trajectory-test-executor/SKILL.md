@@ -1,6 +1,8 @@
 ---
 name: trajectory-test-executor
 description: "LocalWorkspaceEnv上でテスト対象スキルを実行し、発生したツール呼び出し履歴（ツール名・引数・実行順序）をTrajectoryEvalSetの期待値と決定論的に比較アサートしてテスト結果（EvalRunResult）を返します。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: trajectory-test-executor
@@ -39,3 +41,4 @@ description: "LocalWorkspaceEnv上でテスト対象スキルを実行し、発�
 
 #### 出力仕様
 * **戻り値**: `EvalRunResult` (合格数、不合格数、精度スコア含む)
+

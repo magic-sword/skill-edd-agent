@@ -1,39 +1,49 @@
 ---
-name: "skill-diagnoser"
-description: "テスト実行結果レポートとスキル定義・ソースコードを分析し、失敗原因の診断と構造化された改善計画（ImprovementPlan）を出力するメタスキル。"
+name: skill-diagnoser
+description: "テスト失敗結果ログおよび SKILL.md、scripts/ 配下のコードを多角的に分析し、根本原因の特定と構造化された改善計画（ImprovementPlan）を自動策定する診断スキル。"
+license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
-# skill-diagnoser
+# Skill Diagnoser
 
-テスト実行結果レポートとスキル定義・ソースコードを分析し、失敗原因の診断と構造化された改善計画（ImprovementPlan）を出力するメタスキル。
+## Overview
 
-## 概要
+テストランナーが生成した `tests/results/latest_report.json`、仕様書（`SKILL.md`）、および `scripts/` 配下の Python コードを多角的に分析し、最小限の安全な修正でテストを合格させるための根本原因と `ImprovementPlan` を策定するワークフロー。
 
-本スキルは、自己改善型エージェント（Self-Improving Agent）における「診断・計画（Diagnosis & Planning）」フェーズを担うメタスキルです。
-テストランナーが生成した `tests/results/latest_report.json`、スキルの設計仕様（`design.json`）、仕様書（`SKILL.md`）、および `scripts/` 配下の Python コードを多角的に分析し、最小限の安全な修正でテストを合格させるための根本原因と `ImprovementPlan` を策定します。
+## Workflow Decision Tree
 
-## トリガー条件
+- **If** テスト結果レポートが存在し失敗ケースがある場合 ➔ **Then** `scripts/executor.py` を呼び出し、原因を分析して `ImprovementPlan` を出力する
+- **If** すべてのテストが合格している場合 ➔ **Then** `verdict="no_issues_found"` として追加改善をスキップする
 
-以下のような場面で呼び出されます：
-- 新規開発または既存スキルのテスト実行（`first-test-runner` や `test-executor` 等）で失敗・不合格（accuracy < threshold）が検知されたとき。
-- エージェントがスキルの自律的リファクタリングや改善方針を決定するとき。
+## Step-by-Step Instructions
 
-## 利用可能な関数 (Tools)
+### Step 1: テスト結果とスキルのロード *(Target: `scripts/executor.py`)*
 
-### `diagnose_skill_failure`
+失敗したテストレポート（`latest_report.json`）と、対象スキルの `SKILL.md` および `scripts/` コードを読み込む。
 
-テスト実行結果レポートとスキルの設計・コードを分析し、失敗の根本原因と構造化改善計画を出力します。
+### Step 2: 失敗原因の分析とレイヤー特定 *(Target: `scripts/executor.py`)*
 
-#### 入力パラメータ
-| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |
-| :--- | :--- | :--- | :--- | :--- |
-| `skill` | `str` | ✅ | - | 診断対象となるスキルの論理名。 |
-| `report_path` | `str` | ❌ | `None` | テスト結果レポート（JSON）の絶対パス。省略時は最新の `latest_report.json` を自動参照。 |
-| `test_type` | `str` | ❌ | `None` | 特定のテスト種別（`contract`, `trigger`, `judge`, `golden` 等）。省略時はレポート内の種別を使用。 |
+エラーメッセージ、スタックトレース、失敗ケースの入出力を精査し、修正すべきレイヤー（`spec`, `script`, `reference`, `asset`, `test_case`）と原因カテゴリを特定する。
 
-#### 出力パラメータ
-| パラメータ名 | 型 | 説明 |
-| :--- | :--- | :--- |
-| `status` | `str` | 診断処理の実行ステータス（`success` または `failed`）。 |
-| `details` | `str` | 診断結果サマリーまたはエラーメッセージ。 |
-| `plan` | `dict` | 策定された構造化改善計画（`ImprovementPlan`）。 |
+### Step 3: 改善計画（ImprovementPlan）の策定 *(Target: `scripts/executor.py`)*
+
+具体的な修正指示（コード差分、説明文更新、テスト期待値修正）を含む `ImprovementPlan` を構造化出力する。
+
+## Usage Scenarios & Trigger Examples
+
+- "pdf-tools スキルのテスト失敗原因を診断してください。"
+- "最新のテストレポートから改善計画を策定して。"
+
+## Bundled Resources
+
+### `scripts/` (Executable Tools)
+- **`scripts/executor.py`**: 診断分析の実行エンジン
+- **`scripts/prompter.py`**: 診断プロンプト構築モジュール
+- **`scripts/handler.py`**: エントリポイントハンドラ
+
+## Guidelines & Best Practices
+
+- 原因の特定は、テスト期待値の誤りなのか、実装コードのバグなのか、SKILL.mdの説明不足なのかを厳密に区別すること。
+- 必要最小限かつ安全な修正計画を提示すること。
+

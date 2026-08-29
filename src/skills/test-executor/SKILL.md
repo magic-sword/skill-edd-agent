@@ -1,83 +1,49 @@
 ---
 name: test-executor
-description: "ADK評価シミュレーションを実行し、指定されたスキルの動作を検証するワークフロー。"
+description: "ADK評価シミュレーションを実行し、指定されたスキルの動作検証と合否判定を行う評価実行スキル。"
+license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
-# スキル仕様書: test-executor
+# Test Executor
 
-## 概要
+## Overview
 
-ADK評価シミュレーションの実行、結果分析、合否判定を行う。
+ADK 評価シミュレーション（`LocalWorkspaceEnv`）を実行し、指定されたスキルのテストケース検証、精度計測、および合否判定を行う。
 
-### 主な機能
-* ADK評価シミュレーションの実行
-* 指定されたスキルの動作検証
-* 評価結果の分析とレポート
-* 設定された精度閾値に基づく合否判定
+## Workflow Decision Tree
 
-### 内部処理の流れ
-1. `execute_adk_simulation`関数が呼び出され、提供されたパラメータ（スキル名、評価セットパス、精度閾値など）で`SkillExecutor`インスタンスが初期化される。
-2. `SkillExecutor`は、指定されたスキル名に対応するスキルオブジェクトと評価オブジェクトをシステム状態から取得する。
-3. 評価設定ファイル（カスタムパスが指定されていればそれを使用し、なければ評価オブジェクトのデフォルト設定を準備）を読み込み、シミュレーションの最大ステップ数や初期プロンプトなどの設定値を取得する。
-4. `edd_agent_tools.evaluation.LocalWorkspaceEnv`環境を構築し、シミュレーション用にリセットする。
-5. 評価オブジェクトの`execute_simulation`メソッドを呼び出し、設定されたパラメータでADK評価シミュレーションを実行する。
-6. シミュレーション完了後、構築した`LocalWorkspaceEnv`環境をクローズする。
-7. シミュレーション結果（`EvalRunResult`）を処理し、実際の精度と設定された精度閾値に基づいて合否を判断する。
-8. 最終的なステータス（'success'または'failed'）、詳細メッセージ、および測定されたスコアを含む`ExecuteAdkSimulationOutput`オブジェクトを生成し、返却する。
-9. 実行中にファイルが見つからない、無効なパラメータ、その他の予期せぬエラーが発生した場合は、適切なエラーメッセージとともに`failed`ステータスで`ExecuteAdkSimulationOutput`を返却する。
+- **If** 対象スキル名と評価セットファイルが指定された場合 ➔ **Then** `scripts/executor.py` を呼び出し、シミュレーションを実行して結果レポートを出力する
 
+## Step-by-Step Instructions
 
----
+### Step 1: 環境のセットアップ *(Target: `scripts/executor.py`)*
 
-## トリガー条件
+評価対象スキルのリソースを取得し、テスト用の `LocalWorkspaceEnv` を構築する。
 
-このスキルは、以下の条件やプロンプトでトリガーされます。
+### Step 2: 評価シミュレーションの実行 *(Target: `scripts/executor.py`)*
 
-- 「[スキル名]のADK評価シミュレーションを実行して」
-- 「[評価ファイルパス]を使って[スキル名]の動作を検証して」
-- 「精度[閾値]で[スキル名]の評価シミュレーションを行って、結果を教えて」
-- 「[スキル名]の評価を、カスタム設定ファイル[設定ファイルパス]で実行して」
+テストケース（`*.evalset.json`）を順次実行し、エージェントの推論経路およびツール呼び出し結果を計測する。
 
----
+### Step 3: 結果の判定とレポート保存 *(Target: `scripts/executor.py`)*
 
-## 公開関数
+計測された精度と閾値を比較して合否を判定し、`tests/results/latest_report.json` に詳細ログを保存する。
 
-### execute_adk_simulation
+## Usage Scenarios & Trigger Examples
 
-ADK評価シミュレーションを実行し、指定されたスキルの動作を検証します。
+- "pdf-tools スキルのテストシミュレーションを実行して結果を教えて。"
+- "unit.evalset.json を使って my-skill の動作を検証してください。"
 
-#### 実行方法
-${skill_name} は、与えられたパラメータに基づいて特定のタスクを**決定論的に実行**するツールです。LLMが推論を挟まず、直接このツールを呼び出して指示通りの操作を行います。
+## Bundled Resources
 
-利用例：
-${skill_name}(`skill`, `eval_set_path`)
+### `scripts/` (Executable Tools)
+- **`scripts/executor.py`**: ADK シミュレーション実行エンジン
+- **`scripts/handler.py`**: エントリポイントハンドラ
 
-#### 入力パラメータ
-| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |
-|---|---|---|---|---|
-| skill | str | はい | - | 評価対象スキルの名前。 |
-| eval_set_path | str | はい | - | 評価用のテストケースファイル (*.evalset.json) のパス。 |
-| threshold_accuracy | float | いいえ | `1.0` | 評価が合格するために必要な最小精度。 *(制約: 最小値: 0.0, 最大値: 1.0)* |
-| timeout_seconds | int | いいえ | `180` | 評価タイムアウト秒数。 |
-| config_file_path | str | いいえ | - | 評価設定ファイルのカスタムパス。 |
+### `assets/` (Output Templates & Boilerplates)
+- **`assets/default_eval_config.json`**: デフォルト評価設定ファイル
 
+## Guidelines & Best Practices
 
-#### 出力仕様
-* **出力モード**: `STRUCTURED_JSON`
+- 実行前にテストケースファイル（`*.evalset.json`）が有効な JSON 形式であることを確認すること。
 
-| パラメータ名 | 型 | 必須 | 説明 |
-|---|---|---|---|
-| status | Literal['success', 'failed'] | はい | 検証または評価の結果ステータス。'success' または 'failed'。 |
-| details | str | はい | 検証/評価の実行結果詳細、不足事項やフィードバック、またはエラーメッセージ。 |
-| score | float | いいえ | 検証/評価のスコア（0.0〜1.0）。 *(制約: 最小値: 0.0, 最大値: 1.0)* |
-
-
----
-
-
-
----
-
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

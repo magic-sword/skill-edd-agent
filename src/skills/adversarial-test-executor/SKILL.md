@@ -1,6 +1,8 @@
 ---
 name: adversarial-test-executor
 description: "指定されたスキルに対し敵対的・限界テストケース(EvalCaseSet)を実行し、結果(EvalRunResult)を返します。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: adversarial-test-executor
@@ -70,6 +72,3 @@ ${skill_name}(`skill_name`, `eval_set_path`, `env`)
 
 ---
 
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

@@ -1,6 +1,8 @@
 ---
 name: trajectory-test-generator
-description: "design.jsonおよびSKILL.mdをインプットとして、ユーザー発話、中間ツール呼び出し期待値（tool_uses）、および期待される最終応答を保持するTrajectoryEvalSetフォーマットのテストケースJSONを生成するスキル。"
+description: "SKILL.mdをインプットとして、ユーザー発話、中間ツール呼び出し期待値（tool_uses）、および期待される最終応答を保持するTrajectoryEvalSetフォーマットのテストケースJSONを生成するスキル。"
+pattern: workflow
+license: Complete terms in LICENSE.txt
 ---
 
 # スキル仕様書: trajectory-test-generator
@@ -37,3 +39,4 @@ description: "design.jsonおよびSKILL.mdをインプットとして、ユー�
 
 #### 出力仕様
 * **戻り値**: `bool` (成功時: `True`, 失敗時: `False`)
+

@@ -1,82 +1,47 @@
 ---
 name: skill-planner
-description: "要件プロンプトを分析し、新規作成（単体/ワークフロー）、既存更新（単体/ワークフロー）、または事前提案へ分類して計画立案するスキル。"
+description: "要件プロンプトを分析し、最適な開発ルート（新規作成、既存更新、事前提案）と推奨構成を特定して計画立案するスキル。"
+license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
-# スキル仕様書: skill-planner
+# Skill Planner
 
-## 概要
+## Overview
 
-要件プロンプトを分析し、新規作成（単体/ワークフロー）、既存更新（単体/ワークフロー）、または事前提案へ分類して計画立案するスキル。
+ユーザーの要件プロンプトを分析し、既存のスキル資産を照合した上で、新規スキルの作成、既存スキルの改修、または複合ワークフローの構築計画を立案する。
 
-### 主な機能
-* ユーザーの要件プロンプトを分析し、開発の目的を理解する
-* 新規単体スキルまたは新規ワークフローの作成計画を立案する
-* 既存の単体スキルまたはワークフローの更新計画を立案する
-* 将来的に必要となる可能性のある事前開発スキルを提案する
-* 開発ルート（新規作成、既存更新、事前提案）を特定する
-* 更新対象となる既存スキルまたはワークフローを特定する
-* ワークフローの場合に推奨される既存スキル間の依存関係を提示する
-* 計画決定の根拠となる分析理由を提供する
+## Workflow Decision Tree
 
-### 内部処理の流れ
-1. システムに登録されている既存のスキル一覧をロードし、その名前と説明を収集する。
-2. ユーザーから提供された要件プロンプトと収集した既存スキル情報に基づき、Gemini APIへ送信する計画立案プロンプトを構築する。
-3. 構築したプロンプトと、期待される出力形式（SkillPlannerOutputスキーマ）を指定してGemini APIを呼び出し、要件の分析と最適な開発ルートの判定を依頼する。
-4. Gemini APIからのJSONレスポンスをパースし、判定された開発ルート、対象スキル、分析理由、推奨される依存関係、および提案スキルを含むSkillPlannerOutputオブジェクトとして結果を返却する。
+- **If** 要件プロンプトが提供された場合 ➔ **Then** `scripts/executor.py` を呼び出し、最適な開発ルートと構成計画を策定する
 
+## Step-by-Step Instructions
 
----
+### Step 1: 既存スキル資産の収集 *(Target: `scripts/executor.py`)*
 
-## トリガー条件
+`SkillsState` を通じて登録されている既存スキルの一覧とメタデータをロードする。
 
-このスキルは、以下の条件やプロンプトでトリガーされます。
+### Step 2: 要件の分析とルート判定 *(Target: `scripts/executor.py`)*
 
-- 新しいスキルを開発したい
-- 既存のスキルを修正したい
-- 〇〇という機能を持つスキルを作ってほしい
-- 〇〇のスキルを更新したい
-- 〇〇のワークフローを構築したい
-- この要件を満たすための計画を立てて
+ユーザー要件と既存スキルを照合し、`create_skill`, `update_skill`, `create_workflow`, `update_workflow`, `proposal` のいずれかのルートを判定する。
 
----
+### Step 3: 計画の構造化出力 *(Target: `scripts/executor.py`)*
 
-## 公開関数
+分析根拠、対象スキル、依存関係、および事前開発提案を含む計画オブジェクトを出力する。
 
-### skill_planner
+## Usage Scenarios & Trigger Examples
 
-要件プロンプトを分析し、開発ルートおよび対象スキルを特定して計画立案する。
+- "新しいスキル開発の計画を立ててください。"
+- "PDF結合機能を既存スキルに追加したいので分析して。"
 
-#### 実行方法
-${skill_name} は、与えられたパラメータに基づいて特定のタスクを**決定論的に実行**するツールです。LLMが推論を挟まず、直接このツールを呼び出して指示通りの操作を行います。
+## Bundled Resources
 
-利用例：
-${skill_name}(`prompt`)
+### `scripts/` (Executable Tools)
+- **`scripts/executor.py`**: 計画立案の実行エンジン
+- **`scripts/prompter.py`**: プロンプト構築モジュール
+- **`scripts/handler.py`**: エントリポイントハンドラ
 
-#### 入力パラメータ
-| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |
-|---|---|---|---|---|
-| prompt | str | はい | - | 開発したい機能の要件プロンプト。 |
+## Guidelines & Best Practices
 
+- 既存スキルの重複作成を避け、可能な限り既存アセットの再利用・拡張を提案すること。
 
-#### 出力仕様
-* **出力モード**: `STRUCTURED_JSON`
-
-| パラメータ名 | 型 | 必須 | 説明 |
-|---|---|---|---|
-| route | Literal['create_skill', 'create_workflow', 'update_skill', 'update_workflow', 'proposal'] | はい | 判定されたルート（'create_skill', 'create_workflow', 'update_skill', 'update_workflow', 'proposal'）。 |
-| target_skill | str | いいえ | update_skill または update_workflow の場合に指定される更新対象の既存スキル名。 |
-| rationale | str | はい | そのルートに決定した分析理由。 |
-| recommended_dependencies | list[str] | はい | ワークフローの場合に推奨される既存スキル名のリスト。 |
-| proposed_skill | dict | いいえ | proposal と判定された場合に提案される、事前に開発しておくべき単体スキルの情報（name, description）。 |
-
-
----
-
-
-
----
-
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

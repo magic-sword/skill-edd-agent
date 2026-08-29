@@ -1,79 +1,49 @@
 ---
 name: trigger-test-generator
-description: "指定されたスキルのSKILL.md仕様書を基に、仕様の静的チェックを行い、合格した場合はインテント評価用のテストケースを自動生成してファイルに書き出すワークフロー。"
+description: "対象スキルの SKILL.md 仕様を分析し、インテント判定評価用（正例・負例プロンプト）のテストケースセットを自動生成して書き出すスキル。"
+license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
-# スキル仕様書: trigger-test-generator
+# Trigger Test Generator
 
-## 概要
+## Overview
 
-SKILL.mdをロードし、LLMで仕様の明確性を評価。合格の場合、LLMでインテント評価用テストケースを生成し、指定パスにJSONとして保存。
+対象スキルの `SKILL.md`（仕様書）を分析し、仕様の明確性チェックを行った上で、エージェントのトリガー精度評価用テストケース（正例・負例プロンプト集）を自動生成し、`[skill_name]_trigger.evalset.json` として書き出すワークフロー。
 
-### 主な機能
-* 指定されたスキルのSKILL.md仕様書をロードする。
-* LLMを用いてSKILL.md仕様書の明確性・特定性を評価する。
-* 評価が合格した場合、LLMを用いてインテント評価用のテストケース（正例・負例プロンプト）を自動生成する。
-* 生成されたテストケースをEvalCaseSetフォーマットのJSONファイルとして指定されたパスに保存する。
+## Workflow Decision Tree
 
-### 内部処理の流れ
-1. ユーザーから指定された`skill_name`と`output_path`を受け取る。
-2. 指定された`skill_name`に対応するSKILL.mdファイルをスキルアセットディレクトリからロードする。
-3. ロードしたSKILL.mdの内容を基に、LLM（大規模言語モデル）を使用して仕様の明確性および特定性を評価する。
-4. LLMによる仕様評価の結果が不合格であった場合、テストケースの生成を中止し、失敗を報告する。
-5. LLMによる仕様評価の結果が合格であった場合、SKILL.mdの内容を基に、LLMを使用してインテント評価用のテストケース（正例プロンプトと負例プロンプト）を自動生成する。
-6. 生成されたテストケースを、edd-agent-toolsのEvalCaseSetフォーマットに準拠したJSON形式で、指定された`output_path`に書き出す。
-7. テストケースの生成と保存が成功したことを報告する。
+- **If** 対象スキル名と出力先パスが指定された場合 ➔ **Then** `scripts/executor.py` を呼び出し、トリガー評価テストケースを生成してファイルへ出力する
 
+## Step-by-Step Instructions
 
----
+### Step 1: 仕様のロードと明確性検証 *(Target: `scripts/executor.py`)*
 
-## トリガー条件
+対象スキルの `SKILL.md` をロードし、トリガー条件や説明文が十分に明確かつ具体的であるかを検証する。
 
-このスキルは、以下の条件やプロンプトでトリガーされます。
+### Step 2: 正例・負例プロンプトの生成 *(Target: `scripts/executor.py`)*
 
-- 「`{skill_name}`スキルのトリガーテストケースを生成して、`{output_path}`に保存してください。」
-- 「新しいスキル`{skill_name}`のインテント評価用テストケースを自動生成して、`{output_path}`に出力してほしい。」
-- 「SKILL.mdを基に、`{skill_name}`のテストケースを作成し、`{output_path}`に書き出してください。」
+対象スキルが起動すべきプロンプト（Positive cases）と、類似しているが起動すべきでないプロンプト（Negative cases）のペアを構造化生成する。
 
----
+### Step 3: ファイル書き出し *(Target: `scripts/executor.py`)*
 
-## 公開関数
+生成された評価セットを `TrajectoryEvalSet` 準拠の JSON 形式で指定された `output_path` に書き出す。
 
-### generate_trigger_tests
+## Usage Scenarios & Trigger Examples
 
-指定されたスキルのSKILL.md仕様書を基に、仕様の静的チェックを行い、合格した場合はインテント評価用のテストケースを自動生成してファイルに書き出すワークフローを実行します。
+- "pdf-tools スキルのトリガーテストケースを生成してください。"
+- "my-skill の仕様書から trigger.evalset.json を作成して。"
 
-#### 実行方法
-${skill_name} は、内部でLLMが自律的な**思考と推論**を行い、複雑なタスクを解決するエージェントです。このエージェントを呼び出す際は、解決したい課題を具体的に指示してください。
+## Bundled Resources
 
-利用例：
-${skill_name}(課題="〇〇を解決したい")
+### `scripts/` (Executable Tools)
+- **`scripts/executor.py`**: トリガーテスト生成の実行エンジン
+- **`scripts/skill_spec_loader.py`**: SKILL.md 仕様ロードモジュール
+- **`scripts/llm_evaluator.py`**: 仕様評価およびプロンプト生成モジュール
+- **`scripts/test_case_writer.py`**: テストケースファイル出力モジュール
 
-#### 入力パラメータ
-| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |
-|---|---|---|---|---|
-| skill_name | str | はい | - | テストケースを生成する対象スキルの名前。 |
-| output_path | str | はい | - | 生成されたテストケースを保存するファイルのパス（EvalCaseSetフォーマットのJSON）。 |
+## Guidelines & Best Practices
 
+- 負例プロンプト（Negative cases）は、他のスキルとの境界を正確にテストできるように難易度の高いケースを含めること。
+- 生成されたテストセットは `trigger-test-executor` で評価実行できること。
 
-#### 出力仕様
-* **出力モード**: `STRUCTURED_JSON`
-
-| パラメータ名 | 型 | 必須 | 説明 |
-|---|---|---|---|
-| success | bool | はい | テストケースの生成と保存が成功したかどうか。 |
-
-
----
-
-### 制約事項
-
-- 指定されたskill_nameに対応するSKILL.mdファイルがスキルアセットディレクトリに存在すること。
-- Gemini APIへのアクセス権限が設定されていること。
-- output_pathは書き込み可能なパスであること。
-
----
-
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

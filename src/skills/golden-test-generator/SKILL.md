@@ -1,74 +1,51 @@
 ---
 name: golden-test-generator
-description: "design.jsonおよびSKILL.mdをインプットとして、多様なユースケース入力値と、期待される正解（意味的ゴールデンアウトプット）のペアをLLMで自動生成し、[skill_name]_golden.evalset.jsonとして書き出すワークフロー。"
+description: "対象スキルの SKILL.md およびスクリプト仕様を分析し、意味的ゴールデンアウトプット評価用のテストケースセットを自動生成して書き出すスキル。"
+license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
-# スキル仕様書: golden-test-generator
+# Golden Test Generator
 
-## 概要
+## Overview
 
-design.jsonおよびSKILL.mdをインプットとして、多様なユースケース入力値と、期待される正解（意味的ゴールデンアウトプット）のペアをLLMで自動生成し、[skill_name]_golden.evalset.jsonとして書き出すワークフロー。
+対象スキルの `SKILL.md`（仕様書）および実装スクリプトを分析し、多様なユースケース入力値と、期待される正解（意味的ゴールデンアウトプット）のペアをLLMで自動生成し、`[skill_name]_golden.evalset.json` として書き出すワークフロー。
 
-### 主な機能
-* 指定されたスキルのdesign.jsonとSKILL.mdを分析し、そのスキルに対するゴールデンテストケースを自動生成します。
-* LLM（大規模言語モデル）を活用して、多様なユースケース入力値と期待される正解（意味的ゴールデンアウトプット）のペアを生成します。
-* 生成されたゴールデンテストケースを、指定されたパスにJSON形式（例: [skill_name]_golden.evalset.json）で書き出します。
-* Pydanticモデルに基づいた構造化されたJSON形式でテストケースを出力し、データの整合性を保証します。
+## Workflow Decision Tree
 
-### 内部処理の流れ
-1. 指定されたスキル名に基づき、`SkillsState`から対象スキルの`design.json`および`SKILL.md`のファイルパスを解決します。
-2. 解決したパスから`design.json`と`SKILL.md`の内容を読み込みます。
-3. `Prompter`を使用して、読み込んだ`design.json`と`SKILL.md`の内容を基に、ゴールデンテスト生成用のLLMプロンプトを構築します。
-4. `GeminiClient`を介して、構築したプロンプトと`GoldenCaseSet` PydanticスキーマをLLMに送信し、構造化されたJSON形式のゴールデンテストケースを取得します。
-5. LLMから返却されたJSON文字列を`GoldenCaseSet`モデルでバリデーションします。
-6. バリデーションされたゴールデンテストデータを、指定された`output_path`にJSON形式で書き出します。
+- **If** 対象スキル名と出力先パスが指定された場合 ➔ **Then** `scripts/executor.py` を呼び出し、ゴールデンテストケースを生成してファイルへ出力する
 
+## Step-by-Step Instructions
 
----
+### Step 1: 仕様のロードと解析 *(Target: `scripts/executor.py`)*
 
-## トリガー条件
+対象スキルの `SKILL.md` および `scripts/` リソースを `SkillsState` 経由で取得し、入力パラメータと期待される挙動を解析する。
 
-このスキルは、以下の条件やプロンプトでトリガーされます。
+### Step 2: ゴールデンケースの生成 *(Target: `scripts/executor.py`)*
 
-- 「[スキル名]のゴールデンテストケースを生成してほしい」
-- 「[スキル名]の評価セットを[出力パス]に作成して」
-- 「新しいスキル[スキル名]のテストデータを自動で生成したい」
-- 「既存のスキル[スキル名]のテストケースを更新したいので、[出力パス]に書き出して」
+正常系、境界値・エッジケース、例外系を含むテスト入力値と期待される出力ルーブリックを構造化生成する。
 
----
+### Step 3: ファイル書き出し *(Target: `scripts/executor.py`)*
 
-## 公開関数
+生成された評価セットを JSON 形式で指定された `output_path` に書き出す。
 
-### generate_tests
+## Usage Scenarios & Trigger Examples
 
-指定されたスキルのdesign.jsonおよびSKILL.mdを分析し、ゴールデンテストケースを生成して指定されたパスに書き出します。
+- "pdf-tools スキルのゴールデンテストケースを生成してください。"
+- "my-skill の仕様書から golden.evalset.json を作成して。"
 
-#### 実行方法
-${skill_name} は、与えられたパラメータに基づいて特定のタスクを**決定論的に実行**するツールです。LLMが推論を挟まず、直接このツールを呼び出して指示通りの操作を行います。
+## Bundled Resources
 
-利用例：
-${skill_name}(`skill_name`, `output_path`)
+### `scripts/` (Executable Tools)
+- **`scripts/executor.py`**: ゴールデンテスト生成の実行エンジン
+- **`scripts/prompter.py`**: プロンプト構築モジュール
+- **`scripts/handler.py`**: エントリポイントハンドラ
 
-#### 入力パラメータ
-| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |
-|---|---|---|---|---|
-| skill_name | str | はい | - | テストケースを生成する対象スキルの名前。 |
-| output_path | str | はい | - | 生成されたゴールデンテストファイルを保存する絶対パス。 |
+### `assets/` (Output Templates & Boilerplates)
+- **`assets/prompts/generate_golden_cases.txt`**: LLM生成プロンプトテンプレート
 
+## Guidelines & Best Practices
 
-#### 出力仕様
-* **出力モード**: `VALUE_ONLY` (プレーンテキスト（値のみ）)
-* **戻り値の型**: `bool`
+- 必ず対象スキルの `SKILL.md` が最新の状態であることを確認してから実行すること。
+- 生成されたテストケースは `golden-test-executor` で検証可能であること。
 
-スキル実行結果を示す単一のテキストメッセージが返されます。
-
-
----
-
-
-
----
-
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。
