@@ -248,49 +248,55 @@ class SkillsState:
             if visited[name] == 0:
                 dfs(name)
 
-    def get_skill(self, name: Optional[str] = None, design_path: Optional[str] = None, target_entry: Optional[str] = None) -> "Skill":
-        """指定された名前（name）、設計ファイルパス（design_path）、または論理配置先（target_entry）から、メタデータ注入済みの Skill インスタンスを返します。
+    def get_skill(self, name: Optional[str] = None, skill_path: Optional[str] = None, design_path: Optional[str] = None, target_entry: Optional[str] = None) -> "Skill":
+        """指定された名前（name）、スキルパス（skill_path または旧 design_path）、または論理配置先（target_entry）から、メタデータ注入済みの Skill インスタンスを返します。
         
         Args:
             name: 取得したいスキルの論理名。
-            design_path: 設計ファイル (design.json) またはその親ディレクトリのパス。
+            skill_path: スキルディレクトリまたは SKILL.md のパス。
+            design_path: （後方互換用）旧設計パス。
             target_entry: 新規スキル開発時の優先的配置先エントリーの論理名（別名）。
             
         Raises:
             ValueError: 解決に必要なパラメータが不足しているか、物理的に見つからない場合。
         """
-        if name is None and design_path is None:
-            raise ValueError("エラー: name または design_path のいずれかを指定する必要があります。")
+        path_input = skill_path or design_path
+        if name is None and path_input is None:
+            raise ValueError("エラー: name または skill_path のいずれかを指定する必要があります。")
 
         target_name = name
         skill_dir = None
 
-        if design_path:
-            # 1. design_path から物理ディレクトリと論理名を解決
-            from .models import SkillDesign
-            design_abs_path = Path(design_path).resolve()
-            if design_abs_path.name == "design.json":
-                if design_abs_path.parent.name == "assets":
-                    skill_dir = design_abs_path.parent.parent
+        if path_input:
+            # 1. パスから物理ディレクトリと論理名を解決
+            p_abs = Path(path_input).resolve()
+            if p_abs.is_file():
+                if p_abs.name == "SKILL.md":
+                    skill_dir = p_abs.parent
+                elif p_abs.name == "design.json":
+                    skill_dir = p_abs.parent.parent if p_abs.parent.name == "assets" else p_abs.parent
                 else:
-                    skill_dir = design_abs_path.parent
-            elif design_abs_path.name == "assets":
-                skill_dir = design_abs_path.parent
+                    skill_dir = p_abs.parent
             else:
-                skill_dir = design_abs_path
+                if p_abs.name == "assets":
+                    skill_dir = p_abs.parent
+                else:
+                    skill_dir = p_abs
                 
-            try:
-                design = SkillDesign.load_from_file(str(skill_dir / "assets" / "design.json"))
-                target_name = design.name
-            except Exception:
-                pass
+            skill_md = skill_dir / "SKILL.md"
+            if skill_md.exists():
+                extracted = self._extract_skill_name(skill_md)
+                if extracted:
+                    target_name = extracted
+            if not target_name:
+                target_name = skill_dir.name
 
         # 2. スキャン結果から探索
         discovered = self.scan_skills()
         if target_name and target_name in discovered:
             return discovered[target_name]
 
-        # 3. スキャン対象外だが、design_path から直接解決された場合 (スタンドアロン読み込み / 新規作成フォールバック)
+        # 3. スキャン対象外だが、パスから直接解決された場合 (スタンドアロン読み込み / 新規作成フォールバック)
         if skill_dir:
             from edd_agent_tools.skills import Skill
             tier = SkillTier.SANDBOX

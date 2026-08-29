@@ -5,282 +5,262 @@ import datetime
 import types
 import inspect
 import importlib.util
-from typing import Literal, Any
+from pathlib import Path
+from typing import Literal, Any, Optional
 
 from google.adk.tools import FunctionTool
-from .models import SkillDesign, ModuleType, SkillMetadata
+from .models import SkillSpec, SkillPattern, ModuleType, SkillMetadata
 from edd_agent_tools.evaluation import SimulationEval
 
 class Skill:
-    """特定のスキルパッケージ全体のモデル（フォルダ構造、アセット、動的ロード、ツール化など）を表現・管理するドメインクラス。
+    """Markdown-First & Progressive Disclosure に準拠したスキルパッケージ管理ドメインクラス。
+    
+    SKILL.md を単一真実源（Single Source of Truth）とし、
+    3層リソース（scripts, references, assets）およびテスト環境（tests）を型安全にカプセル化します。
 
     Examples:
         >>> from edd_agent_tools.skills import SkillsState
         >>> state = SkillsState()
-        >>> skill = state.get_skill("skill-spec-writer")  # doctest: +SKIP
+        >>> skill = state.get_skill("sample-skill")  # doctest: +SKIP
         >>> skill.name  # doctest: +SKIP
-        'skill-spec-writer'
-
-        >>> # 主要パスへのアクセス
-        >>> design_path = skill.design_path  # doctest: +SKIP
-        >>> source_code_dir = skill.source_code_dir  # doctest: +SKIP
-
-        >>> # アセットファイル（プロンプト等）の安全ロード
-        >>> prompt_content = skill.load_asset("prompt.txt")  # doctest: +SKIP
+        'sample-skill'
+        >>> skill.spec.description  # doctest: +SKIP
+        'This skill should be used when...'
     """
-    def __init__(self, root_dir: str, tier: int = 0, last_tested: str | None = None):
-        self.root_dir = os.path.abspath(root_dir)
+    def __init__(self, root_dir: str | Path, tier: int = 0, last_tested: str | None = None):
+        self.root_dir = os.path.abspath(str(root_dir))
         self._tier = tier
         self._last_tested = last_tested
-        self._metadata = None
+        self._spec: Optional[SkillSpec] = None
+        self._metadata: Optional[SkillMetadata] = None
 
     def set_tier(self, tier: int):
-        """このスキルの Tier を設定し、テスト時間を更新します。
-
-        Args:
-            tier: 設定する Tier 値（0〜3）。
-
-        Raises:
-            ValueError: Tier が 0〜3 の範囲外の場合。
-        """
+        """このスキルの Tier を設定し、テスト時刻を更新します。"""
         if tier not in [0, 1, 2, 3]:
             raise ValueError("Error: Tier must be 0, 1, 2, or 3.")
         self._tier = tier
         self._last_tested = datetime.datetime.now().isoformat() + "Z"
-        self._metadata = None  # キャッシュクリア
-
-    @property
-    def metadata(self) -> "SkillMetadata":
-        """型安全な SkillMetadata インスタンスをロードして返します。
-
-        レジストリ JSON の登録情報と design.json の設計情報を統合します。
-
-        Returns:
-            統合された型安全な SkillMetadata。
-        """
-        if self._metadata is None:
-            # 1. design.json から設計データをロード
-            try:
-                design = self.load_design()
-                module_type = design.module_type
-                execution_type = design.execution_type
-                description = design.description
-                dependencies = design.dependencies
-            except Exception:
-                # 物理配置または design.json の構造からワークフローを自動検出
-                has_workflow_indicator = False
-                try:
-                    if os.path.exists(self.design_path):
-                        with open(self.design_path, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                            if "edges" in data or "agents" in data:
-                                has_workflow_indicator = True
-                except Exception:
-                    pass
-
-                if "src/workflows" in self.root_dir or "/workflows/" in self.root_dir or has_workflow_indicator:
-                    module_type = ModuleType.WORKFLOW
-                else:
-                    module_type = ModuleType.SKILL
-
-                execution_type = "tool"
-                description = ""
-                dependencies = []
-
-            # 2. 統合
-            self._metadata = SkillMetadata(
-                name=self.name,
-                tier=self._tier,
-                last_tested=self._last_tested,
-                module_type=module_type,
-                execution_type=execution_type,
-                description=description,
-                dependencies=dependencies
-            )
-        return self._metadata
-
-    @property
-    def name(self) -> str:
-        try:
-            return SkillDesign.load_from_file(self.design_path).name
-        except Exception:
-            return os.path.basename(self.root_dir)
-
-    @property
-    def design_path(self) -> str:
-        """design.json の絶対パス"""
-        return os.path.join(self.root_dir, "assets", "design.json")
-
-    @property
-    def source_code_dir(self) -> str:
-        """scripts の絶対パス"""
-        return os.path.join(self.root_dir, "scripts")
+        self._metadata = None
 
     @property
     def spec_path(self) -> str:
         """SKILL.md の絶対パス"""
         return os.path.join(self.root_dir, "SKILL.md")
 
-    def load_design(self) -> SkillDesign:
-        return SkillDesign.load_from_file(self.design_path)
+    @property
+    def spec(self) -> SkillSpec:
+        """SKILL.md をパースした SkillSpec インスタンスを取得（キャッシュ付き）"""
+        if self._spec is None:
+            if not os.path.exists(self.spec_path):
+                # フォールバック用仮スペック
+                from .models import SkillFrontmatter
+                self._spec = SkillSpec(
+                    frontmatter=SkillFrontmatter(name=os.path.basename(self.root_dir), description=""),
+                    title=os.path.basename(self.root_dir),
+                    overview="",
+                    body=""
+                )
+            else:
+                self._spec = SkillSpec.load_from_file(self.spec_path)
+        return self._spec
 
     @property
-    def tests(self) -> "SkillTests":
-        """このスキルのテスト定義（evalsets, fixtures）および実行結果ログ（results）を管理する SkillTests インスタンスを返します。"""
-        from .tests import SkillTests
-        return SkillTests(self.root_dir)
+    def name(self) -> str:
+        """スキル名"""
+        try:
+            return self.spec.name
+        except Exception:
+            return os.path.basename(self.root_dir)
 
+    @property
+    def description(self) -> str:
+        """スキルの説明（Frontmatter の description）"""
+        try:
+            return self.spec.description
+        except Exception:
+            return ""
+
+    @property
+    def pattern(self) -> SkillPattern:
+        """スキルパターン"""
+        try:
+            return self.spec.pattern
+        except Exception:
+            return SkillPattern.WORKFLOW
+
+    # ==========================================
+    # 3層リソース ディレクトリ・ファイルアクセス
+    # ==========================================
+
+    @property
+    def scripts_dir(self) -> str:
+        """scripts/ ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "scripts")
+
+    @property
+    def references_dir(self) -> str:
+        """references/ ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "references")
+
+    @property
+    def assets_dir(self) -> str:
+        """assets/ ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "assets")
+
+    @property
+    def source_code_dir(self) -> str:
+        """scripts ディレクトリへのエイリアス（後方互換用）"""
+        return self.scripts_dir
+
+    def list_scripts(self) -> list[str]:
+        """内包されている実行スクリプトの相対ファイル名リストを取得"""
+        if not os.path.exists(self.scripts_dir):
+            return []
+        return sorted([f for f in os.listdir(self.scripts_dir) if not f.startswith("__") and not f.startswith(".")])
+
+    def list_references(self) -> list[str]:
+        """内包されている参照資料の相対ファイル名リストを取得"""
+        if not os.path.exists(self.references_dir):
+            return []
+        return sorted([f for f in os.listdir(self.references_dir) if not f.startswith(".")])
+
+    def list_assets(self) -> list[str]:
+        """内包されているアセット（テンプレート等）の相対ファイル名リストを取得"""
+        if not os.path.exists(self.assets_dir):
+            return []
+        return sorted([f for f in os.listdir(self.assets_dir) if not f.startswith(".")])
+
+    def load_spec(self) -> str:
+        """SKILL.md のファイル内容をそのままテキストとして返します。"""
+        if not os.path.exists(self.spec_path):
+            raise FileNotFoundError(f"Error: SKILL.md not found at: {self.spec_path}")
+        with open(self.spec_path, "r", encoding="utf-8") as f:
+            return f.read()
+
+    def load_reference(self, filename: str) -> str:
+        """references/ ディレクトリ配下の指定ドキュメントを読み込みます。"""
+        ref_path = os.path.join(self.references_dir, filename)
+        if not os.path.exists(ref_path) or os.path.isdir(ref_path):
+            raise FileNotFoundError(f"Error: Required reference file not found at: {ref_path}")
+        with open(ref_path, "r", encoding="utf-8") as f:
+            return f.read()
 
     def load_asset(self, asset_filename: str) -> str:
-        """自身の assets ディレクトリ配下の指定されたアセットファイルを読み込み、テキストとして返します。
-
-        Args:
-            asset_filename: 読み込むアセットファイルのファイル名。
-
-        Returns:
-            アセットファイルの内容文字列。
-
-        Raises:
-            FileNotFoundError: ファイルが存在しない、またはディレクトリである場合。
-        """
-        asset_path = os.path.join(self.root_dir, "assets", asset_filename)
+        """assets/ ディレクトリ配下の指定ファイルを読み込みます。"""
+        asset_path = os.path.join(self.assets_dir, asset_filename)
         if not os.path.exists(asset_path) or os.path.isdir(asset_path):
             raise FileNotFoundError(f"Error: Required asset file not found at: {asset_path}")
         with open(asset_path, "r", encoding="utf-8") as f:
             return f.read()
 
+    @property
+    def tests(self) -> "SkillTests":
+        """テスト定義および実行ログ管理インターフェースを取得"""
+        from .tests import SkillTests
+        return SkillTests(self.root_dir)
 
-
-    def load_spec(self) -> str:
-        """仕様書（SKILL.md）のファイル内容を読み込み、テキストとして返します。
-
-        Returns:
-            仕様書（SKILL.md）の内容文字列。
-
-        Raises:
-            FileNotFoundError: 仕様書ファイルが存在しない場合。
-        """
-        spec_path = self.spec_path
-        if not os.path.exists(spec_path):
-            raise FileNotFoundError(f"Error: Skill specification not found at: {spec_path}")
-        with open(spec_path, "r", encoding="utf-8") as f:
-            return f.read()
+    @property
+    def metadata(self) -> SkillMetadata:
+        """統合メタデータを取得"""
+        if self._metadata is None:
+            self._metadata = SkillMetadata(
+                name=self.name,
+                tier=self._tier,
+                last_tested=self._last_tested,
+                module_type=ModuleType.SKILL,
+                pattern=self.pattern,
+                description=self.description,
+                scripts=self.list_scripts(),
+                references=self.list_references(),
+                assets=self.list_assets()
+            )
+        return self._metadata
 
     def get_eval(self) -> "SimulationEval":
-        """このスキルの SimulationEval インスタンスを取得します。
-
-        Returns:
-            SimulationEval: シミュレーション評価インスタンス。
-        """
+        """SimulationEval インスタンスを取得"""
         return SimulationEval(self)
 
+    # ==========================================
+    # 動的ツール化 (FunctionTool Generation)
+    # ==========================================
+
     def load_module(self):
-        """このスキルパッケージの scripts/__init__.py をロードしモジュールオブジェクトを返します。
-
-        他スキルの相対インポートとの名前空間の競合を防ぐため、
-        一意の仮想パッケージの階層（edd_agent_tools.dynamic_skills.<name>.scripts）を構築してキャッシュします。
-
-        Returns:
-            ロードされた `scripts/__init__.py` のモジュールオブジェクト。
-
-        Examples:
-            >>> from edd_agent_tools.skills import SkillsState
-            >>> state = SkillsState()
-            >>> skill = state.get_skill("my-sample-skill")  # doctest: +SKIP
-            >>> handler_module = skill.load_module()  # doctest: +SKIP
-        """
-        script_abs_path = os.path.join(self.root_dir, "scripts", "__init__.py")
+        """scripts/__init__.py または主要スクリプトをロードしモジュールオブジェクトを返します。"""
+        script_abs_path = os.path.join(self.scripts_dir, "__init__.py")
+        
+        # scripts/__init__.py がない場合は単体スクリプトを自動探索
         if not os.path.exists(script_abs_path):
-            raise FileNotFoundError(f"エラー: scripts/__init__.py が存在しません: {script_abs_path}")
+            py_files = [f for f in os.listdir(self.scripts_dir) if f.endswith(".py") and not f.startswith("__")] if os.path.exists(self.scripts_dir) else []
+            if py_files:
+                script_abs_path = os.path.join(self.scripts_dir, py_files[0])
+            else:
+                raise FileNotFoundError(f"Error: No valid Python script found in: {self.scripts_dir}")
 
-        # 一意の名前空間（仮想FQDN）の組み立て
         skill_name_under = self.name.replace('-', '_')
         parent_pkg = f"edd_agent_tools.dynamic_skills.{skill_name_under}"
         package_name = f"{parent_pkg}.scripts"
         module_name = package_name
 
-        # すでにロードされている場合はキャッシュを返す
         if module_name in sys.modules:
             return sys.modules[module_name]
 
-        # 相対インポートを正常に解決するため sys.path を調整
         if self.root_dir not in sys.path:
             sys.path.insert(0, self.root_dir)
 
-        # 仮想パッケージモジュールの動的登録 (相対インポート解決用)
         if parent_pkg not in sys.modules:
             sys.modules[parent_pkg] = types.ModuleType(parent_pkg)
         if package_name not in sys.modules:
             pkg_module = types.ModuleType(package_name)
-            pkg_module.__path__ = [os.path.join(self.root_dir, "scripts")]
+            pkg_module.__path__ = [self.scripts_dir]
             pkg_module.__package__ = package_name
             sys.modules[package_name] = pkg_module
 
-        # ロード実行
         spec = importlib.util.spec_from_file_location(module_name, script_abs_path)
         if spec is None:
             raise ImportError(f"Could not load spec for {script_abs_path}")
 
         module = importlib.util.module_from_spec(spec)
-        module.__package__ = package_name  # 相対インポートに必須
+        module.__package__ = package_name
         sys.modules[module_name] = module
-
         spec.loader.exec_module(module)
         return module
 
-    def get_tools(self) -> list:
-        """このスキルパッケージに含まれるすべての公開関数を FunctionTool のリストとして構築して返します。
+    def get_tools(self) -> list[FunctionTool]:
+        """このスキルの scripts/ 配下から公開関数をスキャンし、FunctionTool のリストとして構築して返します。"""
+        if not os.path.exists(self.scripts_dir):
+            return []
 
-        __all__ に宣言されている関数をスキャンし、各関数に対応する FunctionTool を生成します。
-        __all__ が定義されていない、または有効な公開関数が1つもない場合は AttributeError を投げます。
-        """
-        # モジュールをロード
-        skill_module = self.load_module()
-        
-        if not hasattr(skill_module, "__all__"):
-            raise AttributeError(
-                f"Error: {self.name} module has no '__all__' definition. "
-                "All skills must explicitly declare their public API functions in '__all__'."
-            )
+        try:
+            skill_module = self.load_module()
+        except FileNotFoundError:
+            return []
 
         tools = []
-        
-        try:
-            design_data = self.load_design()
-            description = design_data.description
-        except Exception:
-            description = f"Execute {self.name} skill"
+        # 1. __all__ が定義されている場合はそれを優先
+        if hasattr(skill_module, "__all__"):
+            export_names = getattr(skill_module, "__all__")
+        else:
+            # 2. 定義されていない場合はアンダースコア始まりでない関数を抽出
+            export_names = [n for n, obj in inspect.getmembers(skill_module, inspect.isfunction) if not n.startswith("_")]
 
-        for name in getattr(skill_module, "__all__"):
-            if name == "Output":
-                continue
+        for name in export_names:
             obj = getattr(skill_module, name, None)
             if obj and inspect.isfunction(obj):
-                # 属性を動的に書き換えることで、FunctionTool がツール名と説明を正しく解決できるようにする
-                # 個別の docstring があればそれを優先し、なければ design.json の説明にする
                 obj.__name__ = name
                 if not obj.__doc__:
-                    obj.__doc__ = description
+                    obj.__doc__ = self.description or f"Execute {name} task"
                 tools.append(FunctionTool(func=obj))
-                    
-        if not tools:
-            raise AttributeError(
-                f"Error: No valid public tool function found in {self.name} module '__all__'."
-            )
 
         return tools
 
-    def get_tool(self):
-        """このスキルに対応する ADK の単一の Tool オブジェクトをロード・構築して返します。
-        
-        エクスポートされている関数が『ちょうど1つ』の場合のみ有効です。
-        複数（2つ以上）公開されている場合は ValueError をスローします。
-        """
+    def get_tool(self) -> FunctionTool:
+        """単一の FunctionTool を取得します。"""
         tools = self.get_tools()
+        if not tools:
+            raise AttributeError(f"Error: Skill '{self.name}' provides no executable tool functions in scripts/.")
         if len(tools) == 1:
             return tools[0]
-        
         raise ValueError(
-            f"Error: Skill {self.name} exports multiple tools ({[t.name for t in tools]}). "
-            "Please use get_tools() instead of get_tool() to register all of them."
+            f"Error: Skill '{self.name}' exports multiple tools ({[t.name for t in tools]}). "
+            "Please use get_tools() instead."
         )

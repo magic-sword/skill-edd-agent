@@ -1,13 +1,14 @@
-import json
 import os
+import re
+import json
 from enum import StrEnum, IntEnum
 from pathlib import Path
-from typing import Literal, Union, Annotated, Any
-from pydantic import BaseModel, Field, TypeAdapter, ConfigDict, model_validator
-from edd_agent_tools.schema_utils import PromptField
+from typing import Literal, Union, Any, Optional
+import yaml
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 # ==========================================
-# 1. 元の skills/models.py 定義 (skills_state.json 管理用)
+# 1. 状態・品質管理用モデル (skills_state.json 用)
 # ==========================================
 
 class SkillTier(IntEnum):
@@ -35,202 +36,181 @@ class ProjectSkillInfo(BaseModel):
 
 
 class SkillsStateJson(BaseModel):
-    """ADK公式仕様に準拠した、3つの基本フィールドを持つ skills_state.json 用の基本スキーマモデル。
-
-    探索と優先順位のマージ規則:
-      1. entries (探索パスの優先順):
-         ローカルの entries が最優先され、その後 inherits で指定された継承先の探索パスが順に末尾へ追記されます。
-         同名のスキルが複数発見された場合は、探索リストの先頭（ローカル優先）のものがマウントされ、後続はシャドウイング（無視）されます。
-      2. inherits (継承元マニフェスト):
-         別のマニフェストファイルをインポートし、探索パスを多重解決します。
-      3. exclude (除外リストの累積):
-         ローカルの除外リストと、すべての継承元で定義された除外リストが累積（論理和マージ）されます。
-    """
+    """ADK公式仕様に準拠した、3つの基本フィールドを持つ skills_state.json 用の基本スキーマモデル。"""
     entries: list[SkillEntry] = Field(..., description="スキル探索対象のパスリスト")
     inherits: list[InheritEntry] = Field(default_factory=list, description="継承元設定ファイルのリスト")
     exclude: list[str] = Field(default_factory=list, description="除外するスキル名のリスト")
 
-    # プロジェクト独自の拡張メタデータ (論理モジュール名をキーにしたオブジェクトマップ形式)
-    skills: dict[str, ProjectSkillInfo] = Field(default_factory=dict, description="登録されている各スキルおよびワークフローの品質ステータス情報")
+    skills: dict[str, ProjectSkillInfo] = Field(default_factory=dict, description="登録されている各スキルの品質ステータス情報")
     agents: dict[str, ProjectSkillInfo] = Field(default_factory=dict, description="登録されている各自律エージェントの品質ステータス情報")
 
 
 # ==========================================
-# 2. 型駆動設計 (Type-Driven Design) による Skill/Workflow設計モデル
+# 2. Markdown-First & Progressive Disclosure 設計モデル
 # ==========================================
 
-class OutputMode(StrEnum):
-    VALUE_ONLY = "VALUE_ONLY"
-    CONVERSATIONAL = "CONVERSATIONAL"
-    STRUCTURED_JSON = "STRUCTURED_JSON"
+class SkillPattern(StrEnum):
+    """4大スキル構造パターン"""
+    WORKFLOW = "workflow"              # 順序立てられたステップや判断分岐がある作業 (Workflow-Based)
+    TASK_BASED = "task_based"          # 独立した複数の操作・スクリプト群を提供するツール集 (Task-Based)
+    REFERENCE = "reference"            # 規約・設計標準・ドメイン知識の提供 (Reference/Guidelines)
+    CAPABILITIES = "capabilities"      # 複合的なシステム連携・包括的機能 (Capabilities-Based)
 
 
 class ModuleType(StrEnum):
+    """モジュールの分類"""
     SKILL = "skill"
-    WORKFLOW = "workflow"
-
-
-class Parameter(BaseModel):
-    name: str = Field(..., description="パラメータの名前")
-    type: str = Field(..., description="パラメータの型（例: 'str', 'int', 'bool', 'list'）")
-    description: str = Field(..., description="パラメータの説明")
-    required: bool = Field(False, description="このパラメータが必須かどうか")
-    default: str | None = Field(None, description="パラメータのデフォルト値（任意、文字列等として表現）")
-    choices: list[str] | None = Field(None, description="パラメータの有効な選択肢（Literal型アノテーションの生成に使用します）")
-    ge: float | None = Field(None, description="数値パラメータの最小値（ge制約の生成に使用します）")
-    le: float | None = Field(None, description="数値パラメータの最大値（le制約の生成に使用します）")
-    items_type: str | None = Field(None, description="リスト型パラメータの要素の型（例: 'str', 'int'。list[items_type] の生成に使用します）")
-    pattern: str | None = Field(None, description="文字列パラメータの正規表現パターン制約（pattern制約の生成に使用します）")
-    min_length: int | None = Field(None, description="文字列またはリストパラメータの最小長制約（min_length制約の生成に使用します）")
-    max_length: int | None = Field(None, description="文字列またはリストパラメータの最大長制約（max_length制約の生成に使用します）")
-    is_prompt_parameter: bool | None = Field(None, description="このパラメータがプロンプト（LLMへの指示）用途かどうか")
-    prompt_instructions: str | None = Field(None, description="プロンプトパラメータの有効な指定可能指示ガイドライン")
-    prompt_constraints: str | None = Field(None, description="プロンプトパラメータの構造的な制約ガイドライン")
-    example: Any | None = Field(None, description="パラメータの正常系テスト用の代表的な入力値例（任意）")
-
-
-class StepType(StrEnum):
-    SKILL = "skill"
-    FUNCTION = "function"
     AGENT = "agent"
 
 
-class Step(BaseModel):
-    name: str = Field(..., description="ステップの識別子名")
-    type: StepType = Field(..., description="ステップの種別。'skill' (既存スキル), 'function' (カスタムPython関数), 'agent' (自律エージェント)")
-    target: str | None = Field(None, description="typeが 'skill' の場合に呼び出す既存のスキル名")
-    description: str | None = Field(None, description="typeが 'function' または 'agent' の場合に、ノードの役割・処理要件を記述する説明")
-    instruction: str | None = Field(None, description="typeが 'agent' の場合に、エージェントへ与えるシステムプロンプト/指示")
-    tools: list[str] | None = Field(None, description="typeが 'agent' の場合に、エージェントが使用可能なツールのリスト")
-    inputs: dict[str, str] | None = Field(None, description="引数マッピング辞書。キーはステップに入力される引数名、値は tool_context.state から取得する値（またはPythonの評価式）")
+class DecisionBranch(BaseModel):
+    """意思決定ツリーの分岐ルール"""
+    condition: str = Field(..., description="分岐条件 (例: 入力ファイルがPDF形式の場合)")
+    action: str = Field(..., description="実行するアクションまたは参照先 (例: scripts/rotate_pdf.py を実行)")
 
 
-# --- 関数定義モデル (Discriminated by OutputMode) ---
-
-class PrimitiveFunctionDefinition(BaseModel):
-    """output_mode が VALUE_ONLY または CONVERSATIONAL の場合の関数定義モデル。
-    response_type のみを持ち、response_parameters は型レベルで存在しません。
-    """
-    model_config = ConfigDict(extra="forbid")
-
-    name: str = Field(..., description="公開関数名。小文字のスネークケース")
-    description: str = Field(..., description="関数の役割や目的の説明")
-    parameters: list[Parameter] = Field(..., description="関数の入力パラメータリスト")
-    response_type: str | None = Field("str", description="関数が返す単一のプリミティブ型（例: 'str', 'int', 'bool', 'list[str]', 'EvalRunResult' など）")
+class StepInstruction(BaseModel):
+    """動詞起点 (Imperative) の実行手順"""
+    step_number: int = Field(..., description="ステップ番号 (1始まり)")
+    title: str = Field(..., description="ステップの見出し (動詞起点)")
+    action_imperative: str = Field(..., description="具体的な手順指示 (To do X, execute Y 形式)")
+    target_resource: str | None = Field(None, description="使用するスクリプトまたは参照資料の相対パス")
 
 
-class StructuredFunctionDefinition(BaseModel):
-    """output_mode が STRUCTURED_JSON の場合の関数定義モデル。
-    response_parameters のみを持ち、response_type は型レベルで存在しません。
-    """
-    model_config = ConfigDict(extra="forbid")
-
-    name: str = Field(..., description="公開関数名。小文字のスネークケース")
-    description: str = Field(..., description="関数の役割や目的の説明")
-    parameters: list[Parameter] = Field(..., description="関数の入力パラメータリスト")
-    response_parameters: list[Parameter] = Field(..., description="関数の構造化出力パラメータ定義リスト")
+class ResourcePlan(BaseModel):
+    """3層リソース (scripts, references, assets) の計画定義"""
+    rel_path: str = Field(..., description="ファイル相対パス (例: scripts/convert.py, references/schema.md)")
+    type: Literal["script", "reference", "asset"] = Field(..., description="リソース種別")
+    purpose: str = Field(..., description="このリソースが果たす役割と内容")
 
 
-FunctionDefinition = Union[StructuredFunctionDefinition, PrimitiveFunctionDefinition]
-
-
-# --- スキル設計モデル ---
-
-class BaseSkillDesign(BaseModel):
-    rationale: str = Field(..., description="設計の思考プロセス。")
-    name: str = Field(..., description="スキルの名前。小文字のハイフン区切り")
-    description: str = Field(..., description="スキルの目的や役割を記述した簡潔な説明")
-    summary: str | None = Field(None, description="スキルの仕様概要")
-    module_type: Literal[ModuleType.SKILL] = Field(ModuleType.SKILL, description="モジュールの役割分類。単一スキルは必ず 'skill'")
-    execution_type: Literal["tool", "agent"] = Field(..., description="実行タイプ。'tool' (スクリプト処理) または 'agent' (LLM推論)")
-    dependencies: list[str] = Field([], description="スキルが依存する他のスキルのリスト")
-    constraints: list[str] = Field([], description="モデルバリデータ等から抽出された制約条件のリスト")
-
-
-class ValueOnlySkillDesign(BaseSkillDesign):
-    """output_mode が VALUE_ONLY または CONVERSATIONAL の単一スキル設計モデル。"""
-    output_mode: Literal[OutputMode.VALUE_ONLY, OutputMode.CONVERSATIONAL] = Field(OutputMode.VALUE_ONLY, description="出力形式")
-    functions: list[PrimitiveFunctionDefinition] = Field(..., description="単一戻り値関数定義のリスト")
-
-
-class StructuredJsonSkillDesign(BaseSkillDesign):
-    """output_mode が STRUCTURED_JSON の単一スキル設計モデル。"""
-    output_mode: Literal[OutputMode.STRUCTURED_JSON] = Field(OutputMode.STRUCTURED_JSON, description="出力形式")
-    functions: list[StructuredFunctionDefinition] = Field(..., description="構造化出力関数定義のリスト")
-
-
-class SkillDesign(BaseModel):
-    """単一スキルの設計定義を表す Pydantic モデル（型安全ディスパッチャー兼後方互換インターフェース）。"""
-
-    @classmethod
-    def load_from_file(cls, filepath: str) -> "Union[StructuredJsonSkillDesign, ValueOnlySkillDesign, WorkflowDesign]":
-        return load_design_from_file(filepath)
-
-    @model_validator(mode="wrap")
-    @classmethod
-    def _validate(cls, value, handler):
-        if isinstance(value, (StructuredJsonSkillDesign, ValueOnlySkillDesign)):
-            return value
-        if isinstance(value, dict):
-            out_mode = value.get("output_mode", OutputMode.VALUE_ONLY)
-            if out_mode == OutputMode.STRUCTURED_JSON:
-                return StructuredJsonSkillDesign.model_validate(value)
-            else:
-                return ValueOnlySkillDesign.model_validate(value)
-        return handler(value)
-
-
-# --- ワークフロー設計モデル ---
-
-class WorkflowDesign(BaseModel):
-    """複数モジュールを連結するワークフローの設計仕様定義。"""
-    rationale: str = Field(..., description="設計の思考プロセス。")
-    name: str = Field(..., description="ワークフローの名前。小文字のハイフン区切り")
-    description: str = Field(..., description="ワークフローの目的や役割を記述した簡潔な説明")
-    summary: str | None = Field(None, description="ワークフローの仕様概要")
-    module_type: Literal[ModuleType.WORKFLOW] = Field(ModuleType.WORKFLOW, description="モジュールの役割分類。ワークフローは必ず 'workflow'")
-    parameters: list[Parameter] = Field(..., description="ワークフロー全体が外部から受け取るパラメータのリスト")
-    dependencies: list[str] = Field([], description="依存するターゲットスキル名のリスト")
-    constraints: list[str] = Field([], description="全体の実行に関する制約")
-    response_parameters: list[Parameter] | None = Field(None, description="全体の出力JSONの構造定義（STRUCTURED_JSON時に使用）")
-    steps: list[Step] = Field(..., description="ワークフローを構成するステップの定義リスト（有向グラフ）")
-
-    @classmethod
-    def load_from_file(cls, filepath: str) -> "WorkflowDesign":
-        res = load_design_from_file(filepath)
-        if not isinstance(res, WorkflowDesign):
-            raise TypeError(f"Expected WorkflowDesign but got {type(res).__name__}")
-        return res
-
-
-# --- モジュール統合設計モデル ---
-
-ModuleDesign = Union[StructuredJsonSkillDesign, ValueOnlySkillDesign, WorkflowDesign]
-
-
-def load_design_from_file(filepath: str) -> Union[StructuredJsonSkillDesign, ValueOnlySkillDesign, WorkflowDesign]:
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(f"design.json not found at: {filepath}")
-    with open(filepath, "r", encoding="utf-8") as f:
-        data = json.loads(f.read())
-        
-    m_type = data.get("module_type", ModuleType.SKILL)
-    if m_type == ModuleType.WORKFLOW:
-        return WorkflowDesign.model_validate(data)
+class SkillLogicDraft(BaseModel):
+    """Stage 1: LLMが要件から抽出する論理設計データモデル。
     
-    out_mode = data.get("output_mode", OutputMode.VALUE_ONLY)
-    if out_mode == OutputMode.STRUCTURED_JSON:
-        return StructuredJsonSkillDesign.model_validate(data)
-    else:
-        return ValueOnlySkillDesign.model_validate(data)
+    Markdownのレイアウトに依存せず、設計の骨子（認知的知識、決定木、リソース計画）のみを型安全に抽出します。
+    """
+    name: str = Field(..., pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", description="ハイフンケースのスキル名 (例: pdf-tools, api-helper)")
+    pattern: SkillPattern = Field(..., description="4パターンのいずれか")
+    description_third_person: str = Field(..., max_length=500, description="第三者視点でのトリガー説明 ('This skill should be used when...')")
+    concrete_trigger_examples: list[str] = Field(..., min_length=2, max_length=6, description="具体的なユーザー発話・トリガー例")
+    overview_summary: str = Field(..., description="スキルの目的・提供価値の簡潔な要約 (1〜2文)")
+    decision_tree: list[DecisionBranch] = Field(default_factory=list, description="条件分岐ルール")
+    execution_steps: list[StepInstruction] = Field(..., min_length=1, description="動詞起点の実行手順リスト")
+    resources_plan: list[ResourcePlan] = Field(default_factory=list, description="3層リソースの計画一覧")
+    guidelines: list[str] = Field(default_factory=list, description="実行時の注意点・ベストプラクティス")
+
+
+# ==========================================
+# 3. SKILL.md 仕様モデル (SkillSpec)
+# ==========================================
+
+class SkillFrontmatter(BaseModel):
+    """SKILL.md の YAML Frontmatter メタデータ"""
+    name: str = Field(..., pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", description="スキル識別子 (ハイフンケース)")
+    description: str = Field(..., max_length=500, description="トリガー条件を明記した第三者視点の説明")
+    license: str | None = Field("Complete terms in LICENSE.txt", description="ライセンス情報")
+    pattern: SkillPattern | None = Field(None, description="スキルパターン（任意）")
+
+
+class SkillSpec(BaseModel):
+    """パースされた SKILL.md の完全な仕様表現モデル"""
+    frontmatter: SkillFrontmatter
+    title: str = Field(..., description="スキルのタイトル")
+    overview: str = Field(..., description="スキルの概要")
+    body: str = Field(..., description="Frontmatterを除くMarkdown本文全体")
+    pattern: SkillPattern = Field(SkillPattern.WORKFLOW, description="スキル構造パターン")
+    
+    # 抽出されたリソース一覧（相対パス）
+    scripts: list[str] = Field(default_factory=list, description="言及されている scripts/ 配下のファイル")
+    references: list[str] = Field(default_factory=list, description="言及されている references/ 配下のファイル")
+    assets: list[str] = Field(default_factory=list, description="言及されている assets/ 配下のファイル")
+
+    @property
+    def name(self) -> str:
+        return self.frontmatter.name
+
+    @property
+    def description(self) -> str:
+        return self.frontmatter.description
+
+    @classmethod
+    def parse_markdown(cls, content: str) -> "SkillSpec":
+        """Markdown文字列をパースして SkillSpec インスタンスを生成します。"""
+        content = content.replace("\r\n", "\n").replace("\r", "\n")
+        if not content.startswith("---"):
+            raise ValueError("Invalid SKILL.md format: Missing YAML frontmatter start ('---')")
+
+        match = re.match(r"^---\n(.*?)\n---\n*(.*)$", content, re.DOTALL)
+        if not match:
+            raise ValueError("Invalid SKILL.md format: Could not parse YAML frontmatter boundary")
+
+        fm_str = match.group(1)
+        body_str = match.group(2)
+
+        try:
+            fm_dict = yaml.safe_load(fm_str)
+            if not isinstance(fm_dict, dict):
+                raise ValueError("Frontmatter is not a valid YAML mapping")
+        except Exception as e:
+            raise ValueError(f"Failed to parse YAML frontmatter: {e}")
+
+        frontmatter = SkillFrontmatter.model_validate(fm_dict)
+
+        # タイトルの抽出 (# Title)
+        title_match = re.search(r"^#\s+(.+)$", body_str, re.MULTILINE)
+        title = title_match.group(1).strip() if title_match else frontmatter.name
+
+        # Overview の抽出 (## Overview の次行から次の ## まで)
+        overview_match = re.search(r"##\s+Overview\s*\n+(.*?)(?=\n##|\Z)", body_str, re.DOTALL | re.IGNORECASE)
+        overview = overview_match.group(1).strip() if overview_match else ""
+
+        # パターンの推定または取得 (frontmatterに明示されていればそれを最優先)
+        if frontmatter.pattern:
+            pattern = frontmatter.pattern
+        elif re.search(r"^##\s+Workflow Decision Tree", body_str, re.MULTILINE | re.IGNORECASE):
+            pattern = SkillPattern.WORKFLOW
+        elif re.search(r"^##\s+Quick Start", body_str, re.MULTILINE | re.IGNORECASE) or re.search(r"^##\s+Available Tasks", body_str, re.MULTILINE | re.IGNORECASE):
+            pattern = SkillPattern.TASK_BASED
+        elif re.search(r"^##\s+Guidelines & Specifications", body_str, re.MULTILINE | re.IGNORECASE):
+            pattern = SkillPattern.REFERENCE
+        elif re.search(r"^##\s+Core Capabilities", body_str, re.MULTILINE | re.IGNORECASE):
+            pattern = SkillPattern.CAPABILITIES
+        else:
+            pattern = SkillPattern.WORKFLOW
+
+        # リソース言及の抽出 (scripts/..., references/..., assets/...)
+        scripts = sorted(list(set(re.findall(r"`?scripts/([a-zA-Z0-9_\-\./]+)`?", body_str))))
+        references = sorted(list(set(re.findall(r"`?references/([a-zA-Z0-9_\-\./]+)`?", body_str))))
+        assets = sorted(list(set(re.findall(r"`?assets/([a-zA-Z0-9_\-\./]+)`?", body_str))))
+
+        return cls(
+            frontmatter=frontmatter,
+            title=title,
+            overview=overview,
+            body=body_str,
+            pattern=pattern,
+            scripts=scripts,
+            references=references,
+            assets=assets
+        )
+
+    @classmethod
+    def load_from_file(cls, filepath: str) -> "SkillSpec":
+        """SKILL.md ファイルから直接仕様をロードします。"""
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"SKILL.md not found at: {filepath}")
+        with open(filepath, "r", encoding="utf-8") as f:
+            return cls.parse_markdown(f.read())
 
 
 class SkillMetadata(BaseModel):
-    """レジストリ情報と設計仕様情報をマージした、スキルの統合メタデータ"""
+    """レジストリ情報と仕様情報をマージした統合メタデータ"""
     name: str = Field(..., description="スキル名")
     tier: int = Field(0, description="スキルのTier（0から3）", ge=0, le=3)
     last_tested: str | None = Field(None, description="最後にテストされた時刻")
-    module_type: ModuleType = Field(ModuleType.SKILL, description="モジュールの役割分類（'skill' または 'workflow'）")
-    execution_type: Literal["tool", "agent"] = Field("tool", description="実行タイプ。'tool' または 'agent'")
+    module_type: ModuleType = Field(ModuleType.SKILL, description="モジュールの分類")
+    pattern: SkillPattern = Field(SkillPattern.WORKFLOW, description="スキル構造パターン")
     description: str = Field("", description="スキルの目的や説明")
-    dependencies: list[str] = Field([], description="依存スキルのリスト")
+    scripts: list[str] = Field(default_factory=list, description="内包するスクリプト一覧")
+    references: list[str] = Field(default_factory=list, description="内包する参照資料一覧")
+    assets: list[str] = Field(default_factory=list, description="内包するアセット一覧")

@@ -26,9 +26,37 @@ def __getattr__(name: str) -> Any:
         from .models import ProjectSkillInfo
         return ProjectSkillInfo
         
+    if name == "SkillPattern":
+        from .models import SkillPattern
+        return SkillPattern
+
+    if name == "SkillLogicDraft":
+        from .models import SkillLogicDraft
+        return SkillLogicDraft
+
+    if name == "SkillSpec":
+        from .models import SkillSpec
+        return SkillSpec
+
+    if name == "SkillMetadata":
+        from .models import SkillMetadata
+        return SkillMetadata
+
     if name == "Skill":
         from .skill import Skill
         return Skill
+
+    if name == "SkillTemplateEngine":
+        from .template_engine import SkillTemplateEngine
+        return SkillTemplateEngine
+
+    if name == "SkillValidator":
+        from .validator import SkillValidator
+        return SkillValidator
+
+    if name == "ValidationResult":
+        from .validator import ValidationResult
+        return ValidationResult
 
     if name == "SkillTests":
         from .tests import SkillTests
@@ -36,14 +64,20 @@ def __getattr__(name: str) -> Any:
         
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
-# エディタの自動補完や静的解析ツールが公開シンボルを正しく認識できるように __all__ を定義
 __all__ = [
     "SkillsStateJson",
     "SkillEntry",
     "InheritEntry",
     "SkillTier",
     "ProjectSkillInfo",
+    "SkillPattern",
+    "SkillLogicDraft",
+    "SkillSpec",
+    "SkillMetadata",
     "SkillsState",
     "Skill",
+    "SkillTemplateEngine",
+    "SkillValidator",
+    "ValidationResult",
     "SkillTests"
 ]

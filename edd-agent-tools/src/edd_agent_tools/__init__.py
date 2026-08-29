@@ -6,33 +6,42 @@ try:
 except ImportError:
     pass
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 def __getattr__(name: str):
     import importlib
 
-    # サブモジュール自体への直接アクセスを許容し、インポートエラーを防ぎます。
     submodules = {
         "gemini",
         "skills",
         "evaluation",
         "run",
         "doc_reader",
-        "schema_utils"
+        "schema_utils",
+        "mcp"
     }
     if name in submodules:
         return importlib.import_module(f".{name}", __package__)
 
     mapping = {
         # skills.models
-        "Parameter": (".skills.models", "Parameter"),
-        "SkillDesign": (".skills.models", "SkillDesign"),
-        "WorkflowDesign": (".skills.models", "WorkflowDesign"),
-        "ModuleDesign": (".skills.models", "ModuleDesign"),
-        "Step": (".skills.models", "Step"),
-        "StepType": (".skills.models", "StepType"),
+        "SkillPattern": (".skills.models", "SkillPattern"),
+        "SkillLogicDraft": (".skills.models", "SkillLogicDraft"),
+        "SkillSpec": (".skills.models", "SkillSpec"),
         "SkillMetadata": (".skills.models", "SkillMetadata"),
         "ModuleType": (".skills.models", "ModuleType"),
+        "SkillTier": (".skills.models", "SkillTier"),
+        "SkillsStateJson": (".skills.models", "SkillsStateJson"),
+        "SkillEntry": (".skills.models", "SkillEntry"),
+        "InheritEntry": (".skills.models", "InheritEntry"),
+        "ProjectSkillInfo": (".skills.models", "ProjectSkillInfo"),
+        # skills components
+        "SkillsState": (".skills", "SkillsState"),
+        "Skill": (".skills", "Skill"),
+        "SkillTests": (".skills", "SkillTests"),
+        "SkillTemplateEngine": (".skills", "SkillTemplateEngine"),
+        "SkillValidator": (".skills", "SkillValidator"),
+        "ValidationResult": (".skills", "ValidationResult"),
         # evaluation.models
         "EvalRunResult": (".evaluation.models", "EvalRunResult"),
         "FailedCaseDetail": (".evaluation.models", "FailedCaseDetail"),
@@ -47,11 +56,7 @@ def __getattr__(name: str):
         # schema_utils
         "clean_pydantic_schema": (".schema_utils", "clean_pydantic_schema"),
         "PromptField": (".schema_utils", "PromptField"),
-        # skills
-        "SkillsState": (".skills", "SkillsState"),
-        "Skill": (".skills", "Skill"),
-        "SkillTests": (".skills", "SkillTests"),
-        "SkillTier": (".skills", "SkillTier"),
+        # run / tools
         "WorkflowRunner": (".run.workflow", "WorkflowRunner"),
         "merge_result_to_state": (".run.workflow", "merge_result_to_state"),
         "SafeWriteFileTool": (".run.tools", "SafeWriteFileTool"),
@@ -85,13 +90,14 @@ def __getattr__(name: str):
 
 def __dir__():
     return sorted(list(globals().keys()) + [
-        "Parameter", "SkillDesign", "WorkflowDesign", "ModuleDesign", "Step", "StepType",
-        "SkillMetadata", "ModuleType", "EvalRunResult", "FailedCaseDetail", "EvalDetailReport", "WorkspaceArtifacts", "WorkspaceAction",
+        "SkillPattern", "SkillLogicDraft", "SkillSpec", "SkillMetadata", "ModuleType",
+        "SkillTier", "SkillsStateJson", "SkillEntry", "InheritEntry", "ProjectSkillInfo",
+        "SkillsState", "Skill", "SkillTests", "SkillTemplateEngine", "SkillValidator", "ValidationResult",
+        "EvalRunResult", "FailedCaseDetail", "EvalDetailReport", "WorkspaceArtifacts", "WorkspaceAction",
         "WriteFileAction", "ViewFileAction", "RunPytestAction", "WorkspaceObservation", "FileState",
         "clean_pydantic_schema", "PromptField",
-        "SkillsState", "Skill", "SkillTests", "SkillTier", "WorkflowRunner", "merge_result_to_state", "SafeWriteFileTool", "SafeEditFileTool", 
+        "WorkflowRunner", "merge_result_to_state", "SafeWriteFileTool", "SafeEditFileTool", 
         "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol", "ContractTestRunner",
         "TestGenerator", "TestExecutor", "TrajectoryEvalSet",
         "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
     ])
-
