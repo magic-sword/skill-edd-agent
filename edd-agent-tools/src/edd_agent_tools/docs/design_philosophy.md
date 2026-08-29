@@ -7,8 +7,7 @@
 ## 1. コア思想
 
 ### ① 単一真実源の原則 (Single Source of Truth ➔ Markdown-First)
-* 仕様書兼プロンプトである **`SKILL.md` を唯一の真実源** とします。
-* `design.json` などの設定JSONは作成せず、自然言語（Markdown）とコード（Python）のシームレスな統合を図ります。
+* 仕様書兼プロンプトである **`SKILL.md` を唯一の真実源** とし、自然言語（Markdown）とコード（Python）のシームレスな統合を図ります。
 
 ### ② Progressive Disclosure（3層リソース分離）
 * コンテキストウィンドウの効率化と信頼性の両立を図るため、スキル資産を3層に分離します：

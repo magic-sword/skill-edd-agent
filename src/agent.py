@@ -12,19 +12,23 @@ state = SkillsState()
 skills = state.list_skills()
 
 # システムスキル定義
-system_skills = {"skill-generator", "skill-manager", "trigger-evaluator", "eval-unit-tester", "test-executor"}
+system_skills = {
+    "skill-creator", "skill-optimizer", "skill-diagnoser", 
+    "skill-planner", "test-executor", "test-generator",
+    "first-test-runner", "tier2-test-runner", "tier3-test-runner"
+}
 
 # 登録スキルおよびワークフローエージェントをツールとしてロードする
 # Tier 0 (SANDBOX) のものは除外し、システムスキルは常に含める
 agent_tools = []
 for skill in skills:
     # Tier 0 (SANDBOX) のスキルは排除
-    if skill._tier == SkillTier.SANDBOX and skill.name not in system_skills:
+    if skill.tier == SkillTier.SANDBOX and skill.name not in system_skills:
         continue
     try:
-        # edd_agent_tools の Skill.get_tool() を使用して ADK 互換の FunctionTool を取得
-        tool = skill.get_tool()
-        agent_tools.append(tool)
+        # edd_agent_tools の Skill.get_tools() を使用して ADK 互換の FunctionTool リストを取得
+        tools = skill.get_tools()
+        agent_tools.extend(tools)
     except Exception as e:
         print(f"Warning: {skill.name} のツールロードに失敗しました: {e}", file=sys.stderr)
 

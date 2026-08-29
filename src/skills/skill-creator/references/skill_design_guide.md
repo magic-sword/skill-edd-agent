@@ -1,8 +1,7 @@
 # スキル設計・開発ガイドライン (Skill Design Guide)
 
 ## 1. 単一真実源の原則 (Single Source of Truth)
-* スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化する。
-* `design.json` などの設定JSONは作成せず、自然言語とコードのシームレスな統合を図る。
+* スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化し、自然言語とコードのシームレスな統合を図る。
 
 ## 2. 3層リソース分離 (3-Tier Resource Separation)
 * **`scripts/` (実行用スクリプト)**:

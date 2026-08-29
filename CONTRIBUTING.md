@@ -47,3 +47,21 @@
     *   AIエージェントがコード生成時に遵守すべき厳密な制約は、パッケージ内蔵の `AGENTS.md` に一元管理（シングルソース）されています。
 *   **設計の背景・意図 (Why / Architecture) ➔ パッケージ内 `docs/`**:
     *   なぜその設計になっているのかという背景やダイアグラムは、パッケージ内の `docs/` 配下の Markdown 設計書にのみ集中配置します。
+
+---
+
+## 3. スキル開発規約 (Anthropic 標準 & Progressive Disclosure)
+
+新規スキルを追加または既存スキルを改修する際は、以下の規約を遵守してください：
+
+1. **単一真実源 (Markdown-First)**:
+   - スキルの振る舞い、インターフェース、意思決定ツリー、手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化します。
+2. **3層リソース分離 (Progressive Disclosure)**:
+   - `scripts/`: 直接実行可能な決定論的スクリプト（Python/Bash）
+   - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド参照資料）
+   - `assets/`: 出力用テンプレート・素材・ボイラープレート
+3. **ボイラープレートの排除 (Minimal Boilerplate)**:
+   - `nodes/`, `handlers/`, `workflow.py`, `models.py` などの過剰な多層ラッパーを作らず、フラットで簡潔な実装を行ってください。
+4. **客観的指示文体 (Imperative Form)**:
+   - 全体指示文は動詞起点（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調を排除してください。
+   - Frontmatter の `description` は第三者視点（"This skill should be used when..."）で100 words以内で簡潔に記述してください。

@@ -6,7 +6,7 @@
 
 ## 1. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
 *   **単一真実源 (SSOT) ➔ `SKILL.md`**:
-    スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化してください。`design.json` 等の中間設定ファイルは作成してはなりません。
+    スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化してください。
 *   **3層リソース分離**:
     - `scripts/`: 直接実行可能な決定論的スクリプト
     - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）

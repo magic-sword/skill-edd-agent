@@ -13,7 +13,7 @@ Kaggle Competition: [Vibe Coding Agents Capstone Project (Freestyle Track)](http
 Googleの **ADK 2.0** が提唱する「スキル」によるエージェント構築は、エージェント開発の理想形です。段階的にスキルを適用することで、エージェントは強化学習のオプション（スキル）獲得と非常に近い形で、人間がメンテナンス可能かつ他エージェントに継承可能な「スキル」という形で知識を蓄積できます。
 
 しかし、従来のスキル開発では以下のような課題がありました：
-*   **多層ボイラープレートの肥大化**: 中間設定ファイル（`design.json`）や多層ラッパー（`models.py`, `handler.py`, `executor.py`, `nodes/`）が乱立し、トークン消費と保守負荷が増大。
+*   **多層ボイラープレートの肥大化**: 多層ラッパー（`models.py`, `handler.py`, `executor.py`, `nodes/`）が乱立し、トークン消費と保守負荷が増大。
 *   **EDD（評価駆動開発）の難しさ**: AIの生成物を的確に検証し、ハルシネーションを防ぐハーネス（制約）を設計するのは人間にとっても極めて困難。
 
 > [!IMPORTANT]
@@ -35,7 +35,7 @@ flowchart TD
 ```
 
 1.  **単一真実源の原則 (Markdown-First)**
-    *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化。中間設定ファイル（`design.json`）を完全排除し、可読性と保守性を最大化。
+    *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化し、可読性と保守性を最大化。
 2.  **3層リソース分離 (Progressive Disclosure)**
     *   コンテキストウィンドウを圧迫しない3層リソース構造：
         - `scripts/`: 直接実行可能な決定論的スクリプト
