@@ -1,9 +1,0 @@
-=== ワークフロー設計書 (Workflow Design) ===
-名称: ${name}
-説明: ${description}
-制約事項: ${constraints}
-構成ステップ:
-${steps_str}
-${control_flow_str}
-
-上記の情報から、ワークフローの『ビジネス上の価値(purpose)』、『主要な特徴・機能(features)』、『起動トリガーの具体例(trigger_conditions)』、および『各ステップの連携手順(workflow_steps)』を考察・抽出し、指定された JSON スキーマに従って返却してください。

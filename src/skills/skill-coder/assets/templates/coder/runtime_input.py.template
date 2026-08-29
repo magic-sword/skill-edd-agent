@@ -1,6 +1,0 @@
-class RuntimeInput:
-    """内部引数コンパイル用ダミーオブジェクト。"""
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-    def model_dump(self, **kwargs):
-        return self.__dict__

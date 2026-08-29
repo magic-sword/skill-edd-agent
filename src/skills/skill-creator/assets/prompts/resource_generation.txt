@@ -1,0 +1,10 @@
+Generate the content for the resource file: `{rel_path}`
+Skill Name: {name}
+Skill Pattern: {pattern}
+Skill Overview: {overview}
+Resource Purpose: {purpose}
+
+Guidelines:
+- If this is a Python script (`.py`), write clean, standalone, executable Python code with standard type hints and a main execution entry point. Avoid unnecessary multi-layer wrapper imports.
+- If this is a reference document (`.md`), write comprehensive, objective documentation in Imperative style.
+- Output ONLY the raw file content (do not wrap in markdown triple backticks if outputting code).

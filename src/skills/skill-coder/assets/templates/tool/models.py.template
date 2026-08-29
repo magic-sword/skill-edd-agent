@@ -1,4 +1,0 @@
-{imports_str}
-
-class Output(BaseModel):
-{output_fields_str}

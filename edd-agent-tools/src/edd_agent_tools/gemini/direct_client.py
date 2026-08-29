@@ -36,6 +36,7 @@ class DirectGeminiClient(BaseGeminiClient):
 
         # response_schema の決定論的クレンジング処理
         if config and getattr(config, "response_schema", None) is not None:
+            import copy
             from pydantic import BaseModel, TypeAdapter
             from edd_agent_tools.schema_utils import clean_pydantic_schema
             
@@ -46,17 +47,43 @@ class DirectGeminiClient(BaseGeminiClient):
                 else:
                     schema_dict = TypeAdapter(clean_schema).json_schema()
                 
-                def remove_additional_properties(d):
+                # 1. $defs / $ref をインライン展開 (Gemini API は $defs を解釈できないため)
+                defs = schema_dict.pop("$defs", {})
+                def resolve_refs(node):
+                    if isinstance(node, dict):
+                        if "$ref" in node:
+                            ref_name = node["$ref"].split("/")[-1]
+                            if ref_name in defs:
+                                return resolve_refs(copy.deepcopy(defs[ref_name]))
+                        return {k: resolve_refs(v) for k, v in node.items()}
+                    elif isinstance(node, list):
+                        return [resolve_refs(item) for item in node]
+                    return node
+
+                schema_dict = resolve_refs(schema_dict)
+
+                # 2. additionalProperties, anyOf[..., null] 等のサニタイズ (titleはフィールド名の可能性があるため削除しない)
+                def sanitize_schema(d):
                     if isinstance(d, dict):
                         d.pop("additionalProperties", None)
-                        d.pop("title", None)
-                        for v in d.values():
-                            remove_additional_properties(v)
+                        if "anyOf" in d and len(d["anyOf"]) == 2:
+                            types_in_anyof = [x.get("type") for x in d["anyOf"] if isinstance(x, dict)]
+                            if "null" in types_in_anyof:
+                                non_null_type = [t for t in types_in_anyof if t != "null"]
+                                if non_null_type:
+                                    d["type"] = non_null_type[0]
+                                    d.pop("anyOf", None)
+                        # Gemini API Strict Mode: object型のrequiredをpropertiesの全キーに設定
+                        if d.get("type") == "object" and "properties" in d:
+                            d["required"] = list(d["properties"].keys())
+
+                        for v in list(d.values()):
+                            sanitize_schema(v)
                     elif isinstance(d, list):
                         for item in d:
-                            remove_additional_properties(item)
+                            sanitize_schema(item)
                             
-                remove_additional_properties(schema_dict)
+                sanitize_schema(schema_dict)
                 config.response_schema = schema_dict
             except Exception as e:
                 print(f"警告: response_schema の JSON Schema 変換に失敗しました: {e}")
