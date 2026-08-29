@@ -1,6 +1,6 @@
 # edd-agent-tools 開発ルール (エージェント指向システム制約)
 
-本ドキュメントは、`edd-agent-tools` パッケージを利用してスキルやテスト検証を自動実装するAIエージェントが遵守すべき **「厳密な開発制約 (System Rules)」** を定義します。
+本ドキュメントは、`edd-agent-tools` パッケージを利用してスキル開発・自律改善・評価検証を実装するAIエージェントが遵守すべき **「厳密な開発制約 (System Rules)」** を定義します。
 
 ---
 
@@ -8,7 +8,7 @@
 *   **単一真実源 (SSOT) ➔ `SKILL.md`**:
     スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化してください。
 *   **3層リソース分離**:
-    - `scripts/`: 直接実行可能な決定論的スクリプト
+    - `scripts/`: 直接実行可能な決定論的スクリプト（CLI / API 両用）
     - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）
     - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
 *   **ボイラープレートの排除**:
@@ -16,21 +16,22 @@
 
 ---
 
-## 2. 型仕様と Protocol の厳密遵守 (What/How)
-テストの生成（Generator）および実行（Executor）のための新規スキルやコンポーネントを開発する際は、必ずパッケージ内に定義された Python `Protocol` 契約に適合させてください。
+## 2. 型仕様とドメインモデルの厳密遵守 (What/How)
+スキル操作・構文解析・テスト実行を行う新規機能やスクリプトを開発する際は、必ずパッケージ内に定義されたドメインモデルおよび評価ランナーに適合させてください。
 
-*   **参照クラス定義**: `edd_agent_tools.evaluation.models.TestGenerator`
-*   **参照クラス定義**: `edd_agent_tools.evaluation.models.TestExecutor`
+*   **スキル管理モデル**: `edd_agent_tools.skills.Skill`, `edd_agent_tools.skills.SkillSpec`
+*   **品質保証モデル**: `edd_agent_tools.skills.SkillLogicDraft`, `edd_agent_tools.skills.SkillValidator`
+*   **評価実行基盤**: `edd_agent_tools.evaluation.ContractTestRunner`, `edd_agent_tools.evaluation.SimulationEvalRunner`
 
 各クラスのシグネチャ、引数の名前、戻り値の型、発生すべき例外については、上記コード内の **Docstring および Type Hints** を唯一の真実のソースとして厳密に従ってください。
 
 ---
 
 ## 3. 依存性注入 (Dependency Injection) 制約 (What/How)
-テストの実行器（Executor）は、自身の内部で OS やファイルシステムに直接アクセスしてはなりません。
+テスト実行や安全な試行錯誤を行うスクリプトは、自身の内部で OS や実ファイルシステムに直接アクセスしてはなりません。
 
 *   **実行環境の操作制限**:
-    必ず引数として注入される `env: WorkspaceEnvProtocol`（仮想環境）のみを介して、ファイルの書き込み、表示、テスト実行を行ってください。
+    必ず引数として注入される `env: WorkspaceEnvProtocol`（`LocalWorkspaceEnv` 等の仮想環境）のみを介して、ファイルの書き込み、表示、テスト実行を行ってください。
     *   ファイルの作成・書き込み ➔ `env.step(WriteFileAction(...))`
     *   ファイルの表示・確認 ➔ `env.step(ViewFileAction(...))`
     *   テストコマンド (pytest) の実行 ➔ `env.step(RunPytestAction())`
@@ -40,9 +41,9 @@
 
 ## 4. テスト判定とアサーションの仕様 (What/How)
 
-### A. 契約駆動テスト (Unitテスト)
+### A. 契約駆動テスト (Unit / Contractテスト)
 *   **アサーションの委譲**:
-    テスト実行時はアサーションエンジンを独自に再実装せず、パッケージの **`edd_agent_tools.evaluation`**（`ContractTestRunner`, `SimulationEvalRunner` 等）に仮想環境 `env` を引き渡して実行を委譲してください。
+    テスト実行時はアサーションエンジンを独自に再実装せず、パッケージの **`edd_agent_tools.evaluation`**（`ContractTestRunner` 等）に仮想環境 `env` を引き渡して実行を委譲してください。
 
 ### B. トリガー評価テスト (インテント判定)
 *   **負例テストの合否アサーション**:
@@ -58,7 +59,7 @@
 
 ## 6. プロンプトおよび仕様書の文体規約 (Imperative Form)
 *   **動詞起点・客観的指示**: SKILL.md および指示プロンプトはすべて客観的な指示（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調や曖昧な助動詞（「〜してください」等）を排除してください。
-*   **Frontmatter の description**: 第三者視点（"This skill should be used when..."）で、トリガー条件・対象ファイル・対応タスクを具体的に記述してください。
+*   **Frontmatter の description**: 第三者視点（"This skill should be used when..."）で、トリガー条件・対象ファイル・対応タスクを100 words以内で極めて具体的に記述してください。
 
 ---
 
