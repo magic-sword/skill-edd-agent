@@ -200,53 +200,112 @@ class SkillsState:
         return discovered_skills
 
     def validate_dependencies(self) -> None:
-        """登録された全スキルの依存関係を動的スキャンし、不足や循環依存を検証します。
+        """登録された全スキルの依存関係（SKILL.md の Frontmatter dependencies）を動的スキャンし、不足や循環依存を検証します。
 
         Raises:
             ValueError: 依存関係に欠落がある場合、または循環参照が検出された場合。
         """
+        is_valid, errors = self.validate_dependency_graph()
+        if not is_valid:
+            raise ValueError(f"依存関係エラー:\n" + "\n".join(f"- {e}" for e in errors))
+
+    def validate_dependency_graph(self) -> tuple[bool, list[str]]:
+        """全スキルの依存関係グラフ（DAG）を静的検証し、欠落や循環参照エラーのリストを返します。
+
+        Returns:
+            tuple[bool, list[str]]: (合格フラグ, エラーメッセージのリスト)
+        """
         discovered = self.scan_skills(force_reload=True)
-        
+        errors = []
+
         # 1. 依存関係の欠落チェック
         for name, skill_obj in discovered.items():
-            try:
-                deps = skill_obj.metadata.dependencies
-            except Exception:
-                continue # design.json が存在しない、またはパースエラーの場合はスキップ
-                
-            for dep in deps:
+            for dep in skill_obj.dependencies:
                 if dep not in discovered:
-                    raise ValueError(
-                        f"依存関係エラー: スキル '{name}' は '{dep}' に依存していますが、"
-                        f"該当のスキルが探索パスに見つかりません。"
+                    errors.append(
+                        f"スキル '{name}' は '{dep}' に依存していますが、該当のスキルが見つかりません。"
                     )
 
         # 2. 循環依存の検出 (DFS による閉路検出)
-        # visited の状態: 0 = 未探索, 1 = 探索中(スタック内), 2 = 探索完了
+        # 0 = 未探索, 1 = 探索中, 2 = 探索完了
         visited = {name: 0 for name in discovered.keys()}
 
-        def dfs(node: str) -> None:
-            visited[node] = 1 # 探索中
+        def dfs(node: str, path: list[str]) -> None:
+            visited[node] = 1
             skill_obj = discovered[node]
-            try:
-                deps = skill_obj.metadata.dependencies
-            except Exception:
-                deps = []
 
-            for dep in deps:
+            for dep in skill_obj.dependencies:
                 if dep not in discovered:
-                    continue # 欠落チェックで検知されるためスキップ
+                    continue
                 if visited[dep] == 1:
-                    raise ValueError(
-                        f"依存関係エラー: 循環参照が検出されました: {node} ➔ {dep}"
-                    )
-                if visited[dep] == 0:
-                    dfs(dep)
-            visited[node] = 2 # 探索完了
+                    cycle = " ➔ ".join(path + [dep])
+                    errors.append(f"循環参照が検出されました: {cycle}")
+                elif visited[dep] == 0:
+                    dfs(dep, path + [dep])
+            visited[node] = 2
 
         for name in discovered.keys():
             if visited[name] == 0:
-                dfs(name)
+                dfs(name, [name])
+
+        return (len(errors) == 0, errors)
+
+    def get_dependencies(self, skill_name: str) -> list[str]:
+        """指定されたスキルが直接依存している他のスキル名のリストを取得します。"""
+        skill_obj = self.get_skill(skill_name)
+        if not skill_obj:
+            return []
+        return skill_obj.dependencies
+
+    def get_dependents(self, skill_name: str) -> list[str]:
+        """指定されたスキルに依存しているすべての上位スキル/ワークフロー（依存逆引き）のリストを取得します。
+        
+        Args:
+            skill_name: 検索対象のスキル名。
+
+        Returns:
+            このスキルに依存している上位スキル名のリスト。
+        """
+        discovered = self.scan_skills()
+        dependents = []
+        for name, skill_obj in discovered.items():
+            if name == skill_name:
+                continue
+            if skill_name in skill_obj.dependencies:
+                dependents.append(name)
+        return sorted(dependents)
+
+    def get_execution_order(self) -> list[str]:
+        """トポロジカルソート（Kahnのアルゴリズム）を用いて、依存関係を満たすビルド・実行順序リストを取得します。
+
+        Returns:
+            依存関係順にソートされたスキル名のリスト。循環参照がある場合は空リスト。
+        """
+        discovered = self.scan_skills(force_reload=True)
+        # in_degree: 各ノードの依存数（前提条件の数）
+        in_degree = {name: len([d for d in skill.dependencies if d in discovered]) for name, skill in discovered.items()}
+        # adj: 前提スキル ➔ それを必要とするスキルの有向辺
+        adj = {name: [] for name in discovered.keys()}
+        for name, skill in discovered.items():
+            for dep in skill.dependencies:
+                if dep in discovered:
+                    adj[dep].append(name)
+
+        queue = [name for name, deg in in_degree.items() if deg == 0]
+        order = []
+
+        while queue:
+            node = queue.pop(0)
+            order.append(node)
+            for neighbor in adj[node]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    queue.append(neighbor)
+
+        if len(order) != len(discovered):
+            # 循環参照が存在する場合
+            return []
+        return order
 
     def get_skill(self, name: Optional[str] = None, skill_path: Optional[str] = None, design_path: Optional[str] = None, target_entry: Optional[str] = None) -> "Skill":
         """指定された名前（name）、スキルパス（skill_path または旧 design_path）、または論理配置先（target_entry）から、メタデータ注入済みの Skill インスタンスを返します。

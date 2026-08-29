@@ -20,6 +20,15 @@
       ]
     },
     {
+      "description": "Execute skill-optimizer skill",
+      "id": "evaluation_driven_development_agent-skill_optimizer",
+      "name": "skill_optimizer",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
       "description": "Execute first-test-runner skill",
       "id": "evaluation_driven_development_agent-first_test_runner",
       "name": "first_test_runner",

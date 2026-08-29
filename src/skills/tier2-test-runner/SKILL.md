@@ -3,6 +3,10 @@ name: tier2-test-runner
 description: "指定されたスキルに対して依存関係検証、契約テスト、ゴールデンテスト、ジャッジテストを実行し、全て成功した場合にスキルをTier 2として登録するワークフロー。"
 license: Complete terms in LICENSE.txt
 pattern: workflow
+dependencies:
+  - test-executor
+  - golden-test-executor
+  - judge-test-executor
 ---
 
 # ワークフロー仕様書: tier2-test-runner

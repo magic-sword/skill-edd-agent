@@ -96,6 +96,7 @@ class SkillLogicDraft(BaseModel):
     overview_summary: str = Field(..., description="スキルの目的・提供価値の簡潔な要約 (1〜2文)")
     decision_tree: list[DecisionBranch] = Field(default_factory=list, description="条件分岐ルール")
     execution_steps: list[StepInstruction] = Field(..., min_length=1, description="動詞起点の実行手順リスト")
+    dependencies: list[str] = Field(default_factory=list, description="依存する他のスキル名のリスト")
     resources_plan: list[ResourcePlan] = Field(default_factory=list, description="3層リソースの計画一覧")
     guidelines: list[str] = Field(default_factory=list, description="実行時の注意点・ベストプラクティス")
 
@@ -110,6 +111,7 @@ class SkillFrontmatter(BaseModel):
     description: str = Field(..., max_length=500, description="トリガー条件を明記した第三者視点の説明")
     license: str | None = Field("Complete terms in LICENSE.txt", description="ライセンス情報")
     pattern: SkillPattern | None = Field(None, description="スキルパターン（任意）")
+    dependencies: list[str] = Field(default_factory=list, description="依存するスキル一覧")
 
 
 class SkillSpec(BaseModel):
@@ -132,6 +134,10 @@ class SkillSpec(BaseModel):
     @property
     def description(self) -> str:
         return self.frontmatter.description
+
+    @property
+    def dependencies(self) -> list[str]:
+        return self.frontmatter.dependencies
 
     @classmethod
     def parse_markdown(cls, content: str) -> "SkillSpec":

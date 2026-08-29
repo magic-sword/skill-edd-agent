@@ -73,6 +73,14 @@ class Skill:
             return os.path.basename(self.root_dir)
 
     @property
+    def dependencies(self) -> list[str]:
+        """このスキルが依存している他のスキル名のリスト"""
+        try:
+            return self.spec.dependencies
+        except Exception:
+            return []
+
+    @property
     def description(self) -> str:
         """スキルの説明（Frontmatter の description）"""
         try:

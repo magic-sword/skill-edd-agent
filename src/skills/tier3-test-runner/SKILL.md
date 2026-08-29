@@ -3,6 +3,10 @@ name: tier3-test-runner
 description: "指定されたスキルに対して軌跡（Trajectory）テストおよび敵対的（Adversarial）テストを実行し、自律適応力と安全性を総合評価してTier 3に登録するワークフロー。"
 license: Complete terms in LICENSE.txt
 pattern: workflow
+dependencies:
+  - adversarial-test-executor
+  - golden-test-executor
+  - judge-test-executor
 ---
 
 # Tier 3 Test Runner

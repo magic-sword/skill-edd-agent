@@ -101,6 +101,15 @@ class SkillValidator:
             if len(desc) > 500:
                 res.add_warning("frontmatter", f"Description is overly long ({len(desc)} chars). Keep under 500 chars / ~100 words.")
 
+        deps = fm.get("dependencies")
+        if deps is not None:
+            if not isinstance(deps, list):
+                res.add_error("frontmatter", "'dependencies' in frontmatter must be a list of skill names")
+            else:
+                for dep in deps:
+                    if not isinstance(dep, str) or not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", dep):
+                        res.add_error("frontmatter", f"Invalid dependency name '{dep}': must be lowercase hyphen-case")
+
         # 4. 見出し構造検証
         if not re.search(r"^#\s+", body_str, re.MULTILINE):
             res.add_error("structure", "Missing level-1 title heading ('# <Title>')")

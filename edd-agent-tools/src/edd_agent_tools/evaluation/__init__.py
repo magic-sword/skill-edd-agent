@@ -33,17 +33,23 @@ def __getattr__(name: str) -> Any:
     if name == "ContractTestRunner":
         from .test_runner import ContractTestRunner
         return ContractTestRunner
+
     if name in ("EvalCase", "EvalCaseSet", "TrajectoryEvalSet"):
         from .models import EvalCase, EvalCaseSet, TrajectoryEvalSet
         if name == "EvalCase": return EvalCase
         if name == "EvalCaseSet": return EvalCaseSet
         if name == "TrajectoryEvalSet": return TrajectoryEvalSet
         
+    if name == "CascadeTestRunner":
+        from .cascade_runner import CascadeTestRunner
+        return CascadeTestRunner
+        
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
 __all__ = [
     "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
     "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "ContractTestRunner",
-    "EvalCase", "EvalCaseSet", "TestGenerator", "TestExecutor", "EvalRunResult", "TrajectoryEvalSet"
+    "EvalCase", "EvalCaseSet", "TestGenerator", "TestExecutor", "EvalRunResult", "TrajectoryEvalSet",
+    "CascadeTestRunner"
 ]
 

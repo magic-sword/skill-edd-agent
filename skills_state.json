@@ -3,10 +3,6 @@
     {
       "path": "src/skills",
       "name": "tool"
-    },
-    {
-      "path": "src/workflows",
-      "name": "workflow"
     }
   ],
   "inherits": [],
@@ -16,6 +12,9 @@
   ],
   "skills": {
     "skill-creator": {
+      "tier": 1
+    },
+    "skill-optimizer": {
       "tier": 1
     },
     "skill-diagnoser": {

@@ -3,6 +3,9 @@ name: first-test-runner
 description: "試験対象のスキル名と評価セットのパスを受け取り、依存関係の検証、トリガーテスト、契約テストを実行し、すべてに合格した場合にスキルをTier 1として登録するワークフロー。"
 license: Complete terms in LICENSE.txt
 pattern: workflow
+dependencies:
+  - trigger-test-executor
+  - test-executor
 ---
 
 # ワークフロー仕様書: tier1-skill-onboarding

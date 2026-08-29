@@ -25,6 +25,10 @@ class SkillTemplateEngine:
         lines.append(f"description: {desc_escaped}")
         lines.append("license: Complete terms in LICENSE.txt")
         lines.append(f"pattern: {draft.pattern.value}")
+        if draft.dependencies:
+            lines.append("dependencies:")
+            for dep in draft.dependencies:
+                lines.append(f"  - {dep}")
         lines.append("---")
         lines.append("")
 
