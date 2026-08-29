@@ -69,7 +69,9 @@ pattern: workflow
 
 ## Guidelines & Best Practices
 
-- すべての生成物は必ず `SkillValidator` の静的チェックをパスさせること。
-- `scripts/` に配置するPythonスクリプトは、冗長なラッパーを作らずフラットで簡潔な実装とすること。
+- すべての生成物は必ず `SkillValidator` の静的チェック（AST CLI検査、空ディレクトリ検知）をパスさせること。
+- `scripts/` に配置するPythonスクリプトは、冗長なラッパーを作らずフラットで簡潔な実装とし、必ず `argparse`（`--help`）および `if __name__ == '__main__':` を備えた決定論的ブラックボックスツールとすること。
 - ドキュメント参照だけで解決するタスクには無理にPythonスクリプトを生成せず、`references/` を活用すること。
+- 未使用の空ディレクトリ（`assets/` や `references/` 等）は作成・残置せず、リソース計画に存在するディレクトリのみを配置すること。
+
 

@@ -28,7 +28,7 @@ class SafeWriteFileTool(WriteFileTool):
                 'error': (
                     f"Writing to '{path}' is strictly prohibited because it is a system-managed file. "
                     f"Do NOT attempt to overwrite this file. "
-                    f"Write your custom logic in 'nodes/' directory or 'executor.py' instead."
+                    f"Write your custom logic in 'scripts/' directory instead."
                 )
             }
         return await super().run_async(args=args, tool_context=tool_context)
@@ -49,7 +49,8 @@ class SafeEditFileTool(EditFileTool):
                 'error': (
                     f"Editing '{path}' is strictly prohibited because it is a system-managed file. "
                     f"Do NOT attempt to modify this file. "
-                    f"Write your custom logic in 'nodes/' directory or 'executor.py' instead."
+                    f"Write your custom logic in 'scripts/' directory instead."
                 )
             }
         return await super().run_async(args=args, tool_context=tool_context)
+
