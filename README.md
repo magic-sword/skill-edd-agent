@@ -51,27 +51,14 @@ flowchart TD
 
 ## 3. 実装スキル一覧 (Skills & Workflows)
 
-### 🛠 メタスキル (Meta-Skills)
+### 🛠 メタスキル (Core Meta-Skills)
 | スキル名 | 役割 / 機能 | 特徴 |
 | :--- | :--- | :--- |
 | **`skill-creator`** | スキル自律生成エンジン | 4段階品質保証パイプラインに基づき、自然言語要件から `SKILL.md` と3層リソース（`scripts/`, `references/`, `assets/`）を一括生成・静的検証。 |
-| **`skill-planner`** | 要件分析 & 開発計画策定 | ユーザー要件を分析し、新規作成・既存更新・ワークフロー連携の最適ルートを判定。 |
+| **`skill-evaluator`** | 統合評価＆Tier昇格ゲートキーパー | 多層テストセット生成（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）、シミュレーション実行、および Tier 1〜3 昇格判定をワンストップで実行。 |
 | **`skill-diagnoser`** | テスト失敗診断 & 改善計画策定 | 失敗レポートログを分析し、`spec`, `script`, `reference`, `test_case` の3層リソース改善計画（`ImprovementPlan`）を自律出力。 |
-
-### 🧪 評価系スキル (Evaluation Skills)
-| スキル名 | 役割 / 機能 | 特徴 |
-| :--- | :--- | :--- |
-| **`trigger-test-generator`** | トリガー評価セット生成 | `SKILL.md` の仕様からインテント判定用（正例・負例プロンプト）テストケースを自動生成。 |
-| **`golden-test-generator`** | ゴールデンテスト生成 | `SKILL.md` とスクリプト仕様から多様なユースケースと意味的ゴールデンアウトプットを生成。 |
-| **`judge-test-generator`** | ルーブリックジャッジテスト生成 | 多角的な評価項目（正確性、完全性、文体等）と重み付きルーブリックを自動設計。 |
-| **`test-executor`** | ADK評価シミュレーション実行 | `LocalWorkspaceEnv` 環境を構築し、テストスイートを実行して精度計測・合否判定。 |
-
-### 🚀 ワークフロー (Workflows)
-| ワークフロー名 | 役割 / 機能 |
-| :--- | :--- |
-| **`first-test-runner`** | Tier 1（Production）オンボーディングパイプライン（依存関係検証 + トリガーテスト + 契約テスト）。 |
-| **`tier2-test-runner`** | Tier 2 昇格パイプライン（契約テスト + ゴールデンテスト + ルーブリックジャッジテスト）。 |
-| **`tier3-test-runner`** | Tier 3 昇格パイプライン（推論軌跡テスト + 敵対的アドバーサリアルテスト）。 |
+| **`skill-optimizer`** | 自律改善・自己進化ループ | テスト ➔ 診断 ➔ 差分修正 ➔ 再テスト ➔ 上位連鎖回帰テスト（Cascade Testing）を完全自動でループ実行。 |
+| **`skill-planner`** | 要件分析 & 開発計画策定 | ユーザー要件を分析し、新規作成・既存更新・ワークフロー連携の最適ルートを判定。 |
 
 ---
 

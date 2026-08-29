@@ -17,7 +17,7 @@ def test_skill_optimizer_structure_and_validation():
     skill = state.get_skill("skill-optimizer")
     assert skill is not None
     assert "skill-diagnoser" in skill.dependencies
-    assert "first-test-runner" in skill.dependencies
+    assert "skill-evaluator" in skill.dependencies
 
     # DAG整合性
     is_valid, errors = state.validate_dependency_graph()

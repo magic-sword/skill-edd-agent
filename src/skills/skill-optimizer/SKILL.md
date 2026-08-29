@@ -5,8 +5,7 @@ license: Complete terms in LICENSE.txt
 pattern: workflow
 dependencies:
   - skill-diagnoser
-  - test-executor
-  - first-test-runner
+  - skill-evaluator
 ---
 
 # Skill Optimizer

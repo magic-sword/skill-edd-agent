@@ -196,13 +196,17 @@ class Skill:
         """scripts/__init__.py または主要スクリプトをロードしモジュールオブジェクトを返します。"""
         script_abs_path = os.path.join(self.scripts_dir, "__init__.py")
         
-        # scripts/__init__.py がない場合は単体スクリプトを自動探索
+        # scripts/__init__.py または main.py を優先探索
         if not os.path.exists(script_abs_path):
-            py_files = [f for f in os.listdir(self.scripts_dir) if f.endswith(".py") and not f.startswith("__")] if os.path.exists(self.scripts_dir) else []
-            if py_files:
-                script_abs_path = os.path.join(self.scripts_dir, py_files[0])
+            main_py_path = os.path.join(self.scripts_dir, "main.py")
+            if os.path.exists(main_py_path):
+                script_abs_path = main_py_path
             else:
-                raise FileNotFoundError(f"Error: No valid Python script found in: {self.scripts_dir}")
+                py_files = [f for f in os.listdir(self.scripts_dir) if f.endswith(".py") and not f.startswith("__")] if os.path.exists(self.scripts_dir) else []
+                if py_files:
+                    script_abs_path = os.path.join(self.scripts_dir, sorted(py_files)[0])
+                else:
+                    raise FileNotFoundError(f"Error: No valid Python script found in: {self.scripts_dir}")
 
         skill_name_under = self.name.replace('-', '_')
         parent_pkg = f"edd_agent_tools.dynamic_skills.{skill_name_under}"
@@ -214,6 +218,8 @@ class Skill:
 
         if self.root_dir not in sys.path:
             sys.path.insert(0, self.root_dir)
+        if self.scripts_dir not in sys.path:
+            sys.path.insert(0, self.scripts_dir)
 
         if parent_pkg not in sys.modules:
             sys.modules[parent_pkg] = types.ModuleType(parent_pkg)

@@ -1,0 +1,11 @@
+{
+  "skill_name": "sample-skill",
+  "cases": [
+    {
+      "name": "sample_case_1",
+      "user_input": "サンプルスキルを実行してください",
+      "expected_tools": ["sample-skill"],
+      "should_trigger": true
+    }
+  ]
+}

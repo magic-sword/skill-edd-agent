@@ -132,3 +132,19 @@ def test_cli_package(tmp_workspace):
     zip_path = package_skill_cli(str(skill_dir), output_dir_str=str(dist_dir))
     assert zip_path is not None
     assert zip_path.exists()
+
+def test_skill_evaluator_integration():
+    """統合評価スキル skill-evaluator の静的検証と API ロードのテスト"""
+    evaluator_dir = Path("/workspace/src/skills/skill-evaluator")
+    val_res = SkillValidator.validate_directory(evaluator_dir)
+    assert val_res.is_valid is True, f"Validation errors: {val_res.errors}"
+
+    state = SkillsState()
+    eval_skill = state.get_skill("skill-evaluator")
+    assert eval_skill is not None
+    assert "generate_evalset.py" in eval_skill.list_scripts()
+    assert "run_eval.py" in eval_skill.list_scripts()
+    assert "run_tier_gate.py" in eval_skill.list_scripts()
+
+    mod = eval_skill.load_module()
+    assert hasattr(mod, "evaluate_skill")
