@@ -42,7 +42,7 @@
 
 ### A. 契約駆動テスト (Unitテスト)
 *   **アサーションの委譲**:
-    具象 Executor スキルはアサーションエンジンを独自に再実装せず、パッケージの **`edd_agent_tools.evaluation.ContractTestRunner`** に仮想環境 `env` を引き渡して実行を委譲してください。
+    テスト実行時はアサーションエンジンを独自に再実装せず、パッケージの **`edd_agent_tools.evaluation`**（`ContractTestRunner`, `SimulationEvalRunner` 等）に仮想環境 `env` を引き渡して実行を委譲してください。
 
 ### B. トリガー評価テスト (インテント判定)
 *   **負例テストの合否アサーション**:

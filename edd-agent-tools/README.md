@@ -12,8 +12,8 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
     Pydanticモデル（`SkillLogicDraft`）からの決定論的 `SKILL.md` レンダリング、および構文・実在整合性・Imperative文体を検査する静的バリデータを提供。
 *   **Gymnasium 互換サンドボックス隔離環境 (`WorkspaceEnvProtocol`, `LocalWorkspaceEnv`)**
     コードやテスト実行による環境破壊を防ぐため、仮想環境と Git ロールバック機能を提供。
-*   **動的ディスパッチテストフレームワーク (`TestGenerator` / `TestExecutor` / `ContractTestRunner`)**
-    テストケースの「生成」と「実行」をプロトコルに基づいて完全に分離し、再現可能なペアリングテストを実現。
+*   **多層EDD評価フレームワーク & Tier昇格ゲートキーパー (`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`)**
+    契約テスト、トリガー精度テスト、ゴールデン出力評価、および上位ワークフローへの連鎖回帰テストを一元管理する評価エンジンを提供。
 *   **Gemini API クライアント & Strict JSON Schema 自動正規化 (`GeminiClient`, `GeminiRequest`)**
     OpenAPI 3.0 Strict Mode に適合した再帰的 `$defs` インライン解決と指数バックオフリトライを内蔵。
 *   **FastMCP サーバー統合 (`edd-agent-mcp`)**

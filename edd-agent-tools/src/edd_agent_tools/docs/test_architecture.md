@@ -1,143 +1,86 @@
 # ADKエージェントテスト自動化設計仕様 (Test Architecture)
 
-本ドキュメントでは、ADK (Agent Development Kit) エージェントにおけるスキルの品質保証 (QA) を自動化するための、テストケース生成 (Generator) と実行 (Executor) の標準化設計について記述します。
+本ドキュメントでは、ADK (Agent Development Kit) エージェントにおけるスキルの品質保証 (QA) を自動化するための、テストケース生成 (Generator)、シミュレーション実行 (Executor)、および Tier 昇格ゲートキーパーの標準化設計について記述します。
 
 ---
 
-## 1. Generator-Executor ペアリングパターン (関心の完全分離)
+## 1. 統合評価スキル (skill-evaluator) と Progressive Disclosure 設計
 
 ### 課題
-LLMを用いたテストケースの生成は、APIトークンコストが高く、かつ確率的（非決定論的）な性質を持っています。テストケースの生成と実行を一体化させてしまうと、以下の問題が発生します。
-*   テスト実行のたびに高額なLLM利用料金が発生する。
-*   テスト結果が毎回変わり、バグの再現やデバッグ（回帰テスト）が困難になる。
+従来のスキルテストでは、テストタイプごと（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）に生成スキルと実行スキルを別々のディレクトリとして過度に細分化（Micro-Skills）していたため、以下の問題が発生していました：
+*   常時ロードされるスキルメタデータ（Frontmatter）が肥大化し、コンテキストウィンドウを無駄に圧迫。
+*   エージェントのインテント分類において、類似するテストスキル間での競合・誤判定が発生。
+*   `handler.py`, `executor.py`, `models.py` などの多層ラッパーボイラープレートが散乱。
 
-### 解決策
-テストケースの **「生成 (Generator)」** と **「実行 (Executor)」** を完全に分離する「ペアリングパターン」を採用します。
+### 解決策: 統合評価スキル (`skill-evaluator`) への一元化
+すべてのテスト生成・実行・Tier 昇格判定を、単一の自己完結型メタスキル **[`skill-evaluator`](file:///workspace/src/skills/skill-evaluator)** に集約しました。
 
 ```mermaid
 graph TD
-    Spec[SKILL.md / scripts] -->|1. Analyze & Generate| Gen[test-generator / 具象Generator]
+    Spec[SKILL.md / scripts] -->|1. Analyze & Generate| Gen["skill-evaluator (scripts/generate_evalset.py)"]
     Gen -->|2. Save Asset| File[(tests/skill_name/test_type.evalset.json)]
-    File -->|3. Read & Run| Exec[test-executor / 具象Executor]
-    Exec -->|4. Assert & Run| Env[Workspace Sandbox Environment]
-    Env -->|5. Aggregate| Result[EvalRunResult]
+    File -->|3. Read & Run| Exec["skill-evaluator (scripts/run_eval.py)"]
+    Exec -->|4. Assert & Run| Env[LocalWorkspaceEnv (Git Sandbox)]
+    Env -->|5. Aggregate & Report| Result[(tests/results/latest_report.json)]
+    Result -->|6. Gating & Promotion| Gate["skill-evaluator (scripts/run_tier_gate.py)"]
 ```
 
-1.  **生成 (Generator) フェーズ**:
-    仕様定義（`SKILL.md` や `scripts/`）を基に、正常系・異常系・境界値テストケースをLLMやルールベースで構築します。生成されたテストケースは、プロジェクトの `tests/[対象スキル名]/[対象スキル名]_[test_type].evalset.json` に**物理的なアセットファイルとして保存**します。このファイルは Git でバージョン管理します。
-2.  **実行 (Executor) フェーズ**:
-    保存された JSON アセットファイルをロードし、隔離されたサンドボックス環境（`WorkspaceEnvProtocol`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。
+1.  **テスト生成フェーズ (`scripts/generate_evalset.py`)**:
+    仕様定義（`SKILL.md` や `scripts/`）を基に、指定されたテストタイプ（`trigger`, `contract`, `golden`, `judge`, `trajectory`, `adversarial`）の評価セットを生成し、`tests/<skill_name>_<type>.evalset.json` に**物理的なアセットファイルとして保存**します。
+2.  **評価実行フェーズ (`scripts/run_eval.py`)**:
+    保存された JSON 評価セットをロードし、隔離されたサンドボックス環境（`LocalWorkspaceEnv`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。結果は `latest_report.json` に構造化ログとして永続化されます。
+3.  **Tier 昇格ゲートキーパーフェーズ (`scripts/run_tier_gate.py`)**:
+    Tier 階層（Tier 1: Production, Tier 2: Verified, Tier 3: Mastered）に応じた防壁テストを一括検証し、合格時に `SkillsState` へ登録・昇格させます。
 
 ---
 
-## 2. プラグイン型ディスパッチアーキテクチャ (拡張性の担保)
-
-### 課題
-テストのパターンは、契約テスト（`contract`）、トリガー/インテント判定（`trigger`）、対抗的テスト/セキュリティテスト（`redteam`）など多岐にわたり、将来的に拡張される予定です。
-すべてのテスト判定ロジックを単一の実行モジュールに実装すると、コードが肥大化し、**OCP（開放閉鎖の原則）**に反して保守性が低下します。また、別プロジェクトへの持ち運びも困難になります。
-
-### 解決策
-最上位の `test-generator` および `test-executor` を**動的ディスパッチャー（ルーター）**として構築します。
-
-*   ユーザーやワークフローは、パラメータ `test_type`（例: `"contract"`, `"trigger"`, `"redteam"`）を指定してディスパッチャーを呼び出します。
-*   ディスパッチャーは `SkillsState` から対応する具象ペアスキル（例: `contract-test-generator` と `contract-test-executor`）を動的解決してロードし、処理を委譲（ディスパッチ）します。
-*   新しいテストパターンを追加する際は、最上位ディスパッチャーのコードを一切変更することなく、**新しいペアスキルを `src/skills/` に新規追加するだけで拡張**できます。
-
----
-
-## 3. テスト共通インターフェース規約 (Protocol)
-
-動的ロードを保証するため、すべての具象テストスキルは `edd-agent-tools.evaluation` で定義された以下の `Protocol` 契約を満たすモジュール関数（`scripts/__init__.py` から `__all__` でエクスポートされた関数）を公開します。
-
-### A. TestGenerator 共通規約
-```python
-@runtime_checkable
-class TestGenerator(Protocol):
-    def generate_tests(self, skill_name: str, output_path: str) -> bool:
-        """指定されたスキルの仕様からテストケースを生成し、指定パスに保存します。
-        
-        Args:
-            skill_name: テストケース生成対象の論理スキル名。
-            output_path: 生成結果を保存する *.evalset.json の物理パス。
-            
-        Returns:
-            成功した場合は True、失敗した場合は False。
-        """
-        ...
-```
-
-### B. TestExecutor 共通規約
-```python
-@runtime_checkable
-class TestExecutor(Protocol):
-    def run_tests(self, skill_name: str, eval_set_path: str, env: WorkspaceEnvProtocol) -> EvalRunResult:
-        """指定されたテストケースファイルを読み込み、環境上でテストを実行して結果を返します。
-        
-        Args:
-            skill_name: テスト実行対象 of 論理スキル名。
-            eval_set_path: テストケースが記述された *.evalset.json の物理パス。
-            env: 隔離された実行環境（サンドボックス）。
-            
-        Returns:
-            合格件数や精度スコアを含む型安全な EvalRunResult オブジェクト。
-        """
-        ...
-```
-
----
-
-## 4. 共通テストデータスキーマと型駆動判定
+## 2. テスト共通スキーマと型駆動判定
 
 テストアセットのポータビリティを確保するため、テストデータは `edd-agent-tools` で一元管理された以下の2つの主要スキーマフォーマットを使用します。
 
-### ① スキーマ駆動テスト (Unitテスト用): `EvalCaseSet`
+### ① スキーマ駆動テスト (Unit / Contractテスト用): `EvalCaseSet`
 Pydanticモデルなどの入力バリデーション、境界値チェック、期待される例外アサーションを行うためのスキーマ。
-*   **特徴**: 各パラメータ制約（`ge`, `choices` 等）違反に対する `ValidationError` などの期待される例外クラス名を `ExpectedResultType` (Enum: `"success"`, `"ValueError"`, `"TypeError"`, `"RuntimeError"`, `"Exception"` 等) として型制約レベルで固定し、LLM による曖昧なテキスト出力（`"failed"` や `"error"`）を物理的に排除した決定論的アサーションを行います。
+*   **特徴**: 各パラメータ制約（`ge`, `choices` 等）違反に対する `ValidationError` などの期待される例外クラス名を `ExpectedResultType` として型制約レベルで固定し、LLM による曖昧なテキスト出力を物理的に排除した決定論的アサーションを行います。
 
 ### ② 軌跡評価テスト (インテント/シミュレーション用): `TrajectoryEvalSet`
 Google ADK 公式の軌跡シミュレーションテストに準拠した、ユーザーとエージェント（ルーター）の会話ターンごとの挙動を検証するためのスキーマ。
 *   **特徴**: `conversation` リストの中に、ユーザープロンプト（発話）と、それによって呼び出されるべき期待ツール（`tool_uses`）を定義し、ルーティングが誤検知なく正確に機能するかをアサーションします。
-*   **負例テストの判定ロジック**: 負例テストケース（対象外のプロンプト）の検証時、ルーターが他スキル（例: `skill-coder`）へルーティングした場合は、「対象スキルが誤って起動されなかった」ため、テストとしては **合格 (PASSED)** として動的にアサーション判定します。
+*   **負例テストの判定ロジック**: 負例テストケース（対象外のプロンプト）の検証時、ルーターが対象スキルを誤って起動しなかった場合に **合格 (PASSED)** としてアサーション判定します。
 
 ---
 
-## 5. 仮想環境の隔離と依存性注入 (Dependency Injection)
+## 3. 仮想環境の隔離と依存性注入 (Dependency Injection)
 
 ### 課題
-テスト実行器 (Executor) がテストのセットアップ、実行、検証（例: `pytest` の呼び出し）のためにファイルシステム操作やサブプロセス実行を OS に対して直接行うと、以下のような設計上の問題やリスクが発生します。
-*   **環境破壊のリスク**: テスト対象コードの不具合（無限ループ、想定外のファイル削除など）が、ホストシステム全体を汚染・破壊する可能性がある。
-*   **ポータビリティの喪失**: ローカル開発環境、Dockerコンテナ、インメモリ環境など、テストの実行プラットフォームが変わるたびに Executor 側のコードを書き直す必要がある。
-*   **アサーションの分散**: 各 Executor がそれぞれ独自の手段でアサーションやモックを構築（車輪の再発明）し、テスト検証基準がバラバラになる。
+テスト実行器がテストのセットアップ、実行、検証（例: `pytest` の呼び出し）のためにファイルシステム操作やサブプロセス実行を OS に対して直接行うと、環境破壊や副作用のリスクが発生します。
 
 ### 解決策: 依存性注入 (Dependency Injection: DI)
-テスト実行器（`TestExecutor`）に対して、環境の操作能力を抽象化した **`WorkspaceEnvProtocol`**（Gymnasium 形式の仮想環境）を外部から注入 (DI) する設計を採用します。
+テスト実行スクリプトに対して、環境の操作能力を抽象化した **`WorkspaceEnvProtocol`**（`LocalWorkspaceEnv` サンドボックス）を外部から注入 (DI) する設計を採用します。
 
 ```mermaid
 graph LR
-    Runner[Test Runner] -->|1. Create Env| Env[LocalWorkspaceEnv / Sandbox]
-    Runner -->|2. Inject env| Executor[TestExecutor / run_tests]
-    Executor -->|3. Safe Interaction| Env
+    Evaluator[skill-evaluator] -->|1. Create Env| Env[LocalWorkspaceEnv (Git Sandbox)]
+    Evaluator -->|2. Run Tests| Runner[ContractTestRunner / SimulationEvalRunner]
+    Runner -->|3. Safe Interaction| Env
     Env -->|4. Safe Read/Write/Test| Files[(Virtual Filesystem)]
 ```
 
 #### 1. OS直接操作の禁止と環境の抽象化
-`TestExecutor` は、内部で直接 `open()` や `subprocess.run()` を行いません。すべてのファイル読み書きや単体テストの実行は、渡された `env` インスタンスを経由して行います。
-*   ファイル書込: `env.step(WriteFileAction(path=path, content=content))`
-*   単体テスト: `env.step(RunPytestAction())`
+`skill-evaluator` は、内部で直接危険な OS 操作を行いません。すべてのファイル読み書きや単体テストの実行は、渡された `env` インスタンスを経由して行います。
 
 #### 2. DI によるメリット
 *   **環境の差し替え可能性 (Pluggability)**:
-    テスト実行コードを変更することなく、実環境で実行する `RealWorkspaceEnv` や、テスト完了後に自動ロールバック（クリーンアップ）を行う Git 管理下の `LocalWorkspaceEnv`（サンドボックス）を、引数の差し替えだけで動的に切り替えられます。
+    テスト実行コードを変更することなく、実環境で実行する `RealWorkspaceEnv` や、テスト完了後に自動ロールバックを行う Git 管理下の `LocalWorkspaceEnv`（サンドボックス）を動的に切り替えられます。
 *   **安全性の確保**:
     テスト実行中に発生したすべてのファイルの作成・変更・削除は仮想環境によって追跡され、実行後に完全にロールバックされるため、開発環境を汚さずに安全に何度でもテストを実行できます。
 *   **標準ランナーの再利用 (Reusability)**:
-    具象 Executor（例: `contract-test-executor`）は、アサーション判定ロジックをゼロから実装せず、パッケージ内の標準ランナー（例: `ContractTestRunner`）に仮想環境 `env` を渡して実行を委譲します。これにより、テスト実行基準の統一と検証ロジックの重複防止（車輪の再発明の防止）が実現されます。
+    アサーション判定ロジックをゼロから実装せず、`edd-agent-tools.evaluation` パッケージ内の標準ランナー（`ContractTestRunner`, `SimulationEvalRunner` 等）に仮想環境 `env` を渡して実行を委譲します。
 
 ---
 
-## 6. ドキュメント化の設計思想と関心の分離 (Documentation Design)
+## 4. ドキュメント化の設計思想と関心の分離 (Documentation Design)
 
-AIエージェント指向開発において、ドキュメントの陳腐化や情報の分散（二重書きによる不整合）はハルシネーションの温床になります。本パッケージでは、これを防ぐためにドキュメント化の関心を **「API仕様（個別・コード内）」** と **「システム制約（中央集権・Markdown）」** に完全に分離します。
+AIエージェント指向開発において、ドキュメントの陳腐化や情報の分散はハルシネーションの温床になります。本パッケージでは、ドキュメント化の関心を **「API仕様（個別・コード内）」** と **「システム制約（中央集権・Markdown）」** に完全に分離します。
 
 ```
                      ┌──────────────────────────────────────────────┐
@@ -147,7 +90,7 @@ AIエージェント指向開発において、ドキュメントの陳腐化や
                      │   * システム全体のアーキテクチャ制約（How）  │
                      │   * 複数クラスにまたがる横断的ルール         │
                      └──────────────────────┬───────────────────────┘
-                                            │ (参照 / ルールバインド)
+                                             │ (参照 / ルールバインド)
                      ┌──────────────────────▼───────────────────────┐
                      │   [個別コード定義: Pydoc / Type hints]       │
                      │   * メソッド個別のAPI契約（What）            │
@@ -157,12 +100,6 @@ AIエージェント指向開発において、ドキュメントの陳腐化や
 
 ### 1. 個別API仕様 (What / How to Call) ➔ ソースコード内 (Pydoc)
 個別のクラスやメソッドの使い方、引数の型、例外情報などは、**Pythonソースコード内の Docstring (Pydoc) および Type hints のみに記述** します。
-*   **メリット**:
-    *   コードの近くに仕様が書かれているため、プログラム修正時に仕様の更新漏れ（乖離）が起きない。
-    *   AIエージェントは、ファイルをロードして `inspect.getdoc()` や静的解析を行うだけで、最新の型仕様を動的に取得できる。
 
 ### 2. 横断的システム制約 (How / Architecture Rules) ➔ パッケージ内 `AGENTS.md`
 「DI（依存性注入）を用いて環境を渡す目的」「アサーションの合否判定で負例をどう扱うべきか」などの、**複数クラスにまたがる全体のアーキテクチャ制約や背景は、パッケージ同梱の `AGENTS.md`（または `test_architecture.md`）に集約して記述** します。
-*   **メリット**:
-    *   個別のクラスの Docstring に重複した設計背景を何度も書く必要がなくなり、コードの可読性が維持される。
-    *   AIエージェントが開発の初期段階で「このパッケージ全体の設計思想と従うべきメタルール」を一括でロードして学習するための、単一のインプットソースとして機能する。

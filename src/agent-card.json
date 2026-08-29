@@ -6,12 +6,12 @@
   "defaultOutputModes": [
     "text/plain"
   ],
-  "description": "Google ADK を利用した、自立的にスキルを開発・統合するA2Aプロトコル互換のエージェントの土台",
+  "description": "Google ADK と Anthropic スキル標準を融合した、自立的にスキルを開発・評価・統合する自己進化型エージェント",
   "name": "evaluation_driven_development_agent",
   "protocolVersion": "0.3.0",
   "skills": [
     {
-      "description": "Execute skill-creator skill",
+      "description": "Execute skill-creator skill (Stage 1 to 4 authoring pipeline)",
       "id": "evaluation_driven_development_agent-skill_creator",
       "name": "skill_creator",
       "tags": [
@@ -20,43 +20,16 @@
       ]
     },
     {
-      "description": "Execute skill-optimizer skill",
-      "id": "evaluation_driven_development_agent-skill_optimizer",
-      "name": "skill_optimizer",
+      "description": "Execute skill-evaluator skill (multi-tier testing & gating)",
+      "id": "evaluation_driven_development_agent-skill_evaluator",
+      "name": "skill_evaluator",
       "tags": [
         "llm",
         "tools"
       ]
     },
     {
-      "description": "Execute first-test-runner skill",
-      "id": "evaluation_driven_development_agent-first_test_runner",
-      "name": "first_test_runner",
-      "tags": [
-        "llm",
-        "tools"
-      ]
-    },
-    {
-      "description": "Execute test-executor skill",
-      "id": "evaluation_driven_development_agent-test_executor",
-      "name": "test_executor",
-      "tags": [
-        "llm",
-        "tools"
-      ]
-    },
-    {
-      "description": "Execute trigger-test-generator skill",
-      "id": "evaluation_driven_development_agent-trigger_test_generator",
-      "name": "trigger_test_generator",
-      "tags": [
-        "llm",
-        "tools"
-      ]
-    },
-    {
-      "description": "Execute skill-diagnoser skill",
+      "description": "Execute skill-diagnoser skill (root cause & improvement plan)",
       "id": "evaluation_driven_development_agent-skill_diagnoser",
       "name": "skill_diagnoser",
       "tags": [
@@ -65,7 +38,16 @@
       ]
     },
     {
-      "description": "Execute skill-planner skill",
+      "description": "Execute skill-optimizer skill (autonomous self-healing loop)",
+      "id": "evaluation_driven_development_agent-skill_optimizer",
+      "name": "skill_optimizer",
+      "tags": [
+        "llm",
+        "tools"
+      ]
+    },
+    {
+      "description": "Execute skill-planner skill (requirement analysis & planning)",
       "id": "evaluation_driven_development_agent-skill_planner",
       "name": "skill_planner",
       "tags": [
@@ -85,5 +67,5 @@
   ],
   "supportsAuthenticatedExtendedCard": false,
   "url": "https://us-central1-aiplatform.googleapis.com/v1/projects/arc-agi-498914/locations/us-central1/reasoningEngines/1915136500085817344",
-  "version": "0.2.0"
+  "version": "0.3.0"
 }

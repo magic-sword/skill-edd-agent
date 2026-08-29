@@ -47,7 +47,7 @@ class CascadeTestRunner:
                 all_passed = False
                 continue
 
-            # 上位スキルのテスト実行（tests.load_latest_report または test-executor）
+            # 上位スキルのテスト実行（tests.load_latest_report または skill-evaluator）
             # ここでは静的バリデーション + 既存レポート/テスト実行器をトリガー
             try:
                 from edd_agent_tools.skills import SkillValidator
