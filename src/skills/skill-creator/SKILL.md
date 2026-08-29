@@ -38,7 +38,11 @@ pattern: workflow
 
 ### Step 4: 静的検証と自己修復ループ *(Target: `scripts/creator.py`)*
 
-`SkillValidator` を実行して Frontmatter 構文、リソース実在整合性、Imperative 文体を検査する。エラーや警告が検知された場合は、LLMへの差分フィードバックにより最大3回まで自動修正（Self-Correction）を実行する。
+`SkillValidator` を実行して Frontmatter 構文、リソース実在整合性、CLIハーネス（`argparse` / `--help` / エントリポイント）、Imperative 文体を検査する。エラーや警告が検知された場合は、LLMへの差分フィードバックにより最大3回まで自動修正（Self-Correction）を実行する。
+
+### Step 5: スキル配布用パッケージング *(Target: `scripts/package_skill.py`)*
+
+完成したスキルを外部配布（Claude Code, Antigravity, Cursor 等）する場合、`scripts/package_skill.py <skill_dir> --output <out_dir>` を実行して静的検証済み ZIP アーカイブを出力する。
 
 ## Usage Scenarios & Trigger Examples
 
@@ -46,12 +50,13 @@ pattern: workflow
 
 - "新しいスキルとして、PDFを回転・結合する pdf-tools スキルを作成してください。"
 - "APIクライアントを自動生成するワークフロー型のスキルを設計・構築したい。"
-- "既存のデータ分析スキルに、グラフ描画用のスクリプトとテンプレートを追加して再構築してください。"
+- "作成したスキルを配布用 ZIP パッケージに固めて出力して。"
 
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/creator.py`**: 4段階品質保証パイプラインを実行するコア自動生成エンジン
+- **`scripts/creator.py`**: 4段階品質保証パイプラインを実行するコア自動生成エンジン（CLI対応）
+- **`scripts/package_skill.py`**: スキルを静的検証した上で配布用 ZIP パッケージを出力する決定論的CLIツール
 - **`scripts/main.py`**: CLIおよびエージェント向け公開関数（`create_skill`）のエントリポイント
 
 ### `references/` (On-Demand Knowledge)

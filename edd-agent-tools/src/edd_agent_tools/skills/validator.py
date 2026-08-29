@@ -1,5 +1,6 @@
 import os
 import re
+import ast
 from pathlib import Path
 from typing import NamedTuple
 from pydantic import BaseModel, Field
@@ -7,7 +8,7 @@ import yaml
 from .models import SkillSpec, SkillPattern
 
 class ValidationIssue(BaseModel):
-    category: str = Field(..., description="エラーまたは警告のカテゴリ (frontmatter, structure, resources, tone)")
+    category: str = Field(..., description="エラーまたは警告のカテゴリ (frontmatter, structure, resources, tone, cli)")
     severity: str = Field(..., description="'error' または 'warning'")
     message: str = Field(..., description="具体的な問題点の説明")
     line_number: int | None = Field(None, description="発生行番号（特定可能な場合）")
@@ -36,7 +37,7 @@ class SkillValidator:
 
     @classmethod
     def validate_directory(cls, skill_dir: str | Path) -> ValidationResult:
-        """スキルディレクトリ全体（SKILL.md + リソース）を静的検証します。"""
+        """スキルディレクトリ全体（SKILL.md + リソース + CLIハーネス）を静的検証します。"""
         skill_path = Path(skill_dir).resolve()
         skill_name = skill_path.name
         res = ValidationResult(skill_name=skill_name, is_valid=True)
@@ -51,7 +52,70 @@ class SkillValidator:
             return res
 
         content = skill_md_path.read_text(encoding="utf-8")
-        return cls.validate_content(content, skill_dir=skill_path)
+        base_res = cls.validate_content(content, skill_dir=skill_path)
+
+        # 7. ディレクトリの整合性および不要空ディレクトリ検証
+        cls._validate_directory_cleanliness(skill_path, base_res)
+
+        # 8. Python スクリプトの CLI / Black-box Tooling ハーネス検証 (AST静的解析)
+        cls._validate_python_scripts_harness(skill_path, base_res)
+
+        return base_res
+
+    @classmethod
+    def _validate_directory_cleanliness(cls, skill_dir: Path, res: ValidationResult) -> None:
+        """空ディレクトリの残存を検知します。"""
+        for item in skill_dir.iterdir():
+            if item.is_dir() and item.name not in ["__pycache__", ".pytest_cache"]:
+                # ディレクトリ配下に何かしらのファイルが存在するか確認
+                files = [f for f in item.rglob("*") if f.is_file() and not f.name.endswith((".pyc", ".gitkeep"))]
+                if not files:
+                    res.add_warning("structure", f"Empty resource directory detected: '{item.name}/'. Unused directories should be removed to reduce context noise.")
+
+    @classmethod
+    def _validate_python_scripts_harness(cls, skill_dir: Path, res: ValidationResult) -> None:
+        """scripts/ 配下の Python スクリプトが決定論的 CLI ツールとして実装されているかを AST 解析で検証します。"""
+        scripts_dir = skill_dir / "scripts"
+        if not scripts_dir.exists() or not scripts_dir.is_dir():
+            return
+
+        for py_file in scripts_dir.glob("*.py"):
+            if py_file.name == "__init__.py":
+                continue
+
+            try:
+                tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+            except SyntaxError as e:
+                res.add_error("cli", f"Syntax error in script '{py_file.name}': {e}", line_number=e.lineno)
+                continue
+
+            has_main_block = False
+            has_argparse_or_cli = False
+
+            for node in ast.walk(tree):
+                # if __name__ == '__main__': のチェック
+                if isinstance(node, ast.If):
+                    if isinstance(node.test, ast.Compare):
+                        # __name__ == '__main__' または '__main__' == __name__
+                        left_name = getattr(node.test.left, "id", None)
+                        for comparator in node.test.comparators:
+                            if isinstance(comparator, ast.Constant) and comparator.value == "__main__" and left_name == "__name__":
+                                has_main_block = True
+                            elif isinstance(comparator, ast.Name) and comparator.id == "__name__" and isinstance(node.test.left, ast.Constant) and node.test.left.value == "__main__":
+                                has_main_block = True
+
+                # import argparse / sys.argv / click / typer のチェック
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    names = [alias.name for alias in node.names]
+                    module_name = getattr(node, "module", "") or ""
+                    if "argparse" in names or module_name == "argparse" or "click" in names or "typer" in names or "sys" in names:
+                        has_argparse_or_cli = True
+
+            if not has_main_block:
+                res.add_warning("cli", f"Script 'scripts/{py_file.name}' lacks 'if __name__ == \"__main__\":' block. Deterministic scripts should be directly executable via CLI.")
+
+            if not has_argparse_or_cli:
+                res.add_warning("cli", f"Script 'scripts/{py_file.name}' does not import 'argparse' or CLI parser. Scripts should support --help and CLI arguments.")
 
     @classmethod
     def validate_content(cls, content: str, skill_dir: Path | None = None) -> ValidationResult:

@@ -86,11 +86,6 @@ class SkillCreationEngine:
 
         # 3. Stage 3: リソースファイル群の生成と配置
         print(f"🛠️ [Stage 3] Generating bundled resources (scripts, references, assets)...")
-        (target_skill_dir / "scripts").mkdir(exist_ok=True)
-        (target_skill_dir / "references").mkdir(exist_ok=True)
-        (target_skill_dir / "assets").mkdir(exist_ok=True)
-        (target_skill_dir / "tests").mkdir(exist_ok=True)
-        (target_skill_dir / "tests" / "results").mkdir(exist_ok=True)
 
         for res_plan in draft.resources_plan:
             self._generate_single_resource(target_skill_dir, res_plan, draft)
@@ -170,6 +165,28 @@ class SkillCreationEngine:
             print(f"  ⚠️ Validation issues detected (Attempt {attempt}/{max_retries}): {res.errors}")
             # エラーの自動修復
             skill_md_content = SkillTemplateEngine.render(draft)
-            (skill_dir / "SKILL.md").write_text(skill_md_content, encoding="utf-8")
-
         return SkillValidator.validate_directory(skill_dir)
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="SkillCreationEngine CLI")
+    parser.add_argument("prompt", type=str, nargs="?", default="", help="Natural language requirement prompt for the skill")
+    parser.add_argument("--name", type=str, default=None, help="Skill identifier (e.g. pdf-tools)")
+    parser.add_argument("--pattern", type=str, default=None, help="Skill pattern (workflow, task_based, reference, capabilities)")
+    parser.add_argument("--output", type=str, default="src/skills", help="Output directory for generated skill")
+    args = parser.parse_args()
+
+    if not args.prompt:
+        parser.print_help()
+        sys.exit(1)
+
+    engine = SkillCreationEngine(output_base_dir=args.output)
+    res = engine.create_skill_from_prompt(
+        prompt=args.prompt,
+        name=args.name,
+        pattern=args.pattern,
+        output_dir=args.output
+    )
+    print(json.dumps(res, indent=2, ensure_ascii=False))
+

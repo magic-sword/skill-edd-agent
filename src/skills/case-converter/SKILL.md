@@ -13,29 +13,29 @@ pattern: task_based
 
 ## Quick Start
 
-Execute standard operations using the provided modular tools and scripts.
+提供されている決定論的スクリプト `scripts/case_converter.py` を用いて、テキストのケース変換を実行する。
 
 ## Available Tasks
 
-### Task 1: 変換要求を解析 *(Tool: `references/case-conversion-types.md`)*
+### Task 1: 変換要求の解析 *(Tool: `references/case-conversion-types.md`)*
 
-To identify the target string and desired conversion type, parse the user's request.
+対象となる文字列および希望する変換形式（uppercase, lowercase, camelCase, snake_case 等）をユーザーリクエストから抽出する。
 
-### Task 2: 変換タイプを決定 *(Tool: `references/case-conversion-types.md`)*
+### Task 2: 変換タイプの決定 *(Tool: `references/case-conversion-types.md`)*
 
-To determine the specific case conversion type, match the user's intent with available options.
+`references/case-conversion-types.md` を参照し、ユーザーの意図に合致する変換タイプ（`upper`, `lower`, `camel`, `snake` 等）を特定する。
 
-### Task 3: ケース変換スクリプトを実行 *(Tool: `scripts/case_converter.py`)*
+### Task 3: ケース変換スクリプトの実行 *(Tool: `scripts/case_converter.py`)*
 
-To convert the string, execute scripts/case_converter.py with --text <extracted_string> and --type <determined_type>.
+抽出した文字列と特定したタイプを指定し、`scripts/case_converter.py --text <target_string> --type <determined_type>` を実行する。
 
-### Task 4: 変換結果を出力
+### Task 4: 変換結果の提示
 
-To present the result, output the converted string to the user.
+変換後の文字列をユーザーに提示する。
 
 ## Usage Scenarios & Trigger Examples
 
-This skill is triggered when handling requests such as:
+このスキルは以下のようなリクエストでトリガーされる：
 
 - "このテキストを大文字に変換して: 'hello world'"
 - "文字列 'MyString' を小文字にしてください"
@@ -46,17 +46,14 @@ This skill is triggered when handling requests such as:
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-Deterministic execution scripts that run directly in the environment:
-
-- **`scripts/case_converter.py`**: 入力文字列と変換タイプ（upper, lower, camel, snake）を受け取り、変換結果を返すPythonスクリプト。
+- **`scripts/case_converter.py`**: 入力文字列と変換タイプを受け取り、変換結果を決定論的に出力する CLI スクリプト
 
 ### `references/` (On-Demand Knowledge)
-Documentation and schema specifications loaded only when explicitly needed:
-
-- **`references/case-conversion-types.md`**: 各ケースタイプの定義と使用例を説明するドキュメント。AIがユーザーに説明する際に参照する。
+- **`references/case-conversion-types.md`**: 各ケースタイプの定義と仕様を説明する参照ドキュメント
 
 ## Guidelines & Best Practices
 
-- 変換対象の文字列は、明確に指定されていることを確認する。
-- 複数の変換タイプが指定された場合は、ユーザーに優先順位を確認する。
-- スクリプトは、一般的なASCII文字セットに対応していることを前提とする。
+- 変換対象の文字列が明確に指定されていることを確認すること。
+- 複数の変換タイプが指定された場合は、ユーザーに優先順位を確認すること。
+- スクリプトは `--help` でオプションを確認した上で直接コマンドラインから実行すること。
+

@@ -52,16 +52,18 @@ class SkillOptimizer:
             diag_output = None
             if diag_skill:
                 mod = diag_skill.load_module()
-                if hasattr(mod, "SkillExecutor"):
-                    diagnoser = mod.SkillExecutor(skill=skill_name)
+                if hasattr(mod, "SkillDiagnoser"):
+                    diagnoser = mod.SkillDiagnoser(skill=skill_name)
                     diag_output = diagnoser.execute()
                 elif hasattr(mod, "diagnose_skill_failure"):
-                    res = mod.diagnose_skill_failure(skill=skill_name)
-                    # res is DiagnoseSkillFailureOutput
-                    diag_output = res
+                    diag_output = mod.diagnose_skill_failure(skill=skill_name)
+                elif hasattr(mod, "SkillExecutor"):
+                    diagnoser = mod.SkillExecutor(skill=skill_name)
+                    diag_output = diagnoser.execute()
 
-            if diag_output.status != "success" or not diag_output.plan:
-                print(f"❌ 診断の実行に失敗しました: {diag_output.details}")
+            if not diag_output or diag_output.status != "success" or not diag_output.plan:
+                err_msg = diag_output.details if diag_output else "診断モジュールの取得に失敗しました"
+                print(f"❌ 診断の実行に失敗しました: {err_msg}")
                 # レポートが存在しないか全合格の場合
                 if diag_output.plan and diag_output.plan.verdict == "no_issues_found":
                     print("✅ 修復すべき問題は検出されませんでした（全テスト合格状態）。")
@@ -188,3 +190,20 @@ Markdownの ```python ... ``` コードブロックで囲んで完全なPython�
         except Exception as e:
             print(f"Error applying improvement plan: {e}")
             return False
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Skill Optimizer CLI")
+    parser.add_argument("skill", type=str, nargs="?", default="", help="Logical name of the target skill (e.g. pdf-tools)")
+    parser.add_argument("--retries", "-r", type=int, default=3, help="Max retry iterations (default: 3)")
+    args = parser.parse_args()
+
+    if not args.skill:
+        parser.print_help()
+        sys.exit(1)
+
+    opt = SkillOptimizer()
+    res = opt.optimize_skill(skill_name=args.skill, max_retries=args.retries)
+    print(json.dumps(res, indent=2, ensure_ascii=False))
+

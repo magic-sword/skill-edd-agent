@@ -5,6 +5,8 @@ Skill Overview: {overview}
 Resource Purpose: {purpose}
 
 Guidelines:
-- If this is a Python script (`.py`), write clean, standalone, executable Python code with standard type hints and a main execution entry point. Avoid unnecessary multi-layer wrapper imports.
-- If this is a reference document (`.md`), write comprehensive, objective documentation in Imperative style.
+- If this is a Python script (`.py`), write clean, standalone, deterministic executable Python code with `argparse` (providing clear options and `--help`), comprehensive docstrings, standard type hints, and a `if __name__ == "__main__":` CLI entry point. These scripts are deterministic black-box tools designed to be executed directly from the shell without polluting the LLM context window.
+- If this is a reference document (`.md`), write comprehensive, objective documentation in Imperative style ("To do X, do Y").
+- If this is an asset or template, provide clean, production-ready template content.
 - Output ONLY the raw file content (do not wrap in markdown triple backticks if outputting code).
+

@@ -89,34 +89,55 @@ def main():
         description="入力された文字列を指定されたケースに変換します。"
     )
     parser.add_argument(
-        "text",
+        "pos_text",
         type=str,
-        help="変換する入力文字列。"
+        nargs="?",
+        default=None,
+        help="変換する入力文字列（位置引数）。"
     )
     parser.add_argument(
-        "type",
+        "pos_type",
+        type=str,
+        nargs="?",
+        default=None,
+        choices=["upper", "lower", "camel", "snake"],
+        help="変換タイプ（位置引数: upper, lower, camel, snake）。"
+    )
+    parser.add_argument(
+        "--text", "-t",
+        type=str,
+        default=None,
+        help="変換する入力文字列（オプション引数）。"
+    )
+    parser.add_argument(
+        "--type", "-c",
+        dest="opt_type",
         type=str,
         choices=["upper", "lower", "camel", "snake"],
-        help="変換タイプ (upper, lower, camel, snake)。"
+        default=None,
+        help="変換タイプ（オプション引数: upper, lower, camel, snake）。"
     )
 
     args = parser.parse_args()
 
-    converted_text: str
-    if args.type == "upper":
-        converted_text = to_upper(args.text)
-    elif args.type == "lower":
-        converted_text = to_lower(args.text)
-    elif args.type == "camel":
-        converted_text = to_camel_case(args.text)
-    elif args.type == "snake":
-        converted_text = to_snake_case(args.text)
-    else:
-        # このパスはargparseのchoicesによって到達しないはずですが、念のため
-        print(f"エラー: 未知の変換タイプ '{args.type}'", file=sys.stderr)
+    input_text = args.text or args.pos_text
+    conversion_type = args.opt_type or args.pos_type
+
+    if not input_text or not conversion_type:
+        parser.print_help()
         sys.exit(1)
 
-    print(converted_text)
+    result = ""
+    if conversion_type == "upper":
+        result = to_upper(input_text)
+    elif conversion_type == "lower":
+        result = to_lower(input_text)
+    elif conversion_type == "camel":
+        result = to_camel_case(input_text)
+    elif conversion_type == "snake":
+        result = to_snake_case(input_text)
+
+    print(result)
 
 if __name__ == "__main__":
     main()

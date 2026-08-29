@@ -1,6 +1,7 @@
-import os
-from typing import Optional
-from .creator import SkillCreationEngine
+try:
+    from .creator import SkillCreationEngine
+except (ImportError, ValueError):
+    from creator import SkillCreationEngine
 
 __all__ = ["create_skill"]
 
@@ -31,9 +32,25 @@ def create_skill(
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) < 2:
-        print("Usage: python main.py <prompt> [--name <name>] [--pattern <pattern>]")
+    import json
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Skill Creator Entrypoint CLI")
+    parser.add_argument("prompt", type=str, nargs="?", default="", help="Natural language requirement prompt for the skill")
+    parser.add_argument("--name", type=str, default=None, help="Skill identifier (e.g. pdf-tools)")
+    parser.add_argument("--pattern", type=str, default=None, help="Skill pattern (workflow, task_based, reference, capabilities)")
+    parser.add_argument("--output", type=str, default="src/skills", help="Output directory for generated skill")
+    args = parser.parse_args()
+
+    if not args.prompt:
+        parser.print_help()
         sys.exit(1)
-    prompt_arg = sys.argv[1]
-    res = create_skill(prompt_arg)
-    print(res)
+
+    res = create_skill(
+        prompt=args.prompt,
+        name=args.name,
+        pattern=args.pattern,
+        output_dir=args.output
+    )
+    print(json.dumps(res, indent=2, ensure_ascii=False))
+

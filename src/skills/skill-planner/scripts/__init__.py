@@ -1,3 +1,16 @@
-from .handler import skill_planner, developer_router
+from .planner import (
+    plan_skill_development,
+    SkillPlanner,
+    SkillPlannerOutput,
+    ProposedSkill
+)
 
-__all__ = ["skill_planner", "developer_router"]
+skill_planner = plan_skill_development
+
+__all__ = [
+    "plan_skill_development",
+    "skill_planner",
+    "SkillPlanner",
+    "SkillPlannerOutput",
+    "ProposedSkill"
+]
