@@ -35,6 +35,8 @@ def __getattr__(name: str):
         "ModuleType": (".skills.models", "ModuleType"),
         # evaluation.models
         "EvalRunResult": (".evaluation.models", "EvalRunResult"),
+        "FailedCaseDetail": (".evaluation.models", "FailedCaseDetail"),
+        "EvalDetailReport": (".evaluation.models", "EvalDetailReport"),
         "WorkspaceArtifacts": (".evaluation.models", "WorkspaceArtifacts"),
         "WorkspaceAction": (".evaluation.models", "WorkspaceAction"),
         "WriteFileAction": (".evaluation.models", "WriteFileAction"),
@@ -48,6 +50,7 @@ def __getattr__(name: str):
         # skills
         "SkillsState": (".skills", "SkillsState"),
         "Skill": (".skills", "Skill"),
+        "SkillTests": (".skills", "SkillTests"),
         "SkillTier": (".skills", "SkillTier"),
         "WorkflowRunner": (".run.workflow", "WorkflowRunner"),
         "merge_result_to_state": (".run.workflow", "merge_result_to_state"),
@@ -83,10 +86,10 @@ def __getattr__(name: str):
 def __dir__():
     return sorted(list(globals().keys()) + [
         "Parameter", "SkillDesign", "WorkflowDesign", "ModuleDesign", "Step", "StepType",
-        "SkillMetadata", "ModuleType", "EvalRunResult", "WorkspaceArtifacts", "WorkspaceAction",
+        "SkillMetadata", "ModuleType", "EvalRunResult", "FailedCaseDetail", "EvalDetailReport", "WorkspaceArtifacts", "WorkspaceAction",
         "WriteFileAction", "ViewFileAction", "RunPytestAction", "WorkspaceObservation", "FileState",
         "clean_pydantic_schema", "PromptField",
-        "SkillsState", "Skill", "SkillTier", "WorkflowRunner", "merge_result_to_state", "SafeWriteFileTool", "SafeEditFileTool", 
+        "SkillsState", "Skill", "SkillTests", "SkillTier", "WorkflowRunner", "merge_result_to_state", "SafeWriteFileTool", "SafeEditFileTool", 
         "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol", "ContractTestRunner",
         "TestGenerator", "TestExecutor", "TrajectoryEvalSet",
         "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"

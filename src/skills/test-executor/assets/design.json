@@ -72,6 +72,13 @@
           "ge": 0.0,
           "le": 1.0,
           "example": 0.98
+        },
+        {
+          "name": "detail_file_path",
+          "type": "str",
+          "description": "生成された詳細結果レポート（JSON）の絶対パス。",
+          "required": false,
+          "example": "/path/to/tests/results/latest_report.json"
         }
       ]
     }

@@ -6,7 +6,34 @@ class EvalRunResult(BaseModel):
     failed: int = Field(..., description="不合格だったテストの件数")
     total: int = Field(..., description="テストの総件数")
     accuracy: float = Field(..., description="テストの合格精度（0.0〜1.0）")
-    detail_file_path: str | None = Field(None, description="ADKが生成した詳細結果JSONファイルの絶対パス")
+    detail_file_path: str | None = Field(None, description="詳細結果JSONファイルの絶対パス")
+
+
+class FailedCaseDetail(BaseModel):
+    """不合格となったテストケースの詳細情報。"""
+    eval_case_id: str = Field(..., description="テストケースの一意な識別ID")
+    function_name: str = Field(..., description="テスト対象となった公開関数名")
+    inputs: dict[str, Any] = Field(default_factory=dict, description="テストケース実行時に渡された入力引数")
+    expected: str = Field(..., description="期待されていた結果または例外")
+    actual: Any = Field(None, description="実際の返却値または発生した例外の文字列表現")
+    error_type: str | None = Field(None, description="発生したエラー・例外の型名（例: ValidationError, TypeError, ValueError）")
+    error_message: str | None = Field(None, description="エラーの詳細メッセージ")
+    traceback: str | None = Field(None, description="例外発生時のスタックトレース")
+
+
+class EvalDetailReport(BaseModel):
+    """テスト実行全体の詳細レポートモデル。"""
+    skill_name: str = Field(..., description="テスト対象スキルの論理名")
+    test_type: str = Field(..., description="実行されたテスト種別（例: contract, trigger, golden, judge, adversarial）")
+    timestamp: str = Field(..., description="テスト実行日時のISO 8601文字列")
+    passed: int = Field(..., description="合格したテストケース件数")
+    failed: int = Field(..., description="不合格だったテストケース件数")
+    total: int = Field(..., description="実行された全テストケース件数")
+    accuracy: float = Field(..., description="合格精度（0.0〜1.0）")
+    details: str = Field("", description="テスト結果のサマリー説明")
+    failed_cases: list[FailedCaseDetail] = Field(default_factory=list, description="不合格となったテストケース一覧")
+    metrics: dict[str, Any] = Field(default_factory=dict, description="その他の評価メトリクス（スコア、Rouge-1等）")
+
 
 
 class WorkspaceArtifacts(BaseModel):

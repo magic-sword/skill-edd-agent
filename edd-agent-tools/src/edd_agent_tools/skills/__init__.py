@@ -29,6 +29,10 @@ def __getattr__(name: str) -> Any:
     if name == "Skill":
         from .skill import Skill
         return Skill
+
+    if name == "SkillTests":
+        from .tests import SkillTests
+        return SkillTests
         
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
@@ -40,5 +44,6 @@ __all__ = [
     "SkillTier",
     "ProjectSkillInfo",
     "SkillsState",
-    "Skill"
+    "Skill",
+    "SkillTests"
 ]

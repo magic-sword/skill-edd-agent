@@ -23,7 +23,6 @@
     "test-generator",
     "tier1-skill-onboarding",
     "tier2-test-runner",
-    "tier3-test-runner",
     "trajectory-test-executor",
     "trajectory-test-generator",
     "trigger-test-executor",

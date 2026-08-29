@@ -124,6 +124,13 @@ class Skill:
     def load_design(self) -> SkillDesign:
         return SkillDesign.load_from_file(self.design_path)
 
+    @property
+    def tests(self) -> "SkillTests":
+        """このスキルのテスト定義（evalsets, fixtures）および実行結果ログ（results）を管理する SkillTests インスタンスを返します。"""
+        from .tests import SkillTests
+        return SkillTests(self.root_dir)
+
+
     def load_asset(self, asset_filename: str) -> str:
         """自身の assets ディレクトリ配下の指定されたアセットファイルを読み込み、テキストとして返します。
 

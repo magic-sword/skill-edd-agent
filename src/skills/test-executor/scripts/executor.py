@@ -56,7 +56,8 @@ class SkillExecutor:
             return ExecuteAdkSimulationOutput(
                 status=status,
                 details=details,
-                score=accuracy
+                score=accuracy,
+                detail_file_path=eval_result.detail_file_path
             )
 
         except Exception as e:
