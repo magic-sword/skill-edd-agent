@@ -1,0 +1,66 @@
+{
+  "rationale": "テスト実行結果ログ、設計仕様（design.json）、仕様書（SKILL.md）、実装コード（scripts/）を多角的に突合し、失敗の根本原因を特定して構造化された改善計画（ImprovementPlan）を策定する診断メタスキルです。",
+  "name": "skill-diagnoser",
+  "description": "テスト実行結果レポートとスキル定義・ソースコードを分析し、失敗原因の診断と構造化された改善計画（ImprovementPlan）を出力するメタスキル。",
+  "summary": "テスト失敗原因の多層診断と改善計画の自動策定。",
+  "module_type": "skill",
+  "execution_type": "tool",
+  "output_mode": "STRUCTURED_JSON",
+  "dependencies": [],
+  "constraints": [],
+  "functions": [
+    {
+      "name": "diagnose_skill_failure",
+      "description": "テスト実行結果レポートとスキルの設計・コードを分析し、失敗の根本原因と構造化改善計画を出力します。",
+      "parameters": [
+        {
+          "name": "skill",
+          "type": "str",
+          "description": "診断対象となるスキルの論理名。",
+          "required": true,
+          "example": "my-text-tool"
+        },
+        {
+          "name": "report_path",
+          "type": "str",
+          "description": "テスト結果レポート（JSON）の絶対パス。省略時は最新の latest_report.json を自動参照します。",
+          "required": false,
+          "example": "/workspace/src/skills/my-text-tool/tests/results/latest_report.json"
+        },
+        {
+          "name": "test_type",
+          "type": "str",
+          "description": "特定のテスト種別（例: 'contract', 'trigger', 'golden', 'judge', 'adversarial'）。省略時はレポート内の種別を使用します。",
+          "required": false,
+          "example": "contract"
+        }
+      ],
+      "response_parameters": [
+        {
+          "name": "status",
+          "type": "str",
+          "description": "診断処理の実行ステータス。'success' または 'failed'。",
+          "required": true,
+          "choices": [
+            "success",
+            "failed"
+          ],
+          "example": "success"
+        },
+        {
+          "name": "details",
+          "type": "str",
+          "description": "診断結果サマリーまたはエラーメッセージ。",
+          "required": true,
+          "example": "診断が完了しました。修正対象レイヤー: logic"
+        },
+        {
+          "name": "plan",
+          "type": "dict",
+          "description": "策定された改善計画オブジェクト（ImprovementPlan）。",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

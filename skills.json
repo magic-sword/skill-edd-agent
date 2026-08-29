@@ -19,6 +19,7 @@
     "golden-test-generator",
     "judge-test-executor",
     "judge-test-generator",
+    "skill-diagnoser",
     "skill-planner",
     "test-generator",
     "tier1-skill-onboarding",
