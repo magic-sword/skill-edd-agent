@@ -1,146 +1,41 @@
 # Agent Skill 設計思想 (Design Philosophy)
 
-本プロジェクトにおける Google ADK 2.0 スキル（Agent Skill）の設計思想とベストプラクティスをここに記録します。
+本プロジェクトにおける Google ADK 2.0 および Anthropic 標準（Markdown-First & Progressive Disclosure）スキルの設計思想とベストプラクティスを記録します。
 
 ---
 
 ## 1. コア思想
 
-### ① エージェントに対するスキルのカプセル化 (Encapsulation)
-* スキルは「モジュール化されたカプセル（ブラックボックス）」であるべきです。
-* 親エージェントや他のスキルからは、パラメータを渡せば自動的に結果が返ってくる**「抽象化されたツール（関数）」**として見せます。
-* エージェントに対し、スキル内部の構成ファイル（`assets/` のプロンプトテンプレートなど）やローレベルなサブプロセスの仕組みを直接意識させてはなりません。
+### ① 単一真実源の原則 (Single Source of Truth ➔ Markdown-First)
+* 仕様書兼プロンプトである **`SKILL.md` を唯一の真実源** とします。
+* `design.json` などの設定JSONは作成せず、自然言語（Markdown）とコード（Python）のシームレスな統合を図ります。
 
-### ② コードを唯一の真実にする (Single Source of Truth)
-* パラメータの定義や仕様（スキーマ）を、設定ファイル（`design.json`）と実装コード（Python）の双方に手動で定義すると、必ず整合性が崩れます。
-* **Pythonコード（関数の型ヒントおよびPydanticモデル）を唯一の真実**とし、仕様書（`SKILL.md`）の引数テーブルやCLIの引数パーサーはすべてコードから自動構築します。
+### ② Progressive Disclosure（3層リソース分離）
+* コンテキストウィンドウの効率化と信頼性の両立を図るため、スキル資産を3層に分離します：
+  1. **Level 1: YAML Frontmatter**（常時ロード: `name`, `description`）
+  2. **Level 2: SKILL.md 本文**（トリガー時ロード: 意思決定ツリー、手順、ガイドライン）
+  3. **Level 3: 3層リソース**（オンデマンド実行・ロード）
+     - `scripts/`: 決定論的Python/Bashスクリプト
+     - `references/`: ドメイン知識・API仕様・スキーマ
+     - `assets/`: 出力用テンプレート・素材
+
+### ③ 4段階品質保証パイプライン (Stage-Gate)
+* **Stage 1 (Logical Structuring)**: 要件から論理設計（`SkillLogicDraft`）を構造化抽出。
+* **Stage 2 (Deterministic Rendering)**: `SkillTemplateEngine` による決定論的 SKILL.md 生成。
+* **Stage 3 (Resource Infilling)**: 3層リソースの生成・配置。
+* **Stage 4 (Static Validation & Self-Correction)**: `SkillValidator` による構文・整合性検査と自己修復。
 
 ---
 
-## 2. フォルダ構造 of スキル (Convention)
-
-各スキルのフォルダは以下の規約に従って最小限の構造で記述します。
+## 2. フォルダ構造の規約 (3-Tier Layout)
 
 ```
 src/skills/{skill-name}/
-  SKILL.md       # エージェント向け仕様書。handler.py から自動生成される。
-  assets/        # (任意) プロンプトテンプレートなどのL3リソース。
-  scripts/
-    __init__.py  # パブリック関数を自律エクスポートするモジュール。
-    handler.py   # スキルの公開関数インターフェース（明示的な型ヒント付き引数）。
-    {logic}.py   # 実際の複雑な処理を実行するビジネスロジックファイル。
+  SKILL.md       # YAML Frontmatter + Markdown仕様書 (SSOT)
+  scripts/       # 決定論的スクリプト（直接実行可能）
+    main.py
+  references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
+    guide.md
+  assets/        # 出力用テンプレート・素材
+    template.txt
 ```
-
-* **`design.json` や `scripts/main.py` などのボイラープレートは稼働時には不要**です。
-* スキルのライフサイクルにおいて、`design.json` は「スキル自動生成時の中間メタデータ」に過ぎず、スキル稼働時には残りません。
-
----
-
-## 3. 探索パス解決規則と論理配置 (Target Entry)
-
-本パッケージは、多様なプロジェクトのフォルダ構成をサポートするために、`skills.json` 内で複数の探索フォルダ（`entries`）を階層的に管理できます。
-
-### ① entries における name フィールドの定義
-各探索パスオブジェクトには、論理名（`name` フィールド）を設定できます。
-```json
-"entries": [
-  { "path": "src/skills", "name": "tool" },
-  { "path": "src/workflows", "name": "workflow" }
-]
-```
-
-### ② 新規スキル開発時の配置先解決
-新規にスキルを自動設計・作成する際、物理的な出力先ディレクトリ（`output_dir`）を毎回直接指定する代わりに、論理名 `target_entry` を指定するだけで配置先を切り替えられます。
-*   `target_entry: "workflow"` ➔ `src/workflows/` 配下に自動解決して新規作成
-*   `target_entry: "tool"` (または未指定時のデフォルト) ➔ `src/skills/` 配下に自動解決して新規作成
-
-`SkillsState` を介して、開発ツール（designer, coder, spec-writer）は一貫してこの決定論的パスを共有して動き、一時的なゴミフォルダの発生を抑えます。
-
----
-
-## 4. `scripts/handler.py` の役割と構成
-
-`handler.py` は、関数のシグネチャおよび引数型ヒントに集約した最小限の**「インターフェース層（窓口）」**として構成します。
-
-1. **明示的な関数の型ヒント (Type Hints)**:
-   入力引数の名前、型、デフォルト値はすべて関数のシグネチャに直接宣言します。
-2. **`SKILL_METADATA` 定数 (任意)**:
-   必要に応じて名前、説明、実行タイプ（`tool`/`agent`）、出力モードなどのメタデータを記述します。
-3. **ビジネスロジックへの委譲**:
-   公開関数は薄いインターフェースとし、実際のビジネスロジックは `executor.py` や内部モジュールへ委譲します。
-
-```python
-# scripts/handler.py の実装例
-from typing import Any
-from .executor import SkillExecutor
-
-SKILL_METADATA = {
-    "name": "my-skill",
-    "description": "スキルの役割を示す1文の説明文。",
-    "execution_type": "tool",
-    "output_mode": "VALUE_ONLY"
-}
-
-def my_skill_function(param_a: str, param_b: int = 10) -> str:
-    """スキルの公開関数。Pydocで詳細な引数説明を記述します。
-    
-    Args:
-        param_a: 必須の文字列引数。
-        param_b: デフォルト値付き数値引数。
-    """
-    executor = SkillExecutor()
-    return executor.run(param_a=param_a, param_b=param_b)
-```
-
----
-
-## 5. 共通ランナー（edd-run）によるスキーマ駆動CLI
-
-開発者がコマンドラインから直接デバッグ・実行できるように、`edd-agent-tools` 側で**共通CLIランナー（`edd_agent_tools.run`）**を提供します。
-
-### 仕組み
-1. 指定された引数の第一位置引数から `handler.py` をロードし、公開関数のシグネチャ（`inspect.signature`）および型ヒントを動的に解析。
-2. 関数のシグネチャから `argparse` オプションを自動生成。
-3. コマンドラインからの入力を型安全に変換・検証した上で、対象関数を実行。
-
-### メリット
-* **JSONエスケープ地獄の排除**: 引数はすべて通常のフラットなオプション（`--param_a value`）で書けます。
-* **自動 `--help`**: `python3 -m edd_agent_tools.run my-skill --help` と打つだけで、関数の型ヒントと Docstring に基づいた引数説明が自動出力されます。
-* **バリデーションの即時性**: 不正な引数や型の間違いは、ビジネスロジック実行前にCLIレベルでエラーになります。
-
----
-
-## 6. スキル開発のルーティング思想とマイグレーション規約 (Routing & Migration)
-
-自律開発パイプライン（`skill-developer`）において、暗黙の曖昧推測や誤った上書き事故を防止するため、関心の分離に基づいた**明示的5ルート分類体系**を採用しています。
-
-### ① 関心の完全分離と明示的コンテキスト伝播
-* **分析・ルーティング層 (`skill-planner`)**:
-  要件プロンプトから「新規作成」か「既存更新」かを判別し、更新の場合は対象スキル名 (`target_skill`) を抽出して明示的にコンテキストへ書き込みます。
-* **設計・生成層 (`skill-designer` / `workflow-designer`)**:
-  自前で曖昧な参照探索を行わず、最前段から明示的に渡された `target_skill` または新規生成指定のみに従って決定論的に設計書（`design.json`）を構成します。
-
-### ② 5つのルーティング分岐と意味定義
-1. **`create_skill` (新規単体スキル)**: 既存インベントリに存在しない自己完結したアトミック機能の新規構築。
-2. **`create_workflow` (新規ワークフロー)**: 既存インベントリに存在しない複数ツールのオーケストレーション機能の新規構築。
-3. **`update_skill` (既存アセットの単体スキル化更新)**: 既存アセット（スキルまたはワークフロー）を改修し、**最終成果物を単体スキル (`module_type="skill"`) として完成・統合する場合**。
-4. **`update_workflow` (既存アセットのワークフロー化更新)**: 既存アセット（スキルまたはワークフロー）を改修し、**最終成果物をワークフロー (`module_type="workflow"`) として完成・昇格させる場合**。
-5. **`proposal` (事前スキル開発提案)**: 要求が大きすぎ基盤技術が不足しているため、前提となる小規模スキルの開発を提案して安全に中断。
-
----
-
-## 7. 型駆動設計による不変条件の保証 (Type-Driven Design: Make Illegal States Unrepresentable)
-
-設計データのスキーマ定義において、場当たり的な辞書クレンジングや `if` 条件文による属性補正を全廃し、**「無効な状態を型レベルで表現不可能な構造にする (Make Illegal States Unrepresentable)」** という型駆動設計を採用しています。
-
-### ① `output_mode` によるモデルの Discriminated Union 分離
-`output_mode` (`STRUCTURED_JSON` vs `VALUE_ONLY` / `CONVERSATIONAL`) を識別キーとし、型レベルで独立したモデルに分離しています。
-
-* **`StructuredJsonSkillDesign`**: `response_parameters` フィールドのみを持ち、`response_type` は型として存在しません。
-* **`ValueOnlySkillDesign`**: `response_type` フィールドのみを持ち、`response_parameters` は型として存在しません。
-* **`ConfigDict(extra="forbid")`**: 各モデルに厳格な `extra="forbid"` 制約を付与し、枠外の属性混入を Pydantic のバリデータで物理的に排除します。
-
-### ② アーキテクチャ上のメリット
-1. **アドホックな辞書クレンジング処理の全廃**: 後続処理やサニタイズ用の `cleanser.py` で手動の `if` 分岐や `pop()` 処理を書く必要が1行もなくなります。
-2. **LLM (Gemini API) の決定論的出力保証**: LLM への出力スキーマ自体が Discriminator で厳密分岐するため、LLM が誤ったパラメータを同時生成するハルシネーションが原理的に防止されます。
-3. **型安全なディスパッチ**: 下流ツール (`skill-spec-writer` 等) での属性存在エラーが根本解決されます。

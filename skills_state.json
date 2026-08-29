@@ -15,35 +15,59 @@
     "contract-test-generator"
   ],
   "skills": {
-    "first-test-runner": {
+    "skill-creator": {
       "tier": 1
     },
-    "skill-designer": {
+    "skill-diagnoser": {
       "tier": 1
     },
-    "skill-coder": {
+    "skill-planner": {
       "tier": 1
     },
-    "skill-spec-writer": {
+    "trigger-test-generator": {
       "tier": 1
     },
-    "skill-developer": {
+    "trigger-test-executor": {
       "tier": 1
     },
-    "design-validator": {
+    "golden-test-generator": {
       "tier": 1
     },
-    "import-validator": {
+    "golden-test-executor": {
+      "tier": 1
+    },
+    "judge-test-generator": {
+      "tier": 1
+    },
+    "judge-test-executor": {
+      "tier": 1
+    },
+    "trajectory-test-generator": {
+      "tier": 1
+    },
+    "trajectory-test-executor": {
+      "tier": 1
+    },
+    "adversarial-test-generator": {
+      "tier": 1
+    },
+    "adversarial-test-executor": {
+      "tier": 1
+    },
+    "test-generator": {
       "tier": 1
     },
     "test-executor": {
       "tier": 1
     },
-    "trigger-evaluator": {
+    "first-test-runner": {
       "tier": 1
     },
-    "my-test-skill": {
-      "tier": 3
+    "tier2-test-runner": {
+      "tier": 1
+    },
+    "tier3-test-runner": {
+      "tier": 1
     }
   },
   "agents": {}

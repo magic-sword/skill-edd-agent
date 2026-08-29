@@ -1,6 +1,8 @@
 ---
-name: tier1-skill-onboarding
+name: first-test-runner
 description: "試験対象のスキル名と評価セットのパスを受け取り、依存関係の検証、トリガーテスト、契約テストを実行し、すべてに合格した場合にスキルをTier 1として登録するワークフロー。"
+license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
 # ワークフロー仕様書: tier1-skill-onboarding
@@ -75,7 +77,3 @@ description: "試験対象のスキル名と評価セットのパスを受け取
 
 
 ---
-
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

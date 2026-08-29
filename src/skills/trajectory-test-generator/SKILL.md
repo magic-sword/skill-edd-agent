@@ -9,7 +9,7 @@ license: Complete terms in LICENSE.txt
 
 ## 概要
 
-指定されたスキルの `design.json` および `SKILL.md` を解析し、Google ADK 軌跡シミュレーション標準に準拠した `TrajectoryEvalSet` フォーマットのテストケース JSON（`[skill_name]_trajectory.evalset.json`）を生成します。
+指定されたスキルの `SKILL.md` および `scripts/` コードを解析し、Google ADK 軌跡シミュレーション標準に準拠した `TrajectoryEvalSet` フォーマットのテストケース JSON（`[skill_name]_trajectory.evalset.json`）を生成します。
 
 ### 主な機能
 * 対象スキルの仕様情報（関数名・引数・制約事項）を読み込みます。

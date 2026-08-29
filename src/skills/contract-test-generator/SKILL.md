@@ -1,80 +1,45 @@
 ---
 name: contract-test-generator
-description: "指定されたスキルのSKILL.mdに基づき、正常系および異常系の契約テストケースを自動生成し、EvalCaseSetフォーマット of JSONとしてファイルに書き出すスキル。"
-pattern: workflow
+description: "指定されたスキルの SKILL.md 仕様書およびスクリプト実装に基づき、正常系・異常系の入出力契約テストケースを自動生成して保存するスキル。"
 license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
-# スキル仕様書: contract-test-generator
+# Contract Test Generator
 
-## 概要
+## Overview
 
-指定されたスキルのdesign.jsonに基づき、正常系および異常系の契約テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出すスキル。
+対象スキルの `SKILL.md`（仕様書）および `scripts/` コードを分析し、必須パラメータ検証、型制約、境界値、戻り値スキーマ契約を検証する契約駆動テストケース（`EvalCaseSet`）を自動生成する。
 
-### 主な機能
-* 指定されたスキルのdesign.jsonを読み込み、その定義に基づいてテストケースを生成します。
-* スキルの公開関数ごとに、正常系の単体テストケースを自動生成します。
-* パラメータの制約（choices, ge, le, min_length, max_length, patternなど）に基づき、異常系の単体テストケースを自動生成します。
-* 生成されたテストケースをEvalCaseSetフォーマットのJSONファイルとして指定されたパスに書き出します。
+## Workflow Decision Tree
 
-### 内部処理の流れ
-1. 指定されたスキル名に基づいて、対象スキルのdesign.jsonファイルのパスを解決します。
-2. design.jsonファイルが存在しない場合、エラーを報告して処理を終了します。
-3. design.jsonファイルの内容を読み込み、JSONとしてパースし、DesignJsonオブジェクトに変換します。
-4. DesignJsonオブジェクトから、各公開関数とそのパラメータ定義を抽出します。
-5. 各関数に対し、パラメータの`example`値や`default`値を使用して正常系テストケースを生成します。
-6. 各関数とそのパラメータに対し、`choices`, `ge`, `le`, `min_length`, `max_length`, `pattern`などの制約に違反する値を生成し、異常系テストケースを生成します。
-7. 必須パラメータが欠落している場合の異常系テストケースも生成します。
-8. 生成されたすべてのテストケースをEvalCaseSetオブジェクトにまとめます。
-9. EvalCaseSetオブジェクトをEvalCaseSetフォーマットのJSON文字列に変換します。
-10. 指定された出力パスにディレクトリが存在しない場合、作成します。
-11. 生成されたJSON文字列を指定された出力ファイルパスに書き込みます。
-12. 処理の成功または失敗を返します。
+- **If** 対象スキル名と出力先パスが指定された場合 ➔ **Then** `scripts/executor.py` を呼び出し、契約テストケースを生成して保存する
 
+## Step-by-Step Instructions
 
----
+### Step 1: 仕様およびコードの分析 *(Target: `scripts/executor.py`)*
 
-## トリガー条件
+対象スキルの `SKILL.md` と `scripts/` 配下の Python スクリプトを読み込み、引数の型・必須属性・戻り値スキーマを抽出する。
 
-このスキルは、以下の条件やプロンプトでトリガーされます。
+### Step 2: 契約テストケースの構造化生成 *(Target: `scripts/executor.py`)*
 
-- 「{スキル名}」の契約テストケースを生成してほしい。
-- 新しいスキルのテストケースを自動で作成したい。
-- design.jsonからテストケースを生成し、ファイルに保存して。
-- contract-test-generator を使って、スキル「{スキル名}」のテストケースを「{出力パス}」に生成してください。
+正常系（最小引数・全引数指定）および異常系（型不一致・必須引数欠落）のテストケースを構造化生成する。
 
----
+### Step 3: ファイル書き出し *(Target: `scripts/executor.py`)*
 
-## 公開関数
+生成された評価セットを `EvalCaseSet` 形式で指定された `output_path` に書き出す。
 
-### generate_test_cases
+## Usage Scenarios & Trigger Examples
 
-指定されたスキルのdesign.jsonに基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出します。
+- "pdf-tools スキルの契約テストケースを生成してください。"
+- "my-skill の unit.evalset.json を作成して。"
 
-#### 実行方法
-${skill_name} は、与えられたパラメータに基づいて特定のタスクを**決定論的に実行**するツールです。LLMが推論を挟まず、直接このツールを呼び出して指示通りの操作を行います。
+## Bundled Resources
 
-利用例：
-${skill_name}(`skill_name`, `output_path`)
+### `scripts/` (Executable Tools)
+- **`scripts/executor.py`**: 契約テスト生成実行エンジン
+- **`scripts/eval_case_set_writer.py`**: ファイル出力モジュール
 
-#### 入力パラメータ
-| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |
-|---|---|---|---|---|
-| skill_name | str | はい | - | テストケースを生成する対象スキルの名前。 *(制約: 最小長: 1)* |
-| output_path | str | はい | - | 生成されたテストケースを書き出すファイルのパス。 *(制約: 最小長: 1)* |
+## Guidelines & Best Practices
 
-
-#### 出力仕様
-* **出力モード**: `STRUCTURED_JSON`
-
-| パラメータ名 | 型 | 必須 | 説明 |
-|---|---|---|---|
-| success | bool | はい | テストケースの生成と書き出しが成功したかどうか。 |
-
-
----
-
-
-
----
-
+- 必須引数が欠落した場合に適切な例外（`ValueError` 等）が発生することを検証するケースを含めること。

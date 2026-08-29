@@ -1,19 +1,20 @@
+import os
 import json
 from pathlib import Path
+from edd_agent_tools.skills import SkillsState
+from edd_agent_tools.gemini import client, GeminiRequest
+from edd_agent_tools.evaluation.models import EvalCaseSet
 from .models import GenerateTestCasesOutput
-from .design_json_reader import DesignJsonReader
-from .test_case_generator import TestCaseGenerator
-from .eval_case_set_writer import EvalCaseSetWriter
+
 
 class SkillExecutor:
-    """指定されたスキルのdesign.jsonに基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出すスキル。"""
+    """指定されたスキルのSKILL.mdおよびスクリプト実装に基づき、契約テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出すスキル。"""
     def __init__(self):
-        self._design_json_reader = DesignJsonReader()
-        self._test_case_generator = TestCaseGenerator()
-        self._eval_case_set_writer = EvalCaseSetWriter()
+        self._skills_state = SkillsState()
+        self._client = client
 
     def generate_test_cases(self, skill_name: str, output_path: str) -> GenerateTestCasesOutput:
-        """指定されたスキルのdesign.jsonに基づき、正常系および異常系の単体テストケースを自動生成し、EvalCaseSetフォーマットのJSONとしてファイルに書き出します。
+        """指定されたスキルのSKILL.mdおよびscriptsに基づき、契約テストケースを自動生成し、ファイルに書き出します。
 
         Args:
             skill_name: テストケースを生成する対象スキルの名前。
@@ -23,36 +24,69 @@ class SkillExecutor:
             実行結果オブジェクト (GenerateTestCasesOutput)。
         """
         try:
-            # 1. design.json のパスを解決し、内容を読み込む
-            design_json_path = self._design_json_reader.get_design_json_path(skill_name)
-            if not design_json_path.exists():
-                print(f"Error: design.json not found for skill '{skill_name}' at {design_json_path}")
+            target_skill = self._skills_state.get_skill(skill_name)
+            if not target_skill:
+                print(f"Error: Skill '{skill_name}' not found.")
                 return GenerateTestCasesOutput(success=False)
 
-            with open(design_json_path, 'r', encoding='utf-8') as f:
-                design_json_content = f.read()
+            spec_path = target_skill.spec_path
+            skill_md_content = ""
+            if spec_path and os.path.exists(spec_path):
+                with open(spec_path, "r", encoding="utf-8") as f:
+                    skill_md_content = f.read()
 
-            # 2. design.json の内容をパースする
-            design_json = self._design_json_reader.parse_design_json_content(design_json_content)
-            if design_json is None:
-                print(f"Error: Failed to parse design.json for skill '{skill_name}'")
-                return GenerateTestCasesOutput(success=False)
+            scripts_summary = []
+            if os.path.isdir(target_skill.scripts_dir):
+                for py_file in os.listdir(target_skill.scripts_dir):
+                    if py_file.endswith(".py"):
+                        p = os.path.join(target_skill.scripts_dir, py_file)
+                        with open(p, "r", encoding="utf-8") as f:
+                            scripts_summary.append(f"### {py_file}\n```python\n{f.read()}\n```")
+            scripts_content = "\n\n".join(scripts_summary)
 
-            # 3. テストケースを生成する
-            eval_case_set = self._test_case_generator.generate_test_cases(design_json)
+            prompt = f"""あなたはAIエージェントの契約駆動テスト（Contract Testing）を設計するエンジニアです。
+以下のスキルの仕様書(SKILL.md)およびスクリプト実装に基づき、EvalCaseSetフォーマットに準拠した契約テストケースセットを生成してください。
 
-            # 4. 生成されたテストケースをJSON文字列に変換する
-            output_json_string = self._eval_case_set_writer.convert_to_json_string(eval_case_set)
+【対象スキル名】
+{skill_name}
 
-            # 5. 結果をファイルに書き出す
+【SKILL.md】
+{skill_md_content}
+
+【scripts/ ソースコード】
+{scripts_content}
+
+【生成要件】
+1. 正常系（必須パラメータのみ、全パラメータ指定）と異常系（必須パラメータ欠落、不正な型）を含む少なくとも3つのテストケース(EvalCase)を作成してください。
+2. 各テストケース(EvalCase)には以下を含めてください:
+   - eval_case_id: ケースの一意のID (例: "eval_contract_001")
+   - function_name: 対象スキルの主要な公開関数名
+   - inputs: 関数呼び出し時に渡す引数マッピング
+   - expected: 期待される結果（正常終了時は "success" または期待される戻り値キー、異常系はエラー型名）
+
+EvalCaseSet スキーマに従って有効な JSON のみを出力してください。
+"""
+            from google.genai import types
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=EvalCaseSet
+            )
+            req = GeminiRequest(prompt=prompt, client=self._client)
+            res = req.execute(config=config)
+            
+            raw_text = res.text if hasattr(res, "text") else str(res)
+            data = json.loads(raw_text)
+
             output_file_path = Path(output_path)
             output_file_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_file_path, 'w', encoding='utf-8') as f:
-                f.write(output_json_string)
+            with open(output_file_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
-            print(f"Test cases successfully generated and written to {output_file_path}")
+            print(f"Contract test cases successfully generated and written to {output_file_path}")
             return GenerateTestCasesOutput(success=True)
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(f"An unexpected error occurred: {e}")
             return GenerateTestCasesOutput(success=False)

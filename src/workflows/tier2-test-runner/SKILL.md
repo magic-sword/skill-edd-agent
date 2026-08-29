@@ -1,6 +1,8 @@
 ---
 name: tier2-test-runner
 description: "指定されたスキルに対して依存関係検証、契約テスト、ゴールデンテスト、ジャッジテストを実行し、全て成功した場合にスキルをTier 2として登録するワークフロー。"
+license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
 # ワークフロー仕様書: tier2-test-runner
@@ -84,7 +86,3 @@ description: "指定されたスキルに対して依存関係検証、契約テ
 
 
 ---
-
-**開発者向け注記**:
-この仕様書は `skill-spec-writer` スキルによって自動生成されました。
-最新の情報は `design.json` を参照し、変更は `design.json` に直接加えてください。

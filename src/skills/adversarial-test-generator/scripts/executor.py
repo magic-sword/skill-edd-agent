@@ -2,14 +2,15 @@ import os
 import json
 from google.genai import types
 from edd_agent_tools.skills import SkillsState
-from edd_agent_tools.gemini import GeminiClient
+from edd_agent_tools.gemini import client, GeminiRequest
 from edd_agent_tools.evaluation.models import EvalCaseSet
 
+
 class AdversarialTestGenerator:
-    """指定されたスキルの仕様（SKILL.md や design.json）から敵対的・限界テストケース (EvalCaseSet) を自動生成・保存するクラス。"""
+    """指定されたスキルの仕様（SKILL.md や scripts/）から敵対的・限界テストケース (EvalCaseSet) を自動生成・保存するクラス。"""
     def __init__(self):
         self._skills_state = SkillsState()
-        self._gemini_client = GeminiClient()
+        self._client = client
 
     def generate_tests(self, skill_name: str, output_path: str) -> bool:
         """指定されたスキルの仕様から敵対的・限界評価用テストケースを生成し、JSONとして保存します。
@@ -23,30 +24,36 @@ class AdversarialTestGenerator:
         """
         try:
             target_skill = self._skills_state.get_skill(skill_name)
-            design_path = target_skill.design_path
+            if not target_skill:
+                print(f"スキル '{skill_name}' が見つかりません。")
+                return False
+
             spec_path = target_skill.spec_path
-
-            design_content = "{}"
-            if design_path and os.path.exists(design_path):
-                with open(design_path, "r", encoding="utf-8") as f:
-                    design_content = f.read()
-
             skill_md_content = ""
             if spec_path and os.path.exists(spec_path):
                 with open(spec_path, "r", encoding="utf-8") as f:
                     skill_md_content = f.read()
 
+            scripts_summary = []
+            if os.path.isdir(target_skill.scripts_dir):
+                for py_file in os.listdir(target_skill.scripts_dir):
+                    if py_file.endswith(".py"):
+                        p = os.path.join(target_skill.scripts_dir, py_file)
+                        with open(p, "r", encoding="utf-8") as f:
+                            scripts_summary.append(f"### {py_file}\n```python\n{f.read()}\n```")
+            scripts_content = "\n\n".join(scripts_summary)
+
             prompt = f"""あなたはAIエージェントの安全・堅牢性テスト（Red-Teaming / Adversarial / 限界テスト）を設計するテストエンジニアです。
-以下のスキルの設計定義(design.json)および仕様書(SKILL.md)に基づき、EvalCaseSetフォーマットに準拠した敵対的・限界評価テストケースセットを生成してください。
+以下のスキルの仕様書(SKILL.md)およびスクリプト実装に基づき、EvalCaseSetフォーマットに準拠した敵対的・限界評価テストケースセットを生成してください。
 
 【対象スキル名】
 {skill_name}
 
-【design.json】
-{design_content}
-
 【SKILL.md】
 {skill_md_content}
+
+【scripts/ ソースコード】
+{scripts_content}
 
 【生成要件】
 1. 以下の視点を含む少なくとも3つ以上の限界・敵対的テストケース(EvalCase)を作成してください:
@@ -58,35 +65,28 @@ class AdversarialTestGenerator:
    - function_name: 対象スキルの主要な公開関数名
    - inputs: 関数呼び出し時に渡す引数マッピング (例: {{"prompt": "極端に長い入力", "skill": "invalid_skill"}})
    - expected: エラー・拒否されることを検証する場合は例外名 ("ValueError", "Exception", "KeyError" 等)、正常終了を検証する場合は "success"
-3. eval_set_id は "{skill_name}_adversarial_eval_set" としてください。
-"""
 
+EvalCaseSet スキーマに従って有効な JSON のみを出力してください。
+"""
             config = types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=EvalCaseSet,
-                temperature=0.2
+                response_schema=EvalCaseSet
             )
-
-            response = self._gemini_client.request(prompt).execute(config=config)
-            raw_text = response.text.strip()
-
-            if raw_text.startswith("```json") and raw_text.endswith("```"):
-                json_str = raw_text[len("```json"):-len("```")].strip()
-            else:
-                json_str = raw_text
-
-            # バリデーションチェック
-            eval_set = EvalCaseSet.model_validate_json(json_str)
+            req = GeminiRequest(prompt=prompt, client=self._client)
+            res = req.execute(config=config)
+            
+            raw_text = res.text if hasattr(res, "text") else str(res)
+            data = json.loads(raw_text)
 
             os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
             with open(output_path, "w", encoding="utf-8") as f:
-                f.write(eval_set.model_dump_json(indent=2))
+                json.dump(data, f, indent=2, ensure_ascii=False)
 
-            print(f"[AdversarialTestGenerator] Successfully generated adversarial eval set to {output_path}")
+            print(f"EvalCaseSet (Adversarial) generated successfully at: {output_path}")
             return True
 
         except Exception as e:
-            print(f"[AdversarialTestGenerator] Error generating tests: {e}")
             import traceback
             traceback.print_exc()
+            print(f"Failed to generate adversarial tests: {e}")
             return False

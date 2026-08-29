@@ -1,7 +1,7 @@
 from .executor import SkillExecutor
 
 def generate_tests(skill_name: str, output_path: str) -> bool:
-    """design.jsonおよびSKILL.mdをインプットとして、ルーブリック評価セットをLLMで自動生成し、指定されたパスに書き出します。
+    """SKILL.mdおよびscripts/をインプットとして、ルーブリック評価セットをLLMで自動生成し、指定されたパスに書き出します。
 
     Args:
         skill_name: ルーブリックテストを生成する対象スキルの名前。

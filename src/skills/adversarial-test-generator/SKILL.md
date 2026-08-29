@@ -1,76 +1,45 @@
 ---
 name: adversarial-test-generator
-description: "SKILL.mdをインプットとして、敵対的プロンプトや限界値テストケースを含むEvalCaseSetフォーマットのJSONを自動生成して保存するスキル。"
-pattern: workflow
+description: "対象スキルの SKILL.md 仕様書および scripts/ 配下のコードを分析し、敵対的プロンプトや限界値・異常値を含むセキュリティ＆頑健性テストケースセットを自動生成するスキル。"
 license: Complete terms in LICENSE.txt
+pattern: workflow
 ---
 
-# スキル仕様書: adversarial-test-generator
+# Adversarial Test Generator
 
-## 概要
+## Overview
 
-design.jsonおよびSKILL.mdをインプットとして、敵対的プロンプトや限界値テストケースを含むEvalCaseSetフォーマットのJSONを自動生成して保存するスキル。
+対象スキルの `SKILL.md`（仕様書）および `scripts/` コードを分析し、プロンプトインジェクション、境界値、型制約違反、例外系シナリオを検証する敵対的（Adversarial）評価テストケース（`EvalCaseSet`）を自動生成する。
 
-### 主な機能
-* 指定されたスキルの設計定義（design.json）と仕様書（SKILL.md）を基に、敵対的プロンプトや限界値テストケースを自動生成します。
-* 生成されたテストケースは、標準的なEvalCaseSetフォーマットのJSONとして出力されます。
-* 境界値/異常値、型/制約違反、ガードレール/プロンプトインジェクション耐性など、多様な視点からのテストケースを網羅します。
-* 生成されたテストケースJSONを指定されたファイルパスに保存します。
+## Workflow Decision Tree
 
-### 内部処理の流れ
-1. AdversarialTestGeneratorのインスタンスを初期化します。
-2. SkillsStateから指定されたスキル名（`skill_name`）のスキル情報を取得します。
-3. 取得したスキル情報に基づき、対象スキルのdesign.jsonとSKILL.mdの内容を読み込みます。
-4. 読み込んだdesign.jsonとSKILL.mdの内容、およびスキル名を基に、敵対的・限界テストケース生成のためのプロンプトを構築します。
-5. 構築したプロンプトとEvalCaseSetスキーマをGeminiClientに渡し、LLMにテストケースのJSON生成をリクエストします。
-6. LLMからの応答（JSON文字列）をEvalCaseSetモデルでバリデーションします。
-7. 指定された出力パス（`output_path`）のディレクトリが存在しない場合は作成します。
-8. バリデーション済みのEvalCaseSetオブジェクトをJSON形式で`output_path`に保存します。
-9. 処理の成功/失敗を返します。
+- **If** 対象スキル名と出力先パスが指定された場合 ➔ **Then** `scripts/executor.py` を呼び出し、敵対的テストケースを生成して保存する
 
+## Step-by-Step Instructions
 
----
+### Step 1: 仕様およびコードの分析 *(Target: `scripts/executor.py`)*
 
-## トリガー条件
+対象スキルの `SKILL.md` と `scripts/` 配下の Python スクリプトを読み込み、入力制約、エラーハンドリング、脆弱になりうるポイントを特定する。
 
-このスキルは、以下の条件やプロンプトでトリガーされます。
+### Step 2: 敵対的・限界テストケースの構造化生成 *(Target: `scripts/executor.py`)*
 
-- 特定のスキルの敵対的テストケースを生成したい。
-- スキル`{skill_name}`の限界値テストを作成して`{output_path}`に保存してほしい。
-- AIエージェントの堅牢性を検証するためのテストケースを生成して。
-- design.jsonとSKILL.mdからセキュリティテストケースを作って。
+インジェクション攻撃、極端な境界値、型違反などの異常系テストケースを構造化生成する。
 
----
+### Step 3: ファイル書き出し *(Target: `scripts/executor.py`)*
 
-## 公開関数
+生成された評価セットを `EvalCaseSet` 形式で指定された `output_path` に書き出す。
 
-### generate_tests
+## Usage Scenarios & Trigger Examples
 
-指定されたスキルの仕様に基づき、敵対的・限界テストケースを含むEvalCaseSetフォーマットのJSONファイルを生成し保存します。
+- "pdf-tools スキルの敵対的テストケースを生成してください。"
+- "my-skill のセキュリティ・限界評価テストケースを作って。"
 
-#### 実行方法
-${skill_name} は、与えられたパラメータに基づいて特定のタスクを**決定論的に実行**するツールです。LLMが推論を挟まず、直接このツールを呼び出して指示通りの操作を行います。
+## Bundled Resources
 
-利用例：
-${skill_name}(`skill_name`, `output_path`)
+### `scripts/` (Executable Tools)
+- **`scripts/executor.py`**: 敵対的テスト生成実行エンジン
+- **`scripts/prompter.py`**: プロンプト構築モジュール
 
-#### 入力パラメータ
-| パラメータ名 | 型 | 必須 | デフォルト値 | 説明 |
-|---|---|---|---|---|
-| skill_name | str | はい | - | テストケースを生成する対象スキルの名前。 |
-| output_path | str | はい | - | 生成されたテストケースを保存するJSONファイルの絶対パス。 |
+## Guidelines & Best Practices
 
-
-#### 出力仕様
-* **出力モード**: `VALUE_ONLY` (プレーンテキスト（値のみ）)
-* **戻り値の型**: `bool`
-
-スキル実行結果を示す単一のテキストメッセージが返されます。
-
-
----
-
-
-
----
-
+- 単なるランダムなエラー入力だけでなく、エージェントの安全ガードレールを回避しようとするプロンプトインジェクションを含めること。

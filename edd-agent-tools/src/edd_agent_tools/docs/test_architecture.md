@@ -16,7 +16,7 @@ LLMを用いたテストケースの生成は、APIトークンコストが高�
 
 ```mermaid
 graph TD
-    Spec[SKILL.md / design.json] -->|1. Analyze & Generate| Gen[test-generator / 具象Generator]
+    Spec[SKILL.md / scripts] -->|1. Analyze & Generate| Gen[test-generator / 具象Generator]
     Gen -->|2. Save Asset| File[(tests/skill_name/test_type.evalset.json)]
     File -->|3. Read & Run| Exec[test-executor / 具象Executor]
     Exec -->|4. Assert & Run| Env[Workspace Sandbox Environment]
@@ -24,7 +24,7 @@ graph TD
 ```
 
 1.  **生成 (Generator) フェーズ**:
-    仕様定義（`SKILL.md` や `design.json`）を基に、正常系・異常系・境界値テストケースをLLMやルールベースで構築します。生成されたテストケースは、プロジェクトの `tests/[対象スキル名]/[対象スキル名]_[test_type].evalset.json` に**物理的なアセットファイルとして保存**します。このファイルは Git でバージョン管理します。
+    仕様定義（`SKILL.md` や `scripts/`）を基に、正常系・異常系・境界値テストケースをLLMやルールベースで構築します。生成されたテストケースは、プロジェクトの `tests/[対象スキル名]/[対象スキル名]_[test_type].evalset.json` に**物理的なアセットファイルとして保存**します。このファイルは Git でバージョン管理します。
 2.  **実行 (Executor) フェーズ**:
     保存された JSON アセットファイルをロードし、隔離されたサンドボックス環境（`WorkspaceEnvProtocol`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。
 
