@@ -1,4 +1,6 @@
 import os
+import sys
+import subprocess
 import json
 import inspect
 import datetime
@@ -58,37 +60,7 @@ class ContractTestRunner:
         # SKILL.md から仕様データを取得
         spec = skill.spec
         
-        # 公開関数のモジュールを動的ロード
-        try:
-            skill_module = skill.load_module()
-        except Exception as e:
-            tb_str = traceback.format_exc()
-            print(f"[TestRunner] Failed to load skill module: {e}")
-            failed_cases.append(
-                FailedCaseDetail(
-                    eval_case_id="module_load_failure",
-                    function_name="",
-                    inputs={},
-                    expected="Module load success",
-                    actual=f"Module load failed: {e}",
-                    error_type=type(e).__name__,
-                    error_message=str(e),
-                    traceback=tb_str
-                )
-            )
-            report = EvalDetailReport(
-                skill_name=skill.name,
-                test_type="contract",
-                timestamp=datetime.datetime.now().isoformat() + "Z",
-                passed=0,
-                failed=total,
-                total=total,
-                accuracy=0.0,
-                details=f"モジュールのロードに失敗しました: {e}",
-                failed_cases=failed_cases
-            )
-            detail_path = skill.tests.save_report(report, test_type="contract")
-            return EvalRunResult(passed=0, failed=total, total=total, accuracy=0.0, detail_file_path=detail_path)
+        skill_module = None
 
         for case in eval_cases:
             case_id = case.eval_case_id
@@ -97,7 +69,116 @@ class ContractTestRunner:
             expected = case.expected
             mock_responses = case.mock_responses
 
+            # A. CLI 契約テスト (CLI Contract Testing) の実行
+            if case.cli_args is not None:
+                print(f"\n[TestRunner] Running CLI case '{case_id}' with args: {case.cli_args}")
+                script_rel = case.script_name or (skill.list_scripts()[0] if skill.list_scripts() else None)
+                if not script_rel:
+                    err_msg = f"No script found in skill '{skill.name}' to execute CLI test."
+                    failed += 1
+                    failed_cases.append(
+                        FailedCaseDetail(
+                            eval_case_id=case_id,
+                            function_name="CLI",
+                            inputs={"cli_args": case.cli_args},
+                            expected=f"Exit code {case.expected_exit_code}",
+                            actual=err_msg,
+                            error_type="FileNotFoundError",
+                            error_message=err_msg
+                        )
+                    )
+                    continue
+
+                if os.path.isabs(script_rel):
+                    script_path = script_rel
+                elif script_rel.startswith("scripts/"):
+                    script_path = os.path.join(skill.root_dir, script_rel)
+                else:
+                    script_path = os.path.join(skill.scripts_dir, script_rel)
+
+                if not os.path.exists(script_path):
+                    script_path = os.path.join(skill.scripts_dir, os.path.basename(script_rel))
+
+                import subprocess
+                try:
+                    proc = subprocess.run(
+                        [sys.executable, script_path, *case.cli_args],
+                        capture_output=True,
+                        text=True,
+                        cwd=skill.root_dir,
+                        timeout=timeout_seconds
+                    )
+                    
+                    cli_failed = False
+                    fail_reasons = []
+
+                    # 1. Exit Code 検証
+                    if proc.returncode != case.expected_exit_code:
+                        cli_failed = True
+                        fail_reasons.append(f"Expected exit code {case.expected_exit_code}, got {proc.returncode}. Stderr: {proc.stderr.strip()}")
+
+                    # 2. Stdout キーワード検証
+                    if case.expected_stdout_contains:
+                        for expected_kw in case.expected_stdout_contains:
+                            if expected_kw not in proc.stdout:
+                                cli_failed = True
+                                fail_reasons.append(f"Expected stdout to contain '{expected_kw}', but was missing. Stdout: {proc.stdout.strip()}")
+
+                    if cli_failed:
+                        failed += 1
+                        failed_cases.append(
+                            FailedCaseDetail(
+                                eval_case_id=case_id,
+                                function_name="CLI",
+                                inputs={"cli_args": case.cli_args},
+                                expected=f"Exit code {case.expected_exit_code}, stdout: {case.expected_stdout_contains}",
+                                actual=f"Exit code {proc.returncode}, stdout: {proc.stdout.strip()[:200]}",
+                                error_type="CliAssertionError",
+                                error_message="; ".join(fail_reasons)
+                            )
+                        )
+                    else:
+                        print(f"[TestRunner] ✅ Case '{case_id}' passed (CLI Exit code: {proc.returncode})")
+                        passed += 1
+
+                except Exception as e:
+                    failed += 1
+                    failed_cases.append(
+                        FailedCaseDetail(
+                            eval_case_id=case_id,
+                            function_name="CLI",
+                            inputs={"cli_args": case.cli_args},
+                            expected=f"Exit code {case.expected_exit_code}",
+                            actual=str(e),
+                            error_type=type(e).__name__,
+                            error_message=str(e)
+                        )
+                    )
+                continue
+
+            # B. 関数呼び出し型 契約テスト (In-process Function Call)
             print(f"\n[TestRunner] Running case '{case_id}' for function '{func_name}'")
+
+            if skill_module is None:
+                try:
+                    skill_module = skill.load_module(case.script_name)
+                except Exception as e:
+                    tb_str = traceback.format_exc()
+                    print(f"[TestRunner] Failed to load skill module: {e}")
+                    failed += 1
+                    failed_cases.append(
+                        FailedCaseDetail(
+                            eval_case_id=case_id,
+                            function_name=func_name,
+                            inputs=inputs,
+                            expected=str(expected),
+                            actual=f"Module load failed: {e}",
+                            error_type=type(e).__name__,
+                            error_message=str(e),
+                            traceback=tb_str
+                        )
+                    )
+                    continue
             
             # 関数の取得
             if not hasattr(skill_module, func_name):

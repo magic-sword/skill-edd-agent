@@ -26,18 +26,18 @@ pattern: workflow
 
 ## Workflow Decision Tree
 
-- **If** [Condition A] ➔ **Then** `scripts/main.py --action action_a` を実行する
+- **If** [Condition A] ➔ **Then** `scripts/{script_name} --action action_a` を実行する
 - **If** [Condition B] ➔ **Then** `references/guide.md` を参照する
 
 ## Step-by-Step Instructions
 
-### Step 1: 要件の確認と入力検証 *(Target: `scripts/main.py`)*
+### Step 1: 要件の確認と入力検証 *(Target: `scripts/{script_name}`)*
 
 入力パラメータおよび対象ファイルが存在するか検証する。
 
-### Step 2: 処理の実行 *(Target: `scripts/main.py`)*
+### Step 2: 処理の実行 *(Target: `scripts/{script_name}`)*
 
-`scripts/main.py --help` を確認の上、適切な引数を指定して決定論的に実行する。
+`scripts/{script_name} --help` を確認の上、適切な引数を指定して決定論的に実行する。
 
 ## Usage Scenarios & Trigger Examples
 
@@ -47,7 +47,7 @@ pattern: workflow
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/main.py`**: 主要処理を実行する CLI スクリプト
+- **`scripts/{script_name}`**: 主要処理を実行する CLI / Python API スクリプト
 
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: 処理ルールおよびスキーマ仕様書
@@ -66,12 +66,17 @@ Main execution script for {name}
 import argparse
 import sys
 
+def run(input_val: str | None = None) -> str:
+    \"\"\"主要タスクを実行します。\"\"\"
+    print(f"Executing {name} with input: {{input_val}}")
+    return "Success"
+
 def main():
     parser = argparse.ArgumentParser(description="{title} execution script.")
     parser.add_argument("--input", "-i", type=str, help="Input argument or file path")
     args = parser.parse_args()
 
-    print(f"Executing {name} with input: {{args.input}}")
+    run(args.input)
     return 0
 
 if __name__ == "__main__":
@@ -95,17 +100,21 @@ def init_skill(name: str, output_path: str | Path, pattern: str = "workflow") ->
     skill_dir.mkdir(parents=True, exist_ok=True)
 
     title = name.replace("-", " ").title()
+    script_name = f"{name.replace('-', '_')}.py"
 
     # SKILL.md 生成
     skill_md = skill_dir / "SKILL.md"
-    skill_md.write_text(SKILL_TEMPLATE_WORKFLOW.format(name=name, title=title), encoding="utf-8")
+    skill_md.write_text(
+        SKILL_TEMPLATE_WORKFLOW.format(name=name, title=title, script_name=script_name),
+        encoding="utf-8"
+    )
 
     # scripts/ 生成
     scripts_dir = skill_dir / "scripts"
     scripts_dir.mkdir(exist_ok=True)
-    main_py = scripts_dir / "main.py"
-    main_py.write_text(EXAMPLE_SCRIPT.format(name=name, title=title), encoding="utf-8")
-    main_py.chmod(0o755)
+    script_file = scripts_dir / script_name
+    script_file.write_text(EXAMPLE_SCRIPT.format(name=name, title=title), encoding="utf-8")
+    script_file.chmod(0o755)
 
     # references/ 生成
     refs_dir = skill_dir / "references"

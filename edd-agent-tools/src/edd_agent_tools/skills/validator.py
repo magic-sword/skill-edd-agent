@@ -146,13 +146,15 @@ class SkillValidator:
             res.add_error("frontmatter", f"YAML parsing error in frontmatter: {e}")
             return res
 
-        # 3. 必須フィールド検証
+        # 3. 必須フィールド検証 (ADK 2.0 / Agent Skills Specification 準拠)
         name = fm.get("name")
         if not name:
             res.add_error("frontmatter", "Missing required 'name' field in frontmatter")
         else:
-            if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
+            if not isinstance(name, str) or not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
                 res.add_error("frontmatter", f"Name '{name}' must be lowercase hyphen-case (e.g. 'data-analyzer') without consecutive hyphens")
+            if len(name) > 64:
+                res.add_error("frontmatter", f"Name '{name}' exceeds ADK 2.0 maximum length of 64 characters ({len(name)} chars)")
             if skill_dir and skill_dir.name != name:
                 res.add_warning("frontmatter", f"Directory name '{skill_dir.name}' does not match skill name '{name}'")
 
@@ -160,10 +162,15 @@ class SkillValidator:
         if not desc:
             res.add_error("frontmatter", "Missing required 'description' field in frontmatter")
         else:
-            if "<" in desc or ">" in desc:
-                res.add_error("frontmatter", "Description cannot contain angle brackets ('<' or '>')")
-            if len(desc) > 500:
-                res.add_warning("frontmatter", f"Description is overly long ({len(desc)} chars). Keep under 500 chars / ~100 words.")
+            if not isinstance(desc, str) or len(desc.strip()) == 0:
+                res.add_error("frontmatter", "Description must be a non-empty string")
+            else:
+                if "<" in desc or ">" in desc:
+                    res.add_error("frontmatter", "Description cannot contain angle brackets ('<' or '>')")
+                if len(desc) > 1024:
+                    res.add_error("frontmatter", f"Description exceeds ADK 2.0 maximum length of 1024 characters ({len(desc)} chars)")
+                elif len(desc) > 500:
+                    res.add_warning("frontmatter", f"Description is overly long ({len(desc)} chars). Keep under 500 chars / ~100 words.")
 
         deps = fm.get("dependencies")
         if deps is not None:

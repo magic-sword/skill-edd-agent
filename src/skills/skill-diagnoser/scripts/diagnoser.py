@@ -57,7 +57,7 @@ class ScriptPatchInstruction(BaseModel):
     """scripts/*.py に対するコード修正指示モデル。"""
     model_config = {"extra": "ignore"}
     target_file: str = Field(
-        "scripts/main.py", description="修正対象ファイルの相対パス（例: scripts/analyze.py）"
+        ..., description="修正対象ファイルの相対パス（例: scripts/run.py, scripts/converter.py）"
     )
     problematic_code_snippet: str | None = Field(
         None, description="問題のある既存コード箇所"
@@ -318,7 +318,7 @@ class SkillDiagnoser:
   "recommended_action": "推奨される具体的アクション",
   "spec_patch": null,
   "script_patch": {{
-    "target_file": "scripts/main.py",
+    "target_file": "scripts/{skill_name.replace('-', '_')}.py",
     "problematic_code_snippet": "問題のあるコード",
     "fix_instructions": "具体的な修正指示",
     "suggested_code": "修正後コードスニペット"

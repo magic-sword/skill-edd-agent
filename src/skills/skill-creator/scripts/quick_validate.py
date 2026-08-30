@@ -40,7 +40,7 @@ def validate_skill(skill_path: str | Path) -> tuple[bool, list[str], list[str]]:
     frontmatter_str = match.group(1)
     body_str = match.group(2)
 
-    # 1. 必須フィールド (name, description) の検査
+    # 1. 必須フィールド (name, description) の検査 (ADK 2.0 準拠)
     name_match = re.search(r"^name:\s*([^\n]+)", frontmatter_str, re.MULTILINE)
     if not name_match:
         errors.append("Frontmatter に 'name' フィールドがありません")
@@ -48,6 +48,8 @@ def validate_skill(skill_path: str | Path) -> tuple[bool, list[str], list[str]]:
         name = name_match.group(1).strip().strip("\"'")
         if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
             errors.append(f"スキル名 '{name}' はハイフンケース（英小文字、数字、ハイフン）である必要があります")
+        if len(name) > 64:
+            errors.append(f"スキル名 '{name}' が ADK 2.0 の最大文字数 64 文字を超過しています ({len(name)} 文字)")
         if skill_path.name != name:
             warnings.append(f"ディレクトリ名 '{skill_path.name}' とスキル名 '{name}' が一致していません")
 
@@ -56,10 +58,17 @@ def validate_skill(skill_path: str | Path) -> tuple[bool, list[str], list[str]]:
         errors.append("Frontmatter に 'description' フィールドがありません")
     else:
         description = desc_match.group(1).strip().strip("\"'")
-        if "<" in description or ">" in description:
-            errors.append("description に不等号 ('<' または '>') を含めることはできません")
-        if not description.startswith("This skill should be used when"):
-            warnings.append("description は 'This skill should be used when...' で開始することを推奨します")
+        if not description:
+            errors.append("description は空文字にできません")
+        else:
+            if "<" in description or ">" in description:
+                errors.append("description に不等号 ('<' または '>') を含めることはできません")
+            if len(description) > 1024:
+                errors.append(f"description が ADK 2.0 の最大文字数 1024 文字を超過しています ({len(description)} 文字)")
+            elif len(description) > 500:
+                warnings.append(f"description が長すぎます ({len(description)} 文字)。500文字 (~100 words) 以内を推奨します")
+            if not description.startswith("This skill should be used when"):
+                warnings.append("description は 'This skill should be used when...' で開始することを推奨します")
 
     # 2. リソース参照の実在検査
     referenced_scripts = [s.rstrip(".,;:)[]`'\"") for s in re.findall(r"`?scripts/([a-zA-Z0-9_\-\./]+)", body_str)]

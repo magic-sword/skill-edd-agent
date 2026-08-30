@@ -22,6 +22,8 @@ def init_skill(skill_name: str, path: str, pattern: str = "workflow") -> Path | 
 
     target_dir.mkdir(parents=True, exist_ok=False)
 
+    script_name = f"{skill_name.replace('-', '_')}.py"
+
     # 雛形用ドラフトの作成
     draft = SkillLogicDraft(
         name=skill_name,
@@ -33,24 +35,24 @@ def init_skill(skill_name: str, path: str, pattern: str = "workflow") -> Path | 
         ],
         overview_summary=f"Enables specialized execution of {skill_name.replace('-', ' ')} workflows.",
         decision_tree=[
-            DecisionBranch(condition="standard request is provided", action=f"execute scripts/main.py")
+            DecisionBranch(condition="standard request is provided", action=f"execute scripts/{script_name}")
         ],
         execution_steps=[
             StepInstruction(
                 step_number=1,
                 title="Initialize and Validate",
                 action_imperative="Check prerequisites and input parameters before execution.",
-                target_resource="scripts/main.py"
+                target_resource=f"scripts/{script_name}"
             ),
             StepInstruction(
                 step_number=2,
                 title="Execute Core Logic",
                 action_imperative="Run the task according to specifications.",
-                target_resource="scripts/main.py"
+                target_resource=f"scripts/{script_name}"
             )
         ],
         resources_plan=[
-            ResourcePlan(rel_path="scripts/main.py", type="script", purpose="Core execution logic"),
+            ResourcePlan(rel_path=f"scripts/{script_name}", type="script", purpose="Core execution logic"),
             ResourcePlan(rel_path="references/guide.md", type="reference", purpose="Detailed reference documentation"),
             ResourcePlan(rel_path="assets/sample.txt", type="asset", purpose="Sample output template")
         ],
@@ -64,14 +66,35 @@ def init_skill(skill_name: str, path: str, pattern: str = "workflow") -> Path | 
     skill_md_content = SkillTemplateEngine.render(draft)
     (target_dir / "SKILL.md").write_text(skill_md_content, encoding="utf-8")
 
-    # 2. 3層リソースディレクトリとサンプルの作成
     scripts_dir = target_dir / "scripts"
     scripts_dir.mkdir(exist_ok=True)
-    sample_script = scripts_dir / "main.py"
-    sample_script.write_text(
-        f'#!/usr/bin/env python3\n"""\nCore execution script for {skill_name}\n"""\n\ndef run():\n    print("Executing {skill_name}...")\n    return "Success"\n\nif __name__ == "__main__":\n    run()\n',
-        encoding="utf-8"
-    )
+    sample_script = scripts_dir / script_name
+    title = skill_name.replace("-", " ").title()
+    sample_script_code = f"""#!/usr/bin/env python3
+\"\"\"
+Core execution script for {skill_name}
+\"\"\"
+
+import argparse
+import sys
+
+def run(input_val: str | None = None) -> str:
+    \"\"\"主要タスクを実行します。\"\"\"
+    print(f"Executing {skill_name} with input: {{input_val}}")
+    return "Success"
+
+def main():
+    parser = argparse.ArgumentParser(description="{title} execution script.")
+    parser.add_argument("--input", "-i", type=str, help="Input argument or file path")
+    args = parser.parse_args()
+
+    run(args.input)
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+"""
+    sample_script.write_text(sample_script_code, encoding="utf-8")
     sample_script.chmod(0o755)
 
     references_dir = target_dir / "references"

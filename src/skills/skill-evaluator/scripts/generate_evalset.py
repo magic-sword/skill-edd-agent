@@ -74,8 +74,8 @@ def generate_trigger_tests(skill_name: str, output_path: str) -> bool:
 }}
 正例を3件以上、負例を3件以上作成してください。
 """
-    req = GeminiRequest(prompt=prompt, temperature=0.2)
-    res = client.send(req)
+    req = GeminiRequest(prompt=prompt, client=client, temperature=0.2)
+    res = req.execute()
     raw_text = res.text.strip()
     if raw_text.startswith("```"):
         raw_text = raw_text.split("```")[1]
@@ -95,11 +95,11 @@ def generate_trigger_tests(skill_name: str, output_path: str) -> bool:
 
 
 def generate_contract_tests(skill_name: str, output_path: str) -> bool:
-    """関数の入出力仕様・型・境界値を検証する契約テストケースを生成する。"""
+    """CLI引数・関数入出力仕様・境界値を検証する契約テストケースを生成する。"""
     skill_md, scripts_content = _load_skill_context(skill_name)
 
     prompt = f"""あなたはAIエージェントの契約駆動テスト（Contract Testing）を設計するエンジニアです。
-以下のスキルの仕様書およびスクリプト実装に基づき、入力バリデーション、戻り値型、境界値を検証するテストケースを生成してください。
+以下のスキルの仕様書およびスクリプト実装に基づき、CLI実行引数、入力バリデーション、戻り値、境界値を検証するテストケースを生成してください。
 
 【対象スキル名】
 {skill_name}
@@ -113,27 +113,27 @@ def generate_contract_tests(skill_name: str, output_path: str) -> bool:
 【出力要件】
 以下の JSON 構造のみを出力してください：
 {{
-  "cases": [
+  "eval_set_id": "{skill_name}_contract_eval",
+  "eval_cases": [
     {{
-      "name": "test_normal_case",
-      "function_name": "実行対象関数名",
-      "inputs": {{"arg1": "value1"}},
-      "expected_status": "success",
-      "assertions": {{"status": "success"}}
+      "eval_case_id": "test_cli_help",
+      "script_name": "scripts/{skill_name.replace('-', '_')}.py",
+      "cli_args": ["--help"],
+      "expected_exit_code": 0,
+      "expected_stdout_contains": ["--help"]
     }},
     {{
-      "name": "test_invalid_args",
-      "function_name": "実行対象関数名",
-      "inputs": {{"arg1": ""}},
-      "expected_status": "failed",
-      "assertions": {{"status": "failed"}}
+      "eval_case_id": "test_normal_execution",
+      "function_name": "run",
+      "inputs": {{"input_val": "test_data"}},
+      "expected": "success"
     }}
   ]
 }}
-正常系2件以上、異常系2件以上を作成してください。
+CLI実行ケース2件以上、ロジック検証ケース2件以上を作成してください。
 """
-    req = GeminiRequest(prompt=prompt, temperature=0.2)
-    res = client.send(req)
+    req = GeminiRequest(prompt=prompt, client=client, temperature=0.2)
+    res = req.execute()
     raw_text = res.text.strip()
     if raw_text.startswith("```"):
         raw_text = raw_text.split("```")[1]
@@ -180,8 +180,8 @@ def generate_golden_tests(skill_name: str, output_path: str) -> bool:
   ]
 }}
 """
-    req = GeminiRequest(prompt=prompt, temperature=0.2)
-    res = client.send(req)
+    req = GeminiRequest(prompt=prompt, client=client, temperature=0.2)
+    res = req.execute()
     raw_text = res.text.strip()
     if raw_text.startswith("```"):
         raw_text = raw_text.split("```")[1]
@@ -230,8 +230,8 @@ def generate_judge_tests(skill_name: str, output_path: str) -> bool:
   ]
 }}
 """
-    req = GeminiRequest(prompt=prompt, temperature=0.2)
-    res = client.send(req)
+    req = GeminiRequest(prompt=prompt, client=client, temperature=0.2)
+    res = req.execute()
     raw_text = res.text.strip()
     if raw_text.startswith("```"):
         raw_text = raw_text.split("```")[1]

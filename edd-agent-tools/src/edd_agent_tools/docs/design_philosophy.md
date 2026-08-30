@@ -18,11 +18,11 @@
      - `references/`: ドメイン知識・API仕様・スキーマ
      - `assets/`: 出力用テンプレート・素材
 
-### ④ Google ADK 2.0 ネイティブ統合 (`SkillToolset`)
+### ③ Google ADK 2.0 ネイティブ統合 (`SkillToolset`)
 * 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 標準の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script`）を採用。
 * エージェント起動時のコンテキスト消費を極小化しつつ、決定論的スクリプトのブラックボックス実行と安全なパス解決を実現。
 
-### ⑤ スキルのポータビリティと Zero-dependency CLI ツール群
+### ④ スキルのポータビリティと Zero-dependency CLI ツール群
 * 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor 等）へドロップイン可能な自己完結性を持つ。
 * `skill-creator` 配下に外部依存不要（標準ライブラリのみ）で動作する `quick_validate.py`, `init_skill.py`, `package_skill.py` を同梱し、環境を選ばない即時検証・パッケージングを実現。
 
@@ -34,7 +34,7 @@
 src/skills/{skill-name}/
   SKILL.md       # YAML Frontmatter ('This skill should be used when...') + Markdown仕様書 (SSOT)
   scripts/       # 決定論的スクリプト（直接実行可能・CLI対応）
-    main.py
+    {skill_name}.py
   references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
     guide.md
   assets/        # 出力用テンプレート・素材

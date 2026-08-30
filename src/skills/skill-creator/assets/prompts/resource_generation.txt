@@ -5,8 +5,13 @@ Skill Overview: {overview}
 Resource Purpose: {purpose}
 
 Guidelines:
-- If this is a Python script (`.py`), write clean, standalone, deterministic executable Python code with `argparse` (providing clear options and `--help`), comprehensive docstrings, standard type hints, and a `if __name__ == "__main__":` CLI entry point. These scripts are deterministic black-box tools designed to be executed directly from the shell without polluting the LLM context window.
-- If this is a reference document (`.md`), write comprehensive, objective documentation in Imperative style ("To do X, do Y").
-- If this is an asset or template, provide clean, production-ready template content.
-- Output ONLY the raw file content (do not wrap in markdown triple backticks if outputting code).
+- If this is a script (`.py` or `.sh`):
+  * Write clean, deterministic, standalone executable code with `argparse` (supporting `--help` and clear flags).
+  * Do not create wrapper layers or boilerplate (no unnecessary main.py / handlers).
+  * Design the script as a black-box tool intended to be executed directly in the environment without reading its source code into the agent's context window.
+- If this is a reference document (`.md`):
+  * Write comprehensive, objective documentation in imperative form ("To accomplish X, do Y").
+- If this is an asset or template:
+  * Provide clean, production-ready template content.
+- Output ONLY the raw file content (do not wrap in markdown code blocks).
 

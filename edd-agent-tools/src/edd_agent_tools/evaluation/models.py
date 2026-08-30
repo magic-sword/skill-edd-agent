@@ -215,7 +215,11 @@ class ExpectedResultType(StrEnum):
 
 class EvalCase(BaseModel):
     eval_case_id: str = Field(..., description="テストケースを一意に識別するID")
-    function_name: str = Field(..., description="テスト対象となるスキルの公開関数名")
+    function_name: str = Field("", description="テスト対象となるスキルの公開関数名（CLIテスト時は空文字可）")
+    script_name: str | None = Field(None, description="CLIテスト時の対象スクリプト相対パス（例: scripts/case_converter.py）")
+    cli_args: list[str] | None = Field(None, description="CLI実行時に渡すコマンドライン引数リスト")
+    expected_exit_code: int = Field(0, description="CLI実行時に期待される終了コード（通常は0、異常系は1等）")
+    expected_stdout_contains: list[str] | None = Field(None, description="CLI標準出力に含まれるべき文字列リスト")
     inputs: dict[str, Any] = Field(default_factory=dict, description="関数呼び出し時に渡す引数のマッピング")
     expected: ExpectedResultType = Field(ExpectedResultType.SUCCESS, description="期待されるテスト結果 ('success' または定義された Python 例外クラス名のみ選択可能)")
     mock_responses: dict[str, Any] = Field(default_factory=dict, description="モック応答マッピング")

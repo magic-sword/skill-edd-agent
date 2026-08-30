@@ -81,7 +81,7 @@ def test_skill_init_and_validator(tmp_workspace):
     skill_dir = init_skill("custom-pdf-tool", path=str(tmp_workspace), pattern="task_based")
     assert skill_dir is not None
     assert (skill_dir / "SKILL.md").exists()
-    assert (skill_dir / "scripts" / "main.py").exists()
+    assert (skill_dir / "scripts" / "custom_pdf_tool.py").exists()
     assert (skill_dir / "references" / "guide.md").exists()
     assert (skill_dir / "assets" / "sample.txt").exists()
 
@@ -110,7 +110,7 @@ def test_skill_domain_class_resource_access(tmp_workspace):
 
     assert skill.name == "my-domain-skill"
     assert skill.pattern == SkillPattern.CAPABILITIES
-    assert "main.py" in skill.list_scripts()
+    assert "my_domain_skill.py" in skill.list_scripts()
     assert "guide.md" in skill.list_references()
     assert "sample.txt" in skill.list_assets()
 
@@ -119,9 +119,9 @@ def test_skill_domain_class_resource_access(tmp_workspace):
     assert "Reference Guide for my-domain-skill" in ref_content
 
     # スクリプトパス解決 & ロードテスト
-    script_path = skill.get_script_path("main.py")
-    assert script_path.endswith("main.py")
-    mod = skill.load_module("main.py")
+    script_path = skill.get_script_path("my_domain_skill.py")
+    assert script_path.endswith("my_domain_skill.py")
+    mod = skill.load_module("my_domain_skill.py")
     assert hasattr(mod, "run")
     assert mod.run() == "Success"
 
@@ -148,3 +148,66 @@ def test_skill_evaluator_integration():
 
     gate_mod = eval_skill.load_module("run_tier_gate.py")
     assert hasattr(gate_mod, "run_tier_gate")
+
+def test_validator_adk_spec_enforcement(tmp_workspace):
+    """ADK 2.0 / AgentSkills 仕様（文字数制約・ハイフン制約）のバリデータ検査をテスト"""
+    creator_skill = Skill(root_dir="/workspace/src/skills/skill-creator")
+    quick_val_mod = creator_skill.load_module("quick_validate.py")
+    quick_validate = quick_val_mod.validate_skill
+    
+    # 1. 64文字超過スキル名
+    long_name = "a" * 65
+    invalid_content = f"---\nname: {long_name}\ndescription: Valid description\n---\n# Test"
+    res = SkillValidator.validate_content(invalid_content)
+    assert not res.is_valid
+    assert any("64 characters" in e for e in res.errors)
+
+    # 2. 連続ハイフン
+    double_hyphen_content = "---\nname: my--skill\ndescription: Valid description\n---\n# Test"
+    res2 = SkillValidator.validate_content(double_hyphen_content)
+    assert not res2.is_valid
+    assert any("consecutive hyphens" in e for e in res2.errors)
+
+    # 3. 1024文字超過 description
+    long_desc = "x" * 1025
+    long_desc_content = f"---\nname: valid-name\ndescription: \"{long_desc}\"\n---\n# Test"
+    res3 = SkillValidator.validate_content(long_desc_content)
+    assert not res3.is_valid
+    assert any("1024 characters" in e for e in res3.errors)
+
+
+def test_cli_contract_runner(tmp_workspace):
+    """ContractTestRunner による CLI サブプロセス実行テストを検証"""
+    from edd_agent_tools.evaluation import ContractTestRunner, LocalWorkspaceEnv
+    from edd_agent_tools.evaluation.models import EvalCaseSet, EvalCase, ExpectedResultType
+
+    skill_dir = init_skill("cli-contract-skill", path=str(tmp_workspace), pattern="workflow")
+    skill = Skill(root_dir=str(skill_dir), tier=1)
+
+    eval_set = EvalCaseSet(
+        eval_set_id="cli_test_set",
+        eval_cases=[
+            EvalCase(
+                eval_case_id="cli_normal",
+                script_name="scripts/cli_contract_skill.py",
+                cli_args=["--input", "hello_world"],
+                expected_exit_code=0,
+                expected_stdout_contains=["Executing cli-contract-skill", "hello_world"]
+            ),
+            EvalCase(
+                eval_case_id="cli_help",
+                script_name="scripts/cli_contract_skill.py",
+                cli_args=["--help"],
+                expected_exit_code=0,
+                expected_stdout_contains=["--input"]
+            )
+        ]
+    )
+
+    runner = ContractTestRunner()
+    env = LocalWorkspaceEnv(workspace_dir=str(tmp_workspace))
+    res = runner.run_tests(skill=skill, test_cases_data=eval_set, env=env)
+
+    assert res.passed == 2
+    assert res.failed == 0
+    assert res.accuracy == 1.0
