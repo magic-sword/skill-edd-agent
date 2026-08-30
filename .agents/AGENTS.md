@@ -1,29 +1,23 @@
-# プロジェクト開発ルール (Markdown-First & Progressive Disclosure 標準)
+# プロジェクト開発ルール (Workspace Entry Point)
 
-## 1. 開発パッケージの利用 (`edd-agent-tools`)
-* プロジェクトで開発中のパッケージ (`edd-agent-tools`) を優先して活用し、そのコーディング規約に従ってください。
-* ローカルパッケージのインストールは `-e` オプションで実行してください (`pip install -e edd-agent-tools`)。
-* ツール解決、スキルロード、静的バリデーション、テスト実行、Geminiクライアント生成等の共通ロジックは、各スキル内で個別直書きせず `edd-agent-tools` パッケージに集約・拡張してください。
-* 詳細仕様は [edd-agent-tools/README.md](file:///workspace/edd-agent-tools/README.md) を参照してください。
+本プロジェクトでは、開発基盤パッケージ `edd-agent-tools` を**単一真実源（Single Source of Truth: SSOT）**として採用しています。
 
-## 2. スキル構造と Progressive Disclosure 規約 (3層リソース分離)
-* **単一真実源の原則 (Markdown-First)**: スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化してください。
-* **3層リソース分離**:
-  - `scripts/`: 決定論的スクリプト（直接実行可能）
-  - `references/`: ドメイン知識・API仕様・スキーマ（LLMがオンデマンドで読む資料）
-  - `assets/`: 成果物にコピー・流用するためのテンプレート・ボイラープレート
-  すべてのロジックを無理にPythonコードに詰め込まず、ドキュメント参照やテンプレート配布を積極的に活用してください。
-* **ボイラープレートの排除**: `models.py`, `handler.py`, `executor.py`, `nodes/` などの冗長な多層ラッパー構造を作成せず、フラットで簡潔な実装を行ってください。
+---
 
-## 3. プロンプトおよび仕様書の記述スタイル規約 (Imperative Form)
-* **Imperative Form（動詞起点・客観的指示）**:
-  SKILL.mdおよび指示プロンプトはすべて客観的な指示（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調や曖昧な助動詞（「〜してください」「〜する必要があります」等）を排除してください。
-* **Frontmatter の description**:
-  第三者視点（"This skill should be used when..."）で、トリガー条件・対象ファイル・対応タスクを100 words以内で極めて具体的に記述してください。
+## 1. 単一真実源（SSOT）と開発規約の参照
+* **エージェント開発制約の真実源**:
+  エージェント向けの開発制約、Two-Tier Architecture、Progressive Disclosure、および4段階品質保証パイプラインはすべて [`edd-agent-tools/AGENTS.md`](file:///workspace/edd-agent-tools/src/edd_agent_tools/AGENTS.md) に定義されています。
+* **MCP によるオンデマンド参照**:
+  開発規約や設計ガイドラインは FastMCP サーバー（`edd-agent-mcp`）のリソース（`edd://rules/agents`, `edd://guidelines/*`, `edd://docs/*`）からも参照可能です。
 
-## 4. コード品質とシンプルさの徹底
-* **ベストプラクティスの徹底**: 不要な抽象化やモンキーパッチを作らず、シンプルで可読性の高いコードベースを維持してください。
+## 2. 開発パッケージの利用 (`edd-agent-tools`)
+* **基盤パッケージの活用**:
+  スキルの探索・パス解決（`SkillsState`）、サンドボックス環境（`LocalWorkspaceEnv`）、多層評価・Tier昇格（`ContractTestRunner`, `SimulationEvalRunner`）、静的検証（`SkillValidator`）等の共通基盤ロジックはすべて `edd-agent-tools` を利用し、各スキル内で重複実装しないでください。
+* **二重 LLM 呼び出しの禁止**:
+  スキル内のスクリプト内部で LLM API を直接叩くバッチ処理を作らず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。
+* **ローカルインストール**:
+  本パッケージは `pip install -e edd-agent-tools` でインストールして開発してください。
+
+## 3. コード品質とシンプルさの徹底
+* **ボイラープレートの排除**: 不要な抽象化レイヤーやモンキーパッチを作らず、フラットで簡潔な実装を維持してください。
 * **不要ファイルの即時削除**: リファクタリングによって不要になったファイルや重複関数は速やかに削除し、コードベース内のノイズを排除してください。
-
-## 5. 設計思想とアピールポイントの正確な反映
-* **設計思想の反映**: READMEや各種ドキュメントの作成・更新時は、開発で徹底した設計思想（Tier管理、Progressive Disclosure、4段階品質保証パイプライン、多言語評価パッチ等）を主軸として記述してください。

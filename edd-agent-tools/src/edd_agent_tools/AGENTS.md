@@ -1,33 +1,44 @@
-# edd-agent-tools 開発ルール (エージェント指向システム制約)
+# edd-agent-tools 開発ルール (エージェント指向システム制約 / SSOT)
 
-本ドキュメントは、`edd-agent-tools` パッケージを利用してスキル開発・自律改善・評価検証を実装するAIエージェントが遵守すべき **「厳密な開発制約 (System Rules)」** を定義します。
+本ドキュメントは、`edd-agent-tools` パッケージを利用してスキル開発・自律改善・評価検証を実装するAIエージェントが遵守すべき **「厳密な開発制約 (System Rules)」** の単一真実源（Single Source of Truth）です。
 
 ---
 
-## 1. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
+## 1. パッケージとスキルの責務分離 (Two-Tier Architecture)
+*   **基盤パッケージ (`edd-agent-tools`) の責務**:
+    - スキルの探索・パス解決（`SkillsState`, `Skill`）、仮想環境サンドボックス（`LocalWorkspaceEnv`）、多層評価・Tier昇格テスト（`ContractTestRunner`, `SimulationEvalRunner`）、静的バリデーション（`SkillValidator`）、Gemini/ADK連携等の共通基盤ロジックを一元管理する。
+    - 各スキル内でパス解決やテストエンジンを重複実装せず、必ず `edd-agent-tools` パッケージを活用する。
+*   **スキル (`src/skills/`) の責務**:
+    - `SKILL.md`（意思決定ツリー・手順書）、`references/`（ドメイン知識）、`assets/`（テンプレート）、`scripts/`（業務スクリプト）に特化する。
+    - **二重 LLM 呼び出しの禁止（Anti-pattern）**: スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を抱え込まず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計とする。スクリプトは決定論的なブラックボックス CLI ツール（`argparse` / `--help` 対応）として実装する。
+
+---
+
+## 2. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
 *   **単一真実源 (SSOT) ➔ `SKILL.md`**:
-    スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化してください。
+    スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化する。
 *   **3層リソース分離**:
-    - `scripts/`: 直接実行可能な決定論的スクリプト（CLI / API 両用）
+    - `scripts/`: 直接実行可能な決定論的スクリプト（CLI対応）
     - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）
     - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
 *   **ボイラープレートの排除**:
-    多層ラッパー構造（`models.py`, `handler.py`, `nodes/`）を作成せず、フラットで簡潔な実装を行ってください。
+    多層ラッパー構造（`models.py`, `handler.py`, `nodes/`）を作成せず、フラットで簡潔な実装を行う。
 
 ---
 
-## 2. 型仕様とドメインモデルの厳密遵守 (What/How)
+## 3. 型仕様とドメインモデルの厳密遵守 (What/How)
 スキル操作・構文解析・テスト実行を行う新規機能やスクリプトを開発する際は、必ずパッケージ内に定義されたドメインモデルおよび評価ランナーに適合させてください。
 
-*   **スキル管理モデル**: `edd_agent_tools.skills.Skill`, `edd_agent_tools.skills.SkillSpec`
+*   **スキル管理モデル**: `edd_agent_tools.skills.Skill`, `edd_agent_tools.skills.SkillSpec`, `edd_agent_tools.skills.SkillsState`
 *   **品質保証モデル**: `edd_agent_tools.skills.SkillLogicDraft`, `edd_agent_tools.skills.SkillValidator`
+*   **自動生成エンジン**: `edd_agent_tools.skills.SkillCreationEngine`, `edd_agent_tools.evaluation.EvalSetGenerator`
 *   **評価実行基盤**: `edd_agent_tools.evaluation.ContractTestRunner`, `edd_agent_tools.evaluation.SimulationEvalRunner`
 
 各クラスのシグネチャ、引数の名前、戻り値の型、発生すべき例外については、上記コード内の **Docstring および Type Hints** を唯一の真実のソースとして厳密に従ってください。
 
 ---
 
-## 3. 依存性注入 (Dependency Injection) 制約 (What/How)
+## 4. 依存性注入 (Dependency Injection) 制約 (What/How)
 テスト実行や安全な試行錯誤を行うスクリプトは、自身の内部で OS や実ファイルシステムに直接アクセスしてはなりません。
 
 *   **実行環境の操作制限**:
@@ -39,21 +50,12 @@
 
 ---
 
-## 4. テスト判定とアサーションの仕様 (What/How)
-
-### A. 契約駆動テスト (Unit / Contractテスト)
-*   **アサーションの委譲**:
-    テスト実行時はアサーションエンジンを独自に再実装せず、パッケージの **`edd_agent_tools.evaluation`**（`ContractTestRunner` 等）に仮想環境 `env` を引き渡して実行を委譲してください。
-
-### B. トリガー評価テスト (インテント判定)
-*   **負例テストの合否アサーション**:
-    対象スキルを「起動させてはならない」プロンプト（負例/Negativeケース）の検証時、LLMのインテント分類の予測が対象のスキル名と「不一致」だった場合は、誤起動を防げたことを意味するため、テストとしては **合格 (PASSED)** と判定してください。
-
----
-
-## 5. コーディング規約と Pydoc (Docstring) の記述ルール (What/How)
-1.  **Google Python Style Guide の厳密遵守**: すべての Python コードおよび Docstring は Google スタイル（`Args:`, `Returns:`, `Raises:`）に準拠してください。
-2.  **個別API契約 (What/How) への特化**: Docstring には呼び出し仕様（引数型、戻り値、例外）のみを簡潔に記述し、設計思想（Why）は `docs/` 配下のドキュメントに集約してください。
+## 5. 自動生成物に対する品質ハーネス (Quality Gates)
+スキルの新規生成や改修時は、必ず以下の4段階品質保証パイプラインを遵守する：
+1. **Stage 1 (Logical Extraction)**: `SkillLogicDraft` による論理設計抽出
+2. **Stage 2 (Deterministic Rendering)**: `SkillTemplateEngine` による決定論的 SKILL.md レンダリング
+3. **Stage 3 (Static Linter)**: `SkillValidator`（または `quick_validate.py`）による静的リンター（構文・実在整合性・文字数制約）の 100% 合格
+4. **Stage 4 (Contract Verification)**: `ContractTestRunner` による初期契約テスト検証
 
 ---
 
