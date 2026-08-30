@@ -1,18 +1,12 @@
 # edd-agent-tools package
-# 【名前空間デッドロック防止のための先行インポート】
-try:
-    from google import genai
-    from google.adk.tools import ToolContext
-except ImportError:
-    pass
+# Evaluation-Driven Development (EDD) tools for AI Agents
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 def __getattr__(name: str):
     import importlib
 
     submodules = {
-        "gemini",
         "skills",
         "evaluation",
         "run",
@@ -78,10 +72,6 @@ def __getattr__(name: str):
         "generate_evalset": (".evaluation", "generate_evalset"),
         "run_evaluation": (".evaluation", "run_evaluation"),
         "run_tier_gate": (".evaluation", "run_tier_gate"),
-        # gemini
-        "GeminiClient": (".gemini", "GeminiClient"),
-        "GeminiRequest": (".gemini", "GeminiRequest"),
-        "gemini": (".gemini", None),
         # doc_reader
         "LibraryDocumentationReader": (".doc_reader", "LibraryDocumentationReader"),
     }
@@ -109,6 +99,5 @@ def __dir__():
         "SimulationEval", "SimulationEvalRunner", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol", "ContractTestRunner",
         "TestGenerator", "TestExecutor", "TrajectoryEvalSet", "CascadeTestRunner",
         "EvalSetGenerator", "generate_evalset", "run_evaluation", "run_tier_gate",
-        "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
+        "LibraryDocumentationReader"
     ])
-

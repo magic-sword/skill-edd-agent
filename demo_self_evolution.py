@@ -3,9 +3,9 @@
 
 Kaggle Competition: Vibe Coding Agents Capstone Project (Freestyle Track)
 
-このスクリプトは、エージェントが自然言語の曖昧な指示からスキルを自動生成し、
-テスト・自己診断・自律修復（Self-Healing）・連鎖回帰テストを経て
-Tier 1（本番利用可能）へ自己進化する一連のプロセスを一撃で実演します。
+このスクリプトは、エージェントがスキルを自律生成し、
+静的検証・テスト・診断・最適化・連鎖回帰テスト（Cascade Testing）を経て
+Tier 1（Production / Trusted）へ自己進化する一連の EDD プロセスを一撃で実演します。
 """
 
 import os
@@ -20,7 +20,8 @@ sys.path.insert(0, "/workspace")
 from edd_agent_tools.skills import (
     SkillsState,
     SkillValidator,
-    SkillTier
+    SkillTier,
+    create_skill
 )
 from edd_agent_tools.evaluation import CascadeTestRunner
 
@@ -28,7 +29,7 @@ from edd_agent_tools.evaluation import CascadeTestRunner
 def print_banner():
     banner = """
 ================================================================================
-   🧬 Self-Evolving EDD Agent: Autonomous Skill Generation & Self-Healing Demo
+   🧬 Self-Evolving EDD Agent: Autonomous Skill Generation & Evolution Demo
    Powered by Google ADK 2.0 & Anthropic Markdown-First Progressive Disclosure
 ================================================================================
 """
@@ -53,15 +54,13 @@ def main():
     print(f"➔ skill-creator (4段階品質保証パイプライン) を起動中...")
 
     # Stage 1〜4 によるスキル生成
-    from edd_agent_tools.skills import create_skill
     res = create_skill(
         prompt="文字列を大文字(UPPER), 小文字(lower), キャメルケース(camelCase), スネークケース(snake_case)に変換するテキスト変換ユーティリティスキルを作成してください。",
         name=demo_skill_name,
         pattern="task_based"
     )
 
-
-    if res.get("status") != "success":
+    if res.get("status") not in ["success", "partial_success"]:
         print(f"❌ スキル生成に失敗しました: {res}")
         return
 
@@ -78,17 +77,18 @@ def main():
     is_dag_valid, errors = state.validate_dependency_graph()
     print(f"DAG 依存関係整合性: {'✅ 正常 (循環なし・欠落なし)' if is_dag_valid else '❌ エラー'}")
 
-    # Phase 3: Self-Healing Loop 実演
-    print(f"\n🛠 [Phase 3: Self-Improvement Loop (自律改善・最適化)]")
+    # Phase 3: Self-Improvement Loop 実演
+    print(f"\n🛠 [Phase 3: Self-Improvement Loop (自律改善・最適化 & 連鎖回帰テスト)]")
     print(f"➔ skill-optimizer を呼び出し、テスト実行・診断・連鎖回帰テストを実行中...")
 
     optimizer_skill = state.get_skill("skill-optimizer")
     optimize_skill_fn = optimizer_skill.load_module("optimizer.py").optimize_skill
-    opt_res = optimize_skill_fn(skill_name=demo_skill_name, max_retries=2)
+    opt_res = optimize_skill_fn(skill_name=demo_skill_name, target_tier=1, run_cascade=True)
 
     print(f"最適化ステータス: {opt_res.get('status')}")
     print(f"昇格権限ステータス: {opt_res.get('tier')}")
-    print(f"連鎖回帰テスト結果: {opt_res.get('cascade_results')}")
+    if opt_res.get("cascade_results"):
+        print(f"連鎖回帰テスト結果: {opt_res.get('cascade_results')}")
 
     # 最終確認
     skill_obj = state.get_skill(demo_skill_name)

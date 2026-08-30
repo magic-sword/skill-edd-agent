@@ -1,21 +1,20 @@
+"""
+Evaluation Set Generator - 決定論的テストデータセット雛形生成エンジン
+SKILL.md および scripts/ の構造定義から、Contract, Trigger, Trajectory, Golden, Judge, Adversarial
+の各多層評価テストセット（.evalset.json）のスケルトンを完全決定論的に生成・保存します。
+"""
+
 import os
 import sys
 import json
-import argparse
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
 
 from edd_agent_tools.skills.state import SkillsState
-from edd_agent_tools.gemini import client, GeminiRequest
-from edd_agent_tools.evaluation.models import (
-    EvalCaseSet, EvalCase, TrajectoryEvalSet, TrajectoryEvalCase,
-    ConversationTurn, SessionInput, ToolUse, IntermediateData
-)
 
 
-def _load_skill_context(skill_name: str) -> tuple[str, str]:
-    """対象スキルの SKILL.md および scripts/ の要約コードを取得する。"""
+def _load_skill_context(skill_name: str) -> tuple[str, List[str]]:
+    """対象スキルの SKILL.md および scripts/ のスクリプト名一覧を取得する。"""
     state = SkillsState()
     skill = state.get_skill(skill_name)
     if not skill:
@@ -25,329 +24,182 @@ def _load_skill_context(skill_name: str) -> tuple[str, str]:
     if skill.spec_path and Path(skill.spec_path).exists():
         skill_md = Path(skill.spec_path).read_text(encoding="utf-8")
 
-    scripts_summary = []
+    script_names = []
     if Path(skill.scripts_dir).exists():
         for py_file in Path(skill.scripts_dir).glob("*.py"):
-            content = py_file.read_text(encoding="utf-8")
-            scripts_summary.append(f"### {py_file.name}\n```python\n{content}\n```")
-    scripts_content = "\n\n".join(scripts_summary)
+            if py_file.name != "__init__.py":
+                script_names.append(py_file.name)
 
-    return skill_md, scripts_content
+    return skill_md, script_names
 
 
 class EvalSetGenerator:
-    """多層評価テストセット（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）を生成する自動ジェネレータ"""
-
-    def __init__(self, gemini_client=None):
-        self.client = gemini_client or client
+    """決定論的多層評価テストセット（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）ジェネレータ"""
 
     def generate_trigger_tests(self, skill_name: str, output_path: str) -> bool:
-        """インテント分類用のトリガーテストケース（正例・負例発話）を生成する。"""
-        skill_md, _ = _load_skill_context(skill_name)
+        """インテント分類用のトリガーテストケース（正例・負例発話）の雛形を生成する。"""
+        state = SkillsState()
+        skill = state.get_skill(skill_name)
+        trigger_examples = []
+        when_not_to_use = []
+        if skill and skill.spec:
+            trigger_examples = skill.spec.concrete_trigger_examples or []
+            when_not_to_use = skill.spec.when_not_to_use or []
 
-        prompt = f"""あなたはAIエージェントのインテント判定（トリガー精度）を評価するテストエンジニアです。
-以下のスキルの仕様書 (SKILL.md) を読み込み、このスキルが実行されるべき「正例プロンプト (positive)」と、実行されるべきでない「負例プロンプト (negative)」のテストケースを生成してください。
+        cases = []
+        if trigger_examples:
+            for idx, ex in enumerate(trigger_examples, 1):
+                cases.append({
+                    "name": f"positive_case_{idx}",
+                    "user_input": ex,
+                    "expected_tools": [skill_name],
+                    "should_trigger": True
+                })
+        else:
+            cases.append({
+                "name": "positive_case_1",
+                "user_input": f"Please execute {skill_name} workflow",
+                "expected_tools": [skill_name],
+                "should_trigger": True
+            })
 
-【対象スキル名】
-{skill_name}
+        if when_not_to_use:
+            for idx, non_ex in enumerate(when_not_to_use[:3], 1):
+                cases.append({
+                    "name": f"negative_case_{idx}",
+                    "user_input": non_ex,
+                    "expected_tools": [],
+                    "should_trigger": False
+                })
+        else:
+            cases.append({
+                "name": "negative_case_1",
+                "user_input": "Show me general system help",
+                "expected_tools": [],
+                "should_trigger": False
+            })
 
-【SKILL.md】
-{skill_md}
-
-【出力要件】
-以下の JSON 構造のみを出力してください（Markdownコードブロックは不要）：
-{{
-  "cases": [
-    {{
-      "name": "positive_case_1",
-      "user_input": "具体的なユーザー発話",
-      "expected_tools": ["{skill_name}"],
-      "should_trigger": true
-    }},
-    {{
-      "name": "negative_case_1",
-      "user_input": "関連しない一般的な発話",
-      "expected_tools": [],
-      "should_trigger": false
-    }}
-  ]
-}}
-正例を3件以上、負例を3件以上作成してください。
-"""
-        req = GeminiRequest(prompt=prompt, client=self.client, temperature=0.2)
-        res = req.execute()
-        raw_text = res.text.strip()
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1]
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
-            raw_text = raw_text.strip()
-
-        try:
-            data = json.loads(raw_text)
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving trigger test cases: {e}", file=sys.stderr)
-            return False
+        data = {
+            "eval_set_id": f"{skill_name}_trigger_eval",
+            "cases": cases
+        }
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
 
     def generate_contract_tests(self, skill_name: str, output_path: str) -> bool:
-        """CLI引数・関数入出力仕様・境界値を検証する契約テストケースを生成する。"""
-        skill_md, scripts_content = _load_skill_context(skill_name)
+        """CLI引数・終了コードを検証する契約テストケースを生成する。"""
+        _, script_names = _load_skill_context(skill_name)
+        main_script = f"scripts/{script_names[0]}" if script_names else f"scripts/{skill_name.replace('-', '_')}.py"
 
-        prompt = f"""あなたはAIエージェントの契約駆動テスト（Contract Testing）を設計するエンジニアです。
-以下のスキルの仕様書およびスクリプト実装に基づき、CLI実行引数、入力バリデーション、戻り値、境界値を検証するテストケースを生成してください。
-
-【対象スキル名】
-{skill_name}
-
-【SKILL.md】
-{skill_md}
-
-【scripts/】
-{scripts_content}
-
-【出力要件】
-以下の JSON 構造のみを出力してください：
-{{
-  "eval_set_id": "{skill_name}_contract_eval",
-  "eval_cases": [
-    {{
-      "eval_case_id": "test_cli_help",
-      "script_name": "scripts/{skill_name.replace('-', '_')}.py",
-      "cli_args": ["--help"],
-      "expected_exit_code": 0,
-      "expected_stdout_contains": ["--help"]
-    }},
-    {{
-      "eval_case_id": "test_normal_execution",
-      "function_name": "run",
-      "inputs": {{"input_val": "test_data"}},
-      "expected": "success"
-    }}
-  ]
-}}
-CLI実行ケース2件以上、ロジック検証ケース2件以上を作成してください。
-"""
-        req = GeminiRequest(prompt=prompt, client=self.client, temperature=0.2)
-        res = req.execute()
-        raw_text = res.text.strip()
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1]
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
-            raw_text = raw_text.strip()
-
-        try:
-            data = json.loads(raw_text)
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving contract test cases: {e}", file=sys.stderr)
-            return False
+        data = {
+            "eval_set_id": f"{skill_name}_contract_eval",
+            "eval_cases": [
+                {
+                    "eval_case_id": "test_cli_help",
+                    "script_name": main_script,
+                    "cli_args": ["--help"],
+                    "expected_exit_code": 0,
+                    "expected_stdout_contains": ["--help"]
+                }
+            ]
+        }
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
 
     def generate_golden_tests(self, skill_name: str, output_path: str) -> bool:
-        """意味的ゴールデンアウトプットを検証するテストケースを生成する。"""
-        skill_md, scripts_content = _load_skill_context(skill_name)
-
-        prompt = f"""あなたはゴールデンデータセットを設計するQAエンジニアです。
-以下のスキル仕様に基づき、意味的に正しい期待出力（Golden Output）を含むテストケースを生成してください。
-
-【対象スキル名】
-{skill_name}
-
-【SKILL.md】
-{skill_md}
-
-【scripts/】
-{scripts_content}
-
-【出力要件】
-以下の JSON 構造のみを出力してください：
-{{
-  "cases": [
-    {{
-      "name": "golden_standard_flow",
-      "input_scenario": "ユーザー要件シナリオ",
-      "expected_outputs": {{"result_contains": ["期待されるキーワードや構造"]}}
-    }}
-  ]
-}}
-"""
-        req = GeminiRequest(prompt=prompt, client=self.client, temperature=0.2)
-        res = req.execute()
-        raw_text = res.text.strip()
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1]
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
-            raw_text = raw_text.strip()
-
-        try:
-            data = json.loads(raw_text)
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving golden test cases: {e}", file=sys.stderr)
-            return False
+        """ゴールデンアウトプットを検証するテストケース雛形を生成する。"""
+        data = {
+            "eval_set_id": f"{skill_name}_golden_eval",
+            "cases": [
+                {
+                    "name": "golden_standard_execution",
+                    "input_scenario": f"Run standard workflow for {skill_name}",
+                    "expected_outputs": {
+                        "result_contains": [skill_name]
+                    }
+                }
+            ]
+        }
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
 
     def generate_judge_tests(self, skill_name: str, output_path: str) -> bool:
-        """LLMルーブリックジャッジ用の評価基準・テストケースを生成する。"""
-        skill_md, scripts_content = _load_skill_context(skill_name)
-
-        prompt = f"""あなたはLLM-as-a-Judgeの評価ルーブリックを設計する専門家です。
-以下のスキル仕様に基づき、採点基準（ルーブリック）と評価シナリオを生成してください。
-
-【対象スキル名】
-{skill_name}
-
-【SKILL.md】
-{skill_md}
-
-【出力要件】
-以下の JSON 構造のみを出力してください：
-{{
-  "cases": [
-    {{
-      "name": "judge_quality_check",
-      "input_prompt": "評価対象の指示プロンプト",
-      "rubrics": [
-        {{"criterion": "正確性 (Accuracy)", "weight": 0.4, "description": "指示通りの出力が行われているか"}},
-        {{"criterion": "完全性 (Completeness)", "weight": 0.3, "description": "必要な要素が欠落していないか"}},
-        {{"criterion": "簡潔性 (Conciseness)", "weight": 0.3, "description": "不要な冗長性がないか"}}
-      ],
-      "pass_threshold": 0.85
-    }}
-  ]
-}}
-"""
-        req = GeminiRequest(prompt=prompt, client=self.client, temperature=0.2)
-        res = req.execute()
-        raw_text = res.text.strip()
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1]
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
-            raw_text = raw_text.strip()
-
-        try:
-            data = json.loads(raw_text)
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving judge test cases: {e}", file=sys.stderr)
-            return False
+        """LLMルーブリックジャッジ用の評価基準雛形を生成する。"""
+        data = {
+            "eval_set_id": f"{skill_name}_judge_eval",
+            "cases": [
+                {
+                    "name": "judge_quality_rubric",
+                    "input_prompt": f"Execute {skill_name} task",
+                    "rubrics": [
+                        {"criterion": "正確性 (Accuracy)", "weight": 0.4, "description": "仕様通りの出力が行われているか"},
+                        {"criterion": "完全性 (Completeness)", "weight": 0.3, "description": "必要な要素が欠落していないか"},
+                        {"criterion": "簡潔性 (Conciseness)", "weight": 0.3, "description": "不要な冗長性がないか"}
+                    ],
+                    "pass_threshold": 0.85
+                }
+            ]
+        }
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
 
     def generate_trajectory_tests(self, skill_name: str, output_path: str) -> bool:
-        """Google ADK 準拠のツール呼び出し軌跡（Tool Trajectory）評価テストケースを生成する。"""
-        skill_md, scripts_content = _load_skill_context(skill_name)
+        """Google ADK 準拠のツール軌跡（Tool Trajectory）評価テストケースを生成する。"""
+        _, script_names = _load_skill_context(skill_name)
+        main_script = script_names[0] if script_names else f"{skill_name.replace('-', '_')}.py"
 
-        prompt = f"""あなたは Google ADK 準拠のエージェント軌跡評価（Trajectory Evaluation）を設計するエンジニアです。
-以下のスキル仕様に基づき、期待される中間ツール呼び出しシーケンス（intermediate_data.tool_uses）を含むテストケースを生成してください。
-
-【対象スキル名】
-{skill_name}
-
-【SKILL.md】
-{skill_md}
-
-【出力要件】
-以下の JSON 構造のみを出力してください：
-{{
-  "eval_set_id": "{skill_name}_trajectory_eval",
-  "eval_cases": [
-    {{
-      "invocation_id": "inv_001",
-      "user_content": {{"text": "標準的なユーザー指示プロンプト"}},
-      "final_response": {{"text": "期待される最終返答サマリー"}},
-      "intermediate_data": {{
-        "tool_uses": [
-          {{
-            "name": "{skill_name}",
-            "args": {{"input_val": "sample"}}
-          }}
-        ]
-      }}
-    }}
-  ]
-}}
-"""
-        req = GeminiRequest(prompt=prompt, client=self.client, temperature=0.2)
-        res = req.execute()
-        raw_text = res.text.strip()
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1]
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
-            raw_text = raw_text.strip()
-
-        try:
-            data = json.loads(raw_text)
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving trajectory test cases: {e}", file=sys.stderr)
-            return False
+        data = {
+            "eval_set_id": f"{skill_name}_trajectory_eval",
+            "cases": [
+                {
+                    "invocation_id": "inv_001",
+                    "user_content": {"text": f"Please execute {skill_name}"},
+                    "final_response": {"text": f"Successfully completed {skill_name}."},
+                    "intermediate_data": {
+                        "tool_uses": [
+                            {
+                                "name": main_script,
+                                "args": {"input": "sample"}
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
 
     def generate_adversarial_tests(self, skill_name: str, output_path: str) -> bool:
-        """敵対的・境界値・例外系入力に対する堅牢性テストケースを生成する。"""
-        skill_md, scripts_content = _load_skill_context(skill_name)
-
-        prompt = f"""あなたはAIエージェントの堅牢性・セキュリティを評価するレッドチームQAエンジニアです。
-以下のスキル仕様に基づき、境界値、型不正、空文字、過剰データなどの敵対的・例外系テストケースを生成してください。
-
-【対象スキル名】
-{skill_name}
-
-【SKILL.md】
-{skill_md}
-
-【出力要件】
-以下の JSON 構造のみを出力してください：
-{{
-  "eval_set_id": "{skill_name}_adversarial_eval",
-  "cases": [
-    {{
-      "name": "adv_empty_input",
-      "input_data": "",
-      "expected_behavior": "graceful_error_handling"
-    }},
-    {{
-      "name": "adv_invalid_type",
-      "input_data": 999999,
-      "expected_behavior": "graceful_error_handling"
-    }}
-  ]
-}}
-"""
-        req = GeminiRequest(prompt=prompt, client=self.client, temperature=0.2)
-        res = req.execute()
-        raw_text = res.text.strip()
-        if raw_text.startswith("```"):
-            raw_text = raw_text.split("```")[1]
-            if raw_text.startswith("json"):
-                raw_text = raw_text[4:]
-            raw_text = raw_text.strip()
-
-        try:
-            data = json.loads(raw_text)
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            return True
-        except Exception as e:
-            print(f"Error saving adversarial test cases: {e}", file=sys.stderr)
-            return False
+        """敵対的・境界値テストケース雛形を生成する。"""
+        data = {
+            "eval_set_id": f"{skill_name}_adversarial_eval",
+            "cases": [
+                {
+                    "name": "adv_empty_input",
+                    "input_data": "",
+                    "expected_behavior": "graceful_error_handling"
+                },
+                {
+                    "name": "adv_invalid_type",
+                    "input_data": 999999,
+                    "expected_behavior": "graceful_error_handling"
+                }
+            ]
+        }
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
 
     def generate_evalset(self, skill_name: str, test_type: str = "all", output_dir: Optional[str] = None) -> Dict[str, Any]:
         """指定されたスキルの評価セットを生成する統合エントリポイント。"""

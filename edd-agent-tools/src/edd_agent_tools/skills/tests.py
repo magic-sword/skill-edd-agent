@@ -164,3 +164,12 @@ class SkillTests:
             os.path.abspath(p)
             for p in glob.glob(os.path.join(self.results_dir, "*.json"))
         ]
+
+    def list_evalsets(self) -> list[str]:
+        """tests/ 配下に存在する全 *.evalset.json ファイルの絶対パスリストを返します。"""
+        if not os.path.exists(self.tests_dir):
+            return []
+        return [
+            os.path.abspath(p)
+            for p in glob.glob(os.path.join(self.tests_dir, "*.evalset.json"))
+        ]

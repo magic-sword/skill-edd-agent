@@ -1,6 +1,6 @@
 ---
 name: skill-optimizer
-description: This skill should be used when automatically repairing failing skills, applying patches across skill resources, and executing regression cascade tests for tier promotion.
+description: This skill should be used when managing the autonomous self-healing and improvement loop, verifying patches, running cascade regression tests, and promoting skills to Tier 1-3.
 license: Complete terms in LICENSE.txt
 pattern: workflow
 dependencies:
@@ -12,50 +12,53 @@ dependencies:
 
 ## Overview
 
-テスト失敗ログや評価レポートを起点とし、`skill-diagnoser` による根本原因分析・改善計画（`ImprovementPlan`）の策定、コードおよび `SKILL.md` への安全な自動パッチ適用、静的リンター検証、再テスト、そして依存する上位ワークフローに対する連鎖回帰テスト（Cascade Testing）までを完全自動でループ実行する自律改善エンジン。
+エージェント自身が主体となり、テスト失敗を起点とした診断（`skill-diagnoser`）、コードや仕様書の安全な修正、静的バリデーション、再テスト、および依存する上位ワークフローに対する連鎖回帰テスト（Cascade Testing）を経て、安全に Tier 昇格させる自律改善ループ（Self-Improvement Loop）のオーケストレーション・ワークフロー。
 
 ## Workflow Decision Tree
 
-- **If** テストが失敗しているスキルが指定された場合 ➔ **Then** `scripts/optimizer.py` を呼び出し、自律修復ループを実行して Tier 昇格させる
-- **If** すでに全テストに合格している場合 ➔ **Then** 連鎖回帰テストのみを確認して即座に完了する
+- **If** スキルに不具合やテスト失敗がある場合 ➔ **Then** Step 1 で診断コンテキストを取得し、Step 2 でエージェント自らコード/仕様を修正後、`scripts/optimizer.py` で検証・連鎖回帰テスト・昇格を実行する
+- **If** すでに全テストに合格しているスキルの昇格を行う場合 ➔ **Then** `scripts/optimizer.py <skill_name> --target-tier 1` を直接実行する
 
 ## Step-by-Step Instructions
 
-### Step 1: テスト実行と結果判定 *(Target: `scripts/optimizer.py`)*
+### Step 1: テスト実行と失敗診断 *(Tool: `skill-diagnoser`)*
 
-対象スキルのテストを実行し、合格・不合格およびスコアを測定する。
+1. `skill-evaluator` または `scripts/optimizer.py` を呼び出してテストを実行する。
+2. 失敗が検知された場合、依存スキル `skill-diagnoser` を実行して失敗コンテキスト（エラー、スタックトレース、該当ソースコード）を取得する。
 
-### Step 2: 診断と改善計画の取得 *(Target: `scripts/optimizer.py`)*
+### Step 2: エージェントによる原因推論とファイル修正
 
-不合格の場合、`skill-diagnoser` を呼び出して `ImprovementPlan`（修正レイヤー、原因、具体的パッチ指示）を取得する。
+取得したコンテキストに基づき、エージェント自身が原因を分析し、ファイル編集ツール（`replace_file_content` や `SafeEditFileTool`）を用いて対象ファイルを修正する：
+- ロジック修正: `src/skills/<skill_name>/scripts/*.py`
+- 仕様・トリガー修正: `src/skills/<skill_name>/SKILL.md`
+- テストケース修正: `src/skills/<skill_name>/tests/*.evalset.json`
 
-### Step 3: 安全なパッチ適用と静的検証 *(Target: `scripts/optimizer.py`)*
+### Step 3: 静的検証・連鎖回帰テスト・Tier 昇格 *(Tool: `scripts/optimizer.py`)*
 
-計画に基づき、`SKILL.md` または `scripts/*.py` へ差分を適用し、`SkillValidator` による静的整合性を検証する。
-
-### Step 4: 再テストと連鎖回帰テスト *(Target: `scripts/optimizer.py`)*
-
-再テストを実行して合格を確認後、`CascadeTestRunner` により依存する上位ワークフローの回帰テストを一括実行し、Tier 1 へ昇格登録する。
+修正適用後、決定論的検証ツールを実行して単体検証・連鎖回帰テスト・Tier 昇格を一括実行する：
+```bash
+python scripts/optimizer.py <skill_name> --target-tier 1 --cascade
+```
+- すべてのテストに合格した場合、スキルは自動的に `SkillsState` 上で昇格登録される。
+- 再度失敗した場合は、Step 1 に戻り最大 3 回まで修復ループを反復する。
 
 ## Usage Scenarios & Trigger Examples
 
-- "失敗した my-skill を自律修復して Tier 1 に昇格させてください。"
-- "最新のテストレポートを元にスキルを自動改善（最適化）して。"
+- "失敗した case-converter スキルを自律修復して Tier 1 に昇格させてください。"
+- "作成したスキルの検証と上位連鎖回帰テストを実行して昇格させて。"
 
 ## When NOT to Use This Skill
 
-以下のようなケースでは本スキルを使用せず、直接既存のツールや別手段を用いること：
-
-- **テスト失敗を起点とせず、新規要件から一からスキルを設計・作成する場合**: 修復ループではなく、`skill-creator` を使用する。
-- **スキルの評価や Tier オンボーディング判定のみを単発で実行する場合**: 最適化ループではなく、`skill-evaluator` を使用する。
-- **失敗原因の構造化レポートのみを閲覧・取得したい場合**: `skill-diagnoser` を使用する。
+- **新規要件から一からスキルを設計・作成する場合**: 修復ループではなく、`skill-creator` を使用する。
+- **スキルの評価やスコア測定のみを単発で実行する場合**: 最適化ループではなく、`skill-evaluator` を使用する。
+- **失敗原因の診断レポートのみを閲覧したい場合**: `skill-diagnoser` を使用する。
 
 ## Bundled Resources
 
-### `scripts/` (Executable Tools)
-- **`scripts/optimizer.py`**: 自律改善ループ実行エンジン（CLI対応 / Python API）
+### `scripts/` (Executable Tools - Zero-LLM)
+- **`scripts/optimizer.py`**: 静的検証・単体テスト・連鎖回帰テスト・Tier昇格登録を決定論的に実行する CLI ツール
 
 ## Guidelines & Best Practices
 
-- 修正適用後は必ず `SkillValidator` を実行し、構文エラーやファイル参照切れが発生していないことを確認すること。
+- 修正適用後は必ず `SkillValidator` および連鎖回帰テストを通過させること。
 - 無限ループを防ぐため、最大リトライ回数（デフォルト 3回）を設定すること。

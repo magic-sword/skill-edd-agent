@@ -224,20 +224,15 @@ class ContractTestRunner:
                 from edd_agent_tools.run.mock_context import MockInvocationContext
                 validated_args[context_param_name] = ToolContext(invocation_context=MockInvocationContext())
 
-            # LLM クライアントのモックパッチ適用
+            # モックパッチ適用（指定された場合）
             patchers = []
-            mock_client_path = "edd_agent_tools.gemini.agy_client.GeminiClient"
-            
             if mock_responses:
-                for method, val in mock_responses.items():
-                    if method.startswith("GeminiClient."):
-                        actual_method = method.split(".")[1]
-                        p = unittest.mock.patch(f"{mock_client_path}.{actual_method}", return_value=val)
+                for target_path, val in mock_responses.items():
+                    try:
+                        p = unittest.mock.patch(target_path, return_value=val)
                         patchers.append(p)
-
-            # パッチの開始
-            for p in patchers:
-                p.start()
+                    except Exception:
+                        pass
 
             # 関数の実行
             case_passed = False

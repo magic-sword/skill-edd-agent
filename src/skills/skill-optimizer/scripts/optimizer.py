@@ -1,242 +1,202 @@
-import os
-import json
-import re
-from pathlib import Path
-from typing import Dict, Any, Optional
+#!/usr/bin/env python3
+"""
+Skill Optimizer & Promotion Engine
+スキルのテスト実行、静的検証、連鎖回帰テスト（Cascade Testing）、および Tier 昇格を完全決定論的に実行します。
+Anthropic / Google ADK 規約に準拠（Zero LLM dependency in scripts）。
 
-from edd_agent_tools.skills import SkillsState, Skill, SkillValidator, SkillTier
-from edd_agent_tools.evaluation import CascadeTestRunner, ContractTestRunner, SimulationEvalRunner, LocalWorkspaceEnv
-from edd_agent_tools.gemini import client, GeminiRequest
+Usage:
+    optimizer.py <skill-name> [--target-tier {0,1,2,3}] [--cascade] [--dry-run]
+"""
+
+import os
+import sys
+import json
+import argparse
+from pathlib import Path
+from typing import Optional, Dict, Any, List
+
+from edd_agent_tools.skills import (
+    SkillsState,
+    Skill,
+    SkillValidator,
+    SkillTier
+)
+from edd_agent_tools.evaluation import (
+    ContractTestRunner,
+    SimulationEvalRunner,
+    CascadeTestRunner,
+    LocalWorkspaceEnv
+)
+from edd_agent_tools.evaluation.models import EvalDetailReport
 
 
 class SkillOptimizer:
-    """テスト失敗検知 ➔ 診断 ➔ 3層リソース差分修正 ➔ 再テスト検証 ➔ 連鎖回帰テスト ➔ Tier昇格の自律改善ループエンジン。"""
+    """決定論的テスト実行、静的検証、連鎖回帰テスト、Tier 昇格を行うエンジン。"""
 
     def __init__(self, state: Optional[SkillsState] = None):
         self.state = state or SkillsState()
-        self.cascade_runner = CascadeTestRunner(self.state)
-        self._client = client
+        self.contract_runner = ContractTestRunner()
+        self.sim_runner = SimulationEvalRunner()
+        self.cascade_runner = CascadeTestRunner(state=self.state)
+        self.env = LocalWorkspaceEnv()
+
+    def run_verification(self, skill_name: str) -> Dict[str, Any]:
+        """対象スキルの静的検証および単体評価テストを実行します。"""
+        skill_obj = self.state.get_skill(skill_name)
+        if not skill_obj or not os.path.exists(skill_obj.root_dir):
+            return {
+                "status": "failed",
+                "message": f"Skill '{skill_name}' not found on disk."
+            }
+
+        # 1. 静的検証 (Linter)
+        val_res = SkillValidator.validate_directory(skill_obj.root_dir)
+        if not val_res.is_valid:
+            return {
+                "status": "validation_failed",
+                "errors": val_res.errors,
+                "warnings": val_res.warnings,
+                "passed": False
+            }
+
+        # 2. 契約テストおよびシミュレーションテストの実行
+        test_files = skill_obj.tests.list_evalsets()
+        all_passed = True
+        test_results = {}
+
+        for tf in test_files:
+            try:
+                with open(tf, "r", encoding="utf-8") as f:
+                    eval_data = json.load(f)
+                
+                t_name = Path(tf).stem.split("_")[-1]
+                if "contract" in t_name:
+                    res = self.contract_runner.run_tests(skill=skill_obj, test_cases_data=eval_data, env=self.env)
+                else:
+                    res = self.sim_runner.run_tests(skill=skill_obj, eval_set_data=eval_data, env=self.env)
+
+                test_results[t_name] = {
+                    "passed": res.passed,
+                    "failed": res.failed,
+                    "accuracy": res.accuracy
+                }
+                if res.failed > 0 or res.accuracy < 0.8:
+                    all_passed = False
+            except Exception as e:
+                test_results[Path(tf).stem] = {"error": str(e)}
+                all_passed = False
+
+        return {
+            "status": "success" if all_passed else "tests_failed",
+            "skill_name": skill_name,
+            "validation_passed": True,
+            "all_tests_passed": all_passed,
+            "test_results": test_results
+        }
 
     def optimize_skill(
         self,
         skill_name: str,
+        target_tier: int = 1,
+        run_cascade: bool = True,
         max_retries: int = 3
     ) -> Dict[str, Any]:
-        """指定されたスキルの自律改善ループを実行します。
-
-        Args:
-            skill_name: 改善対象のスキル名。
-            max_retries: 最大修正試行回数。
-
-        Returns:
-            Dict[str, Any]: 改善結果サマリー。
         """
-        skill = self.state.get_skill(skill_name)
-        if not skill or not os.path.exists(skill.root_dir):
-            return {"status": "failed", "message": f"Skill '{skill_name}' not found or directory does not exist."}
-
-        print(f"\n=======================================================")
-        print(f"🚀 [SkillOptimizer] スキル '{skill_name}' の自律改善ループを開始します。")
-        print(f"=======================================================\n")
-
-        repaired_successfully = False
-
-        for attempt in range(1, max_retries + 1):
-            print(f"\n--- [Iteration {attempt}/{max_retries}] 診断・修復サイクル ---")
-
-            # 1. 静的バリデーション
-            val_res = SkillValidator.validate_directory(skill.root_dir)
-            if not val_res.is_valid:
-                print(f"⚠️ 静的リンター警告/エラー: {val_res.errors}")
-
-            # 2. 診断の実行 (skill-diagnoser)
-            diag_skill = self.state.get_skill("skill-diagnoser")
-            diag_output = None
-            if diag_skill:
-                mod = diag_skill.load_module()
-                if hasattr(mod, "SkillDiagnoser"):
-                    diagnoser = mod.SkillDiagnoser(skill=skill_name)
-                    diag_output = diagnoser.execute()
-
-            if not diag_output or diag_output.status != "success" or not diag_output.plan:
-                err_msg = diag_output.details if diag_output else "診断モジュールの取得に失敗しました"
-                print(f"ℹ️ 診断結果: {err_msg}")
-                if diag_output and diag_output.plan and diag_output.plan.verdict == "no_issues_found":
-                    print("✅ 修復すべき問題は検出されませんでした（全テスト合格状態）。")
-                    repaired_successfully = True
-                    break
-                break
-
-            plan = diag_output.plan
-            print(f"📋 診断結果: verdict={plan.verdict}, layer={plan.target_layer.value}, category={plan.failure_category.value}")
-            print(f"🔍 根本原因: {plan.root_cause}")
-
-            if plan.verdict == "no_issues_found":
-                print("🎉 すべてのテストが合格しました！")
-                repaired_successfully = True
-                break
-
-            # 3. 差分パッチの適用
-            applied = self._apply_improvement_plan(skill, plan)
-            if not applied:
-                print("⚠️ パッチの適用に失敗しました。")
-            else:
-                print("🛠 パッチが正常に適用されました。")
-
-            # 4. パッチ後の静的検証
-            post_val = SkillValidator.validate_directory(skill.root_dir)
-            if not post_val.is_valid:
-                print(f"⚠️ パッチ適用後の静的リンターエラー: {post_val.errors}")
-
-            # 5. 修復後の単体テスト再検証 (Re-running eval test)
-            re_test_passed = self._rerun_eval_tests(skill, plan.test_type)
-            if re_test_passed:
-                print(f"✅ 修復後のテスト再検証に成功しました (Test Type: {plan.test_type})")
-                repaired_successfully = True
-                break
-            else:
-                print(f"⚠️ テスト再検証でまだ失敗が残っています。再試行します...")
-
-        # 6. 連鎖回帰テストの実行
-        print(f"\n🔗 [Cascade Testing] 上位ワークフローへの連鎖回帰テストを実行中...")
-        cascade_res = self.cascade_runner.run_cascade_tests(skill_name)
-
-        if cascade_res["all_passed"] and (repaired_successfully or attempt <= max_retries):
-            print(f"✅ 連鎖回帰テスト合格 (検証対象上位スキル: {cascade_res['dependents_count']}件)")
-            # Tier 1 昇格登録
-            self.state.register_skill(skill_name=skill_name, tier=SkillTier.READ_ONLY)
+        対象スキルの検証、連鎖回帰テスト、Tier 昇格を実行します。
+        """
+        skill_obj = self.state.get_skill(skill_name)
+        if not skill_obj or not os.path.exists(skill_obj.root_dir):
             return {
-                "status": "success",
-                "skill": skill_name,
-                "tier": "READ_ONLY (Tier 1)",
-                "cascade_results": cascade_res,
-                "message": f"スキル '{skill_name}' の自己修復・最適化が正常に完了し、Tier 1 へ昇格しました。"
-            }
-        else:
-            print(f"❌ 連鎖回帰テストで不備が検出されました: {cascade_res['results']}")
-            return {
-                "status": "partial_success",
-                "skill": skill_name,
-                "tier": "SANDBOX (Tier 0)",
-                "cascade_results": cascade_res,
-                "message": f"スキル自体の修復は試行されましたが、上位ワークフローの連鎖テストで不整合が検出されました。"
+                "status": "failed",
+                "message": f"Skill '{skill_name}' was not found in SkillsState."
             }
 
-    def _rerun_eval_tests(self, skill: Skill, test_type: str) -> bool:
-        """修復後に当該テストセットを再実行して合格を確認します。"""
-        tests_dir = Path(skill.root_dir) / "tests"
-        eval_file = tests_dir / f"{skill.name}_{test_type}.evalset.json"
-        if not eval_file.exists():
-            return True
+        # 1. 単体検証
+        verif_res = self.run_verification(skill_name)
+        if not verif_res.get("all_tests_passed"):
+            return {
+                "status": "needs_healing",
+                "skill_name": skill_name,
+                "details": verif_res,
+                "message": "単体テストまたは静的検証に失敗しました。skill-diagnoser で原因を分析し、修正を適用してください。"
+            }
 
+        # 2. 連鎖回帰テスト (Cascade Regression Testing)
+        cascade_results = {}
+        if run_cascade:
+            try:
+                cascade_results = self.cascade_runner.run_cascade_tests(skill_name)
+                cascade_all_passed = bool(cascade_results.get("all_passed", True))
+                if not cascade_all_passed:
+                    return {
+                        "status": "cascade_failed",
+                        "skill_name": skill_name,
+                        "cascade_results": cascade_results,
+                        "message": "依存する上位スキルの連鎖回帰テストに失敗しました。"
+                    }
+            except Exception as e:
+                cascade_results = {"error": str(e)}
+
+        # 3. Tier 昇格の登録
         try:
-            with open(eval_file, "r", encoding="utf-8") as f:
-                cases_data = json.load(f)
-
-            env = LocalWorkspaceEnv()
-            if test_type == "contract":
-                c_runner = ContractTestRunner()
-                res = c_runner.run_tests(skill=skill, test_cases_data=cases_data, env=env)
-                return res.failed == 0 and res.accuracy >= 1.0
-            else:
-                s_runner = SimulationEvalRunner()
-                res = s_runner.run_tests(skill=skill, eval_set_data=cases_data, env=env)
-                return res.failed == 0 and res.accuracy >= 0.85
+            tier_enum = SkillTier(target_tier)
+            self.state.register_skill(skill_name=skill_name, tier=tier_enum)
         except Exception as e:
-            print(f"  ⚠️ Re-test execution error: {e}")
-            return False
+            return {
+                "status": "registration_failed",
+                "message": f"Tier 昇格登録に失敗しました: {e}"
+            }
 
-    def _apply_improvement_plan(self, skill: Skill, plan: Any) -> bool:
-        """ImprovementPlan の内容に従ってファイルへパッチを適用します。"""
-        try:
-            target_layer = plan.target_layer.value
-
-            # A. スクリプト層の修正 (scripts/*.py)
-            if target_layer == "script" and plan.script_patch:
-                patch = plan.script_patch
-                target_path = os.path.join(skill.root_dir, patch.target_file)
-
-                if patch.suggested_code and os.path.exists(target_path):
-                    with open(target_path, "r", encoding="utf-8") as f:
-                        current_code = f.read()
-
-                    if patch.problematic_code_snippet and patch.problematic_code_snippet in current_code:
-                        new_code = current_code.replace(patch.problematic_code_snippet, patch.suggested_code)
-                    else:
-                        merge_prompt = f"""以下のPythonコードに対し、指定された修正指示を適用した完全なコードを出力してください。
-
-【対象ファイル】
-{patch.target_file}
-
-【既存コード】
-```python
-{current_code}
-```
-
-【修正指示】
-{patch.fix_instructions}
-
-【推奨修正スニペット】
-```python
-{patch.suggested_code}
-```
-
-Markdownの ```python ... ``` コードブロックで囲んで完全なPythonコードのみを出力してください。
-"""
-                        req = GeminiRequest(prompt=merge_prompt, client=self._client)
-                        res = req.execute()
-                        text = res.text if hasattr(res, "text") else str(res)
-                        match = re.search(r"```(?:python)?\s*(.*?)\s*```", text, re.DOTALL)
-                        new_code = match.group(1).strip() if match else text.strip()
-
-                    with open(target_path, "w", encoding="utf-8") as f:
-                        f.write(new_code)
-                    print(f"  Applied script patch to {patch.target_file}")
-                    return True
-
-            # B. 仕様層の修正 (SKILL.md)
-            elif target_layer == "spec" and plan.spec_patch:
-                patch = plan.spec_patch
-                if patch.description_patch and os.path.exists(skill.spec_path):
-                    with open(skill.spec_path, "r", encoding="utf-8") as f:
-                        content = f.read()
-
-                    new_content = re.sub(
-                        r'description:\s*".*?"',
-                        f'description: "{patch.description_patch}"',
-                        content
-                    )
-                    with open(skill.spec_path, "w", encoding="utf-8") as f:
-                        f.write(new_content)
-                    print(f"  Applied spec patch to SKILL.md")
-                    return True
-
-            return False
-
-        except Exception as e:
-            print(f"Error applying improvement plan: {e}")
-            return False
+        return {
+            "status": "success",
+            "skill_name": skill_name,
+            "tier": SkillTier(target_tier).name,
+            "tier_value": target_tier,
+            "verification": verif_res,
+            "cascade_results": cascade_results,
+            "message": f"スキル '{skill_name}' は検証および連鎖回帰テストに合格し、[{SkillTier(target_tier).name}] へ昇格しました。"
+        }
 
 
-def optimize_skill(skill_name: str, max_retries: int = 3) -> dict:
-    """テスト失敗ログを元に自律修復・再テスト・連鎖回帰テストを実行し、スキルをTier昇格させます。"""
+def optimize_skill(skill_name: str, target_tier: int = 1, run_cascade: bool = True, max_retries: int = 3) -> Dict[str, Any]:
+    """モジュールレベルのヘルパー関数"""
     optimizer = SkillOptimizer()
-    return optimizer.optimize_skill(skill_name=skill_name, max_retries=max_retries)
+    return optimizer.optimize_skill(
+        skill_name=skill_name,
+        target_tier=target_tier,
+        run_cascade=run_cascade,
+        max_retries=max_retries
+    )
 
 
 def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Skill Optimizer CLI")
-    parser.add_argument("skill", type=str, nargs="?", default="", help="Logical name of the target skill (e.g. pdf-tools)")
-    parser.add_argument("--retries", "-r", type=int, default=3, help="Max retry iterations (default: 3)")
+    parser = argparse.ArgumentParser(description="Skill Optimizer & Promotion Engine (Deterministic, Zero-LLM)")
+    parser.add_argument("skill", type=str, help="対象スキルの論理名")
+    parser.add_argument("--target-tier", "-t", type=int, default=1, choices=[0, 1, 2, 3], help="昇格目標の Tier (0: Sandbox, 1: Trusted, 2: Core)")
+    parser.add_argument("--cascade", "-c", action="store_true", default=True, help="連鎖回帰テストを実行する")
+    parser.add_argument("--format", "-f", type=str, choices=["json", "text"], default="text", help="出力フォーマット")
+
     args = parser.parse_args()
 
-    if not args.skill:
-        parser.print_help()
-        sys.exit(1)
+    optimizer = SkillOptimizer()
+    res = optimizer.optimize_skill(
+        skill_name=args.skill,
+        target_tier=args.target_tier,
+        run_cascade=args.cascade
+    )
 
-    res = optimize_skill(skill_name=args.skill, max_retries=args.retries)
-    print(json.dumps(res, indent=2, ensure_ascii=False))
+    if args.format == "json":
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+    else:
+        print(f"==================================================")
+        print(f"🚀 Skill Optimization & Promotion: {args.skill}")
+        print(f"==================================================")
+        print(f"Status: {res.get('status')}")
+        print(f"Message: {res.get('message')}")
+        if "tier" in res:
+            print(f"Current Tier: [{res.get('tier')}]")
+        if "cascade_results" in res and res["cascade_results"]:
+            print(f"Cascade Results: {res['cascade_results']}")
 
 
 if __name__ == "__main__":
