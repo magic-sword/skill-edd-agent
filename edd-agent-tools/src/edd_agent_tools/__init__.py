@@ -7,6 +7,7 @@ def __getattr__(name: str):
     import importlib
 
     submodules = {
+        "core",
         "skills",
         "evaluation",
         "run",
@@ -22,26 +23,26 @@ def __getattr__(name: str):
     mapping = {
         # adk
         "EddSkillToolset": (".adk", "EddSkillToolset"),
-        # skills.models
-        "SkillPattern": (".skills.models", "SkillPattern"),
-        "SkillLogicDraft": (".skills.models", "SkillLogicDraft"),
-        "SkillSpec": (".skills.models", "SkillSpec"),
-        "SkillMetadata": (".skills.models", "SkillMetadata"),
-        "ModuleType": (".skills.models", "ModuleType"),
-        "SkillTier": (".skills.models", "SkillTier"),
-        "SkillsStateJson": (".skills.models", "SkillsStateJson"),
-        "SkillEntry": (".skills.models", "SkillEntry"),
-        "InheritEntry": (".skills.models", "InheritEntry"),
-        "ProjectSkillInfo": (".skills.models", "ProjectSkillInfo"),
-        # skills components
-        "SkillsState": (".skills", "SkillsState"),
-        "Skill": (".skills", "Skill"),
-        "SkillTests": (".skills", "SkillTests"),
-        "SkillTemplateEngine": (".skills", "SkillTemplateEngine"),
-        "SkillValidator": (".skills", "SkillValidator"),
-        "ValidationResult": (".skills", "ValidationResult"),
-        "SkillCreationEngine": (".skills", "SkillCreationEngine"),
-        "create_skill": (".skills", "create_skill"),
+        # core / skills models
+        "SkillPattern": (".core.models", "SkillPattern"),
+        "SkillLogicDraft": (".core.models", "SkillLogicDraft"),
+        "SkillSpec": (".core.models", "SkillSpec"),
+        "SkillMetadata": (".core.models", "SkillMetadata"),
+        "ModuleType": (".core.models", "ModuleType"),
+        "SkillTier": (".core.models", "SkillTier"),
+        "SkillsStateJson": (".core.models", "SkillsStateJson"),
+        "SkillEntry": (".core.models", "SkillEntry"),
+        "InheritEntry": (".core.models", "InheritEntry"),
+        "ProjectSkillInfo": (".core.models", "ProjectSkillInfo"),
+        # core / skills components
+        "SkillsState": (".core.state", "SkillsState"),
+        "Skill": (".core.skill", "Skill"),
+        "SkillTests": (".skills.tests", "SkillTests"),
+        "SkillTemplateEngine": (".skills.template_engine", "SkillTemplateEngine"),
+        "SkillValidator": (".skills.validator", "SkillValidator"),
+        "ValidationResult": (".skills.validator", "ValidationResult"),
+        "SkillCreationEngine": (".skills.creator", "SkillCreationEngine"),
+        "create_skill": (".skills.creator", "create_skill"),
         # evaluation.models
         "EvalRunResult": (".evaluation.models", "EvalRunResult"),
         "FailedCaseDetail": (".evaluation.models", "FailedCaseDetail"),
@@ -66,12 +67,13 @@ def __getattr__(name: str):
         "SimulationEvalRunner": (".evaluation", "SimulationEvalRunner"),
         "LocalWorkspaceEnv": (".evaluation", "LocalWorkspaceEnv"),
         "RealWorkspaceEnv": (".evaluation", "RealWorkspaceEnv"),
-        "WorkspaceEnvProtocol": (".evaluation", "WorkspaceEnvProtocol"),
+        "WorkspaceEnvProtocol": (".core.protocols", "WorkspaceEnvProtocol"),
         "ContractTestRunner": (".evaluation", "ContractTestRunner"),
         "TestGenerator": (".evaluation", "TestGenerator"),
         "TestExecutor": (".evaluation", "TestExecutor"),
         "TrajectoryEvalSet": (".evaluation", "TrajectoryEvalSet"),
         "CascadeTestRunner": (".evaluation", "CascadeTestRunner"),
+        "SkillDiagnoser": (".evaluation", "SkillDiagnoser"),
         "EvalSetGenerator": (".evaluation", "EvalSetGenerator"),
         "generate_evalset": (".evaluation", "generate_evalset"),
         "run_evaluation": (".evaluation", "run_evaluation"),
@@ -102,7 +104,7 @@ def __dir__():
         "clean_pydantic_schema", "PromptField",
         "WorkflowRunner", "merge_result_to_state", "SafeWriteFileTool", "SafeEditFileTool", 
         "SimulationEval", "SimulationEvalRunner", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol", "ContractTestRunner",
-        "TestGenerator", "TestExecutor", "TrajectoryEvalSet", "CascadeTestRunner",
+        "TestGenerator", "TestExecutor", "TrajectoryEvalSet", "CascadeTestRunner", "SkillDiagnoser",
         "EvalSetGenerator", "generate_evalset", "run_evaluation", "run_tier_gate",
         "LibraryDocumentationReader"
     ])

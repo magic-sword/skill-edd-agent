@@ -48,6 +48,10 @@ def __getattr__(name: str) -> Any:
         from .cascade_runner import CascadeTestRunner
         return CascadeTestRunner
 
+    if name == "SkillDiagnoser":
+        from .diagnoser import SkillDiagnoser
+        return SkillDiagnoser
+
     if name in ("EvalSetGenerator", "generate_evalset"):
         from .generator import EvalSetGenerator, generate_evalset
         if name == "EvalSetGenerator": return EvalSetGenerator
@@ -64,7 +68,5 @@ __all__ = [
     "SimulationEval", "SimulationEvalRunner", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
     "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "ContractTestRunner",
     "EvalCase", "EvalCaseSet", "TestGenerator", "TestExecutor", "EvalRunResult", "TrajectoryEvalSet",
-    "CascadeTestRunner", "EvalSetGenerator", "generate_evalset", "run_evaluation", "run_tier_gate"
+    "CascadeTestRunner", "SkillDiagnoser", "EvalSetGenerator", "generate_evalset", "run_evaluation", "run_tier_gate"
 ]
-
-

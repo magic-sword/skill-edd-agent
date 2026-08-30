@@ -15,14 +15,15 @@ import subprocess
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from edd_agent_tools.skills.models import SkillLogicDraft, SkillPattern, SkillTier
-from edd_agent_tools.skills.state import SkillsState
+from edd_agent_tools.core.models import SkillLogicDraft, SkillPattern, SkillTier
+from edd_agent_tools.core.state import SkillsState
 from edd_agent_tools.skills.validator import SkillValidator
 from edd_agent_tools.skills.cli import init_skill as core_init_skill, package_skill_cli as core_package_skill
 from edd_agent_tools.evaluation.test_runner import ContractTestRunner
 from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
 from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner
 from edd_agent_tools.evaluation.environment import LocalWorkspaceEnv
+from edd_agent_tools.evaluation.diagnoser import SkillDiagnoser
 from edd_agent_tools.evaluation.models import EvalDetailReport
 
 
@@ -281,45 +282,16 @@ def cmd_tier_gate(args: argparse.Namespace) -> int:
 
 def cmd_diagnose(args: argparse.Namespace) -> int:
     """テスト結果レポートから失敗コンテキストを抽出し、Markdown/JSON で出力します。"""
-    state = SkillsState()
-    skill_obj = state.get_skill(args.skill_name)
-    if not skill_obj:
-        print(f"❌ Error: Skill '{args.skill_name}' not found.", file=sys.stderr)
-        return 1
-
-    report_path = Path(args.report) if args.report else Path(skill_obj.root_dir) / "tests" / "results" / "latest_report.json"
-    if not report_path.exists():
-        print(f"⚠️ Warning: Report file not found at '{report_path}'. Running eval first is recommended.", file=sys.stderr)
-        report_data = {"skill_name": args.skill_name, "summary": {"total_passed": 0, "total_failed": 0, "overall_accuracy": 1.0}, "results": {}}
-    else:
-        with open(report_path, "r", encoding="utf-8") as f:
-            report_data = json.load(f)
+    diagnoser = SkillDiagnoser()
+    diagnosis = diagnoser.diagnose(
+        skill_name=args.skill_name,
+        report_path=args.report
+    )
 
     if args.format == "json":
-        print(json.dumps(report_data, ensure_ascii=False, indent=2))
-        return 0
-
-    # Markdown 形式での出力
-    print(f"# 🔍 Failure Diagnosis for Skill: `{args.skill_name}`")
-    total_count = report_data.get("summary", {}).get("total_passed", 0) + report_data.get("summary", {}).get("total_failed", 0)
-    print(f"- **Total Tests**: {total_count}")
-    print(f"- **Passed**: {report_data.get('summary', {}).get('total_passed', 0)}")
-    print(f"- **Failed**: {report_data.get('summary', {}).get('total_failed', 0)}")
-    print(f"- **Accuracy**: {report_data.get('summary', {}).get('overall_accuracy', 1.0):.1%}\n")
-
-    results = report_data.get("results", {})
-    has_failure = False
-    for t_type, t_data in results.items():
-        if isinstance(t_data, dict) and t_data.get("failed", 0) > 0:
-            has_failure = True
-            print(f"## ❌ Failed Type: `{t_type}`")
-            print(f"- Passed: {t_data.get('passed', 0)}, Failed: {t_data.get('failed', 0)}, Accuracy: {t_data.get('accuracy', 0.0):.1%}")
-            details = t_data.get("details", [])
-            for d in details:
-                print(f"  • {d}")
-
-    if not has_failure:
-        print("✅ No test failures detected in the latest report.")
+        print(json.dumps(diagnosis, ensure_ascii=False, indent=2))
+    else:
+        print(diagnoser.format_markdown(diagnosis))
 
     return 0
 

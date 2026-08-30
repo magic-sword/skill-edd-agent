@@ -86,7 +86,7 @@ def main():
     opt_res = optimize_skill_fn(skill_name=demo_skill_name, target_tier=1, run_cascade=True)
 
     print(f"最適化ステータス: {opt_res.get('status')}")
-    print(f"昇格権限ステータス: {opt_res.get('tier')}")
+    print(f"昇格権限ステータス: Tier {opt_res.get('promoted_tier', 1)}")
     if opt_res.get("cascade_results"):
         print(f"連鎖回帰テスト結果: {opt_res.get('cascade_results')}")
 

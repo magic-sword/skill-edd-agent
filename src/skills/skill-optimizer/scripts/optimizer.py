@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Skill Optimizer & Promotion Engine (CLI & API)
+Skill Optimizer & Promotion Engine (Zero-Dependency CLI)
 
 スキルの静的検証、評価テスト、連鎖回帰テスト（Cascade Testing）、および Tier 昇格を実行します。
 統合 CLI `edd` を活用して決定論的なオーケストレーションを行います。
 
 Usage:
-    python optimizer.py <skill-name> [--target-tier {0,1,2,3}] [--cascade] [--dry-run]
+    python optimizer.py <skill-name> [--target-tier {0,1,2,3}] [--cascade]
 """
 
 import os
@@ -28,13 +28,13 @@ def run_cmd(cmd: List[str]) -> tuple[int, str, str]:
 
 
 class SkillOptimizer:
-    """決定論的テスト実行、静的検証、連鎖回帰テスト、Tier 昇格を行うエンジン。"""
+    """決定論的テスト実行、静的検証、連鎖回帰テスト、Tier 昇格を行うオーケストレータ。"""
 
     def __init__(self, state: Optional[Any] = None):
         self.state = state
         try:
-            from edd_agent_tools.evaluation import CascadeTestRunner
-            self.cascade_runner = CascadeTestRunner(state=state)
+            from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner
+            self.cascade_runner = CascadeTestRunner(state=self.state)
         except Exception:
             self.cascade_runner = None
 
@@ -47,16 +47,21 @@ class SkillOptimizer:
             return {"status": "failed", "message": f"Skill directory '{skill_dir}' not found."}
 
         # 1. 静的検証 (`edd validate`)
-        val_code, val_out, val_err = run_cmd([sys.executable, "-m", "edd_agent_tools.cli", "validate", str(skill_dir)])
+        val_code, val_out, val_err = run_cmd(["edd", "validate", str(skill_dir)])
         if val_code != 0:
-            return {
-                "status": "validation_failed",
-                "message": val_err or val_out,
-                "passed": False
-            }
+            val_code, val_out, val_err = run_cmd([sys.executable, "-m", "edd_agent_tools.cli", "validate", str(skill_dir)])
+            if val_code != 0:
+                return {
+                    "status": "validation_failed",
+                    "message": val_err or val_out,
+                    "passed": False
+                }
 
         # 2. 評価テスト (`edd eval`)
-        eval_code, eval_out, eval_err = run_cmd([sys.executable, "-m", "edd_agent_tools.cli", "eval", skill_name])
+        eval_code, eval_out, eval_err = run_cmd(["edd", "eval", skill_name])
+        if eval_code != 0:
+            eval_code, eval_out, eval_err = run_cmd([sys.executable, "-m", "edd_agent_tools.cli", "eval", skill_name])
+
         return {
             "status": "success" if eval_code == 0 else "tests_failed",
             "skill_name": skill_name,
@@ -70,7 +75,6 @@ class SkillOptimizer:
         skill_name: str,
         target_tier: int = 1,
         run_cascade: bool = True,
-        max_retries: int = 3,
         **kwargs
     ) -> Dict[str, Any]:
         """対象スキルの検証、連鎖回帰テスト、Tier 昇格を実行します。"""
@@ -93,65 +97,49 @@ class SkillOptimizer:
             }
 
         # 2. Tier 昇格防壁テスト (`edd tier-gate`)
-        gate_code, gate_out, gate_err = run_cmd([
-            sys.executable, "-m", "edd_agent_tools.cli", "tier-gate", skill_name, "--tier", str(target_tier)
-        ])
+        gate_code, gate_out, gate_err = run_cmd(["edd", "tier-gate", skill_name, "--tier", str(target_tier)])
+        if gate_code != 0:
+            gate_code, gate_out, gate_err = run_cmd([
+                sys.executable, "-m", "edd_agent_tools.cli", "tier-gate", skill_name, "--tier", str(target_tier)
+            ])
 
         if gate_code != 0:
             return {
                 "status": "gate_failed",
                 "skill_name": skill_name,
-                "message": f"Tier {target_tier} 昇格テストに合格できませんでした: {gate_err or gate_out}"
+                "message": gate_err or gate_out
             }
 
         return {
-            "status": "success",
+            "status": "promoted",
             "skill_name": skill_name,
             "promoted_tier": target_tier,
-            "verification": verif_res,
-            "message": f"スキル '{skill_name}' は検証および Tier {target_tier} 昇格テストに合格しました。"
+            "message": f"Skill '{skill_name}' successfully passed all tests and promoted to Tier {target_tier}!"
         }
 
 
-def optimize_skill(skill_name: str, target_tier: int = 1, run_cascade: bool = True, max_retries: int = 3, **kwargs) -> Dict[str, Any]:
-    """モジュールレベルのヘルパー関数"""
+def optimize_skill(
+    skill_name: str,
+    target_tier: int = 1,
+    run_cascade: bool = True,
+    **kwargs
+) -> Dict[str, Any]:
+    """モジュールレベルの optimize_skill 呼び出し関数。"""
     optimizer = SkillOptimizer()
-    return optimizer.optimize_skill(
-        skill_name=skill_name,
-        target_tier=target_tier,
-        run_cascade=run_cascade,
-        max_retries=max_retries,
-        **kwargs
-    )
+    return optimizer.optimize_skill(skill_name, target_tier=target_tier, run_cascade=run_cascade, **kwargs)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Skill Optimizer & Promotion Engine")
-    parser.add_argument("skill", type=str, help="対象スキルの論理名またはパス")
-    parser.add_argument("--target-tier", "-t", type=int, default=1, choices=[1, 2, 3], help="昇格目標の Tier (1: Production, 2: Verified, 3: Mastered)")
-    parser.add_argument("--cascade", "-c", action="store_true", default=True, help="連鎖回帰テストを実行する")
-    parser.add_argument("--format", "-f", type=str, choices=["json", "text"], default="text", help="出力フォーマット")
+    parser = argparse.ArgumentParser(description="Skill Optimizer & Promotion Engine (Zero-Dependency CLI)")
+    parser.add_argument("skill_name", help="Name of the skill to optimize/promote")
+    parser.add_argument("--target-tier", type=int, choices=[0, 1, 2, 3], default=1, help="Target Tier level")
+    parser.add_argument("--cascade", action="store_true", default=True, help="Run cascade regression tests on dependents")
 
     args = parser.parse_args()
     optimizer = SkillOptimizer()
-    res = optimizer.optimize_skill(
-        skill_name=args.skill,
-        target_tier=args.target_tier,
-        run_cascade=args.cascade
-    )
-
-    if args.format == "json":
-        print(json.dumps(res, indent=2, ensure_ascii=False))
-    else:
-        print(f"==================================================")
-        print(f"🚀 Skill Optimization & Promotion: {args.skill}")
-        print(f"==================================================")
-        print(f"Status: {res.get('status')}")
-        print(f"Message: {res.get('message')}")
-        if "promoted_tier" in res:
-            print(f"Promoted Tier: Tier {res.get('promoted_tier')}")
-
-    return 0 if res.get("status") == "success" else 1
+    res = optimizer.optimize_skill(args.skill_name, target_tier=args.target_tier, run_cascade=args.cascade)
+    print(json.dumps(res, ensure_ascii=False, indent=2))
+    return 0 if res.get("status") == "promoted" else 1
 
 
 if __name__ == "__main__":

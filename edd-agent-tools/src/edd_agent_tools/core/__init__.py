@@ -1,8 +1,10 @@
 """
-Skills Models (Re-exported from core.models for backward compatibility)
+Core Module for edd-agent-tools
+
+共通ドメインモデル、状態管理、プロトコル定義をエクスポートします。
 """
 
-from edd_agent_tools.core.models import (
+from .models import (
     SkillTier,
     SkillEntry,
     InheritEntry,
@@ -18,6 +20,9 @@ from edd_agent_tools.core.models import (
     SkillSpec,
     SkillMetadata,
 )
+from .skill import Skill
+from .state import SkillsState
+from .protocols import WorkspaceEnvProtocol
 
 __all__ = [
     "SkillTier",
@@ -34,4 +39,7 @@ __all__ = [
     "SkillFrontmatter",
     "SkillSpec",
     "SkillMetadata",
+    "Skill",
+    "SkillsState",
+    "WorkspaceEnvProtocol",
 ]

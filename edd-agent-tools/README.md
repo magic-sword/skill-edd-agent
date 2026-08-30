@@ -1,11 +1,13 @@
 # edd-agent-tools
 
-EDD（評価駆動開発）による自律型 AI エージェントおよび Anthropic 標準（Markdown-First & Progressive Disclosure）スキルの開発・運用をサポートするための共通基盤ライブラリ。
+EDD（評価駆動開発）による自律型 AI エージェントおよび Anthropic 標準（Markdown-First & Progressive Disclosure）スキルの開発・運用をサポートするためのフルスタック基盤ライブラリ。
 
 ---
 
 ## 1. 主な機能と特徴
 
+*   **Clean Layered Architecture (`core`, `skills`, `evaluation`, `adk`, `mcp`, `cli`)**
+    共通モデル・状態管理・DAG依存関係解析（`core`）、静的検証・雛形生成（`skills`）、契約テスト・多層評価・診断・自己修復（`evaluation`）、Google ADK 2.0 連携（`adk`）、FastMCP 連携（`mcp`）、統合 CLI（`cli`）を明確に責務分離。
 *   **Markdown-First & Progressive Disclosure 3層リソース管理 (`Skill`, `SkillSpec`, `SkillsState`)**
     `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）の3層分離を安全にロード・管理するドメインクラスと DAG 依存関係グラフ検証を提供。
 *   **4段階品質保証パイプライン & 決定論的レンダラー (`SkillTemplateEngine`, `SkillValidator`, `SkillCreationEngine`)**
@@ -14,10 +16,10 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
     コードやテスト実行による環境破壊を防ぐため、仮想環境と Git ロールバック機能を提供。
 *   **多層EDD評価フレームワーク & Tier昇格ゲートキーパー (`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`)**
     契約テスト、トリガー精度テスト、ゴールデン出力評価、および上位ワークフローへの連鎖回帰テストを一元管理する決定論的評価エンジンを提供。
-*   **Strict JSON Schema 自動正規化 (`clean_pydantic_schema`)**
-    OpenAPI 3.0 Strict Mode に適合した再帰的 `$defs` インライン展開とスキーマサニタイズを提供。
-*   **FastMCP サーバー統合 (`edd-agent-mcp`)**
-    AIエージェントに対し、設計規約（`edd://guidelines/*`）や静的検証ツール（`edd_validate_skill`, `edd_init_skill`）をオンデマンド提供。
+*   **失敗診断 & 自己進化エンジン (`SkillDiagnoser`, `SkillOptimizer`)**
+    テスト失敗ログを構造的に解析し、根本原因（spec / script / test / reference）の特定と自律的な修復ループ・Tier昇格を実現。
+*   **Google ADK 2.0 ネイティブ統合 (`EddSkillToolset`) & FastMCP サーバー (`edd-agent-mcp`)**
+    Google ADK の Progressive Disclosure ライフサイクルおよび Claude Code / Antigravity IDE 向け MCP リソース・ツールを提供。
 
 ---
 
@@ -28,6 +30,7 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 *   **[skill_patterns.md](src/edd_agent_tools/docs/skill_patterns.md)**: 4大スキルパターンの設計ガイド。
 *   **[design_philosophy.md](src/edd_agent_tools/docs/design_philosophy.md)**: 全体設計思想・フォルダ構成規約。
 *   **[test_architecture.md](src/edd_agent_tools/docs/test_architecture.md)**: テストの Generator-Executor ペアリングパターンの標準 Protocol 仕様。
+*   **[eval_design.md](src/edd_agent_tools/docs/eval_design.md)**: 仮想環境サンドボックスとシミュレーション評価の設計思想。
 
 ---
 
@@ -37,9 +40,9 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 pip install -e edd-agent-tools
 
 # 統合 CLI (edd) - 動的ディスパッチによるスキルの直接実行
-edd run case-converter --input "hello_world" --to camel
+edd run case-converter --input "hello_world" --format camel
 # またはスキル名を直接サブコマンドとして指定可能 (Git プラグイン方式)
-edd case-converter --input "hello_world" --to camel
+edd case-converter --input "hello_world" --format camel
 
 # スキルライフサイクル管理
 edd init my-skill --pattern workflow

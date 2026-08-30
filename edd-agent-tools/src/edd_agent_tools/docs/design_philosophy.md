@@ -17,14 +17,15 @@
      - `scripts/`: 決定論的Python/Bashスクリプト
      - `references/`: ドメイン知識・API仕様・スキーマ
      - `assets/`: 出力用テンプレート・素材
+     - `tests/`: 契約テストおよびシミュレーション評価データ（`*.evalset.json`）
 
 ### ③ Google ADK 2.0 ネイティブ統合 (`SkillToolset`)
 * 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 標準の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script`）を採用。
 * エージェント起動時のコンテキスト消費を極小化しつつ、決定論的スクリプトのブラックボックス実行と安全なパス解決を実現。
 
-### ④ スキルのポータビリティと Zero-dependency CLI ツール群
-* 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor 等）へドロップイン可能な自己完結性を持つ。
-* `skill-creator` 配下に外部依存不要（標準ライブラリのみ）で動作する `quick_validate.py`, `init_skill.py`, `package_skill.py` を同梱し、環境を選ばない即時検証・パッケージングを実現。
+### ④ スキルの完全ポータビリティと Zero-dependency CLI
+* 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor, ADK 等）へドロップイン可能な自己完結性を持つ。
+* スキル内のスクリプトは外部ライブラリへの直接 import を排除し、Python 標準ライブラリのみ、または統合 CLI `edd` の subprocess 呼び出しで動作する疎結合な設計を徹底。
 
 ### ⑤ 4次元ネガティブ・ハーネス (`When NOT to Use` による過剰適用防止)
 * 単なる適用条件（When to use）だけでなく、以下の4軸から客観的な除外条件（When NOT to use）を導出し、過剰適用（Over-tooling）や競合による誤発火を防止：
@@ -38,7 +39,7 @@
   - **Stage 1 (Authoring & Scaffolding)**: `SKILL.md` + 3層リソースの論理設計と雛形生成（エージェント + `skill-creator`）
   - **Stage 2 (Static Validation)**: `SkillValidator` による静的リンター（構文・実在整合性・Imperative文体・DAG依存関係）
   - **Stage 3 (Contract & Multi-Layer Evaluation)**: サンドボックス環境（`LocalWorkspaceEnv`）での契約テスト（I/O型検査）およびシミュレーション評価（Trigger / Trajectory / Golden）
-  - **Stage 4 (Self-Healing Loop & Cascade Gating)**: 失敗診断（`skill-diagnoser`）➔ 修正 ➔ 連鎖回帰テスト（`CascadeTestRunner`）➔ Tier 昇格
+  - **Stage 4 (Self-Healing Loop & Cascade Gating)**: 失敗診断（`SkillDiagnoser`）➔ 修正 ➔ 連鎖回帰テスト（`CascadeTestRunner`）➔ Tier 昇格
 
 ### ⑦ 動的ディスパッチ (Dynamic Dispatch) ＆ 統合 CLI (`edd`)
 * スキルが自律的に増殖・追加されてもパッケージ本体の再インストールやコード修正を一切不要とするため、ファイルシステムベースの動的ディスカバリ（`edd run <skill-name>` / `edd <skill-name>`）を採用。
@@ -46,15 +47,29 @@
 
 ---
 
-## 2. フォルダ構造の規約 (3-Tier Layout)
+## 2. システム・アーキテクチャのレイヤード構造
+
+```
+edd_agent_tools/
+├── core/           # 共通ドメインモデル (Skill, SkillSpec, SkillTier), 状態管理 (SkillsState), Protocols
+├── skills/         # パーサー, AST バリデータ (SkillValidator), 雛形生成 (SkillCreationEngine)
+├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション, 診断 (SkillDiagnoser), 最適化 (SkillOptimizer)
+├── adk/            # Google ADK 2.0 ネイティブ Toolset (EddSkillToolset)
+├── mcp/            # FastMCP サーバー (edd-agent-mcp)
+└── cli/            # 統合 CLI (edd run/init/validate/eval/tier-gate/diagnose/list)
+```
+
+---
+
+## 3. スキルフォルダ構造の規約 (Standard Layout)
 
 ```
 src/skills/{skill-name}/
   SKILL.md       # YAML Frontmatter ('This skill should be used when...') + Markdown仕様書 (SSOT)
-  scripts/       # 決定論的スクリプト（直接実行可能・CLI対応）
+  scripts/       # 決定論的スクリプト（直接実行可能・CLI対応・Zero-dependency）
     {skill_name}.py
   references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
     guide.md
-  assets/        # 出力用テンプレート・素材
-    template.txt
+  assets/        # 出力用テンプレート・素材（任意・空ディレクトリ不可）
+  tests/         # 評価データセット（{skill_name}_contract.evalset.json 等）
 ```
