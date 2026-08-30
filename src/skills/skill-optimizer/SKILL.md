@@ -1,6 +1,6 @@
 ---
 name: skill-optimizer
-description: "テスト失敗ログや評価結果を元に、skill-diagnoserと連携してSKILL.mdまたはscriptsコードを自律修復し、上位ワークフローの連鎖回帰テストまで一括実行してTier昇格を果たす完全自律改善スキル。"
+description: This skill should be used when automatically repairing failing skills, applying patches across skill resources, and executing regression cascade tests for tier promotion.
 license: Complete terms in LICENSE.txt
 pattern: workflow
 dependencies:

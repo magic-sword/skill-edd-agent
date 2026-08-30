@@ -1,3 +1,5 @@
+from typing import Optional
+
 try:
     from .creator import SkillCreationEngine
 except (ImportError, ValueError):

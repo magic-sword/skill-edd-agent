@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: "新しいスキルの自動生成または既存スキルの再設計を行うメタスキル。Markdown-First アーキテクチャおよび Progressive Disclosure（3層リソース分離）原則に準拠した高品質な SKILL.md、scripts/、references/、assets/ を自律的に設計・出力する。"
+description: This skill should be used when creating new agent skills or redesigning existing skills following the Markdown-First architecture and Progressive Disclosure (scripts, references, assets) standard.
 license: Complete terms in LICENSE.txt
 pattern: workflow
 ---
@@ -56,6 +56,8 @@ pattern: workflow
 
 ### `scripts/` (Executable Tools)
 - **`scripts/creator.py`**: 4段階品質保証パイプラインを実行するコア自動生成エンジン（CLI対応）
+- **`scripts/init_skill.py`**: 4大スキルパターンに対応した雛形を生成する決定論的初期化CLIツール
+- **`scripts/quick_validate.py`**: 外部依存なしで高速に静的整合性を検査する Zero-dependency バリデータ
 - **`scripts/package_skill.py`**: スキルを静的検証した上で配布用 ZIP パッケージを出力する決定論的CLIツール
 - **`scripts/main.py`**: CLIおよびエージェント向け公開関数（`create_skill`）のエントリポイント
 

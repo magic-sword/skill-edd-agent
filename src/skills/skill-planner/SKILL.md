@@ -1,6 +1,6 @@
 ---
 name: skill-planner
-description: "要件プロンプトを分析し、最適な開発ルート（新規作成、既存更新、事前提案）と推奨構成を特定して計画立案するスキル。"
+description: This skill should be used when analyzing user requirement prompts, evaluating existing skill assets, and planning skill development or workflow routing.
 license: Complete terms in LICENSE.txt
 pattern: workflow
 ---

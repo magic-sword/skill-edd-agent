@@ -1,6 +1,6 @@
 ---
 name: skill-diagnoser
-description: "テスト失敗結果ログおよび SKILL.md、scripts/ 配下のコードを多角的に分析し、根本原因の特定と構造化された改善計画（ImprovementPlan）を自動策定する診断スキル。"
+description: This skill should be used when analyzing test execution failures, identifying root causes across skill layers, and formulating structured improvement plans (ImprovementPlan).
 license: Complete terms in LICENSE.txt
 pattern: workflow
 ---

@@ -1,6 +1,6 @@
 ---
 name: skill-evaluator
-description: "対象スキルの評価テストセット生成（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）、評価実行、および Tier 1〜3 昇格ゲートキーパーを一括遂行する統合評価スキル。"
+description: This skill should be used when generating multi-layer evaluation test sets, running test suites, or gating skill tier promotions (Tier 1-3) based on Evaluation-Driven Development.
 license: Complete terms in LICENSE.txt
 pattern: workflow
 ---
