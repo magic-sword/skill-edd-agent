@@ -1,7 +1,7 @@
 """
 Google ADK 2.0 SkillToolset Adapter for EDD Agent Tools
 
-Google Agent Development Kit (ADK) 2.0 互換の SkillToolset 実装。
+Google Agent Development Kit (ADK) 2.0 互換の SkillToolset 実装およびファクトリ。
 Markdown-First & Progressive Disclosure に基づくライフサイクル
 (list_skills, load_skill, load_skill_resource, run_skill_script) を提供します。
 """
@@ -11,7 +11,7 @@ import sys
 import json
 import subprocess
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, Set
 
 from edd_agent_tools.models.spec import SkillSpec
 from edd_agent_tools.models.state import SkillTier
@@ -108,7 +108,7 @@ class EddSkillToolset:
         指定されたスキルの Level 3 リソース（references/*, assets/*）をオンデマンドで読み込みます。
         """
         skill = self.state.get_skill(skill_name)
-        root_dir = Path(skill.root_dir) if skill else self.skills_root / skill_name
+        root_dir = Path(skill.root_dir) if skill else (self.skills_root / skill_name if self.skills_root else Path(skill_name))
 
         target_path = (root_dir / resource_rel_path).resolve()
         if not target_path.exists():
@@ -141,7 +141,7 @@ class EddSkillToolset:
         スキルの決定論的スクリプト（scripts/*.py）を動的ディスパッチ実行します。
         """
         skill = self.state.get_skill(skill_name)
-        root_dir = Path(skill.root_dir) if skill else self.skills_root / skill_name
+        root_dir = Path(skill.root_dir) if skill else (self.skills_root / skill_name if self.skills_root else Path(skill_name))
         scripts_dir = root_dir / "scripts"
 
         if not scripts_dir.exists():
@@ -218,3 +218,57 @@ class EddSkillToolset:
                 "stderr": str(e),
                 "script_path": str(script_path)
             }
+
+
+def load_adk_skills_from_state(
+    skills_dir: Optional[Union[str, Path]] = None,
+    state: Optional[SkillsState] = None,
+    min_tier: int = 1,
+    include_system_skills: Optional[Set[str]] = None
+) -> List[Any]:
+    """
+    Google ADK 2.0 の load_skill_from_dir を用い、SkillsState でフィルタリングされたスキルモデルのリストを生成します。
+    """
+    try:
+        from google.adk.skills import load_skill_from_dir
+    except ImportError:
+        return []
+
+    resolved_state = state or SkillsState()
+    system_skills = include_system_skills or {"skill-creator", "skill-evolver"}
+    resolved_skills_dir = Path(skills_dir).resolve() if skills_dir else Path("src/skills").resolve()
+
+    loaded_skills = []
+    for skill_meta in resolved_state.list_skills():
+        tier_val = skill_meta.tier.value if hasattr(skill_meta.tier, "value") else int(skill_meta.tier or 0)
+        if tier_val < min_tier and skill_meta.name not in system_skills:
+            continue
+
+        skill_path = Path(skill_meta.root_dir) if skill_meta.root_dir and Path(skill_meta.root_dir).exists() else (resolved_skills_dir / skill_meta.name)
+        if skill_path.exists() and (skill_path / "SKILL.md").exists():
+            try:
+                adk_skill = load_skill_from_dir(skill_path)
+                loaded_skills.append(adk_skill)
+            except Exception as e:
+                print(f"Warning: Failed to load ADK skill '{skill_meta.name}': {e}", file=sys.stderr)
+
+    return loaded_skills
+
+
+def create_adk_skill_toolset(
+    skills_dir: Optional[Union[str, Path]] = None,
+    state: Optional[SkillsState] = None,
+    min_tier: int = 1,
+    include_system_skills: Optional[Set[str]] = None
+) -> Any:
+    """
+    Google ADK 公式の SkillToolset インスタンスを生成して返します。
+    """
+    from google.adk.tools.skill_toolset import SkillToolset
+    skills = load_adk_skills_from_state(
+        skills_dir=skills_dir,
+        state=state,
+        min_tier=min_tier,
+        include_system_skills=include_system_skills
+    )
+    return SkillToolset(skills=skills)

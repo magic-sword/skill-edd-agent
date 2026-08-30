@@ -5,18 +5,18 @@ license: MIT
 pattern: workflow
 ---
 
-# {Skill Title}
+# {skill_title}
 
 ## Overview
 
-{Brief overview of the workflow and domain context.}
+{skill_title} を実行するための専門ワークフロー。
 
 ## Workflow Decision Tree
 
 To determine the appropriate procedure, follow this decision logic:
 
-- **If** {Condition A} ➔ **Then** {Action A / scripts/step_a.py}
-- **If** {Condition B} ➔ **Then** {Action B / references/guide.md}
+- **If** 標準的なリクエストの場合 ➔ **Then** `scripts/{primary_script}.py` を実行して処理を行う
+- **If** 特別な設定やスキーマ確認が必要な場合 ➔ **Then** `references/guide.md` を参照する
 
 ## Step-by-Step Instructions
 
@@ -24,14 +24,14 @@ To determine the appropriate procedure, follow this decision logic:
 
 To validate prerequisites and parse arguments:
 ```bash
-python scripts/{primary_script}.py --check
+python scripts/{primary_script}.py --input "data"
 ```
 
 ### Step 2: Core Execution *(Tool: `scripts/{primary_script}.py`)*
 
 To execute the workflow:
 ```bash
-python scripts/{primary_script}.py <arguments>
+python scripts/{primary_script}.py --input "data"
 ```
 
 ### Step 3: Result Verification and Output

@@ -23,29 +23,40 @@ Googleの **ADK 2.0** が提唱する「スキル」によるエージェント�
 
 ---
 
-## 2. コア設計思想 (Core Design Philosophy)
+## 2. 責務分離とコアアーキテクチャ (Two-Tier Architecture)
+
+本システムは、**「不変のプラットフォーム基盤（pip: `edd-agent-tools`）」** と **「エージェントが自律的に所有・進化させるスキル資産（`src/skills/`）」** を厳密に分離しています。
 
 ```mermaid
 flowchart TD
-    subgraph Core_Concepts [3つのコア思想]
-        A["1. 単一真実源 (Markdown-First)"] --> A1["SKILL.md が仕様とプロンプトの唯一の真実源"]
-        B["2. 3層リソース分離 (Progressive Disclosure)"] --> B1["scripts/ (実行), references/ (知識), assets/ (素材)"]
-        C["3. 4段階品質保証パイプライン (Stage-Gate)"] --> C1["論理抽出 ➔ 決定論的結合 ➔ 静的リンター ➔ 多層EDDテスト"]
+    subgraph PlatformLayer ["不変プラットフォーム層 (pip: edd-agent-tools)"]
+        Validator["SkillValidator (AST/構文静的リンター)"]
+        Runners["ContractTestRunner & SimulationEvalRunner (サンドボックス実行)"]
+        StateEngine["SkillsState & DAG Validator (状態・Tier 1~3 管理)"]
+        Packager["SkillPackager (安全な ZIP アーカイブ生成)"]
+        ADKAdapter["ADK Adapter (create_adk_skill_toolset)"]
+        UnifiedCLI["統合 CLI edd (動的ディスパッチ)"]
     end
+
+    subgraph SkillAssets ["自己改善スキル資産層 (src/skills/)"]
+        Creator["skill-creator: スキル設計・Markdownテンプレート・雛形生成"]
+        Evolver["skill-evolver: 失敗診断・自己修復ループ・Tier昇格"]
+        DomainSkills["case-converter 等の実用ドメインスキル"]
+    end
+
+    PlatformLayer -->|基盤SDK・テストハーネス提供| SkillAssets
+    SkillAssets -->|自己改善ループ (Markdown/Scripts/Assets修正)| SkillAssets
 ```
 
-1.  **単一真実源の原則 (Markdown-First)**
-    *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化し、可読性と保守性を最大化。
+1.  **単一真実源の原則 (Markdown-First & Template Assets)**
+    *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化。雛形生成用の Markdown テンプレートは `src/skills/skill-creator/assets/templates/` に集約され、エージェント自身の推論によって柔軟に進化可能。
 2.  **3層リソース分離 (Progressive Disclosure)**
     *   コンテキストウィンドウを圧迫しない3層リソース構造：
-        - `scripts/`: 直接実行可能な決定論的スクリプト
+        - `scripts/`: 直接実行可能な決定論的スクリプト（Zero-dependency, CLI対応）
         - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ
         - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
-3.  **4段階品質保証パイプライン (Stage-Gate)**
-    *   **Stage 1**: `SkillLogicDraft` (Pydanticモデル) による論理・決定木・リソース計画の構造化抽出
-    *   **Stage 2**: `SkillTemplateEngine` による決定論的テンプレートレンダリング
-    *   **Stage 3**: `SkillValidator` による静的リンター（構文・実在整合性・Imperative文体）& 自動修復ループ
-    *   **Stage 4**: 多層EDDテスト（Trigger 90%精度 + Contract + Golden + Trajectory + Judge）による Tier 昇格防壁
+3.  **自己完結型 EDD テスト (Self-Contained Evaluation)**
+    *   各スキルディレクトリ配下の `tests/*.evalset.json` に契約テスト・シミュレーション評価ケースを同梱し、局所的・決定論的に品質を検証。
 
 ---
 
@@ -54,7 +65,7 @@ flowchart TD
 ### 🛠 メタスキル & ドメインスキル
 | スキル名 | 役割 / 機能 | 特徴 |
 | :--- | :--- | :--- |
-| **`skill-creator`** | スキル設計・雛形生成・配布パッケージャ | Anthropic & Google ADK 準拠の対話的スキル作成ガイド、意思決定ツリー設計、`assets/templates/` を活用した雛形生成、AST静的検証、および配布用 ZIP パッケージャ。 |
+| **`skill-creator`** | スキル設計・雛形生成・配布パッケージャ | Anthropic & Google ADK 準拠の対話的スキル作成ガイド、`assets/templates/`（4大パターン）を活用した雛形生成、AST静的検証、配布用 ZIP パッケージャ、契約テスト完備。 |
 | **`skill-evolver`** | 統合評価・失敗診断・自己修復・Tier昇格 | 契約テスト・シミュレーション評価の実行、失敗コンテキスト診断、自律的自己修復ループ、依存連鎖回帰テスト（Cascade Testing）、および Tier 1〜3 昇格判定を統合オーケストレーション。 |
 | **`case-converter`** | テキストケース変換（ゴールデンサンプル） | camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case 等の相互変換を行う Zero-dependency 実用スキル。 |
 
@@ -100,4 +111,3 @@ python src/main.py
 ```bash
 pytest
 ```
-

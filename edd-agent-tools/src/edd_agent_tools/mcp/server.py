@@ -39,6 +39,15 @@ def create_mcp_server() -> FastMCP:
         except Exception as e:
             raise FileNotFoundError(f"Error: Failed to load skill_patterns.md: {e}")
 
+    @mcp.resource("edd://docs/design_philosophy")
+    def get_design_philosophy() -> str:
+        """スキル設計思想、単一真実源原則、およびフォルダ構成規約ドキュメントを取得します。"""
+        try:
+            ref = importlib.resources.files("edd_agent_tools.docs").joinpath("design_philosophy.md")
+            return ref.read_text(encoding="utf-8")
+        except Exception as e:
+            raise FileNotFoundError(f"Error: Failed to load design_philosophy.md: {e}")
+
     @mcp.resource("edd://docs/test_architecture")
     def get_test_architecture() -> str:
         """テストケースの生成・実行スキルを開発する際の実装制約、DIモデル、およびProtocol仕様ドキュメントを取得します。"""
@@ -47,6 +56,24 @@ def create_mcp_server() -> FastMCP:
             return ref.read_text(encoding="utf-8")
         except Exception as e:
             raise FileNotFoundError(f"Error: Failed to load test_architecture.md: {e}")
+
+    @mcp.resource("edd://docs/eval_design")
+    def get_eval_design() -> str:
+        """多層EDD評価フレームワーク、アサーション設計、およびシミュレーション評価仕様を取得します。"""
+        try:
+            ref = importlib.resources.files("edd_agent_tools.docs").joinpath("eval_design.md")
+            return ref.read_text(encoding="utf-8")
+        except Exception as e:
+            raise FileNotFoundError(f"Error: Failed to load eval_design.md: {e}")
+
+    @mcp.resource("edd://docs/sandbox_design")
+    def get_sandbox_design() -> str:
+        """Gymnasium互換サンドボックス仮想環境、ロールバック仕様、およびCLI実行環境ドキュメントを取得します。"""
+        try:
+            ref = importlib.resources.files("edd_agent_tools.docs").joinpath("sandbox_design.md")
+            return ref.read_text(encoding="utf-8")
+        except Exception as e:
+            raise FileNotFoundError(f"Error: Failed to load sandbox_design.md: {e}")
 
     @mcp.resource("edd://rules/agents")
     def get_agents_rules() -> str:

@@ -6,36 +6,19 @@ SkillToolset による Progressive Disclosure（段階的情報開示）アー�
 import sys
 from pathlib import Path
 from google.adk import Agent
-from google.adk.skills import load_skill_from_dir
-from google.adk.tools.skill_toolset import SkillToolset
 from google.adk.tools.environment import EnvironmentToolset
 from google.adk.environment import LocalEnvironment
-from edd_agent_tools import SkillsState, SkillTier
+from edd_agent_tools.adk import create_adk_skill_toolset
 
-# 1. 全ての登録スキルのメタデータを解決
-state = SkillsState()
+# 1. 登録スキルと Tier 状態に基づき ADK 公式の SkillToolset を構築
 skills_dir = Path(__file__).parent / "skills"
-system_skills = {
-    "skill-creator", "skill-evolver"
-}
+skill_toolset = create_adk_skill_toolset(
+    skills_dir=skills_dir,
+    min_tier=1,
+    include_system_skills={"skill-creator", "skill-evolver"}
+)
 
-# 2. ADK ネイティブの Skill モデルとしてロード（Tier 0 SANDBOX は除外し、システムスキルは常に含める）
-loaded_adk_skills = []
-for skill_meta in state.list_skills():
-    if skill_meta.tier == SkillTier.SANDBOX and skill_meta.name not in system_skills:
-        continue
-    skill_path = skills_dir / skill_meta.name
-    if skill_path.exists() and (skill_path / "SKILL.md").exists():
-        try:
-            adk_skill = load_skill_from_dir(skill_path)
-            loaded_adk_skills.append(adk_skill)
-        except Exception as e:
-            print(f"Warning: {skill_meta.name} の ADK スキルロードに失敗しました: {e}", file=sys.stderr)
-
-# 3. ADK 標準の SkillToolset を構築（list_skills, load_skill, load_skill_resource, run_skill_script を自動管理）
-skill_toolset = SkillToolset(skills=loaded_adk_skills)
-
-# 4. エージェントの定義（FunctionTool の一括展開を排除し、コンテキスト消費を極小化）
+# 2. エージェントの定義（FunctionTool の一括展開を排除し、コンテキスト消費を極小化）
 instruction_text = """あなたは評価駆動開発（EDD）および自己進化型スキル開発を自律遂行する統合エージェントです。
 Google ADK 2.0 および Anthropic 公式標準の Progressive Disclosure（段階的情報開示）と Markdown-First 原則に従って動作してください。
 

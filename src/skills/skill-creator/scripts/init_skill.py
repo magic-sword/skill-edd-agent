@@ -2,6 +2,7 @@
 """
 Skill Initializer CLI - Zero-dependency Skill Directory Scaffold Generator
 Anthropic / Google ADK 2.0 準拠のスキル雛形を Python 標準ライブラリのみで高速生成します。
+`assets/templates/*.md` の Markdown テンプレートを真実源（SSOT）として読み込んで展開します。
 
 Usage:
     init_skill.py <skill-name> --path <path> [--pattern {workflow,task_based,reference,capabilities}]
@@ -15,10 +16,11 @@ from pathlib import Path
 
 SKILL_PATTERNS = ["workflow", "task_based", "reference", "capabilities"]
 
-WORKFLOW_TEMPLATE = """---
+# フォールバック用最小限テンプレート
+DEFAULT_FALLBACK_TEMPLATE = """---
 name: {skill_name}
-description: This skill should be used when users want to perform {skill_title} workflows. It provides step-by-step guidance and deterministic tools.
-license: Complete terms in LICENSE.txt
+description: This skill should be used when users need to perform {skill_description_context}.
+license: MIT
 pattern: {pattern}
 ---
 
@@ -28,99 +30,36 @@ pattern: {pattern}
 
 {skill_title} を実行するための専門ワークフロー。
 
-## Workflow Decision Tree
-
-- **If** 標準的なリクエストの場合 ➔ **Then** `scripts/{script_name}` を実行して処理を行う
-- **If** 特別な設定やスキーマ確認が必要な場合 ➔ **Then** `references/guide.md` を参照する
-
 ## Step-by-Step Instructions
 
-### Step 1: 入力パラメータの検証 *(Tool: `scripts/{script_name}`)*
-
+### Step 1: 入力パラメータの検証 *(Tool: `scripts/{primary_script}.py`)*
 To verify inputs and check prerequisites, inspect user parameters before execution.
 
-### Step 2: コアロジックの実行 *(Tool: `scripts/{script_name}`)*
-
-To execute the main task, run `scripts/{script_name}` with the required arguments.
+### Step 2: コアロジックの実行 *(Tool: `scripts/{primary_script}.py`)*
+To execute the main task, run `scripts/{primary_script}.py` with the required arguments.
 
 ### Step 3: 結果の確認と出力
-
 To finalize the workflow, format and present the output to the user.
 
 ## Usage Scenarios & Trigger Examples
 
 - "Please help me execute {skill_name} on the target data."
-- "{skill_title} を実行して結果を出力してください。"
 
 ## When NOT to Use This Skill
 
 - **単純なワンライナーのシェルコマンドで完了する操作**: スキルをロードせず直接実行する。
-- **対象ドメイン外のタスク**: 専用の別スキルを利用する。
 
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/{script_name}`**: {skill_title} のコア実行スクリプト（CLI対応）
+- **`scripts/{primary_script}.py`**: {skill_title} のコア実行スクリプト（CLI対応）
 
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: 詳細な仕様書およびリファレンスドキュメント
 
-### `assets/` (Output Templates & Boilerplates)
-- **`assets/sample.txt`**: 出力用テンプレート素材
-
 ## Guidelines & Best Practices
 
 - 実行前に必ずパラメータの妥当性を確認すること。
-- 不明なエラーが発生した場合は `references/guide.md` を参照すること。
-"""
-
-TASK_BASED_TEMPLATE = """---
-name: {skill_name}
-description: This skill should be used when users require specialized utility tasks for {skill_title}.
-license: Complete terms in LICENSE.txt
-pattern: {pattern}
----
-
-# {skill_title}
-
-## Overview
-
-{skill_title} に関するユーティリティタスク群を提供します。
-
-## Quick Start
-
-Execute standard operations using the provided modular tools and scripts.
-
-## Available Tasks
-
-### Task 1: 解析と準備
-To prepare for execution, inspect inputs and configuration.
-
-### Task 2: ツール実行 *(Tool: `scripts/{script_name}`)*
-To perform the operation, execute `scripts/{script_name}`.
-
-### Task 3: 結果出力
-To present the results, format the output clearly.
-
-## Usage Scenarios & Trigger Examples
-
-- "Execute {skill_name} task on input data."
-
-## When NOT to Use This Skill
-
-- **極めて単純な操作**: ネイティブコマンドを直接使用する。
-
-## Bundled Resources
-
-### `scripts/` (Executable Tools)
-- **`scripts/{script_name}`**: ユーティリティスクリプト
-
-### `references/` (On-Demand Knowledge)
-- **`references/guide.md`**: タスクガイド
-
-## Guidelines & Best Practices
-
-- タスクの目的に応じて最適なツールを選択すること。
 """
 
 SAMPLE_SCRIPT_TEMPLATE = """#!/usr/bin/env python3
@@ -148,39 +87,85 @@ if __name__ == "__main__":
     sys.exit(main())
 """
 
+
+def load_template_for_pattern(pattern: str) -> str:
+    """`assets/templates/{pattern}_template.md` を探索・ロードします。"""
+    script_dir = Path(__file__).parent
+    skill_root = script_dir.parent
+    template_path = skill_root / "assets" / "templates" / f"{pattern}_template.md"
+
+    if template_path.exists():
+        try:
+            return template_path.read_text(encoding="utf-8")
+        except Exception:
+            pass
+
+    # グローバルな探索パス
+    alt_paths = [
+        Path("src/skills/skill-creator/assets/templates") / f"{pattern}_template.md",
+        Path("skills/skill-creator/assets/templates") / f"{pattern}_template.md",
+    ]
+    for p in alt_paths:
+        if p.exists():
+            try:
+                return p.read_text(encoding="utf-8")
+            except Exception:
+                pass
+
+    return DEFAULT_FALLBACK_TEMPLATE
+
+
+def safe_format_template(template_str: str, context: dict) -> str:
+    """未定義プレースホルダがあっても安全に置換するフォーマッタ"""
+    def _replace(match):
+        key = match.group(1).strip()
+        return str(context.get(key, f"{{{key}}}"))
+
+    return re.sub(r"\{([a-zA-Z0-9_ ]+)\}", _replace, template_str)
+
+
 def init_skill(skill_name: str, path: str = "src/skills", pattern: str = "workflow") -> Path | None:
     """Zero-dependency で新しいスキルディレクトリを初期化します。"""
     if pattern not in SKILL_PATTERNS:
-        print(f"❌ Error: Invalid pattern '{pattern}'. Choices: {SKILL_PATTERNS}")
+        print(f"❌ Error: Invalid pattern '{pattern}'. Choices: {SKILL_PATTERNS}", file=sys.stderr)
         return None
 
     if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", skill_name):
-        print(f"❌ Error: Skill name '{skill_name}' must be lowercase hyphen-case (e.g. pdf-tools)")
+        print(f"❌ Error: Skill name '{skill_name}' must be lowercase hyphen-case (e.g. pdf-tools)", file=sys.stderr)
         return None
 
     target_dir = Path(path).resolve() / skill_name
     if target_dir.exists():
-        print(f"❌ Error: Target skill directory already exists: {target_dir}")
+        print(f"❌ Error: Target skill directory already exists: {target_dir}", file=sys.stderr)
         return None
 
     target_dir.mkdir(parents=True, exist_ok=False)
     skill_title = skill_name.replace("-", " ").title()
-    script_name = f"{skill_name.replace('-', '_')}.py"
+    primary_script = skill_name.replace("-", "_")
 
-    # 1. SKILL.md の書き出し
-    template = WORKFLOW_TEMPLATE if pattern == "workflow" else TASK_BASED_TEMPLATE
-    skill_md = template.format(
-        skill_name=skill_name,
-        skill_title=skill_title,
-        pattern=pattern,
-        script_name=script_name
-    )
+    # 1. SKILL.md の書き出し（テンプレートから置換）
+    raw_template = load_template_for_pattern(pattern)
+    template_ctx = {
+        "skill_name": skill_name,
+        "skill_title": skill_title,
+        "Skill Title": skill_title,
+        "skill_description_context": f"{skill_title} workflows and operations",
+        "pattern": pattern,
+        "primary_script": primary_script,
+        "task": f"{skill_title} processing",
+        "task_name": "sample-task",
+        "target": "data",
+        "input": "input data",
+        "capability_1": "Capability One",
+        "capability_2": "Capability Two"
+    }
+    skill_md = safe_format_template(raw_template, template_ctx)
     (target_dir / "SKILL.md").write_text(skill_md, encoding="utf-8")
 
     # 2. scripts/
     scripts_dir = target_dir / "scripts"
     scripts_dir.mkdir(exist_ok=True)
-    sample_script = scripts_dir / script_name
+    sample_script = scripts_dir / f"{primary_script}.py"
     script_code = SAMPLE_SCRIPT_TEMPLATE.format(
         skill_name=skill_name,
         skill_title=skill_title

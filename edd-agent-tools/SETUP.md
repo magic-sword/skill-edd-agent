@@ -39,8 +39,10 @@ edd-agent-mcp
 ### 提供リソース & ツール
 * **リソース (`edd://...`)**:
   * `edd://rules/agents`: エージェント開発制約（SSOT）
-  * `edd://guidelines/progressive-disclosure`: 3層リソース分離規約
-  * `edd://docs/*`: 各種アーキテクチャ設計書
+  * `edd://guidelines/progressive_disclosure`: 3層リソース分離規約
+  * `edd://guidelines/prompt_syntax`: Imperative文体・Frontmatter規約
+  * `edd://guidelines/skill_patterns`: 4大スキルパターン設計ガイド
+  * `edd://docs/*`: 各種アーキテクチャ設計書 (`design_philosophy`, `test_architecture`, `eval_design`, `sandbox_design`)
 * **ツール**:
   * `edd_validate_skill`: スキルの静的リンター検証
   * `edd_init_skill`: スキル雛形ディレクトリの初期化

@@ -5,17 +5,17 @@ license: MIT
 pattern: task_based
 ---
 
-# {Skill Title}
+# {skill_title}
 
 ## Overview
 
-{Brief overview of available utility tasks and operations.}
+{skill_title} に関するユーティリティタスク群を提供します。
 
 ## Quick Start
 
 To execute standard operations using the provided CLI tool:
 ```bash
-python scripts/{primary_script}.py <input>
+python scripts/{primary_script}.py --input "data"
 ```
 
 ## Available Tasks
@@ -26,7 +26,7 @@ To inspect inputs and determine conversion or operation parameters.
 ### Task 2: Operation Execution *(Tool: `scripts/{primary_script}.py`)*
 To perform the required operation:
 ```bash
-python scripts/{primary_script}.py <arguments>
+python scripts/{primary_script}.py --input "data"
 ```
 
 ### Task 3: Output Verification

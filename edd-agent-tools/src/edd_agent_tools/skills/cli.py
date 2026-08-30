@@ -8,16 +8,16 @@ from .template_engine import SkillTemplateEngine
 from .validator import SkillValidator
 
 def init_skill(skill_name: str, path: str, pattern: str = "workflow") -> Path | None:
-    """新しいスキルディレクトリを Anthropic 準拠の雛形として初期化します。"""
+    """新しいスキルディレクトリを Anthropic / Google ADK 準拠の雛形として初期化します。"""
     try:
         pat_enum = SkillPattern(pattern)
     except ValueError:
-        print(f"❌ Error: Invalid pattern '{pattern}'. Choices: {[p.value for p in SkillPattern]}")
+        print(f"❌ Error: Invalid pattern '{pattern}'. Choices: {[p.value for p in SkillPattern]}", file=sys.stderr)
         return None
 
     target_dir = Path(path).resolve() / skill_name
     if target_dir.exists():
-        print(f"❌ Error: Target skill directory already exists: {target_dir}")
+        print(f"❌ Error: Target skill directory already exists: {target_dir}", file=sys.stderr)
         return None
 
     target_dir.mkdir(parents=True, exist_ok=False)
@@ -99,7 +99,10 @@ if __name__ == "__main__":
     sys.exit(main())
 """
     sample_script.write_text(sample_script_code, encoding="utf-8")
-    sample_script.chmod(0o755)
+    try:
+        sample_script.chmod(0o755)
+    except Exception:
+        pass
 
     references_dir = target_dir / "references"
     references_dir.mkdir(exist_ok=True)
@@ -149,7 +152,7 @@ def package_skill_cli(skill_path_str: str, output_dir_str: str | None = None) ->
     skill_name = skill_path.name
 
     if not validate_skill_cli(skill_path_str):
-        print(f"❌ Cannot package '{skill_name}': Validation failed. Fix errors and retry.")
+        print(f"❌ Cannot package '{skill_name}': Validation failed. Fix errors and retry.", file=sys.stderr)
         return None
 
     out_dir = Path(output_dir_str).resolve() if output_dir_str else skill_path.parent / "dist"
