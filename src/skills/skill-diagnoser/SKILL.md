@@ -18,10 +18,14 @@ pattern: workflow
 
 ## Step-by-Step Instructions
 
-### Step 1: 決定論的失敗コンテキストの抽出 *(Tool: `scripts/diagnoser.py`)*
+### Step 1: 決定論的失敗コンテキストの抽出 *(Tool: `edd diagnose` または `scripts/diagnoser.py`)*
 
 To extract structured failure context (failed test cases, error messages, stack traces, and relevant source code), run:
 ```bash
+# 統合 CLI を使用する場合
+edd diagnose <skill_name>
+
+# スタンドアロンスクリプトを直接実行する場合
 python scripts/diagnoser.py <skill_name> --format markdown
 ```
 

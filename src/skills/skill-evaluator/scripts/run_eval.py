@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 """
-テスト評価実行＆構造化ログ永続化スクリプト (CLI & API 対応)
-隔離サンドボックス環境 (LocalWorkspaceEnv) 上でテストを実行し、テスト結果・精度・失敗詳細をレポートに記録する。
-Google ADK 準拠の全6大評価タイプ（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）に対応。
+Test Evaluation Runner & Structured Logger (CLI & API)
+
+スキルのテスト（Contract / Simulation / Trigger 等）を実行し、評価結果レポートを永続化します。
+`edd eval` 統合 CLI を透過的に呼び出し、存在しない場合はフォールバック実行を行います。
+
+Usage:
+    python run_eval.py <skill_name> [--type <type>] [--report <path>]
 """
 
 import os
 import sys
 import json
 import argparse
+import subprocess
 from pathlib import Path
 from typing import Dict, Any, Optional
-from pydantic import BaseModel, Field
-
-from edd_agent_tools.skills import SkillsState
-from edd_agent_tools.evaluation import ContractTestRunner, SimulationEvalRunner, LocalWorkspaceEnv
 
 
 def run_evaluation(
@@ -23,40 +24,46 @@ def run_evaluation(
     eval_set_path: Optional[str] = None,
     report_output_path: str = "tests/results/latest_report.json"
 ) -> Dict[str, Any]:
-    """指定されたスキルのテストを実行し、評価結果レポートを出力・永続化する。"""
-    state = SkillsState()
-    skill = state.get_skill(skill_name)
-    if not skill:
-        return {"status": "failed", "message": f"Skill '{skill_name}' not found."}
+    """指定されたスキルのテストを実行し、評価結果レポートを出力・永続化します。"""
+    # 1. 統合 CLI `edd eval` の呼び出しを優先
+    cmd = [sys.executable, "-m", "edd_agent_tools.cli", "eval", skill_name, "--type", test_type, "--report", report_output_path]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if Path(report_output_path).exists():
+            with open(report_output_path, "r", encoding="utf-8") as f:
+                report_data = json.load(f)
+            return {
+                "status": "success" if proc.returncode == 0 else "failed",
+                "report": report_data,
+                "report_path": report_output_path
+            }
+    except Exception:
+        pass
 
-    env = LocalWorkspaceEnv()
-    report = {
-        "skill_name": skill_name,
-        "results": {},
-        "summary": {
-            "total_passed": 0,
-            "total_failed": 0,
-            "overall_accuracy": 1.0
+    # 2. フォールバック: パッケージが import 可能な場合
+    try:
+        from edd_agent_tools.skills import SkillsState
+        from edd_agent_tools.evaluation import ContractTestRunner, SimulationEvalRunner, LocalWorkspaceEnv
+
+        state = SkillsState()
+        skill = state.get_skill(skill_name)
+        if not skill:
+            return {"status": "failed", "message": f"Skill '{skill_name}' not found."}
+
+        env = LocalWorkspaceEnv()
+        report = {
+            "skill_name": skill_name,
+            "results": {},
+            "summary": {"total_passed": 0, "total_failed": 0, "overall_accuracy": 1.0}
         }
-    }
+        tests_dir = Path(skill.root_dir) / "tests"
+        types_to_run = ["trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if test_type == "all" else [test_type]
 
-    tests_dir = Path(skill.root_dir) / "tests"
-    types_to_run = ["trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if test_type == "all" else [test_type]
-
-    for t in types_to_run:
-        target_file = None
-        if eval_set_path and Path(eval_set_path).exists():
-            target_file = Path(eval_set_path)
-        else:
-            cand = tests_dir / f"{skill_name}_{t}.evalset.json"
-            if cand.exists():
-                target_file = cand
-
-        if not target_file:
-            continue
-
-        try:
-            with open(target_file, "r", encoding="utf-8") as f:
+        for t in types_to_run:
+            cand = Path(eval_set_path) if eval_set_path else tests_dir / f"{skill_name}_{t}.evalset.json"
+            if not cand.exists():
+                continue
+            with open(cand, "r", encoding="utf-8") as f:
                 cases_data = json.load(f)
 
             if t == "contract":
@@ -80,33 +87,28 @@ def run_evaluation(
                     "accuracy": res.accuracy,
                     "details": []
                 }
-                report["summary"]["total_passed"] += report["results"][t]["passed"]
-                report["summary"]["total_failed"] += report["results"][t]["failed"]
-        except Exception as e:
-            report["results"][t] = {
-                "error": str(e),
-                "accuracy": 0.0
-            }
-            report["summary"]["total_failed"] += 1
+                report["summary"]["total_passed"] += res.passed
+                report["summary"]["total_failed"] += res.failed
 
-    total_tests = report["summary"]["total_passed"] + report["summary"]["total_failed"]
-    if total_tests > 0:
-        report["summary"]["overall_accuracy"] = report["summary"]["total_passed"] / total_tests
+        total_tests = report["summary"]["total_passed"] + report["summary"]["total_failed"]
+        if total_tests > 0:
+            report["summary"]["overall_accuracy"] = report["summary"]["total_passed"] / total_tests
 
-    # レポートファイルの永続化
-    out_p = Path(report_output_path)
-    out_p.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_p, "w", encoding="utf-8") as f:
-        json.dump(report, f, ensure_ascii=False, indent=2)
+        out_p = Path(report_output_path)
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_p, "w", encoding="utf-8") as f:
+            json.dump(report, f, ensure_ascii=False, indent=2)
 
-    return {
-        "status": "success" if report["summary"]["total_failed"] == 0 else "failed",
-        "report": report,
-        "report_path": str(out_p)
-    }
+        return {
+            "status": "success" if report["summary"]["total_failed"] == 0 else "failed",
+            "report": report,
+            "report_path": str(out_p)
+        }
+    except Exception as e:
+        return {"status": "failed", "message": f"Evaluation runner error: {e}"}
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Run evaluation tests for a skill")
     parser.add_argument("skill_name", help="Name of the skill to test")
     parser.add_argument("--type", choices=["trigger", "contract", "golden", "judge", "trajectory", "adversarial", "all"], default="all", help="Test type to run")
@@ -116,4 +118,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     res = run_evaluation(args.skill_name, test_type=args.type, eval_set_path=args.evalset, report_output_path=args.report)
     print(json.dumps(res, ensure_ascii=False, indent=2))
-    sys.exit(0 if res["status"] == "success" else 1)
+    return 0 if res.get("status") == "success" else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

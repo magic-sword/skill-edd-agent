@@ -28,10 +28,14 @@ Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層
 3. **意思決定ツリー**: 条件分岐（`If condition ➔ Then action`）を定義する。
 4. **3層リソース計画**: 決定論的処理（`scripts/`）、知識資料（`references/`）、出力用テンプレート（`assets/`）に分解する。
 
-### Step 2: スキル雛形の生成 *(Tool: `scripts/init_skill.py`)*
+### Step 2: スキル雛形の生成 *(Tool: `edd init` または `scripts/init_skill.py`)*
 To initialize the skill scaffold directory and base files, execute:
 ```bash
-python scripts/init_skill.py <skill-name> --pattern {workflow|task_based|reference|capabilities} --path src/skills
+# 統合 CLI を使用する場合
+edd init <skill-name> --pattern workflow --path src/skills
+
+# スタンドアロンスクリプトを実行する場合
+python scripts/init_skill.py <skill-name> --pattern workflow --path src/skills
 ```
 
 ### Step 3: リソースの実装と SKILL.md の執筆
@@ -39,16 +43,24 @@ python scripts/init_skill.py <skill-name> --pattern {workflow|task_based|referen
 2. 計画されたスクリプトを `scripts/` に配置する（`argparse` による `--help` 対応、余計な多層ラッパーを作らないフラットな実装）。
 3. 知識資料を `references/`、テンプレート素材を `assets/` に配置する（不要な空ディレクトリは残さない）。
 
-### Step 4: 高速静的検証 *(Tool: `scripts/quick_validate.py`)*
+### Step 4: 高速静的検証 *(Tool: `edd validate` または `scripts/quick_validate.py`)*
 To validate the structure, frontmatter, resource references, and naming conventions, execute:
 ```bash
+# 統合 CLI を使用する場合 (AST解析付き高度検証)
+edd validate src/skills/<skill-name>
+
+# スタンドアロンスクリプトを実行する場合
 python scripts/quick_validate.py src/skills/<skill-name>
 ```
 エラーまたは警告が検知された場合は、指摘に従って `SKILL.md` や各リソースファイルを修正する。
 
-### Step 5: 配布用 ZIP パッケージ化 *(Tool: `scripts/package_skill.py`)*
+### Step 5: 配布用 ZIP パッケージ化 *(Tool: `edd package` または `scripts/package_skill.py`)*
 To package and export the validated skill for distribution (Claude Code, Antigravity, Cursor, ADK), execute:
 ```bash
+# 統合 CLI を使用する場合
+edd package src/skills/<skill-name> --out dist
+
+# スタンドアロンスクリプトを実行する場合
 python scripts/package_skill.py src/skills/<skill-name> dist
 ```
 

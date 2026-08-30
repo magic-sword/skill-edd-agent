@@ -4,12 +4,13 @@
 
 ---
 
-## 1. パッケージとスキルの責務分離 (Two-Tier Architecture)
+## 1. パッケージとスキルの責務分離 (Two-Tier Architecture & Loose Coupling)
 *   **基盤パッケージ (`edd-agent-tools`) の責務**:
-    - スキルの探索・パス解決（`SkillsState`, `Skill`）、仮想環境サンドボックス（`LocalWorkspaceEnv`）、多層評価・Tier昇格テスト（`ContractTestRunner`, `SimulationEvalRunner`）、静的バリデーション（`SkillValidator`）、Google ADK / MCP 連携等の共通基盤ロジックを一元管理する。
-    - 各スキル内でパス解決やテストエンジンを重複実装せず、必ず `edd-agent-tools` パッケージを活用する。
+    - 統合 CLI `edd`（動的ディスパッチ `edd run <skill>`, `edd init`, `edd validate`, `edd package`, `edd eval`, `edd tier-gate`, `edd diagnose`）を提供する。
+    - スキルの探索・パス解決（`SkillsState`, `Skill`）、仮想環境サンドボックス（`LocalWorkspaceEnv`）、多層評価・Tier昇格テスト（`ContractTestRunner`, `SimulationEvalRunner`）、静的バリデーション（`SkillValidator`）、Google ADK 2.0 `EddSkillToolset` / MCP 連携等の共通基盤ロジックを一元管理する。
 *   **スキル (`src/skills/`) の責務**:
     - `SKILL.md`（意思決定ツリー・手順書）、`references/`（ドメイン知識）、`assets/`（テンプレート）、`scripts/`（業務スクリプト）に特化する。
+    - **完全な自己完結性（Portability / Zero-dependency）**: スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはならない。Python 標準ライブラリのみで実装するか、統合 CLI `edd` を subprocess 呼び出しする設計とする。
     - **二重 LLM 呼び出しの禁止（Anti-pattern）**: スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を抱え込まず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計とする。スクリプトは決定論的なブラックボックス CLI ツール（`argparse` / `--help` 対応）として実装する。
 
 ---

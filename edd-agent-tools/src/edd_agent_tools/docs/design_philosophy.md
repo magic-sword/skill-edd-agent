@@ -40,6 +40,10 @@
   - **Stage 3 (Contract & Multi-Layer Evaluation)**: サンドボックス環境（`LocalWorkspaceEnv`）での契約テスト（I/O型検査）およびシミュレーション評価（Trigger / Trajectory / Golden）
   - **Stage 4 (Self-Healing Loop & Cascade Gating)**: 失敗診断（`skill-diagnoser`）➔ 修正 ➔ 連鎖回帰テスト（`CascadeTestRunner`）➔ Tier 昇格
 
+### ⑦ 動的ディスパッチ (Dynamic Dispatch) ＆ 統合 CLI (`edd`)
+* スキルが自律的に増殖・追加されてもパッケージ本体の再インストールやコード修正を一切不要とするため、ファイルシステムベースの動的ディスカバリ（`edd run <skill-name>` / `edd <skill-name>`）を採用。
+* エージェントの認知負荷を最小化し、スキル名と実行コマンドの 1:1 対応を実現。
+
 ---
 
 ## 2. フォルダ構造の規約 (3-Tier Layout)

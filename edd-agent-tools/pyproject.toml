@@ -28,6 +28,7 @@ dependencies = [
 ]
 
 [project.scripts]
+edd = "edd_agent_tools.cli:main"
 edd-skills = "edd_agent_tools.skills.cli:main"
 edd-eval = "edd_agent_tools.evaluation.cli:main"
 edd-agent-mcp = "edd_agent_tools.mcp.server:main"

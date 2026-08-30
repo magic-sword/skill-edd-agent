@@ -33,10 +33,14 @@ dependencies:
 - 仕様・トリガー修正: `src/skills/<skill_name>/SKILL.md`
 - テストケース修正: `src/skills/<skill_name>/tests/*.evalset.json`
 
-### Step 3: 静的検証・連鎖回帰テスト・Tier 昇格 *(Tool: `scripts/optimizer.py`)*
+### Step 3: 静的検証・連鎖回帰テスト・Tier 昇格 *(Tool: `edd run skill-optimizer` または `scripts/optimizer.py`)*
 
 修正適用後、決定論的検証ツールを実行して単体検証・連鎖回帰テスト・Tier 昇格を一括実行する：
 ```bash
+# 統合 CLI を使用する場合
+edd run skill-optimizer --target-tier 1 --cascade
+
+# スタンドアロンスクリプトを実行する場合
 python scripts/optimizer.py <skill_name> --target-tier 1 --cascade
 ```
 - すべてのテストに合格した場合、スキルは自動的に `SkillsState` 上で昇格登録される。

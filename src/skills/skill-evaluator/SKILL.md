@@ -25,13 +25,17 @@ pattern: workflow
 1. `references/test_types_guide.md` を参照し、テストタイプ（`trigger`, `contract`, `golden`, `judge`, `trajectory`, `adversarial`）を選定する。
 2. スキルの入出力仕様（`SKILL.md` / `scripts/`）に沿ったテストケースを作成し、`tests/<skill_name>_<type>.evalset.json` に保存する（または `edd-eval generate <skill_name>` を実行）。
 
-### Step 2: 評価シミュレーションの実行 *(Tool: `scripts/run_eval.py`)*
+### Step 2: 評価シミュレーションの実行 *(Tool: `edd eval` または `scripts/run_eval.py`)*
 隔離環境（`LocalWorkspaceEnv`）上でテストを実行し、精度（Accuracy）、成功数、失敗ログを収集して `tests/results/latest_report.json` に記録する：
 ```bash
+# 統合 CLI を使用する場合
+edd eval <skill_name> --type all
+
+# スタンドアロンスクリプトを実行する場合
 python scripts/run_eval.py <skill_name> --type all
 ```
 
-### Step 3: Tier 昇格ゲートキーパー判定 *(Tool: `scripts/run_tier_gate.py`)*
+### Step 3: Tier 昇格ゲートキーパー判定 *(Tool: `edd tier-gate` または `scripts/run_tier_gate.py`)*
 Tier 階層に応じた防壁テストを実行する：
 - **Tier 1 (Production)**: 依存関係グラフ検証 (DAG) + 契約テスト (100%合格) + トリガーテスト (精度 90%以上)
 - **Tier 2 (Verified)**: Tier 1 要件 + ゴールデンテスト (精度 90%以上) + LLMルーブリックジャッジテスト (精度 85%以上)
@@ -39,6 +43,10 @@ Tier 階層に応じた防壁テストを実行する：
 
 実行コマンド:
 ```bash
+# 統合 CLI を使用する場合
+edd tier-gate <skill_name> --tier 1
+
+# スタンドアロンスクリプトを実行する場合
 python scripts/run_tier_gate.py <skill_name> --tier 1
 ```
 

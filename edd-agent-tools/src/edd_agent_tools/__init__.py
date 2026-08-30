@@ -12,12 +12,16 @@ def __getattr__(name: str):
         "run",
         "doc_reader",
         "schema_utils",
-        "mcp"
+        "mcp",
+        "adk",
+        "cli"
     }
     if name in submodules:
         return importlib.import_module(f".{name}", __package__)
 
     mapping = {
+        # adk
+        "EddSkillToolset": (".adk", "EddSkillToolset"),
         # skills.models
         "SkillPattern": (".skills.models", "SkillPattern"),
         "SkillLogicDraft": (".skills.models", "SkillLogicDraft"),
@@ -88,6 +92,7 @@ def __getattr__(name: str):
 
 def __dir__():
     return sorted(list(globals().keys()) + [
+        "EddSkillToolset",
         "SkillPattern", "SkillLogicDraft", "SkillSpec", "SkillMetadata", "ModuleType",
         "SkillTier", "SkillsStateJson", "SkillEntry", "InheritEntry", "ProjectSkillInfo",
         "SkillsState", "Skill", "SkillTests", "SkillTemplateEngine", "SkillValidator", "ValidationResult",
