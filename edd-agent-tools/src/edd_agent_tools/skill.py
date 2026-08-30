@@ -99,12 +99,12 @@ class Skill:
             return SkillPattern.WORKFLOW
 
     @property
-    def tests(self):
+    def tests(self) -> "SkillTests":
         """テスト管理オブジェクト（SkillTests）を取得"""
         if self._tests is None:
-            from .skills.tests import SkillTests
             self._tests = SkillTests(self.root_dir)
         return self._tests
+
 
     # ==========================================
     # 3層リソース探索・取得メソッド群
@@ -218,3 +218,146 @@ class Skill:
 
     def __repr__(self) -> str:
         return f"<Skill name='{self.name}' tier={self.tier} path='{self.root_dir}'>"
+
+
+class SkillTests:
+    """スキルの tests/ ディレクトリ配下のテスト仕様データ（evalsets）および
+    実行結果ログ（results）を型安全に管理・アクセスするためのドメインクラス。
+    """
+
+    def __init__(self, skill_root_dir: str | Path):
+        self.skill_root_dir = os.path.abspath(str(skill_root_dir))
+        self.tests_dir = os.path.join(self.skill_root_dir, "tests")
+        self.results_dir = os.path.join(self.tests_dir, "results")
+        self.fixtures_dir = os.path.join(self.tests_dir, "fixtures")
+
+    @property
+    def latest_report_path(self) -> str:
+        """最新のテスト実行詳細レポート（JSON）の絶対パス。"""
+        return os.path.join(self.results_dir, "latest_report.json")
+
+    def get_evalset_path(self, test_type: str) -> Optional[str]:
+        """指定されたテスト種別（trigger, contract, unit, golden, judge 等）の evalset ファイルパスを探索"""
+        if not os.path.exists(self.tests_dir):
+            return None
+
+        import glob
+        raw_name = os.path.basename(self.skill_root_dir)
+        name_under = raw_name.replace('-', '_')
+        name_hyphen = raw_name.replace('_', '-')
+
+        candidates = []
+        for name in {raw_name, name_under, name_hyphen}:
+            candidates.extend([
+                f"{name}_{test_type}.evalset.json",
+                f"{name}-{test_type}.evalset.json",
+                f"{name}_{test_type}_eval.evalset.json",
+                f"{name}-{test_type}_eval.evalset.json",
+            ])
+            if test_type == "contract":
+                candidates.extend([
+                    f"{name}_unit.evalset.json",
+                    f"{name}-unit.evalset.json",
+                    f"{name}_unit_eval.evalset.json",
+                ])
+            elif test_type == "unit":
+                candidates.extend([
+                    f"{name}_contract.evalset.json",
+                    f"{name}-contract.evalset.json",
+                ])
+
+        candidates.extend([
+            f"{test_type}.evalset.json",
+            f"{test_type}_eval.evalset.json",
+        ])
+        if test_type == "contract":
+            candidates.append("unit.evalset.json")
+        elif test_type == "unit":
+            candidates.append("contract.evalset.json")
+
+        for candidate in candidates:
+            candidate_path = os.path.join(self.tests_dir, candidate)
+            if os.path.isfile(candidate_path):
+                return os.path.abspath(candidate_path)
+
+        pattern = os.path.join(self.tests_dir, f"*{test_type}*.evalset.json")
+        matches = glob.glob(pattern)
+        if matches:
+            return os.path.abspath(matches[0])
+
+        return None
+
+    def save_report(
+        self,
+        report: Any,
+        test_type: Optional[str] = None
+    ) -> str:
+        """テスト実行レポートを results/ 配下に保存し、latest_report.json も同時に更新"""
+        from edd_agent_tools.models.eval import EvalDetailReport
+        os.makedirs(self.results_dir, exist_ok=True)
+
+        if isinstance(report, dict):
+            report_obj = EvalDetailReport.model_validate(report)
+        else:
+            report_obj = report
+
+        resolved_test_type = test_type or getattr(report_obj, "test_type", None)
+        json_data = report_obj.model_dump_json(indent=2) if hasattr(report_obj, "model_dump_json") else json.dumps(report, indent=2)
+
+        if resolved_test_type:
+            type_specific_path = os.path.join(self.results_dir, f"{resolved_test_type}_test_result.json")
+            with open(type_specific_path, "w", encoding="utf-8") as f:
+                f.write(json_data)
+
+        with open(self.latest_report_path, "w", encoding="utf-8") as f:
+            f.write(json_data)
+
+        return self.latest_report_path
+
+    def load_latest_report(self) -> Optional[Any]:
+        """最新のテスト実行レポート（latest_report.json）をロード"""
+        from edd_agent_tools.models.eval import EvalDetailReport
+        if not os.path.isfile(self.latest_report_path):
+            return None
+
+        try:
+            with open(self.latest_report_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return EvalDetailReport.model_validate(data)
+        except Exception:
+            return None
+
+    def load_report(self, test_type: str) -> Optional[Any]:
+        """指定されたテスト種別の結果レポートをロード"""
+        from edd_agent_tools.models.eval import EvalDetailReport
+        target_path = os.path.join(self.results_dir, f"{test_type}_test_result.json")
+        if not os.path.isfile(target_path):
+            return None
+
+        try:
+            with open(target_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return EvalDetailReport.model_validate(data)
+        except Exception:
+            return None
+
+    def list_reports(self) -> list[str]:
+        """results/ 配下に存在する全レポートファイルの絶対パスリストを返します。"""
+        import glob
+        if not os.path.exists(self.results_dir):
+            return []
+        return [
+            os.path.abspath(p)
+            for p in glob.glob(os.path.join(self.results_dir, "*.json"))
+        ]
+
+    def list_evalsets(self) -> list[str]:
+        """tests/ 配下に存在する全 *.evalset.json ファイルの絶対パスリストを返します。"""
+        import glob
+        if not os.path.exists(self.tests_dir):
+            return []
+        return [
+            os.path.abspath(p)
+            for p in glob.glob(os.path.join(self.tests_dir, "*.evalset.json"))
+        ]
+

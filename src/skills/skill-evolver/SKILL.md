@@ -63,8 +63,11 @@ python scripts/evolver.py optimize <skill-name> --tier 2
 
 ## When NOT to Use This Skill
 
-- **新規スキルの雛形作成やプロンプトの初期ドラフト作成**: `skill-creator` を使用する。
-- **通常のドメイン業務タスク実行**: 対象のドメインスキル（例: `case-converter`）を直接実行する。
+Do NOT use this skill in the following scenarios (use native tools or alternative workflows instead):
+- **粒度境界 (Granularity)**: 単発のワンライナーコマンド（`pytest tests/test_simple.py` 等）の直接実行のみで完結する単純なテスト確認。
+- **技術的限界 (Out-of-Scope)**: 対象ドメインの個別業務処理（ケース変換やファイル解析など）。該当するドメイン特化スキルを直接実行すること。
+- **ライフサイクル分離 (Lifecycle)**: 新規スキルの雛形スキャフォールディング、初期プロンプト設計、テンプレート素材管理（`skill-creator` を使用すること）。
+- **インベントリ照合 (Inventory)**: スキル管理・評価ではなく、Python パッケージ全体のビルド・デプロイ作業（標準の `pip` / `twine` ツールを使用すること）。
 
 ## Bundled Resources
 

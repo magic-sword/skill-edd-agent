@@ -3,9 +3,8 @@ import sys
 import json
 import tempfile
 import pytest
-from pathlib import Path
 from edd_agent_tools.cli import main as cli_main
-from edd_agent_tools.skills.state import SkillsState
+from edd_agent_tools.state import SkillsState
 
 
 def test_unified_cli_list(capfd):

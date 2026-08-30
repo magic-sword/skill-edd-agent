@@ -48,10 +48,11 @@ python scripts/case_converter.py --file input.txt --to snake --output output.txt
 
 ## When NOT to Use This Skill
 
-以下のシナリオでは本スキルを使用せず、ネイティブツールや標準コマンドを利用する：
-- 単純な `tr '[:lower:]' '[:upper:]'` 等の1単語の大文字・小文字変換のみで完結する場合。
-- AST レベルでの安全なコードリファクタリング（言語固有の言語サーバー・リネーム機能を利用すべき場合）。
-- スキル自体のライフサイクル管理や評価を行う場合（`skill-evolver` を使用）。
+Do NOT use this skill in the following scenarios (use native tools or alternative workflows instead):
+- **粒度境界 (Granularity)**: 単純な `tr '[:lower:]' '[:upper:]'` や大文字・小文字変換のみのワンライナーで完結するタスク。
+- **技術的限界 (Out-of-Scope)**: AST（抽象構文木）レベルでの高度なコードリファクタリング（言語固有の Language Server や AST ツールを利用すべき場合）。
+- **ライフサイクル分離 (Lifecycle)**: スキル自体のテスト実行、診断、自己修復、Tier昇格（`skill-evolver` を使用すること）。
+- **インベントリ照合 (Inventory)**: スキル雛形生成やパッケージ化作業（`skill-creator` を使用すること）。
 
 ## Bundled Resources
 

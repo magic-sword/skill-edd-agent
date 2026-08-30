@@ -75,8 +75,11 @@ python scripts/package_skill.py src/skills/<skill-name> dist
 
 ## When NOT to Use This Skill
 
-- **単純なワンライナーのコード生成や一回限りのスクリプト実行**: スキルパッケージを作成する必要がない単発タスクには使用しない。
-- **既存のテストスイートの実行・診断・自己修復・Tier昇格を行う場合**: スキル生成ではなく、`skill-evolver` を使用する。
+Do NOT use this skill in the following scenarios (use native tools or alternative workflows instead):
+- **粒度境界 (Granularity)**: 単純なワンライナーのシェルコマンドや一回限りのコードスニペット生成など、再利用可能なスキルパッケージを作成する必要がない軽微なタスク。
+- **技術的限界 (Out-of-Scope)**: 対象ドメインの業務処理（ケース変換、PDF編集、データ抽出など）自体の実行。生成された個別スキルを直接利用すること。
+- **ライフサイクル分離 (Lifecycle)**: 既存スキルの評価テスト実行、失敗原因の診断、自律的自己修復、および Tier 昇格判定（`skill-evolver` を使用すること）。
+- **インベントリ照合 (Inventory)**: 類似の機能やスコープを持つスキルが既に `SkillsState` / `src/skills/` に存在する場合（重複作成を避け、既存スキルの改修・拡張を優先すること）。
 
 ## Bundled Resources
 

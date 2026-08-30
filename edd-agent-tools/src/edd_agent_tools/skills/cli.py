@@ -3,9 +3,9 @@ import sys
 import argparse
 import zipfile
 from pathlib import Path
-from .models import SkillLogicDraft, SkillPattern, StepInstruction, ResourcePlan, DecisionBranch
+from edd_agent_tools.models import SkillLogicDraft, SkillPattern, StepInstruction, ResourcePlan, DecisionBranch
+from edd_agent_tools.validation.validator import SkillValidator
 from .template_engine import SkillTemplateEngine
-from .validator import SkillValidator
 
 def init_skill(skill_name: str, path: str, pattern: str = "workflow") -> Path | None:
     """新しいスキルディレクトリを Anthropic / Google ADK 準拠の雛形として初期化します。"""

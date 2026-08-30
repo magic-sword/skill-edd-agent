@@ -1,66 +1,30 @@
 from typing import Any
 
 def __getattr__(name: str) -> Any:
-    """パッケージ内のモジュールをアクセス時に初めて動的ロードする遅延インポートハンドラ。"""
+    """パッケージ内のモジュールをアクセス時に動的ロードする遅延インポートハンドラ。"""
     if name == "SkillsState":
-        from .state import SkillsState
+        from edd_agent_tools.state import SkillsState
         return SkillsState
         
-    if name == "SkillsStateJson":
-        from .models import SkillsStateJson
-        return SkillsStateJson
-        
-    if name == "SkillEntry":
-        from .models import SkillEntry
-        return SkillEntry
-        
-    if name == "InheritEntry":
-        from .models import InheritEntry
-        return InheritEntry
-        
-    if name == "SkillTier":
-        from .models import SkillTier
-        return SkillTier
-        
-    if name == "ProjectSkillInfo":
-        from .models import ProjectSkillInfo
-        return ProjectSkillInfo
-        
-    if name == "SkillPattern":
-        from .models import SkillPattern
-        return SkillPattern
-
-    if name == "SkillLogicDraft":
-        from .models import SkillLogicDraft
-        return SkillLogicDraft
-
-    if name == "SkillSpec":
-        from .models import SkillSpec
-        return SkillSpec
-
-    if name == "SkillMetadata":
-        from .models import SkillMetadata
-        return SkillMetadata
+    if name in (
+        "SkillsStateJson", "SkillEntry", "InheritEntry", "SkillTier",
+        "ProjectSkillInfo", "SkillPattern", "SkillLogicDraft",
+        "SkillSpec", "SkillMetadata"
+    ):
+        import edd_agent_tools.models as m
+        return getattr(m, name)
 
     if name == "Skill":
-        from .skill import Skill
+        from edd_agent_tools.skill import Skill
         return Skill
 
     if name == "SkillTemplateEngine":
         from .template_engine import SkillTemplateEngine
         return SkillTemplateEngine
 
-    if name == "SkillValidator":
-        from .validator import SkillValidator
-        return SkillValidator
-
-    if name == "ValidationResult":
-        from .validator import ValidationResult
-        return ValidationResult
-
-    if name == "SkillTests":
-        from .tests import SkillTests
-        return SkillTests
+    if name in ("SkillValidator", "ValidationResult"):
+        import edd_agent_tools.validation.validator as v
+        return getattr(v, name)
 
     if name == "SkillCreationEngine":
         from .creator import SkillCreationEngine
@@ -87,8 +51,8 @@ __all__ = [
     "SkillTemplateEngine",
     "SkillValidator",
     "ValidationResult",
-    "SkillTests",
     "SkillCreationEngine",
     "create_skill"
 ]
+
 
