@@ -8,6 +8,7 @@ import os
 import sys
 import json
 from pathlib import Path
+from typing import Optional, Dict, Any, List
 from edd_agent_tools.state import SkillsState
 
 

@@ -10,14 +10,27 @@ import unittest.mock
 from pydantic import TypeAdapter, ValidationError
 
 from edd_agent_tools.core.entity import Skill
-from edd_agent_tools.evaluation import WorkspaceEnvProtocol
-from edd_agent_tools.evaluation.models import (
+from edd_agent_tools.core.protocols import WorkspaceEnvProtocol
+from edd_agent_tools.models import (
     EvalRunResult,
     EvalCaseSet,
     ExpectedResultType,
     FailedCaseDetail,
     EvalDetailReport
 )
+
+
+class MockSession:
+    """ToolContext用のモックセッション"""
+    def __init__(self):
+        self.state = {}
+
+
+class MockInvocationContext:
+    """ToolContext用のモック実行コンテキスト"""
+    def __init__(self):
+        self.session = MockSession()
+
 
 class ContractTestRunner:
     """
@@ -221,7 +234,6 @@ class ContractTestRunner:
                     break
             if context_param_name:
                 from google.adk.tools import ToolContext
-                from edd_agent_tools.run.mock_context import MockInvocationContext
                 validated_args[context_param_name] = ToolContext(invocation_context=MockInvocationContext())
 
             # モックパッチ適用（指定された場合）

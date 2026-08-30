@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 from typing import Dict, List, Any, Tuple
-from edd_agent_tools.evaluation.models import (
+from edd_agent_tools.evaluation.environment import (
     WorkspaceArtifacts, 
     WorkspaceAction, 
     WorkspaceObservation, 

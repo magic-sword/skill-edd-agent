@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor
 
 from edd_agent_tools.core.entity import Skill
-from .models import EvalRunResult, FailedCaseDetail, EvalDetailReport
+from edd_agent_tools.models import EvalRunResult, FailedCaseDetail, EvalDetailReport
 
 
 class SimulationEvalRunner:

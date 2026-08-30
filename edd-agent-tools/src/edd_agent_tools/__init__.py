@@ -48,7 +48,7 @@ from .evaluation.cascade_runner import CascadeTestRunner
 from .evaluation.diagnoser import SkillDiagnoser
 from .evaluation.optimizer import SkillOptimizer
 from .evaluation.environment import LocalWorkspaceEnv
-from .evaluation.models import WorkspaceEnvProtocol
+from .core.protocols import WorkspaceEnvProtocol
 
 # ADK Integration
 from .adk.toolset import EddSkillToolset, create_adk_skill_toolset

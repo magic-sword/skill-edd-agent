@@ -3,7 +3,7 @@ import json
 from typing import Dict, Any, Optional
 from edd_agent_tools.state import SkillsState
 from edd_agent_tools.core.entity import Skill
-from .models import EvalRunResult, EvalDetailReport
+from edd_agent_tools.models import EvalRunResult, EvalDetailReport
 
 
 class CascadeTestRunner:

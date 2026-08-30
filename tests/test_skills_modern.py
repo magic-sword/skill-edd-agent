@@ -121,7 +121,7 @@ def test_validator_adk_spec_enforcement(tmp_workspace):
 def test_cli_contract_runner(tmp_workspace):
     """ContractTestRunner による CLI サブプロセス実行テストを検証"""
     from edd_agent_tools.evaluation import ContractTestRunner, LocalWorkspaceEnv
-    from edd_agent_tools.evaluation.models import EvalCaseSet, EvalCase, ExpectedResultType
+    from edd_agent_tools.models import EvalCaseSet, EvalCase, ExpectedResultType
 
     skill_dir = SkillScaffolder.scaffold("cli-contract-skill", output_base_dir=tmp_workspace, pattern="workflow")
     skill = Skill(root_dir=str(skill_dir), tier=1)

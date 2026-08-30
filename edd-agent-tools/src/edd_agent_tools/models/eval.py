@@ -3,7 +3,7 @@ Evaluation Models for edd-agent-tools
 """
 
 from typing import Dict, Any, List, Optional, Literal, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from enum import StrEnum
 
 
@@ -19,18 +19,32 @@ class EvalCase(BaseModel):
     eval_case_id: str = Field(..., description="テストケース識別ID")
     function_name: Optional[str] = Field(None, description="対象関数名")
     inputs: Dict[str, Any] = Field(default_factory=dict, description="入力引数")
-    expected: Any = Field(..., description="期待される出力または例外")
-    expected_type: ExpectedResultType = Field(ExpectedResultType.RETURN_VALUE, description="期待結果の検証種別")
+    expected: Optional[Any] = Field(None, description="期待される出力または例外")
+    expected_type: Optional[ExpectedResultType] = Field(ExpectedResultType.RETURN_VALUE, description="期待結果の検証種別")
     mock_responses: Dict[str, Any] = Field(default_factory=dict, description="モック応答")
     cli_args: Optional[List[str]] = Field(None, description="CLI実行時のコマンドライン引数")
     script_name: Optional[str] = Field(None, description="対象スクリプト名（scripts/配下）")
+    expected_exit_code: Optional[int] = Field(None, description="期待されるCLI終了コード")
+    expected_stdout_contains: Optional[List[str]] = Field(None, description="標準出力に含まれるべき文字列リスト")
+    expected_stderr_contains: Optional[List[str]] = Field(None, description="標準エラー出力に含まれるべき文字列リスト")
 
 
 class EvalCaseSet(BaseModel):
     """スキル評価用テストケースセット"""
-    skill_name: str = Field(..., description="対象スキル名")
-    test_type: str = Field("contract", description="テスト種別 (contract, trigger, golden, judge, adversarial)")
+    eval_set_id: Optional[str] = Field(None, description="テストセットID")
+    skill_name: Optional[str] = Field(None, description="対象スキル名")
+    test_type: Optional[str] = Field("contract", description="テスト種別 (contract, trigger, golden, judge, adversarial)")
     eval_cases: List[EvalCase] = Field(default_factory=list, description="テストケース一覧")
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_cases(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            if "cases" in values and "eval_cases" not in values:
+                values["eval_cases"] = values.get("cases", [])
+            if "skill_name" not in values and "eval_set_id" in values:
+                values["skill_name"] = str(values["eval_set_id"]).split("_")[0]
+        return values
 
 
 class FailedCaseDetail(BaseModel):
