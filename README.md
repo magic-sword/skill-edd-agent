@@ -68,19 +68,26 @@ flowchart TD
 pip install -e edd-agent-tools
 ```
 
-### CLI によるスキル操作
+### 統合 CLI (`edd`) によるスキル操作
 ```bash
-# 1. 新規スキル雛形の初期化
-edd-skills init my-new-skill --pattern workflow
+# 1. スキルの直接実行 (動的ディスパッチ)
+edd run case-converter --input "hello_world" --format camel
+# またはスキル名を直接サブコマンドとして指定可能 (Git プラグイン方式)
+edd case-converter --input "hello_world" --format camel
 
-# 2. 静的バリデーションの実行
-edd-skills validate src/skills/my-new-skill
+# 2. 新規スキル雛形の初期化
+edd init my-new-skill --pattern workflow
 
-# 3. 配布用 ZIP のパッケージング
-edd-skills package src/skills/my-new-skill dist
+# 3. 高度な静的バリデーション (Linter / AST 解析)
+edd validate src/skills/my-new-skill
 
-# 4. 自然言語要件からの自動スキル生成
-edd-skills create "PDFの回転・結合を行う pdf-tools スキルを作成して" --pattern workflow
+# 4. 配布用 ZIP パッケージング
+edd package src/skills/my-new-skill --out dist
+
+# 5. EDD 多層評価 & Tier 昇格 & 失敗診断
+edd eval my-new-skill --type all
+edd tier-gate my-new-skill --tier 1
+edd diagnose my-new-skill
 ```
 
 ### Python API による自律スキル生成

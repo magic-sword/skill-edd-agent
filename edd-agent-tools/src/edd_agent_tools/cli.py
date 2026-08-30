@@ -274,8 +274,7 @@ def cmd_tier_gate(args: argparse.Namespace) -> int:
                 return 1
 
     # 昇格成功
-    skill.spec.tier = SkillTier(args.tier)
-    state.register_skill(skill)
+    state.register_skill(skill_name=args.skill_name, tier=SkillTier(args.tier))
     print(f"🎉 Success: Skill '{args.skill_name}' successfully promoted to Tier {args.tier} ({SkillTier(args.tier).name})!")
     return 0
 

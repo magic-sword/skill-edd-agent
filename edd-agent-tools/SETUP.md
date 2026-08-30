@@ -22,8 +22,7 @@ pip install -e edd-agent-tools
 
 正常にインストールされたか確認します：
 ```bash
-edd-skills --help
-edd-eval --help
+edd --help
 ```
 
 ---

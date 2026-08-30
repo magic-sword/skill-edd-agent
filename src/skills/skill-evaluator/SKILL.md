@@ -15,15 +15,15 @@ pattern: workflow
 
 評価目的に応じて、以下の決定ロジックに従って評価パイプラインを実行する：
 
-- **If** テストケース（evalset.json）を設計・作成する場合 ➔ **Then** `references/test_types_guide.md` の仕様に従ってエージェントがテストケースを作成するか、`edd-eval generate` コマンドを呼び出す
-- **If** 評価セットを実行してスコアを計測する場合 ➔ **Then** `scripts/run_eval.py` を呼び出し、結果を `tests/results/latest_report.json` に構造化ログとして永続化する
-- **If** 対象スキルを特定 Tier に昇格・オンボーディング判定する場合 ➔ **Then** `scripts/run_tier_gate.py` を呼び出し、Tier 1〜3 の防壁テストを実行して合格時に `SkillsState` へ登録する
+- **If** テストケース（evalset.json）を設計・作成する場合 ➔ **Then** `references/test_types_guide.md` の仕様に従ってエージェント自身がテストケースを作成・配置する
+- **If** 評価セットを実行してスコアを計測する場合 ➔ **Then** `edd eval <skill_name>`（または `scripts/run_eval.py`）を呼び出し、結果を `tests/results/latest_report.json` に構造化ログとして永続化する
+- **If** 対象スキルを特定 Tier に昇格・オンボーディング判定する場合 ➔ **Then** `edd tier-gate <skill_name>`（または `scripts/run_tier_gate.py`）を呼び出し、Tier 1〜3 の防壁テストを実行して合格時に `SkillsState` へ登録する
 
 ## Step-by-Step Instructions
 
 ### Step 1: テストセットの設計・準備
 1. `references/test_types_guide.md` を参照し、テストタイプ（`trigger`, `contract`, `golden`, `judge`, `trajectory`, `adversarial`）を選定する。
-2. スキルの入出力仕様（`SKILL.md` / `scripts/`）に沿ったテストケースを作成し、`tests/<skill_name>_<type>.evalset.json` に保存する（または `edd-eval generate <skill_name>` を実行）。
+2. スキルの入出力仕様（`SKILL.md` / `scripts/`）に沿ったテストケースを作成し、`tests/<skill_name>_<type>.evalset.json` に保存する。
 
 ### Step 2: 評価シミュレーションの実行 *(Tool: `edd eval` または `scripts/run_eval.py`)*
 隔離環境（`LocalWorkspaceEnv`）上でテストを実行し、精度（Accuracy）、成功数、失敗ログを収集して `tests/results/latest_report.json` に記録する：

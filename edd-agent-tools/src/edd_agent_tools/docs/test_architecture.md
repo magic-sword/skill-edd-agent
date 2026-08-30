@@ -17,19 +17,19 @@
 
 ```mermaid
 graph TD
-    Spec[SKILL.md / scripts] -->|1. Analyze & Generate| Gen["EvalSetGenerator (edd-eval generate)"]
+    Spec[SKILL.md / scripts] -->|1. Analyze & Design| Gen["Test Authoring (references/test_types_guide.md)"]
     Gen -->|2. Save Asset| File[(tests/skill_name/test_type.evalset.json)]
-    File -->|3. Read & Run| Exec["skill-evaluator (scripts/run_eval.py / edd-eval run)"]
+    File -->|3. Read & Run| Exec["skill-evaluator (edd eval / scripts/run_eval.py)"]
     Exec -->|4. Assert & Run| Env[LocalWorkspaceEnv (Git Sandbox)]
     Env -->|5. Aggregate & Report| Result[(tests/results/latest_report.json)]
-    Result -->|6. Gating & Promotion| Gate["skill-evaluator (scripts/run_tier_gate.py / edd-eval gate)"]
+    Result -->|6. Gating & Promotion| Gate["skill-evaluator (edd tier-gate / scripts/run_tier_gate.py)"]
 ```
 
-1.  **テスト生成フェーズ (`EvalSetGenerator` / `edd-eval generate`)**:
-    仕様定義（`SKILL.md` や `scripts/`）を基に、指定されたテストタイプ（`trigger`, `contract`, `golden`, `judge`, `trajectory`, `adversarial`）の評価セットを生成し、`tests/<skill_name>_<type>.evalset.json` に**物理的なアセットファイルとして保存**します。エージェント自身が対話的に設計することも可能です。
-2.  **評価実行フェーズ (`scripts/run_eval.py` / `edd-eval run`)**:
+1.  **テスト設計・配置フェーズ**:
+    仕様定義（`SKILL.md` や `scripts/`）を基に、指定されたテストタイプ（`trigger`, `contract`, `golden`, `judge`, `trajectory`, `adversarial`）の評価セットを設計し、`tests/<skill_name>_<type>.evalset.json` に**物理的なアセットファイルとして保存**します。エージェント自身が対話的に設計することも可能です。
+2.  **評価実行フェーズ (`edd eval` / `scripts/run_eval.py`)**:
     保存された JSON 評価セットをロードし、隔離されたサンドボックス環境（`LocalWorkspaceEnv`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。結果は `latest_report.json` に構造化ログとして永続化されます。
-3.  **Tier 昇格ゲートキーパーフェーズ (`scripts/run_tier_gate.py` / `edd-eval gate`)**:
+3.  **Tier 昇格ゲートキーパーフェーズ (`edd tier-gate` / `scripts/run_tier_gate.py`)**:
     Tier 階層（Tier 1: Production, Tier 2: Verified, Tier 3: Mastered）に応じた防壁テストを一括検証し、合格時に `SkillsState` へ登録・昇格させます。
 
 
