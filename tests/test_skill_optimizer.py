@@ -30,7 +30,7 @@ def test_skill_optimizer_execution_mock():
     skill = state.get_skill("skill-optimizer")
     assert skill is not None
 
-    mod = skill.load_module()
+    mod = skill.load_module("optimizer.py")
     assert hasattr(mod, "SkillOptimizer")
     assert hasattr(mod, "optimize_skill")
 

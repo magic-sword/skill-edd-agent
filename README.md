@@ -83,9 +83,13 @@ python -m edd_agent_tools.skills.cli package src/skills/my-new-skill
 
 ### Python API による自律スキル生成
 ```python
-from src.skills.skill_creator.scripts.main import create_skill
+from edd_agent_tools.skills import SkillsState
 
-result = create_skill(
+state = SkillsState()
+creator_skill = state.get_skill("skill-creator")
+create_skill_fn = creator_skill.load_module("creator.py").create_skill
+
+result = create_skill_fn(
     prompt="PDFファイルの回転・結合・テキスト抽出を行う pdf-tools スキルを作成してください。",
     name="pdf-tools",
     pattern="workflow"

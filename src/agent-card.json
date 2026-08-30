@@ -6,7 +6,7 @@
   "defaultOutputModes": [
     "text/plain"
   ],
-  "description": "Google ADK と Anthropic スキル標準を融合した、自立的にスキルを開発・評価・統合する自己進化型エージェント",
+  "description": "Google ADK と Anthropic スキル標準を融合した、自律的にスキルを開発・評価・統合する自己進化型エージェント",
   "name": "evaluation_driven_development_agent",
   "protocolVersion": "0.3.0",
   "skills": [

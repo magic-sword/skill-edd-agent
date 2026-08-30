@@ -55,11 +55,10 @@ pattern: workflow
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/creator.py`**: 4段階品質保証パイプラインを実行するコア自動生成エンジン（CLI対応）
+- **`scripts/creator.py`**: 4段階品質保証パイプラインを実行するコア自動生成エンジン（CLI対応 / Python API）
 - **`scripts/init_skill.py`**: 4大スキルパターンに対応した雛形を生成する決定論的初期化CLIツール
 - **`scripts/quick_validate.py`**: 外部依存なしで高速に静的整合性を検査する Zero-dependency バリデータ
 - **`scripts/package_skill.py`**: スキルを静的検証した上で配布用 ZIP パッケージを出力する決定論的CLIツール
-- **`scripts/main.py`**: CLIおよびエージェント向け公開関数（`create_skill`）のエントリポイント
 
 ### `references/` (On-Demand Knowledge)
 - **`references/skill_design_guide.md`**: スキル設計原則、パターン選定基準、3層リソース分離のガイドライン

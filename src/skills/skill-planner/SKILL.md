@@ -39,8 +39,7 @@ pattern: workflow
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/planner.py`**: 要件プロンプトを分析し開発ルートを計画するエンジン（CLI対応）
-- **`scripts/main.py`**: CLIおよびエージェント向け公開関数（`plan_skill_development`）のエントリポイント
+- **`scripts/planner.py`**: 要件プロンプトを分析し開発ルートを計画するエンジン（CLI対応 / Python API）
 
 ### `references/` (On-Demand Knowledge)
 - **`references/planning_and_routing_architecture.md`**: 計画立案とルーティングアーキテクチャの仕様書

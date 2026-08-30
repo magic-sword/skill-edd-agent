@@ -192,7 +192,13 @@ Markdownの ```python ... ``` コードブロックで囲んで完全なPython�
             return False
 
 
-if __name__ == "__main__":
+def optimize_skill(skill_name: str, max_retries: int = 3) -> dict:
+    """テスト失敗ログを元に自律修復・再テスト・連鎖回帰テストを実行し、スキルをTier昇格させます。"""
+    optimizer = SkillOptimizer()
+    return optimizer.optimize_skill(skill_name=skill_name, max_retries=max_retries)
+
+
+def main():
     import argparse
     parser = argparse.ArgumentParser(description="Skill Optimizer CLI")
     parser.add_argument("skill", type=str, nargs="?", default="", help="Logical name of the target skill (e.g. pdf-tools)")
@@ -203,7 +209,10 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
 
-    opt = SkillOptimizer()
-    res = opt.optimize_skill(skill_name=args.skill, max_retries=args.retries)
+    res = optimize_skill(skill_name=args.skill, max_retries=args.retries)
     print(json.dumps(res, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
 

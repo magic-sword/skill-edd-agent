@@ -168,9 +168,25 @@ class SkillCreationEngine:
         return SkillValidator.validate_directory(skill_dir)
 
 
-if __name__ == "__main__":
+def create_skill(
+    prompt: str,
+    name: Optional[str] = None,
+    pattern: Optional[str] = None,
+    output_dir: Optional[str] = None
+) -> dict:
+    """自然言語要件から完全なスキルパッケージ（SKILL.md、scripts/、references/、assets/）を自律生成します。"""
+    engine = SkillCreationEngine(output_base_dir=output_dir or "src/skills")
+    return engine.create_skill_from_prompt(
+        prompt=prompt,
+        name=name,
+        pattern=pattern,
+        output_dir=output_dir
+    )
+
+
+def main():
     import argparse
-    parser = argparse.ArgumentParser(description="SkillCreationEngine CLI")
+    parser = argparse.ArgumentParser(description="Skill Creation Engine CLI")
     parser.add_argument("prompt", type=str, nargs="?", default="", help="Natural language requirement prompt for the skill")
     parser.add_argument("--name", type=str, default=None, help="Skill identifier (e.g. pdf-tools)")
     parser.add_argument("--pattern", type=str, default=None, help="Skill pattern (workflow, task_based, reference, capabilities)")
@@ -181,12 +197,15 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
 
-    engine = SkillCreationEngine(output_base_dir=args.output)
-    res = engine.create_skill_from_prompt(
+    res = create_skill(
         prompt=args.prompt,
         name=args.name,
         pattern=args.pattern,
         output_dir=args.output
     )
     print(json.dumps(res, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
 

@@ -45,8 +45,7 @@ dependencies:
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/optimizer.py`**: 自律改善ループ実行エンジン
-- **`scripts/main.py`**: エントリポイントモジュール
+- **`scripts/optimizer.py`**: 自律改善ループ実行エンジン（CLI対応 / Python API）
 
 ## Guidelines & Best Practices
 

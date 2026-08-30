@@ -14,16 +14,16 @@ def test_skill_creator_end_to_end(temp_output_dir):
     """skill-creator によるエンドツーエンドのスキル自動生成テスト"""
     # 1. skill-creator を Skill クラス経由でロード
     creator_skill = Skill(root_dir="/workspace/src/skills/skill-creator")
-    tool = creator_skill.get_tool()
-    assert tool.name == "create_skill"
+    creator_mod = creator_skill.load_module("creator.py")
+    assert hasattr(creator_mod, "create_skill")
 
     prompt = """
     ユーザーから提供されたテキストファイルの行数、単語数、文字数を解析し、集計レポートを出力する text-analyzer スキルを作成してください。
     実行スクリプトとして analyze.py を含め、簡単な使用ガイドラインを references/ に配置してください。
     """
     
-    # 2. create_skill ツールの実行
-    result = tool.func(
+    # 2. create_skill の実行
+    result = creator_mod.create_skill(
         prompt=prompt,
         name="text-analyzer",
         pattern="workflow",

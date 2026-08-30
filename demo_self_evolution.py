@@ -54,7 +54,7 @@ def main():
 
     # Stage 1〜4 によるスキル生成
     creator_skill = state.get_skill("skill-creator")
-    create_skill_fn = creator_skill.load_module().create_skill
+    create_skill_fn = creator_skill.load_module("creator.py").create_skill
     res = create_skill_fn(
         prompt="文字列を大文字(UPPER), 小文字(lower), キャメルケース(camelCase), スネークケース(snake_case)に変換するテキスト変換ユーティリティスキルを作成してください。",
         name=demo_skill_name,
@@ -83,7 +83,7 @@ def main():
     print(f"➔ skill-optimizer を呼び出し、テスト実行・診断・連鎖回帰テストを実行中...")
 
     optimizer_skill = state.get_skill("skill-optimizer")
-    optimize_skill_fn = optimizer_skill.load_module().optimize_skill
+    optimize_skill_fn = optimizer_skill.load_module("optimizer.py").optimize_skill
     opt_res = optimize_skill_fn(skill_name=demo_skill_name, max_retries=2)
 
     print(f"最適化ステータス: {opt_res.get('status')}")

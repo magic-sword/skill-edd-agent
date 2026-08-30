@@ -47,10 +47,9 @@ Tier 階層に応じた防壁テストを実行する：
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/generate_evalset.py`**: テストケース自動生成スクリプト（CLI/API両用）
-- **`scripts/run_eval.py`**: 評価スイート実行＆ログ永続化スクリプト
-- **`scripts/run_tier_gate.py`**: Tier 1〜3 昇格判定＆登録ゲートキーパー
-- **`scripts/main.py`**: エージェント向け統合公開関数（`evaluate_skill`）のエントリポイント
+- **`scripts/generate_evalset.py`**: テストケース自動生成スクリプト（CLI / API）
+- **`scripts/run_eval.py`**: 評価スイート実行＆ログ永続化スクリプト（CLI / API）
+- **`scripts/run_tier_gate.py`**: Tier 1〜3 昇格判定＆登録ゲートキーパー（CLI / API）
 
 ### `references/` (On-Demand Knowledge)
 - **`references/evaluation_rubrics.md`**: 各テストタイプの合格基準、閾値、および採点ルーブリック仕様書

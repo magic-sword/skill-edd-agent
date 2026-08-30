@@ -8,7 +8,6 @@ import importlib.util
 from pathlib import Path
 from typing import Literal, Any, Optional
 
-from google.adk.tools import FunctionTool
 from .models import SkillSpec, SkillPattern, ModuleType, SkillMetadata
 from edd_agent_tools.evaluation import SimulationEval
 
@@ -189,30 +188,31 @@ class Skill:
         return SimulationEval(self)
 
     # ==========================================
-    # 動的ツール化 (FunctionTool Generation)
+    # 決定論的スクリプト実行 & モジュールロード
     # ==========================================
 
-    def load_module(self):
-        """scripts/__init__.py または主要スクリプトをロードしモジュールオブジェクトを返します。"""
-        script_abs_path = os.path.join(self.scripts_dir, "__init__.py")
-        
-        # scripts/__init__.py または main.py を優先探索
-        if not os.path.exists(script_abs_path):
-            main_py_path = os.path.join(self.scripts_dir, "main.py")
-            if os.path.exists(main_py_path):
-                script_abs_path = main_py_path
-            else:
-                py_files = [f for f in os.listdir(self.scripts_dir) if f.endswith(".py") and not f.startswith("__")] if os.path.exists(self.scripts_dir) else []
-                if py_files:
-                    script_abs_path = os.path.join(self.scripts_dir, sorted(py_files)[0])
-                else:
-                    raise FileNotFoundError(f"Error: No valid Python script found in: {self.scripts_dir}")
+    def get_script_path(self, script_name: str) -> str:
+        """scripts/ 配下の指定スクリプトの絶対パスを取得します。"""
+        target = os.path.join(self.scripts_dir, script_name)
+        if not os.path.exists(target):
+            raise FileNotFoundError(f"Error: Script '{script_name}' not found in: {self.scripts_dir}")
+        return target
 
-        skill_name_under = self.name.replace('-', '_')
-        parent_pkg = f"edd_agent_tools.dynamic_skills.{skill_name_under}"
-        package_name = f"{parent_pkg}.scripts"
-        module_name = package_name
+    def load_module(self, script_name: str | None = None):
+        """scripts/ 配下の指定スクリプト（省略時は最初に見つかった .py ファイル）を直接ロードしてモジュールを返します。"""
+        if not os.path.exists(self.scripts_dir):
+            raise FileNotFoundError(f"Error: scripts/ directory not found in: {self.root_dir}")
 
+        if script_name:
+            script_abs_path = self.get_script_path(script_name)
+        else:
+            # 主要スクリプトの優先探索 (skill名.py, creator.py, diagnoser.py 等)
+            py_files = sorted([f for f in os.listdir(self.scripts_dir) if f.endswith(".py") and not f.startswith("__")])
+            if not py_files:
+                raise FileNotFoundError(f"Error: No valid Python script found in: {self.scripts_dir}")
+            script_abs_path = os.path.join(self.scripts_dir, py_files[0])
+
+        module_name = f"edd_skills.{self.name.replace('-', '_')}.{Path(script_abs_path).stem}"
         if module_name in sys.modules:
             return sys.modules[module_name]
 
@@ -221,60 +221,11 @@ class Skill:
         if self.scripts_dir not in sys.path:
             sys.path.insert(0, self.scripts_dir)
 
-        if parent_pkg not in sys.modules:
-            sys.modules[parent_pkg] = types.ModuleType(parent_pkg)
-        if package_name not in sys.modules:
-            pkg_module = types.ModuleType(package_name)
-            pkg_module.__path__ = [self.scripts_dir]
-            pkg_module.__package__ = package_name
-            sys.modules[package_name] = pkg_module
-
         spec = importlib.util.spec_from_file_location(module_name, script_abs_path)
-        if spec is None:
+        if spec is None or spec.loader is None:
             raise ImportError(f"Could not load spec for {script_abs_path}")
 
         module = importlib.util.module_from_spec(spec)
-        module.__package__ = package_name
         sys.modules[module_name] = module
         spec.loader.exec_module(module)
         return module
-
-    def get_tools(self) -> list[FunctionTool]:
-        """このスキルの scripts/ 配下から公開関数をスキャンし、FunctionTool のリストとして構築して返します。"""
-        if not os.path.exists(self.scripts_dir):
-            return []
-
-        try:
-            skill_module = self.load_module()
-        except FileNotFoundError:
-            return []
-
-        tools = []
-        # 1. __all__ が定義されている場合はそれを優先
-        if hasattr(skill_module, "__all__"):
-            export_names = getattr(skill_module, "__all__")
-        else:
-            # 2. 定義されていない場合はアンダースコア始まりでない関数を抽出
-            export_names = [n for n, obj in inspect.getmembers(skill_module, inspect.isfunction) if not n.startswith("_")]
-
-        for name in export_names:
-            obj = getattr(skill_module, name, None)
-            if obj and inspect.isfunction(obj):
-                obj.__name__ = name
-                if not obj.__doc__:
-                    obj.__doc__ = self.description or f"Execute {name} task"
-                tools.append(FunctionTool(func=obj))
-
-        return tools
-
-    def get_tool(self) -> FunctionTool:
-        """単一の FunctionTool を取得します。"""
-        tools = self.get_tools()
-        if not tools:
-            raise AttributeError(f"Error: Skill '{self.name}' provides no executable tool functions in scripts/.")
-        if len(tools) == 1:
-            return tools[0]
-        raise ValueError(
-            f"Error: Skill '{self.name}' exports multiple tools ({[t.name for t in tools]}). "
-            "Please use get_tools() instead."
-        )

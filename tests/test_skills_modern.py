@@ -118,12 +118,12 @@ def test_skill_domain_class_resource_access(tmp_workspace):
     ref_content = skill.load_reference("guide.md")
     assert "Reference Guide for my-domain-skill" in ref_content
 
-    # ツール取得テスト
-    tools = skill.get_tools()
-    assert len(tools) >= 1
-    tool = skill.get_tool()
-    assert tool.name == "run"
-    assert tool.func() == "Success"
+    # スクリプトパス解決 & ロードテスト
+    script_path = skill.get_script_path("main.py")
+    assert script_path.endswith("main.py")
+    mod = skill.load_module("main.py")
+    assert hasattr(mod, "run")
+    assert mod.run() == "Success"
 
 def test_cli_package(tmp_workspace):
     """CLI package 機能のテスト"""
@@ -134,7 +134,7 @@ def test_cli_package(tmp_workspace):
     assert zip_path.exists()
 
 def test_skill_evaluator_integration():
-    """統合評価スキル skill-evaluator の静的検証と API ロードのテスト"""
+    """統合評価スキル skill-evaluator の静的検証とスクリプト解決のテスト"""
     evaluator_dir = Path("/workspace/src/skills/skill-evaluator")
     val_res = SkillValidator.validate_directory(evaluator_dir)
     assert val_res.is_valid is True, f"Validation errors: {val_res.errors}"
@@ -146,5 +146,5 @@ def test_skill_evaluator_integration():
     assert "run_eval.py" in eval_skill.list_scripts()
     assert "run_tier_gate.py" in eval_skill.list_scripts()
 
-    mod = eval_skill.load_module()
-    assert hasattr(mod, "evaluate_skill")
+    gate_mod = eval_skill.load_module("run_tier_gate.py")
+    assert hasattr(gate_mod, "run_tier_gate")

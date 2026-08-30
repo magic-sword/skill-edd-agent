@@ -40,8 +40,7 @@ pattern: workflow
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/diagnoser.py`**: テスト結果とアセットを分析し改善計画を策定する診断エンジン（CLI対応）
-- **`scripts/main.py`**: CLIおよびエージェント向け公開関数（`diagnose_skill_failure`）のエントリポイント
+- **`scripts/diagnoser.py`**: テスト結果とアセットを分析し改善計画を策定する診断エンジン（CLI対応 / Python API）
 
 ## Guidelines & Best Practices
 
