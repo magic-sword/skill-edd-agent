@@ -4,14 +4,49 @@
 
 ---
 
-## 1. パッケージとスキルの責務分離 (Two-Tier Architecture & Loose Coupling)
-*   **基盤パッケージ (`edd-agent-tools`) の責務**:
-    - 統合 CLI `edd`（動的ディスパッチ `edd run <skill>`, `edd init`, `edd validate`, `edd package`, `edd eval`, `edd tier-gate`, `edd diagnose`, `edd optimize`）を提供する。
-    - スキルの探索・パス解決（`SkillsState`, `Skill`）、仮想環境サンドボックス（`LocalWorkspaceEnv`）、多層評価・Tier昇格テスト（`ContractTestRunner`, `SimulationEvalRunner`）、静的バリデーション（`SkillValidator`）、Google ADK 2.0 `EddSkillToolset` / MCP 連携等の共通基盤ロジックを一元管理する。
-*   **スキル (`src/skills/`) の責務**:
-    - `SKILL.md`（意思決定ツリー・手順書）、`references/`（ドメイン知識）、`assets/`（テンプレート）、`scripts/`（業務スクリプト）に特化する。
-    - **完全な自己完結性（Portability / Zero-dependency）**: スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはならない。Python 標準ライブラリのみで実装するか、統合 CLI `edd` を subprocess 呼び出しする設計とする。
-    - **二重 LLM 呼び出しの禁止（Anti-pattern）**: スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を抱え込まず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計とする。スクリプトは決定論的なブラックボックス CLI ツール（`argparse` / `--help` 対応）として実装する。
+## 0. プロジェクトの目的と設計哲学 (Project Vision & Core Purpose)
+
+### 🎯 プロジェクトの北極星 (North Star)
+本プロジェクトの究極の目的は、**「AI エージェントが自らのスキル（手順書・ドメイン知識・決定論的スクリプト）を自律的にテスト・診断・修復・進化させる自己進化システム（Self-Evolving Agentic Ecosystem）」** を構築することです。
+
+### ⚖️ 最重要トレードオフの原則 (The Core Trade-off)
+一般的なソフトウェア開発では「DRY原則（重複排除・共通ライブラリ化）」が重視されますが、本プロジェクトでは **「自己改善の局所性（Locality of Mutation）と安全な隔離（Isolation）」を DRY原則よりも上位の原則** として優先します。
+
+* **なぜパッケージに個別処理を集約してはならないのか？（技術的根拠）**:
+  1. **探索空間の極小化 (Search Space Localization)**:
+     エージェントがバグを修正したり性能を改善する際、変更対象が `skills/<skill-name>/` 内に閉じていれば、迷走せず迅速・正確に修正を完了できます。
+  2. **爆発半径の極小化 (Blast Radius Minimization)**:
+     スキル内のスクリプトが自己改善の試行錯誤で一時的に壊れても、共通パッケージや他のスキルを巻き込んでシステム全体が停止するリスクをゼロにします。
+  3. **サンドボックス評価の容易性 (Safe Sandboxing & Rollback)**:
+     スキルが単一ディレクトリで完結しているため、仮想環境（`LocalWorkspaceEnv`）に安全に複製して何度でもテスト・評価・ロールバックが可能です。
+  4. **ポータビリティの保証 (Drop-in Portability)**:
+     スキルが外部パッケージに直接依存しないことで、Claude Code, Antigravity, Cursor, Google ADK 等のあらゆる環境へ zip 1つで即座に配布・利用できます。
+
+## 1. パッケージとスキルの責務分離 (Two-Tier Architecture & Self-Evolution Isolation)
+
+### A. スキル個別ロジックの完全隔離 (Self-Contained Skill Isolation)
+* **個別処理のスキル内カプセル化**:
+  スキルの業務ロジック、個別処理スクリプト（`scripts/`）、ドメインスキーマ（`references/`）、出力用テンプレート（`assets/`）、個別契約テスト（`tests/`）は、**必ずスキルディレクトリ内に隔離して実装**してください。
+* **自己改善エージェント（Self-Evolution）のための探索境界**:
+  エージェントがスキルを自律改善・修復する際、修正対象の探索空間（Search Space）を `skills/<skill-name>/` 内に局所化し、変更の爆発半径（Blast Radius）を極小化するためです。スキル固有のロジックが外部パッケージに流出すると、エージェントが修正箇所を特定できず自己改善ループが破綻します。
+
+### B. アンチパターン：過度なパッケージ集約の禁止 (Anti-Pattern: Excessive Package Centralization)
+* **DRY 原則の過剰適用によるパッケージ移転の禁止**:
+  「似た処理があるから」「共通化できるから」という理由だけで、スキル固有の処理スクリプトを pip パッケージ（`edd-agent-tools`）内へ過度に移転・集約してはなりません。
+* **パッケージ（pip ライブラリ: `edd-agent-tools`）の責務**:
+  全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム」に徹してください：
+  - サンドボックス仮想環境（`LocalWorkspaceEnv`）
+  - 多層評価・Tier昇格エンジン（`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`）
+  - 汎用静的バリデータ（`SkillValidator`）
+  - スキルレジストリ・探索（`SkillsState`）
+  - Google ADK 2.0 / MCP アダプタ（`EddSkillToolset`）
+  - 統合 CLI（`edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
+
+### C. スキル（`skills/`）の責務とポータビリティ:
+* **完全な自己完結性（Portability / Zero-dependency）**:
+  スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはなりません。Python 標準ライブラリのみで実装するか、統合 CLI `edd` を subprocess 呼び出しする設計としてください。
+* **二重 LLM 呼び出しの禁止（Anti-pattern）**:
+  スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を抱え込まず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。スクリプトは決定論的なブラックボックス CLI ツール（`argparse` / `--help` 対応）として実装してください。
 
 ---
 

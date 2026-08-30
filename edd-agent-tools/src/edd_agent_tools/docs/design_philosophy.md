@@ -4,6 +4,22 @@
 
 ---
 
+## 0. プロジェクトの目的と設計哲学 (Project Vision & Core Purpose)
+
+### 🎯 プロジェクトの北極星 (North Star)
+本プロジェクトの究極の目的は、**「AI エージェントが自らのスキル（手順書・ドメイン知識・決定論的スクリプト）を自律的にテスト・診断・修復・進化させる自己進化システム（Self-Evolving Agentic Ecosystem）」** の構築です。
+
+### ⚖️ 最重要トレードオフの原則 (The Core Trade-off)
+一般的なソフトウェア開発では「DRY原則（重複排除・共通ライブラリ化）」が重視されますが、本プロジェクトでは **「自己改善の局所性（Locality of Mutation）と安全な隔離（Isolation）」を DRY原則よりも上位の原則** として優先します。
+
+* **なぜパッケージに個別処理を集約してはならないのか？**:
+  1. **探索空間の極小化 (Search Space Localization)**: エージェントがバグを修正したり性能を改善する際、変更対象が `skills/<skill-name>/` 内に閉じていれば、迷走せず迅速・正確に修正を完了できます。
+  2. **爆発半径の極小化 (Blast Radius Minimization)**: スキル内のスクリプトが自己改善の試行錯誤で一時的に壊れても、共通パッケージや他のスキルを巻き込んでシステム全体が停止するリスクをゼロにします。
+  3. **サンドボックス評価の容易性 (Safe Sandboxing & Rollback)**: スキルが単一ディレクトリで完結しているため、仮想環境（`LocalWorkspaceEnv`）に安全に複製して何度でもテスト・評価・ロールバックが可能です。
+  4. **ポータビリティの保証 (Drop-in Portability)**: スキルが外部パッケージに直接依存しないことで、Claude Code, Antigravity, Cursor, Google ADK 等のあらゆる環境へ zip 1つで即座に配布・利用できます。
+
+---
+
 ## 1. コア思想
 
 ### ① 単一真実源の原則 (Single Source of Truth ➔ Markdown-First)
@@ -23,8 +39,12 @@
 * 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 標準の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script`）を採用。
 * エージェント起動時のコンテキスト消費を極小化しつつ、決定論的スクリプトのブラックボックス実行と安全なパス解決を実現。
 
-### ④ スキルの完全ポータビリティと Zero-dependency CLI
+### ④ スキルの完全ポータビリティと個別ロジックの隔離 (Self-Evolution Isolation)
 * 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor, ADK 等）へドロップイン可能な自己完結性を持つ。
+* **自己改善エージェントの探索境界**:
+  エージェントが特定のスキルを自律改善する際、修正対象の探索空間を `skills/<skill-name>/` 内に閉じることで、変更の局所化（Locality）と爆発半径（Blast Radius）の極小化を実現。
+* **過度なパッケージ集約の禁止 (Anti-Pattern)**:
+  「共通化可能」という理由だけでスキル固有の個別処理を pip パッケージ（`edd-agent-tools`）へ移転・集約することを厳禁とする。パッケージは不変の評価・実行プラットフォームに徹し、個別業務ロジックはスキル内にカプセル化する。
 * スキル内のスクリプトは外部ライブラリへの直接 import を排除し、Python 標準ライブラリのみ、または統合 CLI `edd` の subprocess 呼び出しで動作する疎結合な設計を徹底。
 
 ### ⑤ 4次元ネガティブ・ハーネス (`When NOT to Use` による過剰適用防止)
