@@ -22,86 +22,76 @@
   4. **ポータビリティの保証 (Drop-in Portability)**:
      スキルが外部パッケージに直接依存しないことで、Claude Code, Antigravity, Cursor, Google ADK 等のあらゆる環境へ zip 1つで即座に配布・利用できます。
 
+---
+
 ## 1. パッケージとスキルの責務分離 (Two-Tier Architecture & Self-Evolution Isolation)
 
-### A. スキル個別ロジックの完全隔離 (Self-Contained Skill Isolation)
-* **個別処理のスキル内カプセル化**:
+### A. 不変プラットフォーム層（pip ライブラリ: `edd-agent-tools`）の責務
+全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム」に徹してください：
+- **仮想環境サンドボックス**: `LocalWorkspaceEnv`, `SubprocessSandbox`
+- **多層評価・Tier昇格エンジン**: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`
+- **汎用静的リンター**: `SkillValidator`（AST/構文/実在検証）
+- **状態・レジストリ管理**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析）
+- **配布用 ZIP パッケージャ**: `package_skill_cli`
+- **Google ADK 2.0 / MCP アダプタ**: `create_adk_skill_toolset`, `EddSkillToolset`
+- **統合 CLI**: `edd`（`run`, `init`, `validate`, `package`, `eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
+
+※ **過度なテンプレート・プロンプトハードコードの禁止**:
+Markdown の文体やテンプレート生成ロジックを pip パッケージ側に過度にハードコードしてはなりません。エージェントがプロンプトを進化させるときに pip パッケージのコードを変更する必要をなくすためです。
+
+### B. 自己改善スキル資産層（`src/skills/`）の責務
+- **個別ロジックのカプセル化**:
   スキルの業務ロジック、個別処理スクリプト（`scripts/`）、ドメインスキーマ（`references/`）、出力用テンプレート（`assets/`）、個別契約テスト（`tests/`）は、**必ずスキルディレクトリ内に隔離して実装**してください。
-* **自己改善エージェント（Self-Evolution）のための探索境界**:
-  エージェントがスキルを自律改善・修復する際、修正対象の探索空間（Search Space）を `skills/<skill-name>/` 内に局所化し、変更の爆発半径（Blast Radius）を極小化するためです。スキル固有のロジックが外部パッケージに流出すると、エージェントが修正箇所を特定できず自己改善ループが破綻します。
-
-### B. アンチパターン：過度なパッケージ集約の禁止 (Anti-Pattern: Excessive Package Centralization)
-* **DRY 原則の過剰適用によるパッケージ移転の禁止**:
-  「似た処理があるから」「共通化できるから」という理由だけで、スキル固有の処理スクリプトを pip パッケージ（`edd-agent-tools`）内へ過度に移転・集約してはなりません。
-* **パッケージ（pip ライブラリ: `edd-agent-tools`）の責務**:
-  全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム」に徹してください：
-  - サンドボックス仮想環境（`LocalWorkspaceEnv`）
-  - 多層評価・Tier昇格エンジン（`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`）
-  - 汎用静的バリデータ（`SkillValidator`）
-  - スキルレジストリ・探索（`SkillsState`）
-  - Google ADK 2.0 / MCP アダプタ（`EddSkillToolset`）
-  - 統合 CLI（`edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
-
-### C. スキル（`skills/`）の責務とポータビリティ:
-* **完全な自己完結性（Portability / Zero-dependency）**:
+- **テンプレート素材の単一真実源 (SSOT)**:
+  スキル作成用の Markdown テンプレート（`workflow_template.md`, `task_based_template.md`, `reference_template.md`, `capabilities_template.md`）は `src/skills/skill-creator/assets/templates/` を真実源とし、エージェントの推論と自己改善によって進化させます。
+- **完全な自己完結性（Portability / Zero-dependency）**:
   スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはなりません。Python 標準ライブラリのみで実装するか、統合 CLI `edd` を subprocess 呼び出しする設計としてください。
-* **二重 LLM 呼び出しの禁止（Anti-pattern）**:
-  スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を抱え込まず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。スクリプトは決定論的なブラックボックス CLI ツール（`argparse` / `--help` 対応）として実装してください。
+- **二重 LLM 呼び出しの禁止**:
+  スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を作らず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。
 
 ---
 
 ## 2. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
-*   **単一真実源 (SSOT) ➔ `SKILL.md`**:
-    スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化する。
-*   **3層リソース分離**:
-    - `scripts/`: 直接実行可能な決定論的スクリプト（CLI対応）
-    - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）
-    - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
-*   **ボイラープレートの排除**:
-    多層ラッパー構造（`models.py`, `handler.py`, `nodes/`）を作成せず、フラットで簡潔な実装を行う。
+* **単一真実源 (SSOT) ➔ `SKILL.md`**:
+  スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化する。
+* **3層リソース分離**:
+  - `scripts/`: 直接実行可能な決定論的スクリプト（CLI対応, `--help` 必須）
+  - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）
+  - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
+  - `tests/`: 契約テストおよびシミュレーション評価ケース（`*.evalset.json`）
+* **ボイラープレートの排除**:
+  多層ラッパー構造（`models.py`, `handler.py`, `nodes/`）を作成せず、フラットで簡潔な実装を行う。
 
 ---
 
-## 3. 型仕様とドメインモデルの厳密遵守 (What/How)
+## 3. 型仕様とドメインモデルの厳密遵守
 スキル操作・構文解析・テスト実行を行う新規機能やスクリプトを開発する際は、必ずパッケージ内に定義されたドメインモデルおよび評価ランナーに適合させてください。
 
-*   **スキル管理モデル**: `edd_agent_tools.Skill`, `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
-*   **品質保証モデル**: `edd_agent_tools.models.SkillLogicDraft`, `edd_agent_tools.SkillValidator`
-*   **自動生成エンジン**: `edd_agent_tools.SkillCreationEngine`, `edd_agent_tools.SkillTemplateEngine`
-*   **評価実行基盤**: `edd_agent_tools.ContractTestRunner`, `edd_agent_tools.SimulationEvalRunner`, `edd_agent_tools.CascadeTestRunner`, `edd_agent_tools.SkillDiagnoser`, `edd_agent_tools.SkillOptimizer`
-
-各クラスのシグネチャ、引数の名前、戻り値の型、発生すべき例外については、上記コード内の **Docstring および Type Hints** を唯一の真実のソースとして厳密に従ってください。
+* **スキル管理モデル**: `edd_agent_tools.Skill`, `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
+* **品質保証モデル**: `edd_agent_tools.models.SkillLogicDraft`, `edd_agent_tools.SkillValidator`
+* **評価実行基盤**: `edd_agent_tools.ContractTestRunner`, `edd_agent_tools.SimulationEvalRunner`, `edd_agent_tools.CascadeTestRunner`, `edd_agent_tools.SkillDiagnoser`, `edd_agent_tools.SkillOptimizer`
+* **Google ADK 統合**: `edd_agent_tools.adk.create_adk_skill_toolset`, `edd_agent_tools.adk.EddSkillToolset`
 
 ---
 
-## 4. 依存性注入 (Dependency Injection) 制約 (What/How)
+## 4. 依存性注入 (Dependency Injection) 制約
 テスト実行や安全な試行錯誤を行うスクリプトは、自身の内部で OS や実ファイルシステムに直接アクセスしてはなりません。
 
-*   **実行環境の操作制限**:
-    必ず引数として注入される `env: WorkspaceEnvProtocol`（`LocalWorkspaceEnv` 等の仮想環境）のみを介して、ファイルの書き込み、表示、テスト実行を行ってください。
-    *   ファイルの作成・書き込み ➔ `env.step(WriteFileAction(...))`
-    *   ファイルの表示・確認 ➔ `env.step(ViewFileAction(...))`
-    *   テストコマンド (pytest) の実行 ➔ `env.step(RunPytestAction())`
-*   **目的**: テスト実行中の環境破壊や副作用を完全に排除し、安全に何度でもテストを再実行可能にするため。
+* **実行環境の操作制限**:
+  必ず引数として注入される `env: WorkspaceEnvProtocol`（`LocalWorkspaceEnv` 等の仮想環境）のみを介して、ファイルの書き込み、表示、テスト実行を行ってください。
+* **目的**: テスト実行中の環境破壊や副作用を完全に排除し、安全に何度でもテストを再実行可能にするため。
 
 ---
 
 ## 5. 自動生成物に対する品質ハーネス (Quality Gates)
 スキルの新規生成や改修時は、必ず以下の4段階品質保証パイプラインを遵守する：
-1. **Stage 1 (Logical Extraction)**: `SkillLogicDraft` による論理設計抽出
-2. **Stage 2 (Deterministic Rendering)**: `SkillTemplateEngine` による決定論的 SKILL.md レンダリング
-3. **Stage 3 (Static Linter)**: `SkillValidator`（または `quick_validate.py`）による静的リンター（構文・実在整合性・文字数制約）の 100% 合格
-4. **Stage 4 (Contract Verification)**: `ContractTestRunner` による初期契約テスト検証
+1. **Stage 1 (Logical Extraction)**: `assets/templates/` を活用した論理設計・雛形生成（`init_skill.py`）
+2. **Stage 2 (Static Linter)**: `SkillValidator`（または `quick_validate.py`）による静的リンター（構文・実在整合性・文字数制約）の 100% 合格
+3. **Stage 3 (Contract & Trigger Verification)**: `ContractTestRunner` / `SimulationEvalRunner` による契約テスト 100% & トリガーテスト 90% 合格
+4. **Stage 4 (Self-Healing & Tier Promotion)**: テスト失敗時の `edd diagnose` ➔ 差分修正 ➔ `edd tier-gate` による Tier 1〜3 昇格判定
 
 ---
 
 ## 6. プロンプトおよび仕様書の文体規約 (Imperative Form)
-*   **動詞起点・客観的指示**: SKILL.md および指示プロンプトはすべて客観的な指示（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調や曖昧な助動詞（「〜してください」等）を排除してください。
-*   **Frontmatter の description**: 第三者視点（"This skill should be used when..."）で、トリガー条件・対象ファイル・対応タスクを100 words以内で極めて具体的に記述してください。
-
----
-
-## 7. ドキュメント化の設計思想と各ファイルの役割分担 (What/How)
-*   **`README.md`**: パッケージ全体の主要機能、インストール方法、CLI/MCP 使用例のみを記述。
-*   **`src/edd_agent_tools/AGENTS.md`**: AIエージェント向けシステム制約のみを記述（本ドキュメント）。
-*   **`src/edd_agent_tools/docs/`**: 設計思想やアーキテクチャ背景を集中配置。
+* **動詞起点・客観的指示**: SKILL.md および指示プロンプトはすべて客観的な指示（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調や曖昧な助動詞を排除してください。
+* **Frontmatter の description**: 第三者視点（"This skill should be used when..."）で、トリガー条件・対象ファイル・対応タスクを100 words以内で極めて具体的に記述してください。

@@ -13,13 +13,20 @@
 * **MCP によるオンデマンド参照**:
   開発規約や設計ガイドラインは FastMCP サーバー（`edd-agent-mcp`）のリソース（`edd://rules/agents`, `edd://guidelines/*`, `edd://docs/*`）からも参照可能です。
 
-## 2. パッケージとスキルの責務分離と自己改善隔離
-* **個別ロジックのスキル内隔離 (Self-Contained Skill Isolation)**:
-  スキルの個別処理スクリプト（`scripts/`）、ドメインスキーマ（`references/`）、出力用テンプレート（`assets/`）、個別契約テスト（`tests/`）は、エージェントが安全かつ局所的に自己改善（Self-Evolution）できるように、必ずスキルディレクトリ内に隔離して実装してください。
+## 2. Two-Tier Architecture と自己改善隔離 (Separation of Concerns)
+* **不変プラットフォーム層 (`edd-agent-tools` - pip ライブラリ)**:
+  - サンドボックス環境（`LocalWorkspaceEnv`）
+  - 多層評価・Tier昇格（`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`）
+  - 静的検証リンター（`SkillValidator`）
+  - スキルレジストリ・探索（`SkillsState`）
+  - Google ADK 2.0 / MCP アダプタ（`create_adk_skill_toolset`, `EddSkillToolset`）
+  - 統合 CLI（`edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
+  ※ パッケージ内部にプロンプト文体やテンプレート生成コードを過度にハードコードしてはなりません。
+* **自己改善スキル資産層 (`src/skills/`)**:
+  - スキル個別スクリプト（`scripts/`）、ドメインスキーマ（`references/`）、出力用テンプレート（`assets/`）、個別契約テスト（`tests/`）は、エージェントが安全かつ局所的に自己改善（Self-Evolution）できるように、必ずスキルディレクトリ内に隔離して実装してください。
+  - スキル作成テンプレート（`assets/templates/*.md`）は `src/skills/skill-creator` 側を真実源とし、エージェントの自己改善ループによって柔軟に進化させます。
 * **過度なパッケージ集約の禁止 (Anti-Pattern: Excessive Centralization)**:
   スキル固有の個別処理を「共通化できる」という理由だけで pip パッケージ（`edd-agent-tools`）へ過度に移転・集約してはなりません。
-* **基盤パッケージの活用 (`edd-agent-tools`)**:
-  サンドボックス環境（`LocalWorkspaceEnv`）、多層評価・Tier昇格（`ContractTestRunner`, `SimulationEvalRunner`）、静的検証（`SkillValidator`）、スキル探索（`SkillsState`）等の共通不変プラットフォームは `edd-agent-tools` を利用してください。
 * **二重 LLM 呼び出しの禁止**:
   スキル内のスクリプト内部で LLM API を直接叩くバッチ処理を作らず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。
 * **ローカルインストール**:
