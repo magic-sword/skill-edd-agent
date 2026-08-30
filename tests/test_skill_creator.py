@@ -4,7 +4,8 @@ import pytest
 import subprocess
 import sys
 from pathlib import Path
-from edd_agent_tools.skills import Skill, SkillValidator, SkillCreationEngine, create_skill
+from edd_agent_tools import Skill, SkillValidator, SkillCreationEngine
+from edd_agent_tools.skills.creator import create_skill
 
 
 @pytest.fixture

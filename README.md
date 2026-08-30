@@ -92,7 +92,8 @@ edd optimize my-new-skill --tier 1
 
 ### Python API による自律スキル生成
 ```python
-from edd_agent_tools.skills import create_skill
+from edd_agent_tools import SkillsState, SkillValidator, ContractTestRunner
+from edd_agent_tools.skills.creator import create_skill
 
 result = create_skill(
     prompt="PDFファイルの回転・結合・テキスト抽出を行う pdf-tools スキルを作成してください。",

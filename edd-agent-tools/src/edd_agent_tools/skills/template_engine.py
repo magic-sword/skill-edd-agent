@@ -1,7 +1,7 @@
 import os
 from typing import Optional
 from string import Template
-from .models import SkillLogicDraft, SkillPattern
+from edd_agent_tools.models import SkillLogicDraft, SkillPattern
 
 class SkillTemplateEngine:
     """SkillLogicDraft から Anthropic 準拠の洗練された SKILL.md を決定論的にレンダリングするエンジン"""

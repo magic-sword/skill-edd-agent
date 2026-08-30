@@ -1,7 +1,4 @@
 """
-Skill Entity (Re-exported from core.skill for backward compatibility)
+Re-export for backwards compatibility.
 """
-
-from edd_agent_tools.core.skill import Skill
-
-__all__ = ["Skill"]
+from edd_agent_tools.skill import Skill

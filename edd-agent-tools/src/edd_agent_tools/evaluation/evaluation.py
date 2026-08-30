@@ -4,14 +4,14 @@ from typing import TYPE_CHECKING, Any
 from .models import EvalRunResult
 
 if TYPE_CHECKING:
-    from edd_agent_tools.skills import Skill
+    from edd_agent_tools.skill import Skill
 
 
 class SimulationEval:
     """シミュレーションベースの動的環境テスト（Gymnasium）を管理する評価クラス。
 
     Examples:
-        >>> from edd_agent_tools.skills import SkillsState
+        >>> from edd_agent_tools.state import SkillsState
         >>> state = SkillsState()
         >>> skill = state.get_skill("my-sample-skill")
         >>> eval_obj = SimulationEval(skill)

@@ -212,7 +212,8 @@ def run_cli():
 
     # 【最新設定の同期と skills.json の出力（自動同期）】
     try:
-        from edd_agent_tools.skills import SkillsState, SkillTier
+        from edd_agent_tools.state import SkillsState
+        from edd_agent_tools.models.state import SkillTier
         state = SkillsState()
         state.load()
         

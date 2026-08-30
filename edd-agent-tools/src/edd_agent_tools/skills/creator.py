@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-from edd_agent_tools.skills.models import (
+from edd_agent_tools.models import (
     SkillLogicDraft,
     SkillPattern,
     DecisionBranch,
@@ -19,9 +19,9 @@ from edd_agent_tools.skills.models import (
     ResourcePlan
 )
 from edd_agent_tools.skills.template_engine import SkillTemplateEngine
-from edd_agent_tools.skills.validator import SkillValidator, ValidationResult
-from edd_agent_tools.skills.state import SkillsState
-from edd_agent_tools.skills.skill import Skill
+from edd_agent_tools.validation.validator import SkillValidator, ValidationResult
+from edd_agent_tools.state import SkillsState
+from edd_agent_tools.skill import Skill
 from edd_agent_tools.evaluation import ContractTestRunner, LocalWorkspaceEnv
 
 

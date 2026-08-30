@@ -15,9 +15,9 @@ import subprocess
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from edd_agent_tools.core.models import SkillLogicDraft, SkillPattern, SkillTier
-from edd_agent_tools.core.state import SkillsState
-from edd_agent_tools.skills.validator import SkillValidator
+from edd_agent_tools.models import SkillLogicDraft, SkillPattern, SkillTier, EvalDetailReport
+from edd_agent_tools.state import SkillsState
+from edd_agent_tools.validation.validator import SkillValidator
 from edd_agent_tools.skills.cli import init_skill as core_init_skill, package_skill_cli as core_package_skill
 from edd_agent_tools.evaluation.test_runner import ContractTestRunner
 from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
@@ -25,7 +25,6 @@ from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner
 from edd_agent_tools.evaluation.environment import LocalWorkspaceEnv
 from edd_agent_tools.evaluation.diagnoser import SkillDiagnoser
 from edd_agent_tools.evaluation.optimizer import SkillOptimizer
-from edd_agent_tools.evaluation.models import EvalDetailReport
 
 
 def resolve_skill_script(skill_dir: Path, script_name: Optional[str] = None) -> Optional[Path]:
@@ -74,10 +73,19 @@ def cmd_run(args: argparse.Namespace, extra_args: List[str]) -> int:
         if direct_path.exists() and direct_path.is_dir():
             skill_dir = direct_path
         else:
-            cand = Path("src/skills") / skill_name
-            if cand.exists() and cand.is_dir():
-                skill_dir = cand.resolve()
-            else:
+            candidates = [
+                Path("src/skills") / skill_name,
+                Path("skills") / skill_name,
+                Path(".agents/skills") / skill_name,
+                Path(skill_name)
+            ]
+            found = False
+            for cand in candidates:
+                if cand.exists() and cand.is_dir():
+                    skill_dir = cand.resolve()
+                    found = True
+                    break
+            if not found:
                 print(f"❌ Error: Skill '{skill_name}' was not found in SkillsState or filesystem.", file=sys.stderr)
                 return 1
 

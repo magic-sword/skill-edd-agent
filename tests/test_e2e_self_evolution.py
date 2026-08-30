@@ -3,13 +3,15 @@ import json
 import pytest
 from pathlib import Path
 
-from edd_agent_tools.skills import (
+from edd_agent_tools import (
     Skill,
     SkillsState,
     SkillValidator,
-    SkillTier
+    SkillTier,
+    LocalWorkspaceEnv,
+    ContractTestRunner,
+    SimulationEvalRunner
 )
-from edd_agent_tools.evaluation import LocalWorkspaceEnv, ContractTestRunner, SimulationEvalRunner
 
 @pytest.fixture
 def temp_skills_dir(tmp_path):

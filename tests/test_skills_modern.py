@@ -2,16 +2,18 @@ import os
 import shutil
 import pytest
 from pathlib import Path
-from edd_agent_tools.skills import (
+from edd_agent_tools import (
     SkillPattern,
     SkillLogicDraft,
     SkillSpec,
     SkillTemplateEngine,
     SkillValidator,
     Skill,
-    SkillsState
+    SkillsState,
+    DecisionBranch,
+    StepInstruction,
+    ResourcePlan
 )
-from edd_agent_tools.skills.models import DecisionBranch, StepInstruction, ResourcePlan
 from edd_agent_tools.skills.cli import init_skill, validate_skill_cli, package_skill_cli
 
 @pytest.fixture

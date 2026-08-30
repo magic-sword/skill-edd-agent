@@ -9,12 +9,11 @@ from google.adk import Agent
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 from google.adk.tools.environment import EnvironmentToolset
-from google.adk.environment import LocalEnvironment
-from edd_agent_tools.skills import SkillsState, SkillTier
+from edd_agent_tools import SkillsState, SkillTier
 
 # 1. 全ての登録スキルのメタデータを解決
 state = SkillsState()
-skills_dir = Path("/workspace/src/skills")
+skills_dir = Path(__file__).parent / "skills"
 system_skills = {
     "skill-creator", "skill-evolver"
 }

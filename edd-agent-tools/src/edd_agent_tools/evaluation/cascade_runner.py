@@ -1,7 +1,8 @@
 import os
 import json
 from typing import Dict, Any, Optional
-from edd_agent_tools.skills import SkillsState, Skill
+from edd_agent_tools.state import SkillsState
+from edd_agent_tools.skill import Skill
 from .models import EvalRunResult, EvalDetailReport
 
 
@@ -50,7 +51,7 @@ class CascadeTestRunner:
             # 上位スキルのテスト実行（tests.load_latest_report または edd eval / skill-evolver）
             # ここでは静的バリデーション + 既存レポート/テスト実行器をトリガー
             try:
-                from edd_agent_tools.skills import SkillValidator
+                from edd_agent_tools.validation.validator import SkillValidator
                 val_res = SkillValidator.validate_directory(dep_skill.root_dir)
                 if not val_res.is_valid:
                     results[dep_name] = {"passed": False, "details": f"Static validation failed: {val_res.errors}"}

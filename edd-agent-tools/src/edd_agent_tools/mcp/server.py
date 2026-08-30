@@ -1,7 +1,7 @@
 import importlib.resources
 from pathlib import Path
 from mcp.server.fastmcp import FastMCP
-from edd_agent_tools.skills.validator import SkillValidator
+from edd_agent_tools.validation.validator import SkillValidator
 from edd_agent_tools.skills.cli import init_skill
 
 def create_mcp_server() -> FastMCP:

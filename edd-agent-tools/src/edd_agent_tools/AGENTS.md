@@ -30,10 +30,10 @@
 ## 3. 型仕様とドメインモデルの厳密遵守 (What/How)
 スキル操作・構文解析・テスト実行を行う新規機能やスクリプトを開発する際は、必ずパッケージ内に定義されたドメインモデルおよび評価ランナーに適合させてください。
 
-*   **スキル管理モデル**: `edd_agent_tools.skills.Skill`, `edd_agent_tools.skills.SkillSpec`, `edd_agent_tools.skills.SkillsState`
-*   **品質保証モデル**: `edd_agent_tools.skills.SkillLogicDraft`, `edd_agent_tools.skills.SkillValidator`
-*   **自動生成エンジン**: `edd_agent_tools.skills.SkillCreationEngine`, `edd_agent_tools.evaluation.EvalSetGenerator`
-*   **評価実行基盤**: `edd_agent_tools.evaluation.ContractTestRunner`, `edd_agent_tools.evaluation.SimulationEvalRunner`
+*   **スキル管理モデル**: `edd_agent_tools.Skill`, `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
+*   **品質保証モデル**: `edd_agent_tools.models.SkillLogicDraft`, `edd_agent_tools.SkillValidator`
+*   **自動生成エンジン**: `edd_agent_tools.SkillCreationEngine`, `edd_agent_tools.SkillTemplateEngine`
+*   **評価実行基盤**: `edd_agent_tools.ContractTestRunner`, `edd_agent_tools.SimulationEvalRunner`, `edd_agent_tools.CascadeTestRunner`, `edd_agent_tools.SkillDiagnoser`, `edd_agent_tools.SkillOptimizer`
 
 各クラスのシグネチャ、引数の名前、戻り値の型、発生すべき例外については、上記コード内の **Docstring および Type Hints** を唯一の真実のソースとして厳密に従ってください。
 

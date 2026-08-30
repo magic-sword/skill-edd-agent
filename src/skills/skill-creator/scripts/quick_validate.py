@@ -46,7 +46,9 @@ def validate_skill(skill_path: str | Path) -> tuple[bool, list[str], list[str]]:
         errors.append("Frontmatter に 'name' フィールドがありません")
     else:
         name = name_match.group(1).strip().strip("\"'")
-        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
+        if "--" in name:
+            errors.append(f"スキル名 '{name}' に連続するハイフン ('--') を含めることはできません")
+        elif not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", name):
             errors.append(f"スキル名 '{name}' はハイフンケース（英小文字、数字、ハイフン）である必要があります")
         if len(name) > 64:
             errors.append(f"スキル名 '{name}' が ADK 2.0 の最大文字数 64 文字を超過しています ({len(name)} 文字)")

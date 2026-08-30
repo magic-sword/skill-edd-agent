@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Tuple
 import unittest.mock
 from pydantic import TypeAdapter, ValidationError
 
-from edd_agent_tools.skills import Skill
+from edd_agent_tools.skill import Skill
 from edd_agent_tools.evaluation import WorkspaceEnvProtocol
 from edd_agent_tools.evaluation.models import (
     EvalRunResult,

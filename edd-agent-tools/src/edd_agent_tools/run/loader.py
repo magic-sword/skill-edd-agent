@@ -1,7 +1,7 @@
 import sys
 import os
 from typing import Dict, Any, Callable
-from edd_agent_tools.skills import SkillsState
+from edd_agent_tools.state import SkillsState
 
 class SkillLoader:
     """

@@ -1,37 +1,4 @@
 """
-Skills Models (Re-exported from core.models for backward compatibility)
+Re-export for backwards compatibility.
 """
-
-from edd_agent_tools.core.models import (
-    SkillTier,
-    SkillEntry,
-    InheritEntry,
-    ProjectSkillInfo,
-    SkillsStateJson,
-    SkillPattern,
-    ModuleType,
-    DecisionBranch,
-    StepInstruction,
-    ResourcePlan,
-    SkillLogicDraft,
-    SkillFrontmatter,
-    SkillSpec,
-    SkillMetadata,
-)
-
-__all__ = [
-    "SkillTier",
-    "SkillEntry",
-    "InheritEntry",
-    "ProjectSkillInfo",
-    "SkillsStateJson",
-    "SkillPattern",
-    "ModuleType",
-    "DecisionBranch",
-    "StepInstruction",
-    "ResourcePlan",
-    "SkillLogicDraft",
-    "SkillFrontmatter",
-    "SkillSpec",
-    "SkillMetadata",
-]
+from edd_agent_tools.models import *

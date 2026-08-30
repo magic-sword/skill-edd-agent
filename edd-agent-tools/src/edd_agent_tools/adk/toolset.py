@@ -13,8 +13,9 @@ import subprocess
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union
 
-from edd_agent_tools.skills.models import SkillSpec, SkillTier
-from edd_agent_tools.skills.state import SkillsState
+from edd_agent_tools.models.spec import SkillSpec
+from edd_agent_tools.models.state import SkillTier
+from edd_agent_tools.state import SkillsState
 
 
 class EddSkillToolset:
@@ -28,8 +29,13 @@ class EddSkillToolset:
         skills_root: Optional[Union[str, Path]] = None,
         state: Optional[SkillsState] = None
     ):
-        self.state = state or SkillsState()
-        self.skills_root = Path(skills_root).resolve() if skills_root else Path("src/skills").resolve()
+        self.skills_root = Path(skills_root).resolve() if skills_root else None
+        if state:
+            self.state = state
+        elif self.skills_root:
+            self.state = SkillsState(skills_roots=[self.skills_root])
+        else:
+            self.state = SkillsState()
 
     def list_skills(self) -> List[Dict[str, Any]]:
         """利用可能な全スキルの Level 1 Frontmatter（name, description, tier）を返します。"""
@@ -70,13 +76,14 @@ class EddSkillToolset:
         skill = self.state.get_skill(skill_name)
         if not skill:
             # ファイルシステム直接探索
-            cand = self.skills_root / skill_name / "SKILL.md"
-            if cand.exists():
-                return {
-                    "name": skill_name,
-                    "skill_md": cand.read_text(encoding="utf-8"),
-                    "status": "loaded"
-                }
+            if self.skills_root:
+                cand = self.skills_root / skill_name / "SKILL.md"
+                if cand.exists():
+                    return {
+                        "name": skill_name,
+                        "skill_md": cand.read_text(encoding="utf-8"),
+                        "status": "loaded"
+                    }
             return {
                 "status": "error",
                 "message": f"Skill '{skill_name}' not found."

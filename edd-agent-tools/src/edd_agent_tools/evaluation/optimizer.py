@@ -9,9 +9,9 @@ import sys
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-from edd_agent_tools.core.state import SkillsState
-from edd_agent_tools.core.models import SkillTier
-from edd_agent_tools.skills.validator import SkillValidator
+from edd_agent_tools.state import SkillsState
+from edd_agent_tools.models import SkillTier
+from edd_agent_tools.validation.validator import SkillValidator
 from edd_agent_tools.evaluation.test_runner import ContractTestRunner
 from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
 from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner

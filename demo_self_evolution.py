@@ -17,14 +17,14 @@ from pathlib import Path
 # Add /workspace to sys.path
 sys.path.insert(0, "/workspace")
 
-from edd_agent_tools.skills import (
+from edd_agent_tools import (
     SkillsState,
     SkillValidator,
     SkillTier,
-    create_skill
+    SkillOptimizer,
+    CascadeTestRunner
 )
-from edd_agent_tools.evaluation.optimizer import SkillOptimizer
-from edd_agent_tools.evaluation import CascadeTestRunner
+from edd_agent_tools.skills.creator import create_skill
 
 
 def print_banner():
@@ -41,7 +41,7 @@ def main():
     print_banner()
 
     demo_skill_name = "demo-case-helper"
-    workspace_skills = Path("/workspace/src/skills")
+    workspace_skills = Path(__file__).parent / "src" / "skills"
     demo_skill_dir = workspace_skills / demo_skill_name
 
     # クリーンアップ（事前状態のリセット）
