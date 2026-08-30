@@ -2,7 +2,7 @@ import importlib.resources
 from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 from edd_agent_tools.validation.validator import SkillValidator
-from edd_agent_tools.skills.cli import init_skill
+from edd_agent_tools.packaging.scaffold import SkillScaffolder
 
 def create_mcp_server() -> FastMCP:
     """MCPサーバーのインスタンスを遅延生成し、リソース定義とツールをバインドします。"""
@@ -97,10 +97,11 @@ def create_mcp_server() -> FastMCP:
     @mcp.tool("edd_init_skill")
     def mcp_init_skill(name: str, path: str = ".", pattern: str = "workflow") -> str:
         """指定された場所に新しいスキル雛形ディレクトリを初期化します。"""
-        target = init_skill(name, path, pattern)
-        if target:
+        try:
+            target = SkillScaffolder.scaffold(name, output_base_dir=path, pattern=pattern)
             return f"Successfully initialized skill '{name}' at {target}"
-        return f"Failed to initialize skill '{name}'"
+        except Exception as e:
+            return f"Failed to initialize skill '{name}': {e}"
 
     return mcp
 

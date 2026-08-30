@@ -39,11 +39,13 @@ from .models.eval import (
 )
 
 # Core Entities & Discovery
-from .skill import Skill
+from .core.entity import Skill, SkillTests
 from .state import SkillsState
 
-# Validation & Creation
+# Validation & Packaging & Scaffolding
 from .validation.validator import SkillValidator, ValidationResult, ValidationIssue
+from .packaging.packager import SkillPackager
+from .packaging.scaffold import SkillScaffolder
 from .skills.template_engine import SkillTemplateEngine
 from .skills.creator import SkillCreationEngine
 
@@ -57,9 +59,9 @@ from .evaluation.environment import LocalWorkspaceEnv
 from .evaluation.models import WorkspaceEnvProtocol
 
 # ADK Integration
-from .adk.toolset import EddSkillToolset
+from .adk.toolset import EddSkillToolset, create_adk_skill_toolset
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     # Models
@@ -85,11 +87,14 @@ __all__ = [
     "EvalDetailReport",
     # Core
     "Skill",
+    "SkillTests",
     "SkillsState",
-    # Validation & Creation
+    # Validation & Packaging
     "SkillValidator",
     "ValidationResult",
     "ValidationIssue",
+    "SkillPackager",
+    "SkillScaffolder",
     "SkillTemplateEngine",
     "SkillCreationEngine",
     # Evaluation
@@ -102,4 +107,5 @@ __all__ = [
     "WorkspaceEnvProtocol",
     # ADK
     "EddSkillToolset",
+    "create_adk_skill_toolset",
 ]

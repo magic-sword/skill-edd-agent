@@ -6,19 +6,19 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 
 ## 1. 主な機能と特徴
 
-*   **Clean Layered Architecture (`models`, `state`, `validation`, `skills`, `evaluation`, `adk`, `mcp`, `cli`)**
-    単一真実源の型定義（`models`）、プロジェクト非依存の動的探索・DAG依存関係解析（`state` / `SkillsState`）、AST静的検証（`validation` / `SkillValidator`）、テンプレート・雛形生成（`skills`）、契約テスト・多層評価・診断・自己修復（`evaluation`）、Google ADK 2.0 連携（`adk`）、FastMCP 連携（`mcp`）、統合 CLI（`cli`）を明確に責務分離。
+*   **Clean Layered Architecture (`core`, `validation`, `packaging`, `evaluation`, `adk`, `mcp`, `cli`)**
+    単一真実源のドメインモデル（`core` / `Skill`, `SkillTests`, `SkillsState`）、AST静的検証リンター（`validation` / `SkillValidator`）、ZIPパッケージング＆スキャフォールド（`packaging` / `SkillPackager`, `SkillScaffolder`）、契約テスト・多層評価・診断・自己修復（`evaluation`）、Google ADK 2.0 連携（`adk` / `EddSkillToolset`）、FastMCP 連携（`mcp`）、統合 CLI（`cli`）を明確に責務分離。
 *   **Markdown-First & Progressive Disclosure 3層リソース管理 (`Skill`, `SkillSpec`, `SkillsState`)**
     `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）の3層分離を安全にロード・管理するドメインクラスと DAG 依存関係グラフ検証を提供。他プロジェクトへの配布時にもパスに依存しない Zero-Hardcoding 設計。
-*   **4段階品質保証パイプライン & 決定論的レンダラー (`SkillTemplateEngine`, `SkillValidator`, `SkillCreationEngine`)**
-    Pydanticモデル（`SkillLogicDraft`）からの決定論的 `SKILL.md` レンダリング、および構文・実在整合性・Imperative文体を検査する静的バリデータを提供。
+*   **4段階品質保証パイプライン & 決定論的検証 (`SkillValidator`, `SkillPackager`, `SkillScaffolder`)**
+    Pydanticモデル（`SkillLogicDraft`）からの決定論的レンダリング、`src/skills/skill-creator/assets/templates/` を SSOT とするテンプレート展開、および構文・実在整合性・Imperative文体を検査する静的バリデータを提供。
 *   **Gymnasium 互換サンドボックス隔離環境 (`WorkspaceEnvProtocol`, `LocalWorkspaceEnv`)**
     コードやテスト実行による環境破壊を防ぐため、仮想環境と Git ロールバック機能を提供。
 *   **多層EDD評価フレームワーク & Tier昇格ゲートキーパー (`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`)**
     契約テスト、トリガー精度テスト、ゴールデン出力評価、および上位ワークフローへの連鎖回帰テストを一元管理する決定論的評価エンジンを提供。
 *   **失敗診断 & 自己進化エンジン (`SkillDiagnoser`, `SkillOptimizer`)**
     テスト失敗ログを構造的に解析し、根本原因（spec / script / test / reference）の特定と自律的な修復ループ・Tier昇格を実現。
-*   **Google ADK 2.0 ネイティブ統合 (`EddSkillToolset`) & FastMCP サーバー (`edd-agent-mcp`)**
+*   **Google ADK 2.0 ネイティブ統合 (`EddSkillToolset`, `create_adk_skill_toolset`) & FastMCP サーバー (`edd-agent-mcp`)**
     Google ADK の Progressive Disclosure ライフサイクルおよび Claude Code / Antigravity IDE 向け MCP リソース・ツールを提供。
 
 ---

@@ -1,10 +1,25 @@
+"""
+Skill Template Engine for edd-agent-tools
+
+Anthropic Claude Skills / Google ADK 2.0 準拠の SKILL.md レンダリングエンジン。
+Markdown テンプレート（src/skills/skill-creator/assets/templates/）を単一真実源（SSOT）として
+動的にロード・展開します。
+"""
+
 import os
-from typing import Optional
-from string import Template
-from edd_agent_tools.models import SkillLogicDraft, SkillPattern
+import re
+from pathlib import Path
+from typing import Optional, List, Dict, Any
+
+from ..models.draft import SkillLogicDraft
+from ..models.spec import SkillPattern
+
 
 class SkillTemplateEngine:
-    """SkillLogicDraft から Anthropic 準拠の洗練された SKILL.md を決定論的にレンダリングするエンジン"""
+    """SkillLogicDraft から Anthropic 準拠の洗練された SKILL.md を決定論的にレンダリングするエンジン。
+    
+    テンプレート素材（assets/templates/*.md）を単一真実源（SSOT）として読み込み展開します。
+    """
 
     @classmethod
     def title_case_skill_name(cls, skill_name: str) -> str:
@@ -12,7 +27,30 @@ class SkillTemplateEngine:
         return " ".join(word.capitalize() for word in skill_name.split("-"))
 
     @classmethod
-    def render(cls, draft: SkillLogicDraft) -> str:
+    def load_raw_template(cls, pattern: SkillPattern | str, custom_templates_dir: Optional[str | Path] = None) -> Optional[str]:
+        """`assets/templates/{pattern}_template.md` を探索・ロードします。"""
+        pat_str = pattern.value if hasattr(pattern, "value") else str(pattern)
+        
+        cand_dirs = []
+        if custom_templates_dir:
+            cand_dirs.append(Path(custom_templates_dir).resolve())
+        cand_dirs.extend([
+            Path("src/skills/skill-creator/assets/templates"),
+            Path("skills/skill-creator/assets/templates"),
+            Path(".agents/skills/skill-creator/assets/templates"),
+        ])
+
+        for c_dir in cand_dirs:
+            t_path = c_dir / f"{pat_str}_template.md"
+            if t_path.exists():
+                try:
+                    return t_path.read_text(encoding="utf-8")
+                except Exception:
+                    pass
+        return None
+
+    @classmethod
+    def render(cls, draft: SkillLogicDraft, custom_templates_dir: Optional[str | Path] = None) -> str:
         """SkillLogicDraft を受け取り、完全な SKILL.md 文字列を生成して返します。"""
         title = cls.title_case_skill_name(draft.name)
         lines = []
@@ -20,11 +58,11 @@ class SkillTemplateEngine:
         # 1. YAML Frontmatter
         lines.append("---")
         lines.append(f"name: {draft.name}")
-        # description 内の改行や特殊文字を安全にエスケープ
         desc_escaped = draft.description_third_person.replace("\n", " ").strip()
         lines.append(f"description: {desc_escaped}")
         lines.append("license: Complete terms in LICENSE.txt")
-        lines.append(f"pattern: {draft.pattern.value}")
+        pat_val = draft.pattern.value if hasattr(draft.pattern, "value") else str(draft.pattern)
+        lines.append(f"pattern: {pat_val}")
         if draft.dependencies:
             lines.append("dependencies:")
             for dep in draft.dependencies:
@@ -154,35 +192,25 @@ class SkillTemplateEngine:
         lines = []
         lines.append("## Bundled Resources")
         lines.append("")
-        if not draft.resources_plan:
-            lines.append("This skill operates directly via standard instructions without bundled external files.")
-            lines.append("")
-            return lines
 
-        scripts = [r for r in draft.resources_plan if r.type == "script"]
-        references = [r for r in draft.resources_plan if r.type == "reference"]
-        assets = [r for r in draft.resources_plan if r.type == "asset"]
+        scripts = [r for r in draft.resources_plan if r.type == "script" or r.rel_path.startswith("scripts/")]
+        references = [r for r in draft.resources_plan if r.type == "reference" or r.rel_path.startswith("references/")]
+        assets = [r for r in draft.resources_plan if r.type == "asset" or r.rel_path.startswith("assets/")]
 
         if scripts:
             lines.append("### `scripts/` (Executable Tools)")
-            lines.append("Deterministic execution scripts that run directly in the environment:")
-            lines.append("")
             for s in scripts:
                 lines.append(f"- **`{s.rel_path}`**: {s.purpose.strip()}")
             lines.append("")
 
         if references:
             lines.append("### `references/` (On-Demand Knowledge)")
-            lines.append("Documentation and schema specifications loaded only when explicitly needed:")
-            lines.append("")
             for r in references:
                 lines.append(f"- **`{r.rel_path}`**: {r.purpose.strip()}")
             lines.append("")
 
         if assets:
             lines.append("### `assets/` (Output Templates & Boilerplates)")
-            lines.append("Template files and assets copied or utilized in the output:")
-            lines.append("")
             for a in assets:
                 lines.append(f"- **`{a.rel_path}`**: {a.purpose.strip()}")
             lines.append("")

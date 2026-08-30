@@ -18,7 +18,8 @@ from typing import Optional, List, Dict, Any
 from edd_agent_tools.models import SkillLogicDraft, SkillPattern, SkillTier, EvalDetailReport
 from edd_agent_tools.state import SkillsState
 from edd_agent_tools.validation.validator import SkillValidator
-from edd_agent_tools.skills.cli import init_skill as core_init_skill, package_skill_cli as core_package_skill
+from edd_agent_tools.packaging.scaffold import SkillScaffolder
+from edd_agent_tools.packaging.packager import SkillPackager
 from edd_agent_tools.evaluation.test_runner import ContractTestRunner
 from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
 from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner
@@ -124,8 +125,17 @@ def cmd_run(args: argparse.Namespace, extra_args: List[str]) -> int:
 
 def cmd_init(args: argparse.Namespace) -> int:
     """新規スキル雛形を生成します。"""
-    res = core_init_skill(skill_name=args.skill_name, path=args.path, pattern=args.pattern)
-    return 0 if res else 1
+    try:
+        res = SkillScaffolder.scaffold(
+            skill_name=args.skill_name,
+            output_base_dir=args.path,
+            pattern=args.pattern
+        )
+        print(f"✅ Successfully initialized skill '{args.skill_name}' at: {res}")
+        return 0
+    except Exception as e:
+        print(f"❌ Error initializing skill: {e}", file=sys.stderr)
+        return 1
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -156,8 +166,13 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 def cmd_package(args: argparse.Namespace) -> int:
     """スキルを検証後に配布用 zip にパッケージ化します。"""
-    res = core_package_skill(skill_path_str=args.path, output_dir_str=args.out)
-    return 0 if res else 1
+    try:
+        zip_p = SkillPackager.package(skill_dir=args.path, output_dir=args.out, validate=True)
+        print(f"✅ Successfully created skill package: {zip_p}")
+        return 0
+    except Exception as e:
+        print(f"❌ Error packaging skill: {e}", file=sys.stderr)
+        return 1
 
 
 def cmd_eval(args: argparse.Namespace) -> int:

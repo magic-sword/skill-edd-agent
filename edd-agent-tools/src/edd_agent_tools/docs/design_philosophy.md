@@ -75,12 +75,13 @@
 
 ```
 edd_agent_tools/
-├── core/           # 共通ドメインモデル (Skill, SkillSpec, SkillTier), 状態管理 (SkillsState), Protocols
-├── skills/         # パーサー, AST バリデータ (SkillValidator), 雛形生成 (init_skill, package_skill_cli)
+├── core/           # 共通ドメインモデル (Skill, SkillTests, SkillSpec, SkillTier), 状態管理 (SkillsState)
+├── validation/     # 汎用静的リンター (SkillValidator, ValidationResult, AST解析)
+├── packaging/      # ZIP パッケージャ (SkillPackager), スキャフォールド (SkillScaffolder)
 ├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション, 診断 (SkillDiagnoser), 最適化 (SkillOptimizer)
 ├── adk/            # Google ADK 2.0 連携 (create_adk_skill_toolset, EddSkillToolset)
 ├── mcp/            # FastMCP サーバー (edd-agent-mcp)
-└── cli/            # 統合 CLI (edd run/init/validate/package/eval/tier-gate/diagnose/optimize/list)
+└── cli.py          # 統合 CLI (edd run/init/validate/package/eval/tier-gate/diagnose/optimize/list)
 ```
 
 ---
