@@ -1,7 +1,7 @@
 ---
 name: skill-creator
-description: This skill should be used when users want to create new skills or redesign existing skills following the Anthropic Markdown-First and Progressive Disclosure (scripts, references, assets) standard.
-license: Complete terms in LICENSE.txt
+description: This skill should be used when users want to create new skills or redesign existing skills following the Anthropic Markdown-First and Google ADK 2.0 Progressive Disclosure (scripts, references, assets) standard.
+license: MIT
 pattern: workflow
 ---
 
@@ -15,18 +15,20 @@ Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層
 
 スキル開発要件に応じて、以下の決定ロジックに従って開発を進行する：
 
-- **If** 新規スキルの作成要件が与えられた場合 ➔ **Then** Step 1 で論理設計を行い、`scripts/init_skill.py` で雛形を生成後、リソースを実装して `scripts/quick_validate.py` で静的検証する
+- **If** 新規スキルの作成要件が与えられた場合 ➔ **Then** Step 1 で具体例と論理設計を策定し、`scripts/init_skill.py` で雛形生成後、`assets/templates/` を参考に `SKILL.md` とリソースを実装して `scripts/quick_validate.py` で静的検証する
 - **If** 既存スキルの改修・拡張の場合 ➔ **Then** 既存の `SKILL.md` および `references/` を精査し、必要な差分を適用して静的検証を行う
 - **If** スキルの配布・エクスポートを求められた場合 ➔ **Then** `scripts/package_skill.py` を実行して検証済み ZIP アーカイブを出力する
 
 ## Step-by-Step Instructions
 
-### Step 1: 要件分解と論理設計の策定
+### Step 1: 要件ヒアリングと具体例の明確化 (Concrete Examples)
 ユーザーの要求を分析し、以下の要素を策定する（詳細仕様は `references/skill_design_guide.md` を参照）：
-1. **パターン分類**: `workflow`（順次決定木型）、`task_based`（ツール群型）、`reference`（仕様・知識型）、`capabilities`（複合型）から最適構成を選択する。
-2. **トリガー具体例**: ユーザーが実際に発話するトリガープロンプト（3〜5例）を明確にする。
-3. **意思決定ツリー**: 条件分岐（`If condition ➔ Then action`）を定義する。
-4. **3層リソース計画**: 決定論的処理（`scripts/`）、知識資料（`references/`）、出力用テンプレート（`assets/`）に分解する。
+1. **具体例の特定**: ユーザーが実際に発話するトリガープロンプト（3〜5例）と期待される入出力を明確にする。
+2. **パターン分類**: `workflow`（順次決定木型）、`task_based`（ツール群型）、`reference`（仕様・知識型）、`capabilities`（複合型）から最適構成を選択する。
+3. **3層リソース計画**:
+   - `scripts/`: 決定論的CLIツール（Python 標準ライブラリ、`argparse` 対応）
+   - `references/`: ドメイン仕様書・スキーマ（オンデマンド参照）
+   - `assets/`: 出力用テンプレート素材（ボイラープレート等）
 
 ### Step 2: スキル雛形の生成 *(Tool: `edd init` または `scripts/init_skill.py`)*
 To initialize the skill scaffold directory and base files, execute:
@@ -39,7 +41,7 @@ python scripts/init_skill.py <skill-name> --pattern workflow --path src/skills
 ```
 
 ### Step 3: リソースの実装と SKILL.md の執筆
-1. `references/skill_design_guide.md` の規約に従い、`SKILL.md` の Frontmatter（`name`, `description`）および手順書を客観的動詞起点（Imperative form）で執筆する。
+1. `assets/templates/` 配下の Markdown テンプレート素材（`workflow_template.md` 等）を参考に、`SKILL.md` の Frontmatter（`name`, `description`）および手順書を客観的動詞起点（Imperative form）で執筆する。
 2. 計画されたスクリプトを `scripts/` に配置する（`argparse` による `--help` 対応、余計な多層ラッパーを作らないフラットな実装）。
 3. 知識資料を `references/`、テンプレート素材を `assets/` に配置する（不要な空ディレクトリは残さない）。
 
@@ -85,9 +87,12 @@ python scripts/package_skill.py src/skills/<skill-name> dist
 ### `references/` (On-Demand Knowledge)
 - **`references/skill_design_guide.md`**: スキル設計原則、パターン選定基準、3層リソース分離のガイドライン
 
+### `assets/` (Output Templates & Boilerplates)
+- **`assets/templates/`**: 各スキルパターン用（workflow, task_based, reference）の Markdown テンプレート素材集
+
 ## Guidelines & Best Practices
 
 - 既存スキルのインベントリを必ず照合し、重複作成を避けて既存スキルの拡張（Update）を優先すること。
-- 生成・更新したスキルは必ず `scripts/quick_validate.py` で検証をパスさせること。
+- 生成・更新したスキルは必ず `scripts/quick_validate.py` または `edd validate` で検証をパスさせること。
 - スクリプトは外部非標準ライブラリへの依存を極力排除し、決定論的ブラックボックスツールとして設計すること。
-- 未使用の空ディレクトリ（`assets/` や `references/` 等）は残置しないこと。
+- 未使用の空ディレクトリは残置しないこと。

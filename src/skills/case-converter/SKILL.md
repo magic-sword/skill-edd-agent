@@ -13,7 +13,7 @@ pattern: task_based
 
 ## Quick Start
 
-文字列のケース変換を行うには、`scripts/case_converter.py` を実行してください：
+文字列のケース変換を行うには、`scripts/case_converter.py` を実行する：
 
 ```bash
 python scripts/case_converter.py "hello_world_example" --to camel
@@ -48,7 +48,7 @@ python scripts/case_converter.py --file input.txt --to snake --output output.txt
 
 ## When NOT to Use This Skill
 
-以下のシナリオでは本スキルを使用せず、ネイティブツールや標準コマンドを利用してください：
+以下のシナリオでは本スキルを使用せず、ネイティブツールや標準コマンドを利用する：
 - 単純な `tr '[:lower:]' '[:upper:]'` 等の1単語の大文字・小文字変換のみで完結する場合。
 - AST レベルでの安全なコードリファクタリング（言語固有の言語サーバー・リネーム機能を利用すべき場合）。
 - スキル自体のライフサイクル管理や評価を行う場合（`skill-evolver` を使用）。
@@ -63,4 +63,4 @@ python scripts/case_converter.py --file input.txt --to snake --output output.txt
 
 ## Guidelines & Best Practices
 - スクリプトは `--help` をサポートし、Python 標準ライブラリのみで動作します。
-- 変換仕様の詳細については `references/guide.md` を参照してください。
+- 変換仕様の詳細については `references/guide.md` を参照する。

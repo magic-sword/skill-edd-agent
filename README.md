@@ -54,7 +54,7 @@ flowchart TD
 ### 🛠 メタスキル & ドメインスキル
 | スキル名 | 役割 / 機能 | 特徴 |
 | :--- | :--- | :--- |
-| **`skill-creator`** | スキル設計・雛形生成・配布パッケージャ | Anthropic & Google ADK 準拠のスキル作成ガイド、意思決定ツリー設計、雛形自動生成、高速静的検証、および配布用 ZIP パッケージャ。 |
+| **`skill-creator`** | スキル設計・雛形生成・配布パッケージャ | Anthropic & Google ADK 準拠の対話的スキル作成ガイド、意思決定ツリー設計、`assets/templates/` を活用した雛形生成、AST静的検証、および配布用 ZIP パッケージャ。 |
 | **`skill-evolver`** | 統合評価・失敗診断・自己修復・Tier昇格 | 契約テスト・シミュレーション評価の実行、失敗コンテキスト診断、自律的自己修復ループ、依存連鎖回帰テスト（Cascade Testing）、および Tier 1〜3 昇格判定を統合オーケストレーション。 |
 | **`case-converter`** | テキストケース変換（ゴールデンサンプル） | camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case 等の相互変換を行う Zero-dependency 実用スキル。 |
 
@@ -90,21 +90,14 @@ edd diagnose my-new-skill
 edd optimize my-new-skill --tier 1
 ```
 
-### Python API による自律スキル生成
-```python
-from edd_agent_tools import SkillsState, SkillValidator, ContractTestRunner
-from edd_agent_tools.skills.creator import create_skill
-
-result = create_skill(
-    prompt="PDFファイルの回転・結合・テキスト抽出を行う pdf-tools スキルを作成してください。",
-    name="pdf-tools",
-    pattern="workflow"
-)
-print(result)
+### Google ADK 2.0 エージェント / A2A サーバーの起動
+```bash
+# A2A 互換サーバーの起動 (ポート 8001)
+python src/main.py
 ```
-
 
 ### テストスイートの実行
 ```bash
-pytest tests/ -v
+pytest
 ```
+

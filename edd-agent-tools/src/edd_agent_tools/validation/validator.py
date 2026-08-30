@@ -197,13 +197,14 @@ class SkillValidator:
                 if clean_a and not (skill_dir / "assets" / clean_a).exists():
                     res.add_error("resources", f"Referenced asset does not exist: assets/{clean_a}")
 
-        # 4. 文体（Imperative / 客観的指示）の検査
+        # 4. 文体（Imperative / 客観的指示）の検査 (指示手順部を対象とし、ユーザー発話例セクションは除外)
+        instruction_body = re.sub(r"## Usage Scenarios & Trigger Examples.*?(?=##|\Z)", "", body_str, flags=re.DOTALL)
         second_person_patterns = [
             r"\byou should\b", r"\byou can\b", r"\byou must\b", r"\byou will\b",
             r"\bif you\b", r"\bplease\b", r"してください", r"してくださいね"
         ]
         for pat in second_person_patterns:
-            matches = list(re.finditer(pat, body_str, re.IGNORECASE))
+            matches = list(re.finditer(pat, instruction_body, re.IGNORECASE))
             if matches:
                 res.add_warning("tone", f"Found conversational phrasing '{matches[0].group(0)}' in instructions. Use objective imperative instructions ('To accomplish X, do Y').")
                 break

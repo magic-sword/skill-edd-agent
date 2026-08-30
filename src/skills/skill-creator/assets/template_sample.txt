@@ -1,2 +1,0 @@
-# Sample Asset Template for Skill Creator
-This template demonstrates an asset file intended for copying/exporting to the output artifacts.
