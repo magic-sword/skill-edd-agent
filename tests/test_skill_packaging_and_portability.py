@@ -7,7 +7,7 @@ import zipfile
 import pytest
 from pathlib import Path
 
-from edd_agent_tools.skills.cli import package_skill_cli
+from edd_agent_tools.packaging import SkillPackager
 from edd_agent_tools.validation.validator import SkillValidator
 
 
@@ -23,7 +23,7 @@ def test_all_skills_packaging_and_zip_integrity(skill_name: str, tmp_path: Path)
 
     # 2. 配布用 ZIP パッケージ化
     out_dir = tmp_path / "dist"
-    zip_path = package_skill_cli(str(skill_dir), output_dir_str=str(out_dir))
+    zip_path = SkillPackager.package(skill_dir=skill_dir, output_dir=out_dir, validate=True)
 
     assert zip_path is not None
     assert zip_path.exists()

@@ -16,12 +16,6 @@ from .models.spec import (
     SkillSpec,
     SkillMetadata
 )
-from .models.draft import (
-    DecisionBranch,
-    StepInstruction,
-    ResourcePlan,
-    SkillLogicDraft
-)
 from .models.state import (
     SkillTier,
     SkillEntry,
@@ -46,8 +40,6 @@ from .state import SkillsState
 from .validation.validator import SkillValidator, ValidationResult, ValidationIssue
 from .packaging.packager import SkillPackager
 from .packaging.scaffold import SkillScaffolder
-from .skills.template_engine import SkillTemplateEngine
-from .skills.creator import SkillCreationEngine
 
 # Evaluation & Sandboxing
 from .evaluation.test_runner import ContractTestRunner
@@ -61,7 +53,7 @@ from .evaluation.models import WorkspaceEnvProtocol
 # ADK Integration
 from .adk.toolset import EddSkillToolset, create_adk_skill_toolset
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 __all__ = [
     # Models
@@ -70,10 +62,6 @@ __all__ = [
     "SkillFrontmatter",
     "SkillSpec",
     "SkillMetadata",
-    "DecisionBranch",
-    "StepInstruction",
-    "ResourcePlan",
-    "SkillLogicDraft",
     "SkillTier",
     "SkillEntry",
     "InheritEntry",
@@ -95,8 +83,6 @@ __all__ = [
     "ValidationIssue",
     "SkillPackager",
     "SkillScaffolder",
-    "SkillTemplateEngine",
-    "SkillCreationEngine",
     # Evaluation
     "ContractTestRunner",
     "SimulationEvalRunner",

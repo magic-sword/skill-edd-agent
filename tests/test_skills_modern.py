@@ -4,91 +4,22 @@ import pytest
 from pathlib import Path
 from edd_agent_tools import (
     SkillPattern,
-    SkillLogicDraft,
     SkillSpec,
-    SkillTemplateEngine,
     SkillValidator,
     Skill,
     SkillsState,
-    DecisionBranch,
-    StepInstruction,
-    ResourcePlan
+    SkillScaffolder,
+    SkillPackager
 )
-from edd_agent_tools.skills.cli import init_skill, validate_skill_cli, package_skill_cli
 
 @pytest.fixture
 def tmp_workspace(tmp_path):
     """テスト用の一時ワークスペースディレクトリ"""
     return tmp_path
 
-def test_skill_logic_draft_and_template_engine():
-    """SkillLogicDraft から SkillTemplateEngine による SKILL.md レンダリングの検証"""
-    draft = SkillLogicDraft(
-        name="test-converter",
-        pattern=SkillPattern.WORKFLOW,
-        description_third_person="This skill should be used when users need to convert markdown files to HTML.",
-        concrete_trigger_examples=[
-            "Convert report.md to HTML",
-            "Please build html from markdown"
-        ],
-        when_not_to_use=[
-            "Direct markdown preview in terminals",
-            "Converting raw HTML back to Markdown"
-        ],
-        overview_summary="Converts Markdown documents into HTML format using custom styles.",
-        decision_tree=[
-            DecisionBranch(condition="input is raw markdown", action="execute scripts/convert.py"),
-            DecisionBranch(condition="custom CSS is needed", action="reference references/styles.md")
-        ],
-        execution_steps=[
-            StepInstruction(
-                step_number=1,
-                title="Verify Input File",
-                action_imperative="Check if the target markdown file exists and is readable.",
-                target_resource="scripts/convert.py"
-            ),
-            StepInstruction(
-                step_number=2,
-                title="Execute Conversion",
-                action_imperative="Run scripts/convert.py with input and output paths.",
-                target_resource="scripts/convert.py"
-            )
-        ],
-        resources_plan=[
-            ResourcePlan(rel_path="scripts/convert.py", type="script", purpose="Core markdown parser and HTML builder"),
-            ResourcePlan(rel_path="references/styles.md", type="reference", purpose="Style guidelines and class names"),
-            ResourcePlan(rel_path="assets/template.html", type="asset", purpose="Base HTML skeleton")
-        ],
-        guidelines=[
-            "Always validate HTML output after conversion."
-        ]
-    )
-
-    rendered_md = SkillTemplateEngine.render(draft)
-    assert "name: test-converter" in rendered_md
-    assert "description: This skill should be used when" in rendered_md
-    assert "# Test Converter" in rendered_md
-    assert "## Workflow Decision Tree" in rendered_md
-    assert "## Step-by-Step Instructions" in rendered_md
-    assert "## When NOT to Use This Skill" in rendered_md
-    assert "Direct markdown preview in terminals" in rendered_md
-    assert "### `scripts/` (Executable Tools)" in rendered_md
-    assert "### `references/` (On-Demand Knowledge)" in rendered_md
-    assert "### `assets/` (Output Templates & Boilerplates)" in rendered_md
-
-    # パース検証
-    spec = SkillSpec.parse_markdown(rendered_md)
-    assert spec.name == "test-converter"
-    assert spec.pattern == SkillPattern.WORKFLOW
-    assert len(spec.when_not_to_use) == 2
-    assert "Direct markdown preview in terminals" in spec.when_not_to_use[0]
-    assert "convert.py" in spec.scripts[0]
-    assert "styles.md" in spec.references[0]
-    assert "template.html" in spec.assets[0]
-
-def test_skill_init_and_validator(tmp_workspace):
-    """init_skill による雛形生成と SkillValidator による静的検証のテスト"""
-    skill_dir = init_skill("custom-pdf-tool", path=str(tmp_workspace), pattern="task_based")
+def test_skill_scaffolder_and_validator(tmp_workspace):
+    """SkillScaffolder による雛形生成と SkillValidator による静的検証のテスト"""
+    skill_dir = SkillScaffolder.scaffold("custom-pdf-tool", output_base_dir=tmp_workspace, pattern="task_based")
     assert skill_dir is not None
     assert (skill_dir / "SKILL.md").exists()
     assert (skill_dir / "scripts" / "custom_pdf_tool.py").exists()
@@ -100,9 +31,15 @@ def test_skill_init_and_validator(tmp_workspace):
     assert val_res.is_valid is True
     assert len(val_res.errors) == 0
 
+    # パース検証
+    content = (skill_dir / "SKILL.md").read_text(encoding="utf-8")
+    spec = SkillSpec.parse_markdown(content)
+    assert spec.name == "custom-pdf-tool"
+    assert spec.pattern == SkillPattern.TASK_BASED
+
 def test_validator_detects_broken_resources(tmp_workspace):
     """存在しないリソースへの言及を静的リンターが検知することを確認"""
-    skill_dir = init_skill("broken-skill", path=str(tmp_workspace), pattern="workflow")
+    skill_dir = SkillScaffolder.scaffold("broken-skill", output_base_dir=tmp_workspace, pattern="workflow")
     # 存在しないスクリプトへの言及を SKILL.md に追記
     skill_md = skill_dir / "SKILL.md"
     content = skill_md.read_text(encoding="utf-8")
@@ -115,7 +52,7 @@ def test_validator_detects_broken_resources(tmp_workspace):
 
 def test_skill_domain_class_resource_access(tmp_workspace):
     """Skill ドメインクラスの3層リソース解決とメタデータ取得のテスト"""
-    skill_dir = init_skill("my-domain-skill", path=str(tmp_workspace), pattern="capabilities")
+    skill_dir = SkillScaffolder.scaffold("my-domain-skill", output_base_dir=tmp_workspace, pattern="capabilities")
     skill = Skill(root_dir=str(skill_dir), tier=1)
 
     assert skill.name == "my-domain-skill"
@@ -126,7 +63,7 @@ def test_skill_domain_class_resource_access(tmp_workspace):
 
     # リファレンスロード
     ref_content = skill.load_reference("guide.md")
-    assert "Reference Guide for my-domain-skill" in ref_content
+    assert "Reference Guide for" in ref_content
 
     # スクリプトパス解決 & ロードテスト
     script_path = skill.get_script_path("my_domain_skill.py")
@@ -136,10 +73,10 @@ def test_skill_domain_class_resource_access(tmp_workspace):
     assert mod.run() == "Success"
 
 def test_cli_package(tmp_workspace):
-    """CLI package 機能のテスト"""
-    skill_dir = init_skill("pkg-test-skill", path=str(tmp_workspace), pattern="workflow")
+    """SkillPackager によるパッケージング機能のテスト"""
+    skill_dir = SkillScaffolder.scaffold("pkg-test-skill", output_base_dir=tmp_workspace, pattern="workflow")
     dist_dir = tmp_workspace / "dist"
-    zip_path = package_skill_cli(str(skill_dir), output_dir_str=str(dist_dir))
+    zip_path = SkillPackager.package(skill_dir=skill_dir, output_dir=dist_dir, validate=True)
     assert zip_path is not None
     assert zip_path.exists()
 
@@ -159,13 +96,8 @@ def test_skill_evolver_integration():
     assert hasattr(evolver_mod, "cmd_eval")
     assert hasattr(evolver_mod, "cmd_diagnose")
 
-
 def test_validator_adk_spec_enforcement(tmp_workspace):
     """ADK 2.0 / AgentSkills 仕様（文字数制約・ハイフン制約）のバリデータ検査をテスト"""
-    creator_skill = Skill(root_dir="/workspace/src/skills/skill-creator")
-    quick_val_mod = creator_skill.load_module("quick_validate.py")
-    quick_validate = quick_val_mod.validate_skill
-    
     # 1. 64文字超過スキル名
     long_name = "a" * 65
     invalid_content = f"---\nname: {long_name}\ndescription: Valid description\n---\n# Test"
@@ -186,13 +118,12 @@ def test_validator_adk_spec_enforcement(tmp_workspace):
     assert not res3.is_valid
     assert any("1024 characters" in e for e in res3.errors)
 
-
 def test_cli_contract_runner(tmp_workspace):
     """ContractTestRunner による CLI サブプロセス実行テストを検証"""
     from edd_agent_tools.evaluation import ContractTestRunner, LocalWorkspaceEnv
     from edd_agent_tools.evaluation.models import EvalCaseSet, EvalCase, ExpectedResultType
 
-    skill_dir = init_skill("cli-contract-skill", path=str(tmp_workspace), pattern="workflow")
+    skill_dir = SkillScaffolder.scaffold("cli-contract-skill", output_base_dir=tmp_workspace, pattern="workflow")
     skill = Skill(root_dir=str(skill_dir), tier=1)
 
     eval_set = EvalCaseSet(

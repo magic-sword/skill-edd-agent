@@ -2,9 +2,7 @@ import pytest
 from pathlib import Path
 from edd_agent_tools import (
     SkillSpec,
-    SkillLogicDraft,
     SkillPattern,
-    SkillTemplateEngine,
     SkillValidator,
     SkillsState,
     Skill

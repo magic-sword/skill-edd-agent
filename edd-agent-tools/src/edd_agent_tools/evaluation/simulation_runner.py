@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor
 
-from edd_agent_tools.skill import Skill
+from edd_agent_tools.core.entity import Skill
 from .models import EvalRunResult, FailedCaseDetail, EvalDetailReport
 
 

@@ -15,7 +15,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from edd_agent_tools.models import SkillLogicDraft, SkillPattern, SkillTier, EvalDetailReport
+from edd_agent_tools.models import SkillPattern, SkillTier, EvalDetailReport
 from edd_agent_tools.state import SkillsState
 from edd_agent_tools.validation.validator import SkillValidator
 from edd_agent_tools.packaging.scaffold import SkillScaffolder

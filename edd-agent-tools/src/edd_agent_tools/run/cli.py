@@ -173,7 +173,7 @@ def run_cli():
                 try:
                     min_tier_val = int(args[i+1])
                 except ValueError:
-                    from edd_agent_tools.skills.models import SkillTier
+                    from edd_agent_tools.models import SkillTier
                     try:
                         min_tier_val = SkillTier[args[i+1].upper()]
                     except KeyError:

@@ -2,7 +2,7 @@ import os
 import json
 from typing import Dict, Any, Optional
 from edd_agent_tools.state import SkillsState
-from edd_agent_tools.skill import Skill
+from edd_agent_tools.core.entity import Skill
 from .models import EvalRunResult, EvalDetailReport
 
 

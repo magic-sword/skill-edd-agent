@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-from edd_agent_tools.skills.state import SkillsState
+from edd_agent_tools.state import SkillsState
 
 
 def _load_skill_context(skill_name: str) -> tuple[str, List[str]]:

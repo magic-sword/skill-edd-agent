@@ -8,9 +8,9 @@ import pytest
 from pathlib import Path
 
 from edd_agent_tools.state import SkillsState
-from edd_agent_tools.skill import Skill
+from edd_agent_tools.core.entity import Skill
 from edd_agent_tools.adk.toolset import EddSkillToolset
-from edd_agent_tools.skills.cli import init_skill
+from edd_agent_tools.packaging import SkillScaffolder
 
 
 def test_external_project_skills_discovery(tmp_path: Path):
@@ -22,7 +22,7 @@ def test_external_project_skills_discovery(tmp_path: Path):
     skills_dir.mkdir()
 
     # スキルを初期化
-    init_skill("custom-pdf-tool", path=str(skills_dir), pattern="workflow")
+    SkillScaffolder.scaffold("custom-pdf-tool", output_base_dir=skills_dir, pattern="workflow")
 
     # プロジェクトルートを指定して SkillsState を作成
     state = SkillsState(project_root=external_root)
@@ -40,7 +40,7 @@ def test_adk_toolset_with_external_skills_root(tmp_path: Path):
     custom_root = tmp_path / "custom_agents_skills"
     custom_root.mkdir()
 
-    init_skill("weather-reporter", path=str(custom_root), pattern="task_based")
+    SkillScaffolder.scaffold("weather-reporter", output_base_dir=custom_root, pattern="task_based")
 
     toolset = EddSkillToolset(skills_root=custom_root)
     listed = toolset.list_skills()
@@ -59,7 +59,7 @@ def test_skills_state_environment_variable_override(tmp_path: Path, monkeypatch)
     extra_dir = tmp_path / "extra_skills_dir"
     extra_dir.mkdir()
 
-    init_skill("extra-analyzer", path=str(extra_dir), pattern="reference")
+    SkillScaffolder.scaffold("extra-analyzer", output_base_dir=extra_dir, pattern="reference")
 
     monkeypatch.setenv("EDD_SKILLS_PATH", str(extra_dir))
 

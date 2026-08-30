@@ -9,7 +9,8 @@ import argparse
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from edd_agent_tools.skills.state import SkillsState, SkillTier
+from edd_agent_tools.state import SkillsState
+from edd_agent_tools.models import SkillTier
 from edd_agent_tools.evaluation.test_runner import ContractTestRunner
 from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
 from edd_agent_tools.evaluation.environment import LocalWorkspaceEnv

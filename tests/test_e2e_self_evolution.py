@@ -21,10 +21,10 @@ def temp_skills_dir(tmp_path):
 
 def test_e2e_evaluation_and_tier_gating(tmp_path):
     """EDD (Evaluation-Driven Development) に基づく多層評価と Tier 昇格ゲートの E2E 検証"""
-    from edd_agent_tools.skills.cli import init_skill
+    from edd_agent_tools.packaging import SkillScaffolder
 
     # 1. 雛形スキルの生成
-    skill_dir = init_skill("json-schema-validator", path=str(tmp_path), pattern="workflow")
+    skill_dir = SkillScaffolder.scaffold("json-schema-validator", output_base_dir=tmp_path, pattern="workflow")
     assert skill_dir is not None
     assert (skill_dir / "SKILL.md").exists()
 

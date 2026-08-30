@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "edd-agent-tools"
-version = "0.3.0"
+version = "0.5.0"
 description = "Evaluation-Driven Development (EDD) tools and helper libraries for AI Agent development"
 readme = "README.md"
 authors = [
@@ -29,7 +29,6 @@ dependencies = [
 
 [project.scripts]
 edd = "edd_agent_tools.cli:main"
-edd-skills = "edd_agent_tools.skills.cli:main"
 edd-eval = "edd_agent_tools.evaluation.cli:main"
 edd-agent-mcp = "edd_agent_tools.mcp.server:main"
 

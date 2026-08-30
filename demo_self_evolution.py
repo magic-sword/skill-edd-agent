@@ -22,9 +22,9 @@ from edd_agent_tools import (
     SkillValidator,
     SkillTier,
     SkillOptimizer,
-    CascadeTestRunner
+    CascadeTestRunner,
+    SkillScaffolder
 )
-from edd_agent_tools.skills.creator import create_skill
 
 
 def print_banner():
@@ -55,15 +55,11 @@ def main():
     print(f"➔ skill-creator (4段階品質保証パイプライン) を起動中...")
 
     # Stage 1〜4 によるスキル生成
-    res = create_skill(
-        prompt="文字列を大文字(UPPER), 小文字(lower), キャメルケース(camelCase), スネークケース(snake_case)に変換するテキスト変換ユーティリティスキルを作成してください。",
-        name=demo_skill_name,
+    target_dir = SkillScaffolder.scaffold(
+        skill_name=demo_skill_name,
+        output_base_dir=workspace_skills,
         pattern="task_based"
     )
-
-    if res.get("status") not in ["success", "partial_success"]:
-        print(f"❌ スキル生成に失敗しました: {res}")
-        return
 
     print(f"✅ スキル '{demo_skill_name}' の生成完了！ (3層リソース分離: SKILL.md, scripts/)")
 

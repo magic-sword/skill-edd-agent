@@ -28,13 +28,13 @@
 
 ### A. 不変プラットフォーム層（pip ライブラリ: `edd-agent-tools`）の責務
 全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム」に徹してください：
-- **仮想環境サンドボックス**: `LocalWorkspaceEnv`, `SubprocessSandbox`
-- **多層評価・Tier昇格エンジン**: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`
-- **汎用静的リンター**: `SkillValidator`（AST/構文/実在検証）
-- **状態・レジストリ管理**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析）
-- **配布用 ZIP パッケージャ**: `package_skill_cli`
-- **Google ADK 2.0 / MCP アダプタ**: `create_adk_skill_toolset`, `EddSkillToolset`
-- **統合 CLI**: `edd`（`run`, `init`, `validate`, `package`, `eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
+- **共通ドメインエンティティ (`core`)**: `Skill`, `SkillTests`
+- **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析）
+- **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証）
+- **スキャフォールド & 配布用 ZIP パッケージャ (`packaging`)**: `SkillScaffolder`, `SkillPackager`
+- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`, `LocalWorkspaceEnv`
+- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset`, `create_mcp_server`
+- **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
 
 ※ **過度なテンプレート・プロンプトハードコードの禁止**:
 Markdown の文体やテンプレート生成ロジックを pip パッケージ側に過度にハードコードしてはなりません。エージェントがプロンプトを進化させるときに pip パッケージのコードを変更する必要をなくすためです。
@@ -68,7 +68,7 @@ Markdown の文体やテンプレート生成ロジックを pip パッケージ
 スキル操作・構文解析・テスト実行を行う新規機能やスクリプトを開発する際は、必ずパッケージ内に定義されたドメインモデルおよび評価ランナーに適合させてください。
 
 * **スキル管理モデル**: `edd_agent_tools.Skill`, `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
-* **品質保証モデル**: `edd_agent_tools.models.SkillLogicDraft`, `edd_agent_tools.SkillValidator`
+* **品質保証・パッケージング**: `edd_agent_tools.SkillValidator`, `edd_agent_tools.SkillScaffolder`, `edd_agent_tools.SkillPackager`
 * **評価実行基盤**: `edd_agent_tools.ContractTestRunner`, `edd_agent_tools.SimulationEvalRunner`, `edd_agent_tools.CascadeTestRunner`, `edd_agent_tools.SkillDiagnoser`, `edd_agent_tools.SkillOptimizer`
 * **Google ADK 統合**: `edd_agent_tools.adk.create_adk_skill_toolset`, `edd_agent_tools.adk.EddSkillToolset`
 

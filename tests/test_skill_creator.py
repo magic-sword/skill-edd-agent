@@ -4,8 +4,7 @@ import pytest
 import subprocess
 import sys
 from pathlib import Path
-from edd_agent_tools import Skill, SkillValidator, SkillCreationEngine
-from edd_agent_tools.skills.creator import create_skill
+from edd_agent_tools import Skill, SkillValidator, SkillScaffolder, SkillPackager
 
 
 @pytest.fixture
@@ -15,22 +14,14 @@ def temp_output_dir(tmp_path):
     return out_dir
 
 
-def test_package_level_skill_creator_engine(temp_output_dir):
-    """edd-agent-tools パッケージ側の SkillCreationEngine による自動スキル生成テスト"""
-    prompt = """
-    ユーザーから提供されたテキストファイルの行数、単語数、文字数を解析し、集計レポートを出力する text-analyzer スキルを作成してください。
-    実行スクリプトとして analyze.py を含め、簡単な使用ガイドラインを references/ に配置してください。
-    """
-    
-    result = create_skill(
-        prompt=prompt,
-        name="text-analyzer",
-        pattern="workflow",
-        output_dir=str(temp_output_dir)
+def test_package_level_skill_scaffolder(temp_output_dir):
+    """edd-agent-tools パッケージ側の SkillScaffolder による雛形生成・検証テスト"""
+    target_dir = SkillScaffolder.scaffold(
+        skill_name="text-analyzer",
+        output_base_dir=temp_output_dir,
+        pattern="workflow"
     )
 
-    assert result["status"] == "success"
-    target_dir = Path(result["output_dir"])
     assert target_dir.exists()
     assert (target_dir / "SKILL.md").exists()
 

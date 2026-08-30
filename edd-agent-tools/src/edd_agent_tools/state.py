@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional, Dict, List, Tuple, Set
 
 from .models.state import SkillsStateJson, SkillEntry, InheritEntry, SkillTier, ProjectSkillInfo
-from .skill import Skill
+from .core.entity import Skill
 
 
 class SkillsState:
