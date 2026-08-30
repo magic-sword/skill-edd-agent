@@ -394,24 +394,38 @@ class SkillsState:
         """現在スキャンされたすべての有効なスキルおよびエージェントの Skill オブジェクトリストを返します。"""
         return list(self.scan_skills().values())
 
-    def register_skill(self, skill: "Skill") -> bool:
+    def register_skill(self, skill: "Skill | str | None" = None, tier: Optional[SkillTier] = None, skill_name: Optional[str] = None) -> bool:
         """スキルまたはエージェントのオブジェクトをメタデータ（skills_state.json）へ新規登録・更新（保存）します。
         
-        Tier 1 (READ_ONLY) 以上の合格スキルの場合のみ、skills_state.json に永続化され、
-        自動的に skills.json へのマウント露出も行われます。
-        Tier 0 (SANDBOX) のスキルを登録・永続化する処理は行いません（動的スキャンで解決するため）。
+        Skill オブジェクト、または (skill_name, tier) のいずれでも呼び出し可能です。
         """
         self._cached_skills = None
         if self.data is None:
             self.load()
+
+        if isinstance(skill, str) or skill_name is not None or (skill is None and tier is not None):
+            resolved_name = skill_name or (skill if isinstance(skill, str) else "")
+            resolved_tier = tier if tier is not None else SkillTier.READ_ONLY
             
+            # メタデータを更新 (ProjectSkillInfo)
+            self.data.skills[resolved_name] = ProjectSkillInfo(
+                tier=resolved_tier
+            )
+            self.save()
+            return True
+            
+        if skill is None:
+            return False
+
         # Tier 0 (SANDBOX) のスキルは、登録・永続化の対象外とする
         if skill._tier == SkillTier.SANDBOX:
             print(f"Skipped registration for '{skill.name}': Tier is SANDBOX (dynamic discovery only).")
             return False
+
             
         skill_name = skill.name
         skills_info = self.data.skills
+
         existing_info = skills_info.get(skill_name)
         current_tier = existing_info.tier if existing_info else None
         

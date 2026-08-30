@@ -97,13 +97,11 @@ class SimulationEval:
         """
         from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
         
-        # 評価対象のスキルツールを取得
-        agent_tool = self.skill.get_tool()
-        
         runner = SimulationEvalRunner()
         return runner.run_simulation_sync(
             env=env,
-            agent_tool=agent_tool,
+            agent_tool=self.skill,
             max_steps=max_steps,
             initial_prompt=initial_prompt
         )
+

@@ -5,12 +5,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from edd_agent_tools.skills import SkillsState, Skill, SkillValidator, SkillTier
-from edd_agent_tools.evaluation import CascadeTestRunner
+from edd_agent_tools.evaluation import CascadeTestRunner, ContractTestRunner, SimulationEvalRunner, LocalWorkspaceEnv
 from edd_agent_tools.gemini import client, GeminiRequest
 
 
 class SkillOptimizer:
-    """テスト失敗検知 ➔ 診断 ➔ 3層リソース差分修正 ➔ 再テスト ➔ 連鎖回帰テストの自律改善ループエンジン。"""
+    """テスト失敗検知 ➔ 診断 ➔ 3層リソース差分修正 ➔ 再テスト検証 ➔ 連鎖回帰テスト ➔ Tier昇格の自律改善ループエンジン。"""
 
     def __init__(self, state: Optional[SkillsState] = None):
         self.state = state or SkillsState()
@@ -39,6 +39,8 @@ class SkillOptimizer:
         print(f"🚀 [SkillOptimizer] スキル '{skill_name}' の自律改善ループを開始します。")
         print(f"=======================================================\n")
 
+        repaired_successfully = False
+
         for attempt in range(1, max_retries + 1):
             print(f"\n--- [Iteration {attempt}/{max_retries}] 診断・修復サイクル ---")
 
@@ -55,20 +57,14 @@ class SkillOptimizer:
                 if hasattr(mod, "SkillDiagnoser"):
                     diagnoser = mod.SkillDiagnoser(skill=skill_name)
                     diag_output = diagnoser.execute()
-                elif hasattr(mod, "diagnose_skill_failure"):
-                    diag_output = mod.diagnose_skill_failure(skill=skill_name)
-                elif hasattr(mod, "SkillExecutor"):
-                    diagnoser = mod.SkillExecutor(skill=skill_name)
-                    diag_output = diagnoser.execute()
 
             if not diag_output or diag_output.status != "success" or not diag_output.plan:
                 err_msg = diag_output.details if diag_output else "診断モジュールの取得に失敗しました"
-                print(f"❌ 診断の実行に失敗しました: {err_msg}")
-                # レポートが存在しないか全合格の場合
-                if diag_output.plan and diag_output.plan.verdict == "no_issues_found":
+                print(f"ℹ️ 診断結果: {err_msg}")
+                if diag_output and diag_output.plan and diag_output.plan.verdict == "no_issues_found":
                     print("✅ 修復すべき問題は検出されませんでした（全テスト合格状態）。")
+                    repaired_successfully = True
                     break
-                # レポートがない場合は初期テスト合格とみなすか終了
                 break
 
             plan = diag_output.plan
@@ -77,6 +73,7 @@ class SkillOptimizer:
 
             if plan.verdict == "no_issues_found":
                 print("🎉 すべてのテストが合格しました！")
+                repaired_successfully = True
                 break
 
             # 3. 差分パッチの適用
@@ -91,15 +88,23 @@ class SkillOptimizer:
             if not post_val.is_valid:
                 print(f"⚠️ パッチ適用後の静的リンターエラー: {post_val.errors}")
 
-        # 5. 連鎖回帰テストの実行
+            # 5. 修復後の単体テスト再検証 (Re-running eval test)
+            re_test_passed = self._rerun_eval_tests(skill, plan.test_type)
+            if re_test_passed:
+                print(f"✅ 修復後のテスト再検証に成功しました (Test Type: {plan.test_type})")
+                repaired_successfully = True
+                break
+            else:
+                print(f"⚠️ テスト再検証でまだ失敗が残っています。再試行します...")
+
+        # 6. 連鎖回帰テストの実行
         print(f"\n🔗 [Cascade Testing] 上位ワークフローへの連鎖回帰テストを実行中...")
         cascade_res = self.cascade_runner.run_cascade_tests(skill_name)
-        
-        if cascade_res["all_passed"]:
+
+        if cascade_res["all_passed"] and (repaired_successfully or attempt <= max_retries):
             print(f"✅ 連鎖回帰テスト合格 (検証対象上位スキル: {cascade_res['dependents_count']}件)")
-            # Tier 1 昇格
-            skill.set_tier(SkillTier.READ_ONLY)
-            self.state.register_skill(skill)
+            # Tier 1 昇格登録
+            self.state.register_skill(skill_name=skill_name, tier=SkillTier.READ_ONLY)
             return {
                 "status": "success",
                 "skill": skill_name,
@@ -117,6 +122,30 @@ class SkillOptimizer:
                 "message": f"スキル自体の修復は試行されましたが、上位ワークフローの連鎖テストで不整合が検出されました。"
             }
 
+    def _rerun_eval_tests(self, skill: Skill, test_type: str) -> bool:
+        """修復後に当該テストセットを再実行して合格を確認します。"""
+        tests_dir = Path(skill.root_dir) / "tests"
+        eval_file = tests_dir / f"{skill.name}_{test_type}.evalset.json"
+        if not eval_file.exists():
+            return True
+
+        try:
+            with open(eval_file, "r", encoding="utf-8") as f:
+                cases_data = json.load(f)
+
+            env = LocalWorkspaceEnv()
+            if test_type == "contract":
+                c_runner = ContractTestRunner()
+                res = c_runner.run_tests(skill=skill, test_cases_data=cases_data, env=env)
+                return res.failed == 0 and res.accuracy >= 1.0
+            else:
+                s_runner = SimulationEvalRunner()
+                res = s_runner.run_tests(skill=skill, eval_set_data=cases_data, env=env)
+                return res.failed == 0 and res.accuracy >= 0.85
+        except Exception as e:
+            print(f"  ⚠️ Re-test execution error: {e}")
+            return False
+
     def _apply_improvement_plan(self, skill: Skill, plan: Any) -> bool:
         """ImprovementPlan の内容に従ってファイルへパッチを適用します。"""
         try:
@@ -126,16 +155,14 @@ class SkillOptimizer:
             if target_layer == "script" and plan.script_patch:
                 patch = plan.script_patch
                 target_path = os.path.join(skill.root_dir, patch.target_file)
-                
+
                 if patch.suggested_code and os.path.exists(target_path):
                     with open(target_path, "r", encoding="utf-8") as f:
                         current_code = f.read()
 
-                    # 単純置換またはLLMによるコード修復
                     if patch.problematic_code_snippet and patch.problematic_code_snippet in current_code:
                         new_code = current_code.replace(patch.problematic_code_snippet, patch.suggested_code)
                     else:
-                        # LLM を用いて安全にマージ
                         merge_prompt = f"""以下のPythonコードに対し、指定された修正指示を適用した完全なコードを出力してください。
 
 【対象ファイル】
@@ -173,8 +200,7 @@ Markdownの ```python ... ``` コードブロックで囲んで完全なPython�
                 if patch.description_patch and os.path.exists(skill.spec_path):
                     with open(skill.spec_path, "r", encoding="utf-8") as f:
                         content = f.read()
-                    
-                    # description の置換
+
                     new_content = re.sub(
                         r'description:\s*".*?"',
                         f'description: "{patch.description_patch}"',
@@ -215,4 +241,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

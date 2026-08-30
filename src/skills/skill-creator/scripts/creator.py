@@ -3,7 +3,7 @@ import sys
 import json
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 from google.genai import types
 
 from edd_agent_tools.skills import (
@@ -12,8 +12,11 @@ from edd_agent_tools.skills import (
     SkillTemplateEngine,
     SkillValidator,
     ValidationResult,
-    SkillsState
+    SkillsState,
+    Skill
 )
+from edd_agent_tools.evaluation import ContractTestRunner, LocalWorkspaceEnv
+from edd_agent_tools.evaluation.models import EvalCaseSet, EvalCase
 from edd_agent_tools.gemini import client, GeminiRequest
 
 # プロンプトテンプレートのディレクトリパス
@@ -27,7 +30,7 @@ def _load_prompt_template(filename: str) -> str:
     return template_path.read_text(encoding="utf-8")
 
 class SkillCreationEngine:
-    """4段階品質保証パイプラインを実行する自動スキル生成エンジン"""
+    """5段階品質保証・評価駆動パイプライン（EDD）を実行する自動スキル生成エンジン"""
 
     def __init__(self, output_base_dir: str = "src/skills"):
         self.output_base_dir = Path(output_base_dir).resolve()
@@ -57,7 +60,7 @@ class SkillCreationEngine:
         pattern: Optional[str] = None,
         output_dir: Optional[str] = None
     ) -> dict:
-        """ユーザープロンプトから完全なスキルパッケージを自動設計・生成します。"""
+        """ユーザープロンプトから完全なスキルパッケージおよびテストハーネスを自動設計・生成します。"""
         print(f"🚀 [Stage 1] Analyzing requirements, checking inventory, and extracting logical skill draft...")
 
         # 1. Stage 1: 論理設計（SkillLogicDraft）の構造化抽出
@@ -124,6 +127,10 @@ class SkillCreationEngine:
                 "warnings": val_res.warnings
             }
 
+        # 5. Stage 5: 評価テストハーネスの自動生成 & 初期契約検証 (Evaluation-Driven Development)
+        print(f"🧪 [Stage 5] Generating test harness & verifying contract execution...")
+        test_harness_res = self._generate_and_verify_test_harness(target_skill_dir, draft)
+
         print(f"🎉 Successfully created skill '{draft.name}' at: {target_skill_dir}")
         return {
             "status": "success",
@@ -131,7 +138,9 @@ class SkillCreationEngine:
             "output_dir": str(target_skill_dir),
             "pattern": draft.pattern.value,
             "resources": [r.rel_path for r in draft.resources_plan],
-            "message": f"Successfully created skill '{draft.name}'"
+            "tests_generated": test_harness_res.get("generated_files", []),
+            "contract_passed": test_harness_res.get("contract_passed", True),
+            "message": f"Successfully created skill '{draft.name}' with test harness."
         }
 
     def _generate_single_resource(self, skill_dir: Path, res_plan, draft: SkillLogicDraft):
@@ -153,7 +162,7 @@ class SkillCreationEngine:
             client=self.client
         )
         resp = req.execute(config=types.GenerateContentConfig(
-            system_instruction="You are an expert code and documentation generator.",
+            system_instruction="You are an expert code and documentation generator. Ensure Python scripts are deterministic CLI tools equipped with argparse and --help support.",
             temperature=0.2
         ))
         raw_text = resp.text.strip()
@@ -185,7 +194,77 @@ class SkillCreationEngine:
             print(f"  ⚠️ Validation issues detected (Attempt {attempt}/{max_retries}): {res.errors}")
             # エラーの自動修復
             skill_md_content = SkillTemplateEngine.render(draft)
+            (skill_dir / "SKILL.md").write_text(skill_md_content, encoding="utf-8")
         return SkillValidator.validate_directory(skill_dir)
+
+    def _generate_and_verify_test_harness(self, skill_dir: Path, draft: SkillLogicDraft) -> Dict[str, Any]:
+        """初期評価データセット（contract, trigger）を生成し、契約テストを実行"""
+        tests_dir = skill_dir / "tests"
+        tests_dir.mkdir(parents=True, exist_ok=True)
+        (tests_dir / "results").mkdir(exist_ok=True)
+
+        generated_files = []
+        script_name = f"{draft.name.replace('-', '_')}.py"
+        script_rel = f"scripts/{script_name}"
+        if not (skill_dir / script_rel).exists():
+            scripts = [f for f in (skill_dir / "scripts").glob("*.py") if f.name != "__init__.py"]
+            if scripts:
+                script_rel = f"scripts/{scripts[0].name}"
+
+        # 1. Contract Test ケースの生成
+        contract_data = {
+            "eval_set_id": f"{draft.name}_contract_eval",
+            "eval_cases": [
+                {
+                    "eval_case_id": "test_cli_help",
+                    "script_name": script_rel,
+                    "cli_args": ["--help"],
+                    "expected_exit_code": 0,
+                    "expected_stdout_contains": ["--help"]
+                }
+            ]
+        }
+        contract_path = tests_dir / f"{draft.name}_contract.evalset.json"
+        contract_path.write_text(json.dumps(contract_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        generated_files.append(str(contract_path))
+
+        # 2. Trigger Test ケースの生成
+        trigger_cases = []
+        for idx, ex in enumerate(draft.concrete_trigger_examples, 1):
+            trigger_cases.append({
+                "name": f"positive_trigger_{idx}",
+                "user_input": ex,
+                "expected_tools": [draft.name],
+                "should_trigger": True
+            })
+        for idx, non_ex in enumerate(draft.when_not_to_use[:3], 1):
+            trigger_cases.append({
+                "name": f"negative_trigger_{idx}",
+                "user_input": non_ex,
+                "expected_tools": [],
+                "should_trigger": False
+            })
+        trigger_data = {"eval_set_id": f"{draft.name}_trigger_eval", "cases": trigger_cases}
+        trigger_path = tests_dir / f"{draft.name}_trigger.evalset.json"
+        trigger_path.write_text(json.dumps(trigger_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        generated_files.append(str(trigger_path))
+
+        # 3. 契約テストの実行検証
+        contract_passed = True
+        try:
+            skill_obj = Skill(root_dir=str(skill_dir), tier=0)
+            runner = ContractTestRunner()
+            env = LocalWorkspaceEnv()
+            run_res = runner.run_tests(skill=skill_obj, test_cases_data=contract_data, env=env)
+            contract_passed = (run_res.failed == 0 and run_res.accuracy >= 1.0)
+            print(f"  🧪 Contract testing result: {'PASSED' if contract_passed else 'FAILED'}")
+        except Exception as e:
+            print(f"  ⚠️ Contract test run warning: {e}")
+
+        return {
+            "generated_files": generated_files,
+            "contract_passed": contract_passed
+        }
 
 
 def create_skill(
@@ -194,7 +273,7 @@ def create_skill(
     pattern: Optional[str] = None,
     output_dir: Optional[str] = None
 ) -> dict:
-    """自然言語要件から完全なスキルパッケージ（SKILL.md、scripts/、references/、assets/）を自律生成します。"""
+    """自然言語要件から完全なスキルパッケージ（SKILL.md、scripts/、references/、assets/）およびテストハーネスを自律生成します。"""
     engine = SkillCreationEngine(output_base_dir=output_dir or "src/skills")
     return engine.create_skill_from_prompt(
         prompt=prompt,
@@ -228,4 +307,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -2,6 +2,7 @@
 """
 テスト評価実行＆構造化ログ永続化スクリプト (CLI & API 対応)
 隔離サンドボックス環境 (LocalWorkspaceEnv) 上でテストを実行し、テスト結果・精度・失敗詳細をレポートに記録する。
+Google ADK 準拠の全6大評価タイプ（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）に対応。
 """
 
 import os
@@ -40,7 +41,7 @@ def run_evaluation(
     }
 
     tests_dir = Path(skill.root_dir) / "tests"
-    types_to_run = ["trigger", "contract", "golden", "judge"] if test_type == "all" else [test_type]
+    types_to_run = ["trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if test_type == "all" else [test_type]
 
     for t in types_to_run:
         target_file = None
@@ -74,10 +75,10 @@ def run_evaluation(
                 sim_runner = SimulationEvalRunner()
                 res = sim_runner.run_tests(skill=skill, eval_set_data=cases_data, env=env)
                 report["results"][t] = {
-                    "passed": getattr(res, "passed", int(res.accuracy * 10)),
-                    "failed": getattr(res, "failed", 10 - int(res.accuracy * 10)),
+                    "passed": res.passed,
+                    "failed": res.failed,
                     "accuracy": res.accuracy,
-                    "details": [d if isinstance(d, dict) else str(d) for d in getattr(res, "details", [])]
+                    "details": []
                 }
                 report["summary"]["total_passed"] += report["results"][t]["passed"]
                 report["summary"]["total_failed"] += report["results"][t]["failed"]
@@ -108,7 +109,7 @@ def run_evaluation(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run evaluation tests for a skill")
     parser.add_argument("skill_name", help="Name of the skill to test")
-    parser.add_argument("--type", choices=["trigger", "contract", "golden", "judge", "all"], default="all", help="Test type to run")
+    parser.add_argument("--type", choices=["trigger", "contract", "golden", "judge", "trajectory", "adversarial", "all"], default="all", help="Test type to run")
     parser.add_argument("--evalset", help="Path to specific evalset.json file")
     parser.add_argument("--report", default="tests/results/latest_report.json", help="Path to save report JSON")
 

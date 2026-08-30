@@ -14,7 +14,7 @@ class LocalWorkspaceEnv(gym.Env):
     """
     def __init__(
         self, 
-        workspace_dir: str, 
+        workspace_dir: str = ".", 
         target_files: List[str] = None, 
         pip_packages: List[str] = None,
         use_git: bool = True,

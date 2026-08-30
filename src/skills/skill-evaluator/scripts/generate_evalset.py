@@ -2,6 +2,7 @@
 """
 多層テストケース自動生成スクリプト (CLI & API 対応)
 対象スキルの SKILL.md および scripts/ を解析し、指定タイプの評価セット (evalset.json) を生成する。
+Google ADK (adk.dev) 準拠の推論軌跡（Trajectory）および敵対的（Adversarial）テスト生成に対応。
 """
 
 import os
@@ -250,6 +251,111 @@ def generate_judge_tests(skill_name: str, output_path: str) -> bool:
         return False
 
 
+def generate_trajectory_tests(skill_name: str, output_path: str) -> bool:
+    """Google ADK 準拠のツール呼び出し軌跡（Tool Trajectory）評価テストケースを生成する。"""
+    skill_md, scripts_content = _load_skill_context(skill_name)
+
+    prompt = f"""あなたは Google ADK 準拠のエージェント軌跡評価（Trajectory Evaluation）を設計するエンジニアです。
+以下のスキル仕様に基づき、期待される中間ツール呼び出しシーケンス（intermediate_data.tool_uses）を含むテストケースを生成してください。
+
+【対象スキル名】
+{skill_name}
+
+【SKILL.md】
+{skill_md}
+
+【出力要件】
+以下の JSON 構造のみを出力してください：
+{{
+  "eval_set_id": "{skill_name}_trajectory_eval",
+  "eval_cases": [
+    {{
+      "invocation_id": "inv_001",
+      "user_content": {{"text": "標準的なユーザー指示プロンプト"}},
+      "final_response": {{"text": "期待される最終返答サマリー"}},
+      "intermediate_data": {{
+        "tool_uses": [
+          {{
+            "name": "{skill_name}",
+            "args": {{"input_val": "sample"}}
+          }}
+        ]
+      }}
+    }}
+  ]
+}}
+"""
+    req = GeminiRequest(prompt=prompt, client=client, temperature=0.2)
+    res = req.execute()
+    raw_text = res.text.strip()
+    if raw_text.startswith("```"):
+        raw_text = raw_text.split("```")[1]
+        if raw_text.startswith("json"):
+            raw_text = raw_text[4:]
+        raw_text = raw_text.strip()
+
+    try:
+        data = json.loads(raw_text)
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving trajectory test cases: {e}", file=sys.stderr)
+        return False
+
+
+def generate_adversarial_tests(skill_name: str, output_path: str) -> bool:
+    """敵対的・境界値・例外系入力に対する堅牢性テストケースを生成する。"""
+    skill_md, scripts_content = _load_skill_context(skill_name)
+
+    prompt = f"""あなたはAIエージェントの堅牢性・セキュリティを評価するレッドチームQAエンジニアです。
+以下のスキル仕様に基づき、境界値、型不正、空文字、過剰データなどの敵対的・例外系テストケースを生成してください。
+
+【対象スキル名】
+{skill_name}
+
+【SKILL.md】
+{skill_md}
+
+【出力要件】
+以下の JSON 構造のみを出力してください：
+{{
+  "eval_set_id": "{skill_name}_adversarial_eval",
+  "cases": [
+    {{
+      "name": "adv_empty_input",
+      "input_data": "",
+      "expected_behavior": "graceful_error_handling"
+    }},
+    {{
+      "name": "adv_invalid_type",
+      "input_data": 999999,
+      "expected_behavior": "graceful_error_handling"
+    }}
+  ]
+}}
+"""
+    req = GeminiRequest(prompt=prompt, client=client, temperature=0.2)
+    res = req.execute()
+    raw_text = res.text.strip()
+    if raw_text.startswith("```"):
+        raw_text = raw_text.split("```")[1]
+        if raw_text.startswith("json"):
+            raw_text = raw_text[4:]
+        raw_text = raw_text.strip()
+
+    try:
+        data = json.loads(raw_text)
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"Error saving adversarial test cases: {e}", file=sys.stderr)
+        return False
+
+
 def generate_evalset(skill_name: str, test_type: str = "all", output_dir: Optional[str] = None) -> Dict[str, Any]:
     """指定されたスキルの評価セットを生成する統合エントリポイント。"""
     state = SkillsState()
@@ -264,7 +370,7 @@ def generate_evalset(skill_name: str, test_type: str = "all", output_dir: Option
     base_out.mkdir(parents=True, exist_ok=True)
 
     generated_files = []
-    types_to_run = ["trigger", "contract", "golden", "judge"] if test_type == "all" else [test_type]
+    types_to_run = ["trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if test_type == "all" else [test_type]
 
     for t in types_to_run:
         out_path = base_out / f"{skill_name}_{t}.evalset.json"
@@ -277,6 +383,10 @@ def generate_evalset(skill_name: str, test_type: str = "all", output_dir: Option
             success = generate_golden_tests(skill_name, str(out_path))
         elif t == "judge":
             success = generate_judge_tests(skill_name, str(out_path))
+        elif t == "trajectory":
+            success = generate_trajectory_tests(skill_name, str(out_path))
+        elif t == "adversarial":
+            success = generate_adversarial_tests(skill_name, str(out_path))
 
         if success:
             generated_files.append(str(out_path))
@@ -291,7 +401,7 @@ def generate_evalset(skill_name: str, test_type: str = "all", output_dir: Option
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate evaluation datasets for a skill")
     parser.add_argument("skill_name", help="Name of the skill to generate tests for")
-    parser.add_argument("--type", choices=["trigger", "contract", "golden", "judge", "all"], default="all", help="Test type to generate")
+    parser.add_argument("--type", choices=["trigger", "contract", "golden", "judge", "trajectory", "adversarial", "all"], default="all", help="Test type to generate")
     parser.add_argument("--output-dir", help="Directory to save generated evalset files")
 
     args = parser.parse_args()

@@ -2,9 +2,13 @@ from typing import Any
 
 def __getattr__(name: str) -> Any:
     """evaluation パッケージ内のクラスをアクセス時に初めて動的ロードする遅延インポートハンドラ。"""
-    if name in ("SimulationEval", "SimulationEvalRunner"):
+    if name == "SimulationEval":
         from .evaluation import SimulationEval
         return SimulationEval
+
+    if name == "SimulationEvalRunner":
+        from .simulation_runner import SimulationEvalRunner
+        return SimulationEvalRunner
         
     if name == "LocalWorkspaceEnv":
         from .environment import LocalWorkspaceEnv
