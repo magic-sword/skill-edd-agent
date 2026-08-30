@@ -2,32 +2,36 @@ import os
 import sys
 import json
 import re
+import importlib.resources
 from pathlib import Path
 from typing import Optional, Dict, Any
 from google.genai import types
 
-from edd_agent_tools.skills import (
+from edd_agent_tools.skills.models import (
     SkillLogicDraft,
     SkillPattern,
-    SkillTemplateEngine,
-    SkillValidator,
-    ValidationResult,
-    SkillsState,
-    Skill
 )
+from edd_agent_tools.skills.template_engine import SkillTemplateEngine
+from edd_agent_tools.skills.validator import SkillValidator, ValidationResult
+
+from edd_agent_tools.skills.state import SkillsState
+from edd_agent_tools.skills.skill import Skill
 from edd_agent_tools.evaluation import ContractTestRunner, LocalWorkspaceEnv
-from edd_agent_tools.evaluation.models import EvalCaseSet, EvalCase
 from edd_agent_tools.gemini import client, GeminiRequest
 
-# プロンプトテンプレートのディレクトリパス
-PROMPTS_DIR = Path(__file__).resolve().parent.parent / "assets" / "prompts"
 
 def _load_prompt_template(filename: str) -> str:
-    """assets/prompts/ 配下のプロンプトテンプレートファイルをロードします。"""
-    template_path = PROMPTS_DIR / filename
-    if not template_path.exists():
-        raise FileNotFoundError(f"Prompt template not found: {template_path}")
-    return template_path.read_text(encoding="utf-8")
+    """パッケージ内部の edd_agent_tools/docs/prompts/ からプロンプトテンプレートをロードします。"""
+    try:
+        ref = importlib.resources.files("edd_agent_tools.docs.prompts").joinpath(filename)
+        return ref.read_text(encoding="utf-8")
+    except Exception:
+        # フォールバック: 直接ファイルパス検索
+        fallback_path = Path(__file__).resolve().parent.parent / "docs" / "prompts" / filename
+        if fallback_path.exists():
+            return fallback_path.read_text(encoding="utf-8")
+        raise FileNotFoundError(f"Prompt template not found: {filename}")
+
 
 class SkillCreationEngine:
     """5段階品質保証・評価駆動パイプライン（EDD）を実行する自動スキル生成エンジン"""
@@ -281,29 +285,3 @@ def create_skill(
         pattern=pattern,
         output_dir=output_dir
     )
-
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser(description="Skill Creation Engine CLI")
-    parser.add_argument("prompt", type=str, nargs="?", default="", help="Natural language requirement prompt for the skill")
-    parser.add_argument("--name", type=str, default=None, help="Skill identifier (e.g. pdf-tools)")
-    parser.add_argument("--pattern", type=str, default=None, help="Skill pattern (workflow, task_based, reference, capabilities)")
-    parser.add_argument("--output", type=str, default="src/skills", help="Output directory for generated skill")
-    args = parser.parse_args()
-
-    if not args.prompt:
-        parser.print_help()
-        sys.exit(1)
-
-    res = create_skill(
-        prompt=args.prompt,
-        name=args.name,
-        pattern=args.pattern,
-        output_dir=args.output
-    )
-    print(json.dumps(res, indent=2, ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    main()

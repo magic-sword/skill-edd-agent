@@ -188,7 +188,15 @@ def main():
     # package
     p_pkg = subparsers.add_parser("package", help="Package a skill into distributable zip")
     p_pkg.add_argument("skill_dir", help="Path to skill directory")
-    p_pkg.add_argument("--output", default=None, help="Output directory for zip file")
+    p_pkg.add_argument("output_dir", nargs="?", default=None, help="Output directory for zip file")
+    p_pkg.add_argument("--output", "-o", default=None, help="Output directory for zip file")
+
+    # create (AI-driven automated generation)
+    p_create = subparsers.add_parser("create", help="Generate a full skill package from natural language prompt")
+    p_create.add_argument("prompt", help="Natural language requirements for the skill")
+    p_create.add_argument("--name", default=None, help="Optional preferred skill name")
+    p_create.add_argument("--pattern", choices=["workflow", "task_based", "reference", "capabilities"], default=None, help="Skill pattern")
+    p_create.add_argument("--output", default="src/skills", help="Output directory (default: src/skills)")
 
     args = parser.parse_args()
 
@@ -199,8 +207,17 @@ def main():
         ok = validate_skill_cli(args.skill_dir)
         sys.exit(0 if ok else 1)
     elif args.command == "package":
-        res = package_skill_cli(args.skill_dir, args.output)
+        out = args.output or args.output_dir
+        res = package_skill_cli(args.skill_dir, out)
         sys.exit(0 if res else 1)
+
+    elif args.command == "create":
+        from .creator import create_skill
+        res = create_skill(args.prompt, name=args.name, pattern=args.pattern, output_dir=args.output)
+        import json
+        print(json.dumps(res, indent=2, ensure_ascii=False))
+        sys.exit(0 if res.get("status") == "success" else 1)
+
 
 if __name__ == "__main__":
     main()

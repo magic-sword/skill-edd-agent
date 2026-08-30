@@ -42,6 +42,8 @@ def __getattr__(name: str):
         "SkillTemplateEngine": (".skills", "SkillTemplateEngine"),
         "SkillValidator": (".skills", "SkillValidator"),
         "ValidationResult": (".skills", "ValidationResult"),
+        "SkillCreationEngine": (".skills", "SkillCreationEngine"),
+        "create_skill": (".skills", "create_skill"),
         # evaluation.models
         "EvalRunResult": (".evaluation.models", "EvalRunResult"),
         "FailedCaseDetail": (".evaluation.models", "FailedCaseDetail"),
@@ -63,6 +65,7 @@ def __getattr__(name: str):
         "SafeEditFileTool": (".run.tools", "SafeEditFileTool"),
         # evaluation
         "SimulationEval": (".evaluation", "SimulationEval"),
+        "SimulationEvalRunner": (".evaluation", "SimulationEvalRunner"),
         "LocalWorkspaceEnv": (".evaluation", "LocalWorkspaceEnv"),
         "RealWorkspaceEnv": (".evaluation", "RealWorkspaceEnv"),
         "WorkspaceEnvProtocol": (".evaluation", "WorkspaceEnvProtocol"),
@@ -70,6 +73,11 @@ def __getattr__(name: str):
         "TestGenerator": (".evaluation", "TestGenerator"),
         "TestExecutor": (".evaluation", "TestExecutor"),
         "TrajectoryEvalSet": (".evaluation", "TrajectoryEvalSet"),
+        "CascadeTestRunner": (".evaluation", "CascadeTestRunner"),
+        "EvalSetGenerator": (".evaluation", "EvalSetGenerator"),
+        "generate_evalset": (".evaluation", "generate_evalset"),
+        "run_evaluation": (".evaluation", "run_evaluation"),
+        "run_tier_gate": (".evaluation", "run_tier_gate"),
         # gemini
         "GeminiClient": (".gemini", "GeminiClient"),
         "GeminiRequest": (".gemini", "GeminiRequest"),
@@ -93,11 +101,14 @@ def __dir__():
         "SkillPattern", "SkillLogicDraft", "SkillSpec", "SkillMetadata", "ModuleType",
         "SkillTier", "SkillsStateJson", "SkillEntry", "InheritEntry", "ProjectSkillInfo",
         "SkillsState", "Skill", "SkillTests", "SkillTemplateEngine", "SkillValidator", "ValidationResult",
+        "SkillCreationEngine", "create_skill",
         "EvalRunResult", "FailedCaseDetail", "EvalDetailReport", "WorkspaceArtifacts", "WorkspaceAction",
         "WriteFileAction", "ViewFileAction", "RunPytestAction", "WorkspaceObservation", "FileState",
         "clean_pydantic_schema", "PromptField",
         "WorkflowRunner", "merge_result_to_state", "SafeWriteFileTool", "SafeEditFileTool", 
-        "SimulationEval", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol", "ContractTestRunner",
-        "TestGenerator", "TestExecutor", "TrajectoryEvalSet",
+        "SimulationEval", "SimulationEvalRunner", "LocalWorkspaceEnv", "RealWorkspaceEnv", "WorkspaceEnvProtocol", "ContractTestRunner",
+        "TestGenerator", "TestExecutor", "TrajectoryEvalSet", "CascadeTestRunner",
+        "EvalSetGenerator", "generate_evalset", "run_evaluation", "run_tier_gate",
         "GeminiClient", "GeminiRequest", "gemini", "LibraryDocumentationReader"
     ])
+

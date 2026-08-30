@@ -47,6 +47,16 @@ def __getattr__(name: str) -> Any:
     if name == "CascadeTestRunner":
         from .cascade_runner import CascadeTestRunner
         return CascadeTestRunner
+
+    if name in ("EvalSetGenerator", "generate_evalset"):
+        from .generator import EvalSetGenerator, generate_evalset
+        if name == "EvalSetGenerator": return EvalSetGenerator
+        if name == "generate_evalset": return generate_evalset
+
+    if name in ("run_evaluation", "run_tier_gate"):
+        from .cli import run_evaluation, run_tier_gate
+        if name == "run_evaluation": return run_evaluation
+        if name == "run_tier_gate": return run_tier_gate
         
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
@@ -54,6 +64,7 @@ __all__ = [
     "SimulationEval", "SimulationEvalRunner", "LocalWorkspaceEnv", "RealWorkspaceEnv", "ArtifactApplier", 
     "LocalFileApplier", "GitSandbox", "WorkspaceEnvProtocol", "ContractTestRunner",
     "EvalCase", "EvalCaseSet", "TestGenerator", "TestExecutor", "EvalRunResult", "TrajectoryEvalSet",
-    "CascadeTestRunner"
+    "CascadeTestRunner", "EvalSetGenerator", "generate_evalset", "run_evaluation", "run_tier_gate"
 ]
+
 

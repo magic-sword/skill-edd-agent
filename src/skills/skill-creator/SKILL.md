@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: This skill should be used when creating new agent skills or redesigning existing skills following the Markdown-First architecture and Progressive Disclosure (scripts, references, assets) standard.
+description: This skill should be used when users want to create new skills or redesign existing skills following the Anthropic Markdown-First and Progressive Disclosure (scripts, references, assets) standard.
 license: Complete terms in LICENSE.txt
 pattern: workflow
 ---
@@ -9,80 +9,74 @@ pattern: workflow
 
 ## Overview
 
-自然言語の要件や既存のコードベースから、Anthropic公式標準の Markdown-First アーキテクチャと Progressive Disclosure（3層リソース分離）に準拠した高品質なスキルパッケージを自動生成・再設計するメタスキル。
+Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層リソース分離: `scripts/`, `references/`, `assets/`）に準拠した高品質なスキルパッケージを対話的・段階的に設計・構築するメタスキル。
 
 ## Workflow Decision Tree
 
-スキル開発要件に応じて、以下の決定ロジックに従って生成パイプラインを実行する：
+スキル開発要件に応じて、以下の決定ロジックに従って開発を進行する：
 
-- **If** 新規スキル要件が自然言語で提供された場合 ➔ **Then** `scripts/creator.py` を呼び出し、Stage 1（論理設計抽出）から Stage 3（静的検証・自己修復）を一括実行して完全なスキルを生成する
-- **If** 既存スキルの改修・再設計の場合 ➔ **Then** 既存の `SKILL.md` およびリソースを解析し、差分を反映して再生成する
+- **If** 新規スキルの作成要件が与えられた場合 ➔ **Then** Step 1 で論理設計を行い、`scripts/init_skill.py` で雛形を生成後、リソースを実装して `scripts/quick_validate.py` で静的検証する
+- **If** 既存スキルの改修・拡張の場合 ➔ **Then** 既存の `SKILL.md` および `references/` を精査し、必要な差分を適用して静的検証を行う
+- **If** スキルの配布・エクスポートを求められた場合 ➔ **Then** `scripts/package_skill.py` を実行して検証済み ZIP アーカイブを出力する
 
 ## Step-by-Step Instructions
 
-### Step 1: 思考の構造化と具体例分析 *(Target: `scripts/creator.py`)*
+### Step 1: 要件分解と論理設計の策定
+ユーザーの要求を分析し、以下の要素を策定する（詳細仕様は `references/skill_design_guide.md` を参照）：
+1. **パターン分類**: `workflow`（順次決定木型）、`task_based`（ツール群型）、`reference`（仕様・知識型）、`capabilities`（複合型）から最適構成を選択する。
+2. **トリガー具体例**: ユーザーが実際に発話するトリガープロンプト（3〜5例）を明確にする。
+3. **意思決定ツリー**: 条件分岐（`If condition ➔ Then action`）を定義する。
+4. **3層リソース計画**: 決定論的処理（`scripts/`）、知識資料（`references/`）、出力用テンプレート（`assets/`）に分解する。
 
-ユーザー要件から以下の論理設計要素（`SkillLogicDraft`）を構造化抽出する：
-1. **パターン分類**: `workflow`, `task_based`, `reference`, `capabilities` の4大パターンから最適構成を選択する。
-2. **トリガー具体例**: ユーザーが実際に発話するトリガーシナリオ（3〜5例）を洗い出す。
-3. **意思決定ツリー**: 状況別の条件分岐ロジック（`If condition ➔ Then action`）を策定する。
-4. **3層リソース計画**: 決定論的処理（`scripts/`）、知識資料（`references/`）、出力用テンプレート（`assets/`）にタスクを分解する。
+### Step 2: スキル雛形の生成 *(Tool: `scripts/init_skill.py`)*
+To initialize the skill scaffold directory and base files, execute:
+```bash
+python scripts/init_skill.py <skill-name> --pattern {workflow|task_based|reference|capabilities} --path src/skills
+```
 
-### Step 2: 決定論的 Markdown レンダリング *(Target: `scripts/creator.py`)*
+### Step 3: リソースの実装と SKILL.md の執筆
+1. `references/skill_design_guide.md` の規約に従い、`SKILL.md` の Frontmatter（`name`, `description`）および手順書を客観的動詞起点（Imperative form）で執筆する。
+2. 計画されたスクリプトを `scripts/` に配置する（`argparse` による `--help` 対応、余計な多層ラッパーを作らないフラットな実装）。
+3. 知識資料を `references/`、テンプレート素材を `assets/` に配置する（不要な空ディレクトリは残さない）。
 
-`SkillTemplateEngine` を用いて、Frontmatter、標準見出し階層、意思決定ツリー、リソース案内、ガイドラインを含む `SKILL.md` をプログラムで決定論的に組み立てる。
+### Step 4: 高速静的検証 *(Tool: `scripts/quick_validate.py`)*
+To validate the structure, frontmatter, resource references, and naming conventions, execute:
+```bash
+python scripts/quick_validate.py src/skills/<skill-name>
+```
+エラーまたは警告が検知された場合は、指摘に従って `SKILL.md` や各リソースファイルを修正する。
 
-### Step 3: 3層リソースの生成と配置 *(Target: `scripts/creator.py`)*
-
-計画された各リソースファイル（Python/Bashスクリプト、参照Markdown、テンプレート素材）の実装コード・ドキュメントを生成し、適切なディレクトリ（`scripts/`, `references/`, `assets/`）に配置する。
-
-### Step 4: 静的検証と自己修復ループ *(Target: `scripts/creator.py`)*
-
-`SkillValidator` を実行して Frontmatter 構文、リソース実在整合性、CLIハーネス（`argparse` / `--help` / エントリポイント）、Imperative 文体を検査する。エラーや警告が検知された場合は、LLMへの差分フィードバックにより最大3回まで自動修正（Self-Correction）を実行する。
-
-### Step 5: スキル配布用パッケージング *(Target: `scripts/package_skill.py`)*
-
-完成したスキルを外部配布（Claude Code, Antigravity, Cursor 等）する場合、`scripts/package_skill.py <skill_dir> --output <out_dir>` を実行して静的検証済み ZIP アーカイブを出力する。
+### Step 5: 配布用 ZIP パッケージ化 *(Tool: `scripts/package_skill.py`)*
+To package and export the validated skill for distribution (Claude Code, Antigravity, Cursor, ADK), execute:
+```bash
+python scripts/package_skill.py src/skills/<skill-name> dist
+```
 
 ## Usage Scenarios & Trigger Examples
 
-このスキルは以下のようなリクエストでトリガーされる：
-
 - "新しいスキルとして、PDFを回転・結合する pdf-tools スキルを作成してください。"
 - "既存の text-analyzer スキルに JSON 解析機能を追加・更新したい。"
-- "APIクライアントを自動生成するワークフロー型のスキルを設計・構築したい。"
 - "作成したスキルを配布用 ZIP パッケージに固めて出力して。"
 
 ## When NOT to Use This Skill
 
-以下のようなケースでは本スキルを使用せず、直接既存のツールや別手段を用いること：
-
-- **単純なワンライナーのコード生成や一回限りのスクリプト実行**: スキルパッケージ（`SKILL.md` + 3層リソース）を作成する必要がない単発タスクには使用しない。
+- **単純なワンライナーのコード生成や一回限りのスクリプト実行**: スキルパッケージを作成する必要がない単発タスクには使用しない。
 - **既存のテストスイートの実行・診断のみを目的とする場合**: スキル生成ではなく、`skill-evaluator` または `skill-diagnoser` を直接使用する。
-- **既存スキルの軽微なバグ修正**: スキル全体を再設計・再生成するのではなく、`skill-optimizer` による自動パッチ適用を行う。
+- **既存スキルの自動修復ループ実行**: `skill-optimizer` を使用する。
 
 ## Bundled Resources
 
-### `scripts/` (Executable Tools)
-- **`scripts/creator.py`**: 4段階品質保証パイプラインを実行するコア自動生成エンジン（CLI対応 / Python API）
-- **`scripts/init_skill.py`**: 4大スキルパターンに対応した雛形を生成する決定論的初期化CLIツール
-- **`scripts/quick_validate.py`**: 外部依存なしで高速に静的整合性を検査する Zero-dependency バリデータ
+### `scripts/` (Executable Tools - Zero-dependency)
+- **`scripts/init_skill.py`**: スキル雛形を高速生成する決定論的初期化CLIツール
+- **`scripts/quick_validate.py`**: Frontmatter・実在参照・規約を高速検査するバリデータ
 - **`scripts/package_skill.py`**: スキルを静的検証した上で配布用 ZIP パッケージを出力する決定論的CLIツール
 
 ### `references/` (On-Demand Knowledge)
 - **`references/skill_design_guide.md`**: スキル設計原則、パターン選定基準、3層リソース分離のガイドライン
 
-### `assets/` (Output Templates & Boilerplates)
-- **`assets/prompts/draft_extraction.txt`**: Stage 1 論理設計抽出プロンプトテンプレート
-- **`assets/prompts/resource_generation.txt`**: Stage 3 リソース生成プロンプトテンプレート
-- **`assets/template_sample.txt`**: スキル出力用のボイラープレートテンプレート
-
 ## Guidelines & Best Practices
 
-- 既存スキルのインベントリを必ず照合し、類似スキルが存在する場合は無駄な重複新規作成を避け、既存スキルの拡張（Update）として設計すること。
-- すべての生成物は必ず `SkillValidator` の静的チェック（AST CLI検査、空ディレクトリ検知）をパスさせること。
-- `scripts/` に配置するPythonスクリプトは、冗長なラッパーを作らずフラットで簡潔な実装とし、必ず `argparse`（`--help`）および `if __name__ == '__main__':` を備えた決定論的ブラックボックスツールとすること。
-- ドキュメント参照だけで解決するタスクには無理にPythonスクリプトを生成せず、`references/` を活用すること。
-- 未使用の空ディレクトリ（`assets/` や `references/` 等）は作成・残置せず、リソース計画に存在するディレクトリのみを配置すること。
-
-
+- 既存スキルのインベントリを必ず照合し、重複作成を避けて既存スキルの拡張（Update）を優先すること。
+- 生成・更新したスキルは必ず `scripts/quick_validate.py` で検証をパスさせること。
+- スクリプトは外部非標準ライブラリへの依存を極力排除し、決定論的ブラックボックスツールとして設計すること。
+- 未使用の空ディレクトリ（`assets/` や `references/` 等）は残置しないこと。

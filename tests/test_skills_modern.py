@@ -150,12 +150,12 @@ def test_skill_evaluator_integration():
     state = SkillsState()
     eval_skill = state.get_skill("skill-evaluator")
     assert eval_skill is not None
-    assert "generate_evalset.py" in eval_skill.list_scripts()
     assert "run_eval.py" in eval_skill.list_scripts()
     assert "run_tier_gate.py" in eval_skill.list_scripts()
 
     gate_mod = eval_skill.load_module("run_tier_gate.py")
     assert hasattr(gate_mod, "run_tier_gate")
+
 
 def test_validator_adk_spec_enforcement(tmp_workspace):
     """ADK 2.0 / AgentSkills 仕様（文字数制約・ハイフン制約）のバリデータ検査をテスト"""

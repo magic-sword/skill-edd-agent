@@ -61,6 +61,14 @@ def __getattr__(name: str) -> Any:
     if name == "SkillTests":
         from .tests import SkillTests
         return SkillTests
+
+    if name == "SkillCreationEngine":
+        from .creator import SkillCreationEngine
+        return SkillCreationEngine
+
+    if name == "create_skill":
+        from .creator import create_skill
+        return create_skill
         
     raise AttributeError(f"module {__name__} has no attribute {name}")
 
@@ -79,5 +87,8 @@ __all__ = [
     "SkillTemplateEngine",
     "SkillValidator",
     "ValidationResult",
-    "SkillTests"
+    "SkillTests",
+    "SkillCreationEngine",
+    "create_skill"
 ]
+

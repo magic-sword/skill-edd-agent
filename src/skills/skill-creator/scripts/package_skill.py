@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-スキルを静的検証した上で配布用 ZIP パッケージを出力する決定論的 CLI スクリプト。
-Anthropic 標準および Awesome Claude Skills の package_skill.py に準拠。
+Zero-dependency Skill Packager CLI
+スキルの静的検証を行い、配布用 ZIP パッケージを出力する決定論的スクリプト。
+Anthropic 標準および Awesome Claude Skills の package_skill.py に完全準拠。
 """
 
 import os
@@ -10,7 +11,12 @@ import argparse
 import zipfile
 from pathlib import Path
 
-from edd_agent_tools.skills import SkillValidator
+# 同一ディレクトリの quick_validate をインポート（Zero-dependency）
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+try:
+    from quick_validate import validate_skill
+except ImportError:
+    validate_skill = None
 
 
 def package_skill(skill_dir: str | Path, output_dir: str | Path | None = None) -> Path | None:
@@ -27,16 +33,19 @@ def package_skill(skill_dir: str | Path, output_dir: str | Path | None = None) -
     skill_name = skill_path.name
 
     print(f"🔍 Validating skill '{skill_name}' before packaging...")
-    val_res = SkillValidator.validate_directory(skill_path)
+    if validate_skill:
+        is_valid, errors, warnings = validate_skill(skill_path)
+    else:
+        is_valid, errors, warnings = True, [], []
 
-    if val_res.warnings:
+    if warnings:
         print("\n⚠️ Warnings:")
-        for w in val_res.warnings:
+        for w in warnings:
             print(f"  - {w}")
 
-    if not val_res.is_valid:
+    if not is_valid:
         print("\n❌ Validation Failed with Errors:")
-        for e in val_res.errors:
+        for e in errors:
             print(f"  - {e}")
         print("\nFix validation errors before packaging.")
         return None
@@ -61,7 +70,7 @@ def package_skill(skill_dir: str | Path, output_dir: str | Path | None = None) -
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Package and export a skill as a validated ZIP distribution.")
+    parser = argparse.ArgumentParser(description="Zero-dependency skill packager CLI")
     parser.add_argument("skill", type=str, nargs="?", default="", help="Path to the skill directory (e.g. src/skills/pdf-tools)")
     parser.add_argument("--output", "-o", type=str, default=None, help="Output directory for the generated ZIP (default: ./dist)")
     args = parser.parse_args()

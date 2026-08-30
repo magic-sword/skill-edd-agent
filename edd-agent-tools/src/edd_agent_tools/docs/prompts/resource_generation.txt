@@ -14,4 +14,3 @@ Guidelines:
 - If this is an asset or template:
   * Provide clean, production-ready template content.
 - Output ONLY the raw file content (do not wrap in markdown code blocks).
-
