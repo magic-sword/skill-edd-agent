@@ -54,7 +54,7 @@ python scripts/diagnoser.py <skill_name> --format markdown
 
 ## Bundled Resources
 
-### `scripts/` (Executable Tools - Zero-LLM)
+### `scripts/` (Executable Tools)
 - **`scripts/diagnoser.py`**: テスト結果とアセットを決定論的に解析し構造化コンテキストを抽出する CLI ツール
 
 ## Guidelines & Best Practices

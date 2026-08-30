@@ -1,141 +1,55 @@
-# edd-agent-tools セットアップ・認証ガイド
+# edd-agent-tools 環境セットアップガイド
 
-本ドキュメントでは、Gemini API の利用料金を削減するために、ローカルの Antigravity CLI (`agy`) を LLM バックエンドとして接続（IDE のクレジットを共有）して開発を進めるための初回セットアップおよび手動認証手順について記述します。
+本ドキュメントでは、`edd-agent-tools` パッケージの開発・利用に必要な環境セットアップ手順および MCP サーバー連携について記述します。
 
 ---
 
-## 1. 事前準備: 設定ファイルの作成
-プロジェクトルートにある `.env.example` を `.env` という名前でコピーし、接続先を `agy` に切り替えます。
+## 1. 前提条件
+
+* Python 3.11 以上
+* pip / venv または devcontainer 環境
+
+---
+
+## 2. インストール手順
+
+### ローカル開発モード (Editable Install)
+リポジトリのルートまたは `edd-agent-tools` ディレクトリから以下を実行します：
 
 ```bash
-cp .env.example .env
+pip install -e edd-agent-tools
 ```
 
-`.env` 内で以下のように設定されていることを確認してください。
-```env
-GEMINI_CLIENT_TYPE="agy"
+正常にインストールされたか確認します：
+```bash
+edd-skills --help
+edd-eval --help
 ```
 
 ---
 
-## 2. Antigravity CLI (`agy`) の初回ログイン手順
+## 3. FastMCP サーバーの利用 (`edd-agent-mcp`)
 
-プログラムや自動実行エージェントがバックグラウンドで `agy` を呼び出す前に、**コンテナ環境内で一度だけ手動ログイン（対話型認証）を完了させておく**必要があります。
+`edd-agent-tools` は、Claude Code, Antigravity IDE, Cursor 等の外部エージェント向けに FastMCP サーバーを提供しています。
 
-### 手順：
+### MCP サーバーの起動
+```bash
+edd-agent-mcp
+```
 
-1. **環境変数の設定（パスの追加）**
-   `agy` コマンドが配置されている `~/.local/bin` を `PATH` に追加します。
-   ```bash
-   export PATH="/home/vscode/.local/bin:$PATH"
-   ```
-   *(この設定を永続化する場合は、`~/.bashrc` または `~/.zshrc` に上記の `export` を追記してください)*
-
-2. **対話型で `agy` を起動**
-   ターミナルで以下のコマンドを実行します。
-   ```bash
-   agy
-   ```
-
-3. **リモート認証の実行**
-   開発コンテナなどのヘッドレスな環境では、ブラウザが自動的に開かないことがあります。
-   * 画面下部に `(1–8 of 25 lines)` 等と表示されて停止します。
-   * キーボードの **矢印キー（↓）** または **`Shift + 矢印キー（↓）`** を押して、画面を下方向にスクロールします。
-   * 画面内に Google ログイン用の認証 URL（`https://accounts.google.com/...`）が表示されるので、それをコピーして、**ご自身のローカルPC（ホスト）のブラウザ**に貼り付けてアクセスします。
-   * Google アカウントでログインを承認し、ブラウザ画面に表示された**認証コード（トークン）**をコピーします。
-   * コンテナのターミナル（`agy` の入力プロンプト）にコードを貼り付け、`Enter` を押します。
-
-4. **初回セットアップの完了と TUI の終了**
-   * ログインが成功すると、カラーテーマの選択や「Workspace Trust（このディレクトリを信頼するか）」の質問が表示されます。
-   * 指示に従って矢印キーと Enter で最後までセットアップを進め、メインのプロンプト入力画面が表示されるのを確認します。
-   * 確認できたら、キーボードの **`ctrl+d`** を押すか、または **`/exit`** を入力して `agy` を終了します。
+### 提供リソース & ツール
+* **リソース (`edd://...`)**:
+  * `edd://rules/agents`: エージェント開発制約（SSOT）
+  * `edd://guidelines/progressive-disclosure`: 3層リソース分離規約
+  * `edd://docs/*`: 各種アーキテクチャ設計書
+* **ツール**:
+  * `edd_validate_skill`: スキルの静的リンター検証
+  * `edd_init_skill`: スキル雛形ディレクトリの初期化
 
 ---
 
-## 3. 環境変数のロードと動作検証
-
-認証が完了したら、環境変数をロードして動作検証を行います。
+## 4. テストの実行
 
 ```bash
-# 1. 環境変数を .env からロード
-source load_env.sh
-
-# 2. 検証用テストスクリプトを実行
-python3 /workspace/scratch/test_agy_client.py
+pytest tests/ -v
 ```
-
-正常に動作すると、テストスクリプト内で `agy` バックエンドが呼び出され、料金が発生しない（IDE のクレジットを共有した）状態での LLM レスポンスが返されます。
-
----
-
-## 4. ローカル MCP サーバーのセットアップと Antigravity 連携
-
-本パッケージには、開発用の AI エージェント（Antigravity 等）に対して「設計仕様」「厳密な開発制約」を自動で受け渡し（遅延ロード）するための **MCP (Model Context Protocol) サーバー** が組み込まれています。
-
-### ① インストール方法
-公開後の利用者は、PyPI から通常の公開パッケージとしてインストールすることで、MCP サーバーが利用可能になります。
-
-```bash
-# プロジェクトの仮想環境またはグローバル環境にインストール
-pip install edd-agent-tools
-```
-
-### ② AI IDE (Antigravity 等) への登録パターン
-外部の AI IDE やエージェント実行器（仮想環境の外部で動作するプロセス）から本 MCP サーバーを呼び出すには、パスの通し方に注意する必要があります。以下のいずれかの設定パターンを使用して登録してください。
-
-#### パターン A: モダンなツールランナーによる一撃起動（推奨・最も安全）
-`uv` や `pipx` がインストールされている場合、事前インストールや環境パスの依存関係をすべて無視して、隔離された環境から即座に起動できます。
-
-```json
-{
-  "mcpServers": {
-    "edd-agent-tools": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "edd-agent-tools",
-        "edd-agent-mcp"
-      ]
-    }
-  }
-}
-```
-*(※ `pipx` を使用する場合は、`command: "pipx"`, `args: ["run", "edd-agent-tools", "edd-agent-mcp"]` と指定します)*
-
-#### パターン B: プロジェクト仮想環境のパスを直接指定する
-プロジェクトごとに隔離された `.venv` 内の実行ファイルを絶対パスで指定します。
-
-```json
-{
-  "mcpServers": {
-    "edd-agent-tools": {
-      "command": "/path/to/your/project/.venv/bin/edd-agent-mcp",
-      "args": []
-    }
-  }
-}
-```
-
-#### パターン C: パッケージ開発者向けローカル直呼び設定（開発・検証用）
-本パッケージ自体の開発時（`pip install -e .` でローカル環境に editable インストールしている場合）など、すでにローカルの PATH 上に `edd-agent-mcp` コマンドが登録されている場合は、直接コマンド名だけで呼び出すことができます。
-
-```json
-{
-  "mcpServers": {
-    "edd-agent-tools": {
-      "command": "edd-agent-mcp",
-      "args": []
-    }
-  }
-}
-```
-*(※ 注意: この設定は、ローカル環境で `pip install -e .` が完了し、ターミナルで `which edd-agent-mcp` によってコマンドパスが通っている状態である必要があります。PyPI公開前の開発・動作テスト時にはこのパターン C を使用してください)*
-
-
-### ③ 公開される MCP リソース (Resources)
-登録が完了すると、AIエージェントは自律的に以下の `edd://` スキーマのリソース（Markdown）を読み取り、コンテキストとして利用できるようになります。
-
-*   `edd://docs/test_architecture`: テストケースの生成・実行スキルを開発する際の実装制約、DIモデル、およびProtocol仕様。
-*   `edd://docs/eval_design`: Gymnasium 互換サンドボックス（WorkspaceEnvProtocol）の隔離設計およびテストの合否アサーション判定論理。
-*   `edd://rules/agents`: AIエージェントが厳密に遵守すべきシステム制約ルール（`AGENTS.md`）。
-

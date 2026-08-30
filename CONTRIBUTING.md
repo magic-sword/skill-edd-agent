@@ -16,7 +16,7 @@
 ├── skills_state.json       # プロジェクト全体のスキルの Tier 状態管理ファイル
 ├── edd-agent-tools/        # EDD開発を支援する共有ヘルパーライブラリ（Pythonパッケージ）
 │   ├── README.md           # パッケージの「スリム化インデックス玄関口」（docs/へのリンク）
-│   ├── SETUP.md            # 人間向けの環境構築・LLM認証・MCP起動ガイド
+│   ├── SETUP.md            # 人間向けの環境構築・インストール・MCP起動ガイド
 │   └── src/edd_agent_tools/
 │       ├── AGENTS.md       # AIエージェント向けシステム制約（ドキュメント規約の真実のソース）
 │       └── docs/           # パッケージドキュメントセンター（Whyの集約先）

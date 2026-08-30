@@ -33,12 +33,12 @@
   3. **ライフサイクル分離 (Lifecycle)**: 前後のフェーズ（作成、診断、評価、最適化）の住み分け。
   4. **インベントリ照合 (Inventory)**: 既存スキルで既にカバーされているタスク。
 
-### ⑥ 4段階品質保証パイプライン (Stage-Gate Pipeline)
+### ⑥ 4段階品質保証パイプライン (4-Stage Quality Gate)
 * スキルの自律生成からマウントまでの品質を保証する4段階の防壁：
-  - **Stage 1 (Logical Extraction)**: `SkillLogicDraft` による論理・決定木・リソース計画・除外条件の型安全な抽出。
-  - **Stage 2 (Deterministic Rendering)**: `SkillTemplateEngine` による決定論的 Markdown 結合。
-  - **Stage 3 (Resource Generation)**: フラットなスクリプトおよび参照資料の生成。
-  - **Stage 4 (Static Validation & Self-Correction)**: `SkillValidator` による構文・実在整合性・文体の静的検査と自動修復ループ。
+  - **Stage 1 (Authoring & Scaffolding)**: `SKILL.md` + 3層リソースの論理設計と雛形生成（エージェント + `skill-creator`）
+  - **Stage 2 (Static Validation)**: `SkillValidator` による静的リンター（構文・実在整合性・Imperative文体・DAG依存関係）
+  - **Stage 3 (Contract & Multi-Layer Evaluation)**: サンドボックス環境（`LocalWorkspaceEnv`）での契約テスト（I/O型検査）およびシミュレーション評価（Trigger / Trajectory / Golden）
+  - **Stage 4 (Self-Healing Loop & Cascade Gating)**: 失敗診断（`skill-diagnoser`）➔ 修正 ➔ 連鎖回帰テスト（`CascadeTestRunner`）➔ Tier 昇格
 
 ---
 

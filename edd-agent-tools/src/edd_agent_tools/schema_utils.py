@@ -34,7 +34,7 @@ def _clean_type_annotation(anno: Any) -> Any:
     return anno
 
 def clean_pydantic_schema(original_model: Any) -> Any:
-    """Pydanticモデル定義（またはUnion型）から、Gemini APIが拒否するカスタムメタデータを除去したクローンモデルを返します（再帰適用）。"""
+    """Pydanticモデル定義（またはUnion型）から、Strict JSON Schema 制約に反するカスタムメタデータを除去したクローンモデルを返します（再帰適用）。"""
     if original_model is None:
         return None
 
@@ -48,7 +48,6 @@ def clean_pydantic_schema(original_model: Any) -> Any:
             return Union[cleaned_args]
         elif origin is Annotated:
             # Annotated[Union[A, B], discriminator] などの再構築
-            # GeminiAPI は Annotated メタデータを解釈できないことがあるため、ベースのUnion型を展開して再帰処理したものを返却する
             return cleaned_args[0]
         try:
             if len(cleaned_args) == 1:
@@ -84,7 +83,7 @@ def clean_pydantic_schema(original_model: Any) -> Any:
         )
 
     return create_model(
-        f"GeminiAPI_{original_model.__name__}",
+        f"StrictSchema_{original_model.__name__}",
         __config__={"extra": "ignore"},
         **fields_definition
     )
@@ -103,7 +102,7 @@ def PromptField(
         description: パラメータの詳細説明。
         instructions: パラメータの有効な指定可能指示ガイドライン。
         constraints: パラメータの構造的な制約ガイドライン。
-        **kwargs: 基礎となる Pydantic Field に引き渡す追加 of 属性。
+        **kwargs: 基礎となる Pydantic Field に引き渡す追加の属性。
 
     Returns:
         Pydantic の FieldInfo オブジェクト。

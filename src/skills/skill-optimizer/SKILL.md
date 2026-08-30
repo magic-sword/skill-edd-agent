@@ -55,7 +55,7 @@ python scripts/optimizer.py <skill_name> --target-tier 1 --cascade
 
 ## Bundled Resources
 
-### `scripts/` (Executable Tools - Zero-LLM)
+### `scripts/` (Executable Tools)
 - **`scripts/optimizer.py`**: 静的検証・単体テスト・連鎖回帰テスト・Tier昇格登録を決定論的に実行する CLI ツール
 
 ## Guidelines & Best Practices

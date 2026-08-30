@@ -1,5 +1,5 @@
 google-adk[a2a]
 google-adk[eval]
 a2a-sdk[http-server]
-edd-agent-tools==0.1.0
+-e ./edd-agent-tools
 gymnasium>=0.29.0

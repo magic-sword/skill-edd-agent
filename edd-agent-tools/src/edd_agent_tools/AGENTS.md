@@ -6,7 +6,7 @@
 
 ## 1. パッケージとスキルの責務分離 (Two-Tier Architecture)
 *   **基盤パッケージ (`edd-agent-tools`) の責務**:
-    - スキルの探索・パス解決（`SkillsState`, `Skill`）、仮想環境サンドボックス（`LocalWorkspaceEnv`）、多層評価・Tier昇格テスト（`ContractTestRunner`, `SimulationEvalRunner`）、静的バリデーション（`SkillValidator`）、Gemini/ADK連携等の共通基盤ロジックを一元管理する。
+    - スキルの探索・パス解決（`SkillsState`, `Skill`）、仮想環境サンドボックス（`LocalWorkspaceEnv`）、多層評価・Tier昇格テスト（`ContractTestRunner`, `SimulationEvalRunner`）、静的バリデーション（`SkillValidator`）、Google ADK / MCP 連携等の共通基盤ロジックを一元管理する。
     - 各スキル内でパス解決やテストエンジンを重複実装せず、必ず `edd-agent-tools` パッケージを活用する。
 *   **スキル (`src/skills/`) の責務**:
     - `SKILL.md`（意思決定ツリー・手順書）、`references/`（ドメイン知識）、`assets/`（テンプレート）、`scripts/`（業務スクリプト）に特化する。

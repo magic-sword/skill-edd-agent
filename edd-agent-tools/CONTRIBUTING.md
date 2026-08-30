@@ -13,7 +13,7 @@
 pip install -e .
 ```
 
-詳細な Gemini API 認証設定や MCP サーバーの起動手順については、[SETUP.md](SETUP.md) を参照してください。
+詳細なセットアップ手順や MCP サーバーの起動手順については、[SETUP.md](SETUP.md) を参照してください。
 
 ---
 

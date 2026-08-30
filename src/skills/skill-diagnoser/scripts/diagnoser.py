@@ -3,7 +3,6 @@
 Skill Failure Diagnoser & Context Extractor
 テスト実行結果ログおよびスキルアセット（SKILL.md, scripts/）を決定論的に解析し、
 エージェントが推論・修正方針を立案するための構造化コンテキスト（Failure Context）を出力します。
-Anthropic / Google ADK 規約に準拠（Zero LLM dependency in scripts）。
 
 Usage:
     diagnoser.py <skill-name> [--report <path>] [--test-type <type>] [--format {json,markdown}]
@@ -145,7 +144,7 @@ class SkillDiagnoser:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Skill Failure Diagnoser & Context Extractor (Deterministic, Zero-LLM)")
+    parser = argparse.ArgumentParser(description="Skill Failure Diagnoser & Context Extractor")
     parser.add_argument("skill", type=str, help="対象スキルの論理名")
     parser.add_argument("--report", "-r", type=str, default=None, help="テストレポート JSON のパス")
     parser.add_argument("--test-type", "-t", type=str, default=None, help="テスト種別 (contract, trigger, all)")

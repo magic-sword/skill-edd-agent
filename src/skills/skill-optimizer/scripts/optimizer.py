@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 Skill Optimizer & Promotion Engine
-スキルのテスト実行、静的検証、連鎖回帰テスト（Cascade Testing）、および Tier 昇格を完全決定論的に実行します。
-Anthropic / Google ADK 規約に準拠（Zero LLM dependency in scripts）。
+スキルのテスト実行、静的検証、連鎖回帰テスト（Cascade Testing）、および Tier 昇格を実行します。
 
 Usage:
     optimizer.py <skill-name> [--target-tier {0,1,2,3}] [--cascade] [--dry-run]
@@ -170,7 +169,7 @@ def optimize_skill(skill_name: str, target_tier: int = 1, run_cascade: bool = Tr
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Skill Optimizer & Promotion Engine (Deterministic, Zero-LLM)")
+    parser = argparse.ArgumentParser(description="Skill Optimizer & Promotion Engine")
     parser.add_argument("skill", type=str, help="対象スキルの論理名")
     parser.add_argument("--target-tier", "-t", type=int, default=1, choices=[0, 1, 2, 3], help="昇格目標の Tier (0: Sandbox, 1: Trusted, 2: Core)")
     parser.add_argument("--cascade", "-c", action="store_true", default=True, help="連鎖回帰テストを実行する")

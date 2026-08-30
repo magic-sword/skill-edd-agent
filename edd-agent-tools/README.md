@@ -6,16 +6,16 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 
 ## 1. 主な機能と特徴
 
-*   **Markdown-First & Progressive Disclosure 3層リソース管理 (`Skill`, `SkillSpec`)**
-    `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）の3層分離を安全にロード・管理するドメインクラスを提供。
-*   **4段階品質保証パイプライン & 決定論的レンダラー (`SkillTemplateEngine`, `SkillValidator`)**
+*   **Markdown-First & Progressive Disclosure 3層リソース管理 (`Skill`, `SkillSpec`, `SkillsState`)**
+    `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）の3層分離を安全にロード・管理するドメインクラスと DAG 依存関係グラフ検証を提供。
+*   **4段階品質保証パイプライン & 決定論的レンダラー (`SkillTemplateEngine`, `SkillValidator`, `SkillCreationEngine`)**
     Pydanticモデル（`SkillLogicDraft`）からの決定論的 `SKILL.md` レンダリング、および構文・実在整合性・Imperative文体を検査する静的バリデータを提供。
 *   **Gymnasium 互換サンドボックス隔離環境 (`WorkspaceEnvProtocol`, `LocalWorkspaceEnv`)**
     コードやテスト実行による環境破壊を防ぐため、仮想環境と Git ロールバック機能を提供。
 *   **多層EDD評価フレームワーク & Tier昇格ゲートキーパー (`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`)**
-    契約テスト、トリガー精度テスト、ゴールデン出力評価、および上位ワークフローへの連鎖回帰テストを一元管理する評価エンジンを提供。
-*   **Gemini API クライアント & Strict JSON Schema 自動正規化 (`GeminiClient`, `GeminiRequest`)**
-    OpenAPI 3.0 Strict Mode に適合した再帰的 `$defs` インライン解決と指数バックオフリトライを内蔵。
+    契約テスト、トリガー精度テスト、ゴールデン出力評価、および上位ワークフローへの連鎖回帰テストを一元管理する決定論的評価エンジンを提供。
+*   **Strict JSON Schema 自動正規化 (`clean_pydantic_schema`)**
+    OpenAPI 3.0 Strict Mode に適合した再帰的 `$defs` インライン展開とスキーマサニタイズを提供。
 *   **FastMCP サーバー統合 (`edd-agent-mcp`)**
     AIエージェントに対し、設計規約（`edd://guidelines/*`）や静的検証ツール（`edd_validate_skill`, `edd_init_skill`）をオンデマンド提供。
 
@@ -46,5 +46,7 @@ edd-skills create "テキスト解析を行う text-analyzer スキルを作成�
 edd-eval run my-skill --type all
 edd-eval generate my-skill --type contract
 edd-eval gate my-skill --tier 1
-```
 
+# MCP サーバー起動
+edd-agent-mcp
+```

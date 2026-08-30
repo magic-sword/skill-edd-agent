@@ -1,6 +1,5 @@
-# google 名前空間デッドロック防止のための先行インポート
+# google.adk 名前空間デッドロック防止のための先行インポート
 try:
-    from google import genai
     from google.adk.tools import ToolContext
 except ImportError:
     pass
