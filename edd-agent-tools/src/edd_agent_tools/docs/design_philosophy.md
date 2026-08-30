@@ -26,6 +26,20 @@
 * 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor 等）へドロップイン可能な自己完結性を持つ。
 * `skill-creator` 配下に外部依存不要（標準ライブラリのみ）で動作する `quick_validate.py`, `init_skill.py`, `package_skill.py` を同梱し、環境を選ばない即時検証・パッケージングを実現。
 
+### ⑤ 4次元ネガティブ・ハーネス (`When NOT to Use` による過剰適用防止)
+* 単なる適用条件（When to use）だけでなく、以下の4軸から客観的な除外条件（When NOT to use）を導出し、過剰適用（Over-tooling）や競合による誤発火を防止：
+  1. **粒度境界 (Granularity)**: 単発のワンライナーや標準OSコマンドで完結する軽微なタスク。
+  2. **技術的限界 (Out-of-Scope)**: ドメイン範囲外の高度な変換や別領域の処理。
+  3. **ライフサイクル分離 (Lifecycle)**: 前後のフェーズ（作成、診断、評価、最適化）の住み分け。
+  4. **インベントリ照合 (Inventory)**: 既存スキルで既にカバーされているタスク。
+
+### ⑥ 4段階品質保証パイプライン (Stage-Gate Pipeline)
+* スキルの自律生成からマウントまでの品質を保証する4段階の防壁：
+  - **Stage 1 (Logical Extraction)**: `SkillLogicDraft` による論理・決定木・リソース計画・除外条件の型安全な抽出。
+  - **Stage 2 (Deterministic Rendering)**: `SkillTemplateEngine` による決定論的 Markdown 結合。
+  - **Stage 3 (Resource Generation)**: フラットなスクリプトおよび参照資料の生成。
+  - **Stage 4 (Static Validation & Self-Correction)**: `SkillValidator` による構文・実在整合性・文体の静的検査と自動修復ループ。
+
 ---
 
 ## 2. フォルダ構造の規約 (3-Tier Layout)

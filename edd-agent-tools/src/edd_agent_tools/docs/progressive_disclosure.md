@@ -9,7 +9,7 @@ Skills use a three-level loading system to optimize context window efficiency fo
 
 2. **Level 2: SKILL.md Body**
    - Loaded into context only when the skill triggers (<5k words).
-   - Contains Overview, Workflow Decision Tree, Step-by-Step Instructions, and Guidelines.
+   - Contains Overview, Workflow Decision Tree / Available Tasks, Step-by-Step Instructions, Usage Scenarios, `When NOT to Use This Skill` (Negative Space Guidance), and Guidelines.
 
 3. **Level 3: Bundled Resources**
    - Loaded or executed on demand (Unlimited capacity).
