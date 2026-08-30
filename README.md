@@ -71,30 +71,30 @@ pip install -e edd-agent-tools
 ### CLI によるスキル操作
 ```bash
 # 1. 新規スキル雛形の初期化
-python -m edd_agent_tools.skills.cli init my-new-skill --pattern workflow
+edd-skills init my-new-skill --pattern workflow
 
 # 2. 静的バリデーションの実行
-python -m edd_agent_tools.skills.cli validate src/skills/my-new-skill
+edd-skills validate src/skills/my-new-skill
 
 # 3. 配布用 ZIP のパッケージング
-python -m edd_agent_tools.skills.cli package src/skills/my-new-skill
+edd-skills package src/skills/my-new-skill dist
+
+# 4. 自然言語要件からの自動スキル生成
+edd-skills create "PDFの回転・結合を行う pdf-tools スキルを作成して" --pattern workflow
 ```
 
 ### Python API による自律スキル生成
 ```python
-from edd_agent_tools.skills import SkillsState
+from edd_agent_tools.skills import create_skill
 
-state = SkillsState()
-creator_skill = state.get_skill("skill-creator")
-create_skill_fn = creator_skill.load_module("creator.py").create_skill
-
-result = create_skill_fn(
+result = create_skill(
     prompt="PDFファイルの回転・結合・テキスト抽出を行う pdf-tools スキルを作成してください。",
     name="pdf-tools",
     pattern="workflow"
 )
 print(result)
 ```
+
 
 ### テストスイートの実行
 ```bash

@@ -36,8 +36,15 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 ```bash
 pip install -e edd-agent-tools
 
-# CLIコマンド
-python -m edd_agent_tools.skills.cli init my-skill --pattern workflow
-python -m edd_agent_tools.skills.cli validate src/skills/my-skill
-python -m edd_agent_tools.skills.cli package src/skills/my-skill
+# スキル管理 CLI (edd-skills)
+edd-skills init my-skill --pattern workflow
+edd-skills validate src/skills/my-skill
+edd-skills package src/skills/my-skill dist
+edd-skills create "テキスト解析を行う text-analyzer スキルを作成して" --pattern workflow
+
+# 評価・テスト CLI (edd-eval)
+edd-eval run my-skill --type all
+edd-eval generate my-skill --type contract
+edd-eval gate my-skill --tier 1
 ```
+

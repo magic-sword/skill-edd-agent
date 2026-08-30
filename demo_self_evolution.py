@@ -53,13 +53,13 @@ def main():
     print(f"➔ skill-creator (4段階品質保証パイプライン) を起動中...")
 
     # Stage 1〜4 によるスキル生成
-    creator_skill = state.get_skill("skill-creator")
-    create_skill_fn = creator_skill.load_module("creator.py").create_skill
-    res = create_skill_fn(
+    from edd_agent_tools.skills import create_skill
+    res = create_skill(
         prompt="文字列を大文字(UPPER), 小文字(lower), キャメルケース(camelCase), スネークケース(snake_case)に変換するテキスト変換ユーティリティスキルを作成してください。",
         name=demo_skill_name,
         pattern="task_based"
     )
+
 
     if res.get("status") != "success":
         print(f"❌ スキル生成に失敗しました: {res}")
