@@ -4,33 +4,36 @@
 
 ---
 
-## 1. 統合評価スキル (skill-evaluator) と Progressive Disclosure 設計
+## 1. 統合評価・自己改善スキル (skill-evolver) と Progressive Disclosure 設計
 
 ### 課題
-従来のスキルテストでは、テストタイプごと（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）に生成スキルと実行スキルを別々のディレクトリとして過度に細分化（Micro-Skills）していたため、以下の問題が発生していました：
+従来のスキルテストでは、テストタイプごと（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）や機能ごと（作成、診断、評価、最適化）にスキルを過度に細分化していたため、以下の問題が発生していました：
 *   常時ロードされるスキルメタデータ（Frontmatter）が肥大化し、コンテキストウィンドウを無駄に圧迫。
 *   エージェントのインテント分類において、類似するテストスキル間での競合・誤判定が発生。
-*   `handler.py`, `executor.py`, `models.py` などの多層ラッパーボイラープレートが散乱。
+*   各スキルディレクトリ内に重複したスクリプトや多層ラッパーボイラープレートが散乱。
 
-### 解決策: 統合評価スキル (`skill-evaluator`) への一元化
-すべてのテスト生成・実行・Tier 昇格判定を、単一の自己完結型メタスキル **[`skill-evaluator`](file:///workspace/src/skills/skill-evaluator)** に集約しました。
+### 解決策: 統合自己改善スキル (`skill-evolver`) への一元化
+すべてのテスト実行・失敗診断・自己修復・連鎖回帰・Tier 昇格判定を、単一の自己完結型メタスキル **[`skill-evolver`](file:///workspace/src/skills/skill-evolver)** および統合 CLI `edd` に集約しました。
 
 ```mermaid
 graph TD
-    Spec[SKILL.md / scripts] -->|1. Analyze & Design| Gen["Test Authoring (references/test_types_guide.md)"]
+    Spec[SKILL.md / scripts] -->|1. Analyze & Design| Gen["Test Authoring (references/eval_framework.md)"]
     Gen -->|2. Save Asset| File[(tests/skill_name/test_type.evalset.json)]
-    File -->|3. Read & Run| Exec["skill-evaluator (edd eval / scripts/run_eval.py)"]
+    File -->|3. Read & Run| Exec["skill-evolver (edd eval / scripts/evolver.py eval)"]
     Exec -->|4. Assert & Run| Env[LocalWorkspaceEnv (Git Sandbox)]
     Env -->|5. Aggregate & Report| Result[(tests/results/latest_report.json)]
-    Result -->|6. Gating & Promotion| Gate["skill-evaluator (edd tier-gate / scripts/run_tier_gate.py)"]
+    Result -->|6. Diagnose| Diag["skill-evolver (edd diagnose / scripts/diagnoser.py)"]
+    Result -->|7. Gating & Promotion| Gate["skill-evolver (edd tier-gate / edd optimize)"]
 ```
 
 1.  **テスト設計・配置フェーズ**:
-    仕様定義（`SKILL.md` や `scripts/`）を基に、指定されたテストタイプ（`trigger`, `contract`, `golden`, `judge`, `trajectory`, `adversarial`）の評価セットを設計し、`tests/<skill_name>_<type>.evalset.json` に**物理的なアセットファイルとして保存**します。エージェント自身が対話的に設計することも可能です。
-2.  **評価実行フェーズ (`edd eval` / `scripts/run_eval.py`)**:
+    仕様定義（`SKILL.md` や `scripts/`）を基に、指定されたテストタイプ（`trigger`, `contract`, `golden`, `judge`, `trajectory`, `adversarial`）の評価セットを設計し、`tests/<skill_name>_<type>.evalset.json` に**物理的なアセットファイルとして保存**します。
+2.  **評価実行フェーズ (`edd eval` / `scripts/evolver.py eval`)**:
     保存された JSON 評価セットをロードし、隔離されたサンドボックス環境（`LocalWorkspaceEnv`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。結果は `latest_report.json` に構造化ログとして永続化されます。
-3.  **Tier 昇格ゲートキーパーフェーズ (`edd tier-gate` / `scripts/run_tier_gate.py`)**:
-    Tier 階層（Tier 1: Production, Tier 2: Verified, Tier 3: Mastered）に応じた防壁テストを一括検証し、合格時に `SkillsState` へ登録・昇格させます。
+3.  **失敗診断・自己修復フェーズ (`edd diagnose` / `scripts/diagnoser.py`)**:
+    テスト失敗時に構造化されたコンテキスト（SKILL.md、関連スクリプト、スタックトレース）を抽出し、エージェントが自律的にプロンプトやスクリプトを自己修復します。
+4.  **Tier 昇格ゲートキーパーフェーズ (`edd tier-gate` / `edd optimize`)**:
+    Tier 階層（Tier 1: Production, Tier 2: Verified, Tier 3: Mastered）に応じた防壁テストおよび上位依存スキルの連鎖回帰テストを一括検証し、合格時に `SkillsState` へ登録・昇格させます。
 
 
 ---
@@ -60,14 +63,14 @@ Google ADK 公式の軌跡シミュレーションテストに準拠した、ユ
 
 ```mermaid
 graph LR
-    Evaluator[skill-evaluator] -->|1. Create Env| Env[LocalWorkspaceEnv (Git Sandbox)]
+    Evaluator[skill-evolver] -->|1. Create Env| Env[LocalWorkspaceEnv (Git Sandbox)]
     Evaluator -->|2. Run Tests| Runner[ContractTestRunner / SimulationEvalRunner]
     Runner -->|3. Safe Interaction| Env
     Env -->|4. Safe Read/Write/Test| Files[(Virtual Filesystem)]
 ```
 
 #### 1. OS直接操作の禁止と環境の抽象化
-`skill-evaluator` は、内部で直接危険な OS 操作を行いません。すべてのファイル読み書きや単体テストの実行は、渡された `env` インスタンスを経由して行います。
+`skill-evolver` は、内部で直接危険な OS 操作を行いません。すべてのファイル読み書きや単体テストの実行は、渡された `env` インスタンスを経由して行います。
 
 #### 2. DI によるメリット
 *   **環境の差し替え可能性 (Pluggability)**:

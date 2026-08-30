@@ -29,9 +29,9 @@
 │           └── sandbox_design.md         # Gymnasium仮想環境（DI）とCLI仕様
 └── src/                    # 自己進化エージェントの本体およびスキル（Tier管理下）
     └── skills/             # すべてのスキルおよび合成ワークフロー（3層リソース構造）
-        ├── skill-creator/  # 4段階品質保証パイプラインによるスキル自律生成エンジン
-        ├── skill-optimizer/# テスト・診断・差分修復・連鎖回帰テストの自律改善ループ
-        ├── skill-diagnoser/# テスト失敗根本原因分析・3層差分改善計画エンジン
+        ├── skill-creator/  # Anthropic & Google ADK 準拠のスキル設計・雛形生成・パッケージャ
+        ├── skill-evolver/  # 評価・失敗診断・自己修復・Tier昇格を司る自己改善メタスキル
+        ├── case-converter/ # テキストケース変換（ゴールデンサンプル）
         └── ...
 ```
 

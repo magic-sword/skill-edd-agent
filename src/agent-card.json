@@ -11,7 +11,7 @@
   "protocolVersion": "0.3.0",
   "skills": [
     {
-      "description": "Execute skill-creator skill (Stage 1 to 4 authoring pipeline)",
+      "description": "Execute skill-creator skill (scaffold authoring & packaging pipeline)",
       "id": "evaluation_driven_development_agent-skill_creator",
       "name": "skill_creator",
       "tags": [
@@ -20,27 +20,18 @@
       ]
     },
     {
-      "description": "Execute skill-evaluator skill (multi-tier testing & gating)",
-      "id": "evaluation_driven_development_agent-skill_evaluator",
-      "name": "skill_evaluator",
+      "description": "Execute skill-evolver skill (multi-tier testing, diagnosis & self-healing loop)",
+      "id": "evaluation_driven_development_agent-skill_evolver",
+      "name": "skill_evolver",
       "tags": [
         "llm",
         "tools"
       ]
     },
     {
-      "description": "Execute skill-diagnoser skill (root cause & improvement plan)",
-      "id": "evaluation_driven_development_agent-skill_diagnoser",
-      "name": "skill_diagnoser",
-      "tags": [
-        "llm",
-        "tools"
-      ]
-    },
-    {
-      "description": "Execute skill-optimizer skill (autonomous self-healing loop)",
-      "id": "evaluation_driven_development_agent-skill_optimizer",
-      "name": "skill_optimizer",
+      "description": "Execute case-converter skill (deterministic text case conversion)",
+      "id": "evaluation_driven_development_agent-case_converter",
+      "name": "case_converter",
       "tags": [
         "llm",
         "tools"

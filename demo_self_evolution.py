@@ -23,6 +23,7 @@ from edd_agent_tools.skills import (
     SkillTier,
     create_skill
 )
+from edd_agent_tools.evaluation.optimizer import SkillOptimizer
 from edd_agent_tools.evaluation import CascadeTestRunner
 
 
@@ -39,7 +40,7 @@ def print_banner():
 def main():
     print_banner()
 
-    demo_skill_name = "case-converter"
+    demo_skill_name = "demo-case-helper"
     workspace_skills = Path("/workspace/src/skills")
     demo_skill_dir = workspace_skills / demo_skill_name
 
@@ -79,11 +80,10 @@ def main():
 
     # Phase 3: Self-Improvement Loop 実演
     print(f"\n🛠 [Phase 3: Self-Improvement Loop (自律改善・最適化 & 連鎖回帰テスト)]")
-    print(f"➔ skill-optimizer を呼び出し、テスト実行・診断・連鎖回帰テストを実行中...")
+    print(f"➔ skill-evolver / edd optimize を呼び出し、テスト実行・診断・連鎖回帰テストを実行中...")
 
-    optimizer_skill = state.get_skill("skill-optimizer")
-    optimize_skill_fn = optimizer_skill.load_module("optimizer.py").optimize_skill
-    opt_res = optimize_skill_fn(skill_name=demo_skill_name, target_tier=1, run_cascade=True)
+    optimizer = SkillOptimizer(state=state)
+    opt_res = optimizer.optimize_skill(skill_name=demo_skill_name, target_tier=1, run_cascade=True)
 
     print(f"最適化ステータス: {opt_res.get('status')}")
     print(f"昇格権限ステータス: Tier {opt_res.get('promoted_tier', 1)}")
@@ -92,13 +92,20 @@ def main():
 
     # 最終確認
     skill_obj = state.get_skill(demo_skill_name)
-    current_tier_name = SkillTier(skill_obj.tier).name
+    current_tier_name = SkillTier(skill_obj.tier).name if skill_obj and skill_obj.tier else "READ_ONLY"
 
     print(f"\n================================================================================")
     print(f"🎉 [Demo Completed Successfully]")
     print(f"スキル '{demo_skill_name}' はすべての安全防壁を突破し、[{current_tier_name}] としてマウントされました！")
     print(f"エージェントは自律的に新しい能力（スキル）を獲得し、自己進化を完了しました。")
     print(f"================================================================================\n")
+
+    # クリーンアップ（デモ用スキルを削除）
+    if demo_skill_dir.exists():
+        shutil.rmtree(demo_skill_dir)
+        if demo_skill_name in state.data.skills:
+            del state.data.skills[demo_skill_name]
+            state.save()
 
 
 if __name__ == "__main__":

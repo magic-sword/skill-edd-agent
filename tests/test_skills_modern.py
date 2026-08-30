@@ -141,20 +141,21 @@ def test_cli_package(tmp_workspace):
     assert zip_path is not None
     assert zip_path.exists()
 
-def test_skill_evaluator_integration():
-    """統合評価スキル skill-evaluator の静的検証とスクリプト解決のテスト"""
-    evaluator_dir = Path("/workspace/src/skills/skill-evaluator")
-    val_res = SkillValidator.validate_directory(evaluator_dir)
+def test_skill_evolver_integration():
+    """自己改善メタスキル skill-evolver の静的検証とスクリプト解決のテスト"""
+    evolver_dir = Path("/workspace/src/skills/skill-evolver")
+    val_res = SkillValidator.validate_directory(evolver_dir)
     assert val_res.is_valid is True, f"Validation errors: {val_res.errors}"
 
     state = SkillsState()
-    eval_skill = state.get_skill("skill-evaluator")
-    assert eval_skill is not None
-    assert "run_eval.py" in eval_skill.list_scripts()
-    assert "run_tier_gate.py" in eval_skill.list_scripts()
+    evolver_skill = state.get_skill("skill-evolver")
+    assert evolver_skill is not None
+    assert "evolver.py" in evolver_skill.list_scripts()
+    assert "diagnoser.py" in evolver_skill.list_scripts()
 
-    gate_mod = eval_skill.load_module("run_tier_gate.py")
-    assert hasattr(gate_mod, "run_tier_gate")
+    evolver_mod = evolver_skill.load_module("evolver.py")
+    assert hasattr(evolver_mod, "cmd_eval")
+    assert hasattr(evolver_mod, "cmd_diagnose")
 
 
 def test_validator_adk_spec_enforcement(tmp_workspace):

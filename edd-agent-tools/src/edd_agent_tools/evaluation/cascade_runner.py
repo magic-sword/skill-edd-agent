@@ -47,7 +47,7 @@ class CascadeTestRunner:
                 all_passed = False
                 continue
 
-            # 上位スキルのテスト実行（tests.load_latest_report または skill-evaluator）
+            # 上位スキルのテスト実行（tests.load_latest_report または edd eval / skill-evolver）
             # ここでは静的バリデーション + 既存レポート/テスト実行器をトリガー
             try:
                 from edd_agent_tools.skills import SkillValidator
@@ -67,3 +67,7 @@ class CascadeTestRunner:
             "all_passed": all_passed,
             "results": results
         }
+
+    def run_cascade(self, updated_skill_name: str, target_tier: Optional[int] = None) -> Dict[str, Any]:
+        """run_cascade_tests への委譲エイリアス。"""
+        return self.run_cascade_tests(updated_skill_name=updated_skill_name)

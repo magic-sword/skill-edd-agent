@@ -50,13 +50,13 @@ def test_unified_cli_run_dynamic_dispatch(capfd):
     exit_code = cli_main(["run", "case-converter", "--input", "hello_world", "--format", "camel"])
     assert exit_code == 0
     captured = capfd.readouterr()
-    assert "hello_world" in captured.out or "Processing input" in captured.out
+    assert "helloWorld" in captured.out
 
     # 2. edd case-converter (Gitプラグイン方式の動的ディスパッチ)
     exit_code = cli_main(["case-converter", "--input", "foo_bar", "--format", "pascal"])
     assert exit_code == 0
     captured = capfd.readouterr()
-    assert "foo_bar" in captured.out or "Processing input" in captured.out
+    assert "FooBar" in captured.out
 
 
 def test_unified_cli_eval_diagnose(capfd):
@@ -72,3 +72,11 @@ def test_unified_cli_eval_diagnose(capfd):
     assert exit_code == 0
     captured = capfd.readouterr()
     assert "Failure Diagnosis for Skill: `case-converter`" in captured.out
+
+
+def test_unified_cli_optimize(capfd):
+    """edd optimize による検証・評価・Tier昇格の一括実行をテストします。"""
+    exit_code = cli_main(["optimize", "case-converter", "--tier", "1"])
+    assert exit_code == 0
+    captured = capfd.readouterr()
+    assert "Success" in captured.out or "promoted" in captured.out

@@ -8,10 +8,8 @@
 
 | 分類 | 役割・概要 | 現在の状況 | 対応コンポーネント |
 | :--- | :--- | :--- | :--- |
-| **1. Authoring (自律生成)** | 要件から `SKILL.md`（単一真実源）と 3層リソース（`scripts/`, `references/`, `assets/`, `tests/`）を自律生成 | **✅ 完了 (実証済み)** | `skill-creator`（4段階品質保証パイプライン） |
-| **2. Evaluation Gating (評価防壁)** | Tier階層に応じた多層テストパターン実行と自動昇格 | **✅ 完了 (実証済み)** | `skill-evaluator` (Tier 1〜3 統合ゲートキーパー), `edd_agent_tools.evaluation` |
-| **3. Improvement (自己診断・修復)** | テスト失敗ログやスコアから原因を分析し、3層リソース差分改善計画を策定 | **✅ 完了 (実証済み)** | `skill-diagnoser`（`spec`, `script`, `reference`, `test_case` 差分計画） |
-| **4. Evolution (自律最適化ループ)** | テスト ➔ 診断 ➔ 差分修正 ➔ 再テスト ➔ 上位連鎖回帰テストの完全自動ループ | **✅ 完了 (実証済み)** | `skill-optimizer` 自律改善ループ |
+| **1. Authoring (自律生成)** | 要件から `SKILL.md`（単一真実源）と 3層リソース（`scripts/`, `references/`, `assets/`, `tests/`）を自律生成・パッケージング | **✅ 完了 (実証済み)** | `skill-creator`（4段階品質保証パイプライン） |
+| **2. Evolution (評価・自己改善・昇格)** | 多層評価テスト実行 ➔ 失敗診断 ➔ 差分修正 ➔ 上位連鎖回帰テスト ➔ Tier 昇格の完全改善ループ | **✅ 完了 (実証済み)** | `skill-evolver`（旧 evaluator + diagnoser + optimizer を集約） |
 
 ---
 
@@ -21,7 +19,7 @@
 
 ```mermaid
 flowchart TD
-    Err[テスト失敗検知: edd eval] --> Diagnoser[skill-diagnoser / edd diagnose <br/> 構造化コンテキスト抽出]
+    Err[テスト失敗検知: edd eval] --> Diagnoser[skill-evolver / edd diagnose <br/> 構造化コンテキスト抽出]
     
     Diagnoser --> AgentBrain[エージェント自身の推論 <br/> 根本原因の特定 & 差分修正方針策定]
     

@@ -56,7 +56,7 @@ edd_agent_tools/
 ├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション, 診断 (SkillDiagnoser), 最適化 (SkillOptimizer)
 ├── adk/            # Google ADK 2.0 ネイティブ Toolset (EddSkillToolset)
 ├── mcp/            # FastMCP サーバー (edd-agent-mcp)
-└── cli/            # 統合 CLI (edd run/init/validate/eval/tier-gate/diagnose/list)
+└── cli/            # 統合 CLI (edd run/init/validate/package/eval/tier-gate/diagnose/optimize/list)
 ```
 
 ---

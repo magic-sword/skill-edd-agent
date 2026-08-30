@@ -6,7 +6,7 @@
 
 ## 1. パッケージとスキルの責務分離 (Two-Tier Architecture & Loose Coupling)
 *   **基盤パッケージ (`edd-agent-tools`) の責務**:
-    - 統合 CLI `edd`（動的ディスパッチ `edd run <skill>`, `edd init`, `edd validate`, `edd package`, `edd eval`, `edd tier-gate`, `edd diagnose`）を提供する。
+    - 統合 CLI `edd`（動的ディスパッチ `edd run <skill>`, `edd init`, `edd validate`, `edd package`, `edd eval`, `edd tier-gate`, `edd diagnose`, `edd optimize`）を提供する。
     - スキルの探索・パス解決（`SkillsState`, `Skill`）、仮想環境サンドボックス（`LocalWorkspaceEnv`）、多層評価・Tier昇格テスト（`ContractTestRunner`, `SimulationEvalRunner`）、静的バリデーション（`SkillValidator`）、Google ADK 2.0 `EddSkillToolset` / MCP 連携等の共通基盤ロジックを一元管理する。
 *   **スキル (`src/skills/`) の責務**:
     - `SKILL.md`（意思決定ツリー・手順書）、`references/`（ドメイン知識）、`assets/`（テンプレート）、`scripts/`（業務スクリプト）に特化する。

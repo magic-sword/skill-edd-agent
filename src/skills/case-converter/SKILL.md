@@ -1,7 +1,7 @@
 ---
 name: case-converter
-description: This skill should be used when users need to perform case-converter tasks and workflows.
-license: Complete terms in LICENSE.txt
+description: This skill should be used when users need to convert text or identifier case styles (camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case) across strings or files.
+license: MIT
 pattern: task_based
 ---
 
@@ -9,53 +9,58 @@ pattern: task_based
 
 ## Overview
 
-文字列を大文字(UPPER), 小文字(lower), キャメルケース(camelCase), スネークケース(snake_case)に変換するテキスト変換ユーティリティスキルを作成してください。
+文字列およびテキストファイル内の識別子ケース形式（camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case, lower, upper）を決定論的に相互変換します。
 
 ## Quick Start
 
-Execute standard operations using the provided modular tools and scripts.
+文字列のケース変換を行うには、`scripts/case_converter.py` を実行してください：
+
+```bash
+python scripts/case_converter.py "hello_world_example" --to camel
+# Output: helloWorldExample
+```
 
 ## Available Tasks
 
-### Task 1: Validate Inputs *(Tool: `scripts/case_converter.py`)*
+### Task 1: 構文・入力テキストの確認
+変換対象の文字列またはファイルパス、および目的のケース形式（`camel`, `snake`, `pascal`, `kebab`, `constant`, `title`, `upper`, `lower`）を特定します。
 
-Check required input parameters before execution.
+### Task 2: ケース変換の実行 *(Tool: `scripts/case_converter.py`)*
+`scripts/case_converter.py` を呼び出して変換を実行します。
 
-### Task 2: Execute Logic *(Tool: `scripts/case_converter.py`)*
+```bash
+# 文字列引数での変換
+python scripts/case_converter.py <text> --to <target_case>
 
-Run scripts/case_converter.py to perform the main operation.
+# ファイル入力・出力
+python scripts/case_converter.py --file input.txt --to snake --output output.txt
+```
 
-### Task 3: Verify Output
-
-Verify the output format and return the result to the user.
+### Task 3: 変換結果の検証
+出力結果が期待通りのケース形式に変換されていることを確認し、ユーザーに返答します。
 
 ## Usage Scenarios & Trigger Examples
 
-This skill is triggered when handling requests such as:
-
-- "Please execute case-converter on the input data."
-- "Help me run case-converter workflow."
+以下のようなリクエストを処理する際にトリガーされます：
+- "この snake_case の変数リストを camelCase に変換して"
+- "ファイル内の識別子を kebab-case に変換してほしい"
+- "Convert 'foo_bar_baz' to PascalCase"
 
 ## When NOT to Use This Skill
 
-Do NOT use this skill in the following scenarios (use native tools or alternative workflows instead):
-
-- Simple one-line shell commands that do not need a specialized skill.
-- Unrelated domain operations.
+以下のシナリオでは本スキルを使用せず、ネイティブツールや標準コマンドを利用してください：
+- 単純な `tr '[:lower:]' '[:upper:]'` 等の1単語の大文字・小文字変換のみで完結する場合。
+- AST レベルでの安全なコードリファクタリング（言語固有の言語サーバー・リネーム機能を利用すべき場合）。
+- スキル自体のライフサイクル管理や評価を行う場合（`skill-evolver` を使用）。
 
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-Deterministic execution scripts that run directly in the environment:
-
-- **`scripts/case_converter.py`**: Core execution CLI tool for case-converter
+- **`scripts/case_converter.py`**: camelCase, snake_case, PascalCase, kebab-case 等の相互変換を行う Zero-dependency CLI ツール。
 
 ### `references/` (On-Demand Knowledge)
-Documentation and schema specifications loaded only when explicitly needed:
-
-- **`references/guide.md`**: Usage guide and reference material for case-converter
+- **`references/guide.md`**: 対応ケース形式一覧およびエッジケース仕様。
 
 ## Guidelines & Best Practices
-
-- Ensure all scripts support --help and handle edge cases gracefully.
-- Follow Anthropic Markdown-First and Google ADK Progressive Disclosure principles.
+- スクリプトは `--help` をサポートし、Python 標準ライブラリのみで動作します。
+- 変換仕様の詳細については `references/guide.md` を参照してください。

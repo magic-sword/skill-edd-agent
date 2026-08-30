@@ -24,6 +24,7 @@ from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
 from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner
 from edd_agent_tools.evaluation.environment import LocalWorkspaceEnv
 from edd_agent_tools.evaluation.diagnoser import SkillDiagnoser
+from edd_agent_tools.evaluation.optimizer import SkillOptimizer
 from edd_agent_tools.evaluation.models import EvalDetailReport
 
 
@@ -296,6 +297,25 @@ def cmd_diagnose(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_optimize(args: argparse.Namespace) -> int:
+    """静的検証、評価テスト、連鎖回帰テスト、Tier 昇格を一括実行します。"""
+    optimizer = SkillOptimizer()
+    res = optimizer.optimize_skill(
+        skill_name=args.skill_name,
+        target_tier=args.tier,
+        run_cascade=not args.no_cascade
+    )
+    if res.get("status") == "promoted":
+        print(f"🎉 Success: {res.get('message')}")
+        return 0
+    else:
+        print(f"❌ Optimization / Promotion failed: {res.get('status')}", file=sys.stderr)
+        print(f"Message: {res.get('message')}", file=sys.stderr)
+        if "details" in res:
+            print(json.dumps(res["details"], ensure_ascii=False, indent=2), file=sys.stderr)
+        return 1
+
+
 def cmd_list(args: argparse.Namespace) -> int:
     """利用可能なスキル一覧を表示します。"""
     state = SkillsState()
@@ -320,7 +340,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # 既知のトップレベルコマンド
     known_commands = {
-        "run", "init", "validate", "package", "eval", "tier-gate", "diagnose", "list",
+        "run", "init", "validate", "package", "eval", "tier-gate", "diagnose", "optimize", "list",
         "-h", "--help", "-v", "--version"
     }
 
@@ -373,7 +393,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_diag.add_argument("--report", "-r", help="Path to custom test report JSON")
     p_diag.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown", help="Output format")
 
-    # 8. list
+    # 8. optimize
+    p_opt = subparsers.add_parser("optimize", help="Verify, evaluate, run cascade tests, and promote a skill")
+    p_opt.add_argument("skill_name", help="Target skill name")
+    p_opt.add_argument("--tier", type=int, choices=[1, 2, 3], default=1, help="Target Tier (default: 1)")
+    p_opt.add_argument("--no-cascade", action="store_true", help="Skip cascade regression tests on dependents")
+
+    # 9. list
     subparsers.add_parser("list", help="List all registered agent skills")
 
     # パース実行（run 用に未知の引数も許容）
@@ -397,6 +423,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_tier_gate(args)
     elif args.command == "diagnose":
         return cmd_diagnose(args)
+    elif args.command == "optimize":
+        return cmd_optimize(args)
     elif args.command == "list":
         return cmd_list(args)
 

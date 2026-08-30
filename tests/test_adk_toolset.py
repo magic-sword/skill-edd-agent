@@ -35,4 +35,4 @@ def test_adk_toolset_run_skill_script():
     )
     assert res.get("status") == "success"
     assert res.get("exit_code") == 0
-    assert "foo_bar_baz" in res.get("stdout", "") or "Processing input" in res.get("stdout", "")
+    assert "foo-bar-baz" in res.get("stdout", "")

@@ -50,10 +50,11 @@ edd validate src/skills/my-skill
 edd package src/skills/my-skill --out dist
 edd list
 
-# EDD 多層評価・Tier 昇格・失敗診断
+# EDD 多層評価・Tier 昇格・失敗診断・一括最適化
 edd eval my-skill --type all
 edd tier-gate my-skill --tier 1
 edd diagnose my-skill
+edd optimize my-skill --tier 1
 
 # MCP サーバー起動
 edd-agent-mcp

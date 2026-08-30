@@ -11,13 +11,7 @@
     "skill-creator": {
       "tier": 1
     },
-    "skill-evaluator": {
-      "tier": 1
-    },
-    "skill-diagnoser": {
-      "tier": 1
-    },
-    "skill-optimizer": {
+    "skill-evolver": {
       "tier": 1
     },
     "case-converter": {

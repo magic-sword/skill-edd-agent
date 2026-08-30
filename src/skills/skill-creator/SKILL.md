@@ -73,8 +73,7 @@ python scripts/package_skill.py src/skills/<skill-name> dist
 ## When NOT to Use This Skill
 
 - **単純なワンライナーのコード生成や一回限りのスクリプト実行**: スキルパッケージを作成する必要がない単発タスクには使用しない。
-- **既存のテストスイートの実行・診断のみを目的とする場合**: スキル生成ではなく、`skill-evaluator` または `skill-diagnoser` を直接使用する。
-- **既存スキルの自動修復ループ実行**: `skill-optimizer` を使用する。
+- **既存のテストスイートの実行・診断・自己修復・Tier昇格を行う場合**: スキル生成ではなく、`skill-evolver` を使用する。
 
 ## Bundled Resources
 

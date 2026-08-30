@@ -92,11 +92,11 @@ class SkillOptimizer:
         # 連鎖回帰テスト
         if run_cascade and self.cascade_runner:
             cascade_res = self.cascade_runner.run_cascade(skill_name, target_tier=target_tier)
-            if not cascade_res.all_passed:
+            if not cascade_res.get("all_passed", True):
                 return {
                     "status": "cascade_failed",
                     "skill_name": skill_name,
-                    "cascade_results": cascade_res.model_dump(),
+                    "cascade_results": cascade_res,
                     "message": "依存関係の連鎖回帰テストに失敗しました。"
                 }
 

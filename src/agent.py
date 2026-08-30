@@ -16,8 +16,7 @@ from edd_agent_tools.skills import SkillsState, SkillTier
 state = SkillsState()
 skills_dir = Path("/workspace/src/skills")
 system_skills = {
-    "skill-creator", "skill-evaluator", "skill-diagnoser",
-    "skill-optimizer"
+    "skill-creator", "skill-evolver"
 }
 
 # 2. ADK ネイティブの Skill モデルとしてロード（Tier 0 SANDBOX は除外し、システムスキルは常に含める）
@@ -47,7 +46,7 @@ Google ADK 2.0 および Anthropic 公式標準の Progressive Disclosure（段�
    - `load_skill_resource`: `references/` や `assets/` のファイルを必要に応じて取得する（Level 3）
    - `run_skill_script`: `scripts/` 配下の Python/Bash スクリプトをブラックボックス実行する（Level 3）
 2. 開発環境の操作や追加のシェルコマンド実行には `EnvironmentToolset`（LocalEnvironment）を利用する。
-3. テスト・評価・自己修復ループは `skill-evaluator` および `skill-optimizer` を通じて自律的に実行する。
+3. テスト・評価・自己修復ループは `skill-evolver` を通じて自律的に実行する。
 """
 
 root_agent = Agent(

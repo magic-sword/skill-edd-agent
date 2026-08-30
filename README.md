@@ -51,13 +51,12 @@ flowchart TD
 
 ## 3. 実装スキル一覧 (Skills & Workflows)
 
-### 🛠 メタスキル (Core Meta-Skills)
+### 🛠 メタスキル & ドメインスキル
 | スキル名 | 役割 / 機能 | 特徴 |
 | :--- | :--- | :--- |
-| **`skill-creator`** | スキル自律生成・更新エンジン | 既存インベントリ照合・重複防止を含む4段階品質保証パイプラインに基づき、自然言語要件から `SKILL.md` と3層リソース（`scripts/`, `references/`, `assets/`）を一括生成・静的検証。 |
-| **`skill-evaluator`** | 統合評価＆Tier昇格ゲートキーパー | 多層テストセット生成（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）、シミュレーション実行、および Tier 1〜3 昇格判定をワンストップで実行。 |
-| **`skill-diagnoser`** | テスト失敗診断 & 改善計画策定 | 失敗レポートログを分析し、`spec`, `script`, `reference`, `test_case` の3層リソース改善計画（`ImprovementPlan`）を自律出力。 |
-| **`skill-optimizer`** | 自律改善・自己進化ループ | テスト ➔ 診断 ➔ 差分修正 ➔ 再テスト ➔ 上位連鎖回帰テスト（Cascade Testing）を完全自動でループ実行。 |
+| **`skill-creator`** | スキル設計・雛形生成・配布パッケージャ | Anthropic & Google ADK 準拠のスキル作成ガイド、意思決定ツリー設計、雛形自動生成、高速静的検証、および配布用 ZIP パッケージャ。 |
+| **`skill-evolver`** | 統合評価・失敗診断・自己修復・Tier昇格 | 契約テスト・シミュレーション評価の実行、失敗コンテキスト診断、自律的自己修復ループ、依存連鎖回帰テスト（Cascade Testing）、および Tier 1〜3 昇格判定を統合オーケストレーション。 |
+| **`case-converter`** | テキストケース変換（ゴールデンサンプル） | camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case 等の相互変換を行う Zero-dependency 実用スキル。 |
 
 ---
 
@@ -84,10 +83,11 @@ edd validate src/skills/my-new-skill
 # 4. 配布用 ZIP パッケージング
 edd package src/skills/my-new-skill --out dist
 
-# 5. EDD 多層評価 & Tier 昇格 & 失敗診断
+# 5. EDD 多層評価 & Tier 昇格 & 失敗診断 & 一括最適化
 edd eval my-new-skill --type all
 edd tier-gate my-new-skill --tier 1
 edd diagnose my-new-skill
+edd optimize my-new-skill --tier 1
 ```
 
 ### Python API による自律スキル生成
