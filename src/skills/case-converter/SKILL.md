@@ -1,6 +1,6 @@
 ---
 name: case-converter
-description: This skill should be used when a user needs to convert text strings into different case formats such as uppercase, lowercase, camelCase, or snake_case. It provides a utility for standard text manipulation tasks.
+description: This skill should be used when a user requests to convert a given string into a specific case format, such as uppercase, lowercase, camelCase, or snake_case. It provides a utility for common text case transformations.
 license: Complete terms in LICENSE.txt
 pattern: task_based
 ---
@@ -9,51 +9,50 @@ pattern: task_based
 
 ## Overview
 
-このスキルは、入力された文字列を大文字、小文字、キャメルケース、スネークケースなど、指定された形式に変換する汎用テキストユーティリティを提供します。
+このスキルは、入力された文字列を大文字、小文字、キャメルケース、スネークケースのいずれかに変換する汎用的なテキストユーティリティを提供します。
 
 ## Quick Start
 
-提供されている決定論的スクリプト `scripts/case_converter.py` を用いて、テキストのケース変換を実行する。
+Execute standard operations using the provided modular tools and scripts.
 
 ## Available Tasks
 
-### Task 1: 変換要求の解析 *(Tool: `references/case-conversion-types.md`)*
+### Task 1: 入力の解析
 
-対象となる文字列および希望する変換形式（uppercase, lowercase, camelCase, snake_case 等）をユーザーリクエストから抽出する。
+To identify the input string and target case, parse the user's prompt.
 
-### Task 2: 変換タイプの決定 *(Tool: `references/case-conversion-types.md`)*
+### Task 2: ケース変換の実行 *(Tool: `scripts/convert_case.py`)*
 
-`references/case-conversion-types.md` を参照し、ユーザーの意図に合致する変換タイプ（`upper`, `lower`, `camel`, `snake` 等）を特定する。
+To perform the case conversion, execute scripts/convert_case.py with the identified text and case type.
 
-### Task 3: ケース変換スクリプトの実行 *(Tool: `scripts/case_converter.py`)*
+### Task 3: 結果の提示
 
-抽出した文字列と特定したタイプを指定し、`scripts/case_converter.py --text <target_string> --type <determined_type>` を実行する。
-
-### Task 4: 変換結果の提示
-
-変換後の文字列をユーザーに提示する。
+To present the result, output the converted string to the user.
 
 ## Usage Scenarios & Trigger Examples
 
-このスキルは以下のようなリクエストでトリガーされる：
+This skill is triggered when handling requests such as:
 
 - "このテキストを大文字に変換して: 'hello world'"
-- "文字列 'MyString' を小文字にしてください"
-- "'convert this to camel case' をキャメルケースに変換"
-- "スネークケースに変換: 'This is a test string'"
-- "テキストのケースを変換したい"
+- "指定された文字列を小文字にしてください: 'HELLO WORLD'"
+- "キャメルケースに変換してほしい: 'hello world example'"
+- "スネークケースに変換して: 'Hello World Example'"
+- "文字列 'MyString' を全て小文字に変換してください。"
 
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
-- **`scripts/case_converter.py`**: 入力文字列と変換タイプを受け取り、変換結果を決定論的に出力する CLI スクリプト
+Deterministic execution scripts that run directly in the environment:
+
+- **`scripts/convert_case.py`**: 入力された文字列を指定されたケース形式（upper, lower, camel, snake）に変換するPythonスクリプト。
 
 ### `references/` (On-Demand Knowledge)
-- **`references/case-conversion-types.md`**: 各ケースタイプの定義と仕様を説明する参照ドキュメント
+Documentation and schema specifications loaded only when explicitly needed:
+
+- **`references/case-conversion-guide.md`**: 各ケース変換形式（キャメルケース、スネークケースなど）の定義と具体的な変換ルールの説明。LLMが変換ロジックを理解するのに役立つ。
 
 ## Guidelines & Best Practices
 
-- 変換対象の文字列が明確に指定されていることを確認すること。
-- 複数の変換タイプが指定された場合は、ユーザーに優先順位を確認すること。
-- スクリプトは `--help` でオプションを確認した上で直接コマンドラインから実行すること。
-
+- 入力文字列が提供されていない場合は、ユーザーに明確な文字列の入力を求めること。
+- サポートされていない変換形式が要求された場合は、利用可能な形式を提示し、再入力を促すこと。
+- 変換結果は、ユーザーが理解しやすい形式で簡潔に提示すること。

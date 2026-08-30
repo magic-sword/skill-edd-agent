@@ -54,11 +54,10 @@ flowchart TD
 ### 🛠 メタスキル (Core Meta-Skills)
 | スキル名 | 役割 / 機能 | 特徴 |
 | :--- | :--- | :--- |
-| **`skill-creator`** | スキル自律生成エンジン | 4段階品質保証パイプラインに基づき、自然言語要件から `SKILL.md` と3層リソース（`scripts/`, `references/`, `assets/`）を一括生成・静的検証。 |
+| **`skill-creator`** | スキル自律生成・更新エンジン | 既存インベントリ照合・重複防止を含む4段階品質保証パイプラインに基づき、自然言語要件から `SKILL.md` と3層リソース（`scripts/`, `references/`, `assets/`）を一括生成・静的検証。 |
 | **`skill-evaluator`** | 統合評価＆Tier昇格ゲートキーパー | 多層テストセット生成（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）、シミュレーション実行、および Tier 1〜3 昇格判定をワンストップで実行。 |
 | **`skill-diagnoser`** | テスト失敗診断 & 改善計画策定 | 失敗レポートログを分析し、`spec`, `script`, `reference`, `test_case` の3層リソース改善計画（`ImprovementPlan`）を自律出力。 |
 | **`skill-optimizer`** | 自律改善・自己進化ループ | テスト ➔ 診断 ➔ 差分修正 ➔ 再テスト ➔ 上位連鎖回帰テスト（Cascade Testing）を完全自動でループ実行。 |
-| **`skill-planner`** | 要件分析 & 開発計画策定 | ユーザー要件を分析し、新規作成・既存更新・ワークフロー連携の最適ルートを判定。 |
 
 ---
 

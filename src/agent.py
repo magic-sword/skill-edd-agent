@@ -17,7 +17,7 @@ state = SkillsState()
 skills_dir = Path("/workspace/src/skills")
 system_skills = {
     "skill-creator", "skill-evaluator", "skill-diagnoser",
-    "skill-optimizer", "skill-planner"
+    "skill-optimizer"
 }
 
 # 2. ADK ネイティブの Skill モデルとしてロード（Tier 0 SANDBOX は除外し、システムスキルは常に含める）

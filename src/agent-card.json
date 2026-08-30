@@ -47,15 +47,6 @@
       ]
     },
     {
-      "description": "Execute skill-planner skill (requirement analysis & planning)",
-      "id": "evaluation_driven_development_agent-skill_planner",
-      "name": "skill_planner",
-      "tags": [
-        "llm",
-        "tools"
-      ]
-    },
-    {
       "description": "Run shell commands.",
       "id": "evaluation_driven_development_agent-run_command",
       "name": "run_command",

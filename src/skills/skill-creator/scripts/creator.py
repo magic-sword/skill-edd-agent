@@ -11,7 +11,8 @@ from edd_agent_tools.skills import (
     SkillPattern,
     SkillTemplateEngine,
     SkillValidator,
-    ValidationResult
+    ValidationResult,
+    SkillsState
 )
 from edd_agent_tools.gemini import client, GeminiRequest
 
@@ -31,8 +32,23 @@ class SkillCreationEngine:
     def __init__(self, output_base_dir: str = "src/skills"):
         self.output_base_dir = Path(output_base_dir).resolve()
         self.client = client
+        self.state = SkillsState()
         self.system_prompt_draft = _load_prompt_template("draft_extraction.txt")
         self.resource_prompt_template = _load_prompt_template("resource_generation.txt")
+
+    def _get_existing_inventory_text(self) -> str:
+        """既存の登録スキル一覧を取得し、インベントリ文字列を構築します。"""
+        try:
+            skills = self.state.list_skills()
+            if not skills:
+                return "None (No existing skills registered)"
+            lines = []
+            for s in skills:
+                desc = s.description or "No description provided."
+                lines.append(f"- {s.name}: {desc}")
+            return "\n".join(lines)
+        except Exception:
+            return "None"
 
     def create_skill_from_prompt(
         self,
@@ -42,14 +58,18 @@ class SkillCreationEngine:
         output_dir: Optional[str] = None
     ) -> dict:
         """ユーザープロンプトから完全なスキルパッケージを自動設計・生成します。"""
-        print(f"🚀 [Stage 1] Analyzing requirements and extracting logical skill draft...")
+        print(f"🚀 [Stage 1] Analyzing requirements, checking inventory, and extracting logical skill draft...")
 
         # 1. Stage 1: 論理設計（SkillLogicDraft）の構造化抽出
-        instruction = f"User Requirement:\n{prompt}\n"
+        inventory_text = self._get_existing_inventory_text()
+        instruction = (
+            f"User Requirement:\n{prompt}\n\n"
+            f"Existing Skill Inventory:\n{inventory_text}\n"
+        )
         if name:
-            instruction += f"Preferred Skill Name: {name}\n"
+            instruction += f"\nPreferred Skill Name: {name}\n"
         if pattern:
-            instruction += f"Preferred Pattern: {pattern}\n"
+            instruction += f"\nPreferred Pattern: {pattern}\n"
 
         req = GeminiRequest(
             prompt=instruction,
