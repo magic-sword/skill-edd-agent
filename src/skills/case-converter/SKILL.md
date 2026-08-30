@@ -39,6 +39,14 @@ This skill is triggered when handling requests such as:
 - "スネークケースに変換して: 'Hello World Example'"
 - "文字列 'MyString' を全て小文字に変換してください。"
 
+## When NOT to Use This Skill
+
+Do NOT use this skill in the following scenarios (use alternative tools or native commands):
+
+- **プログラミング言語の構文解析・ASTコードリファクタリング**: 単純な文字列ケース変換ではなく、言語構文のAST変形が必要な場合。
+- **多言語間の自然言語翻訳**: ケース変換ではなく、意味論的な翻訳タスク。
+- **シェル上の単純な大文字/小文字変換 (1文字や1単語のワンライナー)**: 標準の bash / tr コマンド等で直接処理可能な軽微な操作。
+
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)

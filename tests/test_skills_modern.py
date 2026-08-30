@@ -29,6 +29,10 @@ def test_skill_logic_draft_and_template_engine():
             "Convert report.md to HTML",
             "Please build html from markdown"
         ],
+        when_not_to_use=[
+            "Direct markdown preview in terminals",
+            "Converting raw HTML back to Markdown"
+        ],
         overview_summary="Converts Markdown documents into HTML format using custom styles.",
         decision_tree=[
             DecisionBranch(condition="input is raw markdown", action="execute scripts/convert.py"),
@@ -64,6 +68,8 @@ def test_skill_logic_draft_and_template_engine():
     assert "# Test Converter" in rendered_md
     assert "## Workflow Decision Tree" in rendered_md
     assert "## Step-by-Step Instructions" in rendered_md
+    assert "## When NOT to Use This Skill" in rendered_md
+    assert "Direct markdown preview in terminals" in rendered_md
     assert "### `scripts/` (Executable Tools)" in rendered_md
     assert "### `references/` (On-Demand Knowledge)" in rendered_md
     assert "### `assets/` (Output Templates & Boilerplates)" in rendered_md
@@ -72,6 +78,8 @@ def test_skill_logic_draft_and_template_engine():
     spec = SkillSpec.parse_markdown(rendered_md)
     assert spec.name == "test-converter"
     assert spec.pattern == SkillPattern.WORKFLOW
+    assert len(spec.when_not_to_use) == 2
+    assert "Direct markdown preview in terminals" in spec.when_not_to_use[0]
     assert "convert.py" in spec.scripts[0]
     assert "styles.md" in spec.references[0]
     assert "template.html" in spec.assets[0]

@@ -61,10 +61,20 @@ class SkillTemplateEngine:
             lines.append(f'- "{example.strip()}"')
         lines.append("")
 
-        # 5. Resources Section
+        # 5. When NOT to Use This Skill (Negative Space Guidance)
+        if draft.when_not_to_use:
+            lines.append("## When NOT to Use This Skill")
+            lines.append("")
+            lines.append("Do NOT use this skill in the following scenarios (use native tools or alternative workflows instead):")
+            lines.append("")
+            for item in draft.when_not_to_use:
+                lines.append(f"- {item.strip()}")
+            lines.append("")
+
+        # 6. Resources Section
         lines.extend(cls._render_resources_section(draft))
 
-        # 6. Guidelines & Best Practices
+        # 7. Guidelines & Best Practices
         if draft.guidelines:
             lines.append("## Guidelines & Best Practices")
             lines.append("")

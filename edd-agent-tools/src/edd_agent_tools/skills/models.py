@@ -87,12 +87,13 @@ class ResourcePlan(BaseModel):
 class SkillLogicDraft(BaseModel):
     """Stage 1: LLMが要件から抽出する論理設計データモデル。
     
-    Markdownのレイアウトに依存せず、設計の骨子（認知的知識、決定木、リソース計画）のみを型安全に抽出します。
+    Markdownのレイアウトに依存せず、設計の骨子（認知的知識、決定木、リソース計画、非適用条件）のみを型安全に抽出します。
     """
     name: str = Field(..., pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", description="ハイフンケースのスキル名 (例: pdf-tools, api-helper)")
     pattern: SkillPattern = Field(..., description="4パターンのいずれか")
     description_third_person: str = Field(..., max_length=500, description="第三者視点でのトリガー説明 ('This skill should be used when...')")
     concrete_trigger_examples: list[str] = Field(..., min_length=2, max_length=6, description="具体的なユーザー発話・トリガー例")
+    when_not_to_use: list[str] = Field(default_factory=list, description="誤発火を防ぐための非適用条件（When NOT to use）")
     overview_summary: str = Field(..., description="スキルの目的・提供価値の簡潔な要約 (1〜2文)")
     decision_tree: list[DecisionBranch] = Field(default_factory=list, description="条件分岐ルール")
     execution_steps: list[StepInstruction] = Field(..., min_length=1, description="動詞起点の実行手順リスト")
@@ -121,6 +122,7 @@ class SkillSpec(BaseModel):
     overview: str = Field(..., description="スキルの概要")
     body: str = Field(..., description="Frontmatterを除くMarkdown本文全体")
     pattern: SkillPattern = Field(SkillPattern.WORKFLOW, description="スキル構造パターン")
+    when_not_to_use: list[str] = Field(default_factory=list, description="非適用条件のリスト")
     
     # 抽出されたリソース一覧（相対パス）
     scripts: list[str] = Field(default_factory=list, description="言及されている scripts/ 配下のファイル")
@@ -184,6 +186,16 @@ class SkillSpec(BaseModel):
         else:
             pattern = SkillPattern.WORKFLOW
 
+        # When NOT to use の抽出 (## When NOT to [Uu]se の次行から次の ## まで)
+        when_not_match = re.search(r"##\s+When NOT to Use[^\n]*\s*\n+(.*?)(?=\n##|\Z)", body_str, re.DOTALL | re.IGNORECASE)
+        when_not_to_use = []
+        if when_not_match:
+            when_not_text = when_not_match.group(1).strip()
+            for line in when_not_text.splitlines():
+                line = line.strip()
+                if line.startswith(("-", "*")):
+                    when_not_to_use.append(line.lstrip("-* ").strip())
+
         # リソース言及の抽出 (scripts/..., references/..., assets/...)
         scripts = sorted(list(set(re.findall(r"`?scripts/([a-zA-Z0-9_\-\./]+)`?", body_str))))
         references = sorted(list(set(re.findall(r"`?references/([a-zA-Z0-9_\-\./]+)`?", body_str))))
@@ -195,6 +207,7 @@ class SkillSpec(BaseModel):
             overview=overview,
             body=body_str,
             pattern=pattern,
+            when_not_to_use=when_not_to_use,
             scripts=scripts,
             references=references,
             assets=assets

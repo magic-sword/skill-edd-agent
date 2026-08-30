@@ -186,6 +186,8 @@ class SkillValidator:
             res.add_error("structure", "Missing level-1 title heading ('# <Title>')")
         if not re.search(r"^##\s+Overview", body_str, re.MULTILINE | re.IGNORECASE):
             res.add_warning("structure", "Recommended '## Overview' section is missing")
+        if not re.search(r"^##\s+When NOT to Use", body_str, re.MULTILINE | re.IGNORECASE):
+            res.add_warning("structure", "Recommended '## When NOT to Use This Skill' section is missing. Specifying exclusion criteria prevents model over-triggering.")
 
         # 5. リソース参照の整合性検証 (実在チェック)
         if skill_dir:

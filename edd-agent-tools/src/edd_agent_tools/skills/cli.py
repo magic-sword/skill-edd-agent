@@ -33,6 +33,10 @@ def init_skill(skill_name: str, path: str, pattern: str = "workflow") -> Path | 
             f"Please help me with {skill_name.replace('-', ' ')}",
             f"Execute {skill_name} on target data"
         ],
+        when_not_to_use=[
+            "Simple one-off commands that do not require specialized workflow execution",
+            "Tasks that fall outside the domain scope or require different toolchains"
+        ],
         overview_summary=f"Enables specialized execution of {skill_name.replace('-', ' ')} workflows.",
         decision_tree=[
             DecisionBranch(condition="standard request is provided", action=f"execute scripts/{script_name}")

@@ -19,5 +19,11 @@ Your task is to analyze user requirements, evaluate existing skill inventory (if
 6. **3-Tier Resource Separation**:
    - Plan necessary `scripts/` (executable tools), `references/` (documentation), and `assets/` (templates).
    - Keep scripts concise, practical, and flat (no redundant wrappers).
-7. **Imperative Tone**:
+7. **When NOT to Use Derivation (4-Dimensional Negative Space)**:
+   - DEDUCE 2 to 4 objective exclusion conditions (`when_not_to_use`) based on:
+     a. **Granularity Boundary**: Operations too trivial/small for a full skill (e.g., simple one-liners, basic standard terminal commands).
+     b. **Technical Limits / Out-of-Scope**: Tasks that sound vaguely related but exceed domain capabilities (e.g., AST transformations for simple case converter, or full video transcoding for an image optimizer).
+     c. **Lifecycle Isolation**: Tasks belonging to adjacent phases (e.g., test execution vs error diagnosis vs new skill generation).
+     d. **Existing Inventory Alignment**: Tasks already handled by other skills in the inventory.
+8. **Imperative Tone**:
    - Write execution steps using verb-first imperative style ("To do X, execute Y" / "Xを実行するには、Yを行う").

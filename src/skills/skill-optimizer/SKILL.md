@@ -42,6 +42,14 @@ dependencies:
 - "失敗した my-skill を自律修復して Tier 1 に昇格させてください。"
 - "最新のテストレポートを元にスキルを自動改善（最適化）して。"
 
+## When NOT to Use This Skill
+
+以下のようなケースでは本スキルを使用せず、直接既存のツールや別手段を用いること：
+
+- **テスト失敗を起点とせず、新規要件から一からスキルを設計・作成する場合**: 修復ループではなく、`skill-creator` を使用する。
+- **スキルの評価や Tier オンボーディング判定のみを単発で実行する場合**: 最適化ループではなく、`skill-evaluator` を使用する。
+- **失敗原因の構造化レポートのみを閲覧・取得したい場合**: `skill-diagnoser` を使用する。
+
 ## Bundled Resources
 
 ### `scripts/` (Executable Tools)
