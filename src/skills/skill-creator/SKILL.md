@@ -81,12 +81,19 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 - **ライフサイクル分離 (Lifecycle)**: 既存スキルの評価テスト実行、失敗原因の診断、自律的自己修復、および Tier 昇格判定（`skill-evolver` を使用すること）。
 - **インベントリ照合 (Inventory)**: 類似の機能やスコープを持つスキルが既に `SkillsState` / `src/skills/` に存在する場合（重複作成を避け、既存スキルの改修・拡張を優先すること）。
 
+## Requirements & Prerequisites
+
+本スキルは EDD エコシステム公式のメタスキルであり、以下の前提環境で動作します：
+- **Python**: >= 3.11
+- **Package**: `pip install -e edd-agent-tools` (または `pip install edd-agent-tools`)
+- **CLI**: `edd` コマンドが環境パスに解決可能であること
+
 ## Bundled Resources
 
-### `scripts/` (Executable Tools - Zero-dependency)
-- **`scripts/init_skill.py`**: スキル雛形を高速生成する決定論的初期化CLIツール
-- **`scripts/quick_validate.py`**: Frontmatter・実在参照・規約を高速検査するバリデータ
-- **`scripts/package_skill.py`**: スキルを静的検証した上で配布用 ZIP パッケージを出力する決定論的CLIツール
+### `scripts/` (Executable Tools - Thin CLI Client)
+- **`scripts/init_skill.py`**: `edd init` をプロセス境界で実行しスキル雛形を高速生成するCLIクライアント
+- **`scripts/quick_validate.py`**: `edd validate` をプロセス境界で実行し静的検証を行うCLIクライアント
+- **`scripts/package_skill.py`**: `edd package` をプロセス境界で実行し配布用 ZIP パッケージを出力するCLIクライアント
 
 ### `references/` (On-Demand Knowledge)
 - **`references/skill_design_guide.md`**: スキル設計原則、パターン選定基準、3層リソース分離のガイドライン
@@ -98,5 +105,6 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 
 - 既存スキルのインベントリを必ず照合し、重複作成を避けて既存スキルの拡張（Update）を優先すること。
 - 生成・更新したスキルは必ず `scripts/quick_validate.py` または `edd validate` で検証をパスさせること。
-- スクリプトは外部非標準ライブラリへの依存を極力排除し、決定論的ブラックボックスツールとして設計すること。
+- スクリプトは `edd` 統合 CLI を呼び出す薄型クライアントとして動作し、パッケージコードとの二重管理を排除すること。
 - 未使用の空ディレクトリは残置しないこと。
+

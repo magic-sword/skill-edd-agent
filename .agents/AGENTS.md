@@ -7,7 +7,7 @@
 
 ---
 
-## 1. 業界標準の疎結合モデル (Runtime vs Content / Zero-Dependency)
+## 1. 業界標準の疎結合モデルと依存関係ポリシー (Runtime vs Content / Dependency Policy)
 本プロジェクトは、pytest, Ansible, dbt 等の業界標準エコシステムと同様の **「汎用ランタイム＆テストハーネス（pipパッケージ） vs 規約駆動コンテンツ資産（スキル）」** 分離モデルを採用します。
 
 * **汎用ランタイム＆テストハーネス (`edd-agent-tools` - pip パッケージ)**:
@@ -19,10 +19,15 @@
   - 統合 CLI（`cli`: `edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
   ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。
 
-* **規約駆動・ゼロ依存スキル資産層 (`src/skills/<skill>/`)**:
-  - スキル内のスクリプトは `edd_agent_tools` を直接 Python import せず、Python 標準ライブラリと CLI/IO 規約（`--help`、引数、標準入出力）のみで完結するゼロ依存設計とします。
-  - スキル単体（または ZIP）を別プロジェクト（Claude Code, Cursor, Antigravity, Google ADK 等）にコピーするだけで即座に動作するポータビリティを保証します。
-  - メタスキル（`skill-creator`, `skill-evolver`）のスクリプトは、共通処理を再実装（重複）せず、統合 CLI（`edd`）をプロセス境界 API として呼び出す薄型クライアントとします。
+* **規約駆動スキル資産層 (`src/skills/<skill>/`) と依存関係ポリシー**:
+  1. **メタスキル (`skill-creator`, `skill-evolver`) の設計思想**:
+     - `pytest` を実行するスクリプトが `pytest` のインストールを前提とするのと同様に、メタスキルは **`pip install edd-agent-tools` を前提とする薄型クライアント（Thin CLI Client）** です。
+     - 重複実装（Pure Python でのバリデータ等の再実装）を避け、統合 CLI `edd` をプロセス境界（CLI-as-an-API）で呼び出すことで、単一真実源（SSOT）と保守性を担保します。
+  2. **一般ドメインスキル（業務・ツールスキル）の依存関係**:
+     - **軽量ユーティリティ（例: `case-converter`）**: Python 標準ライブラリのみで完結させ、追加セットアップ不要で即座に動作させます。
+     - **外部ライブラリを必要とするスキル（例: `docx`, `xlsx`, `pdf`, `playwright` 等）**: Anthropic 公式標準に準拠し、`SKILL.md` 内の `## Requirements & Prerequisites` に必要な pip パッケージ（例: `python-docx`, `openpyxl` 等）を明記します。エージェントは環境構築・セットアップが行われている前提でスキルを実行します。
+  3. **Python import 境界の厳守**:
+     - いずれのスキルもスクリプト内部から `import edd_agent_tools` などの直接 Python import は行わず、CLI/IO 規約（`--help`、引数、標準入出力、サブプロセス）のみで疎結合に連携します。
 
 ---
 

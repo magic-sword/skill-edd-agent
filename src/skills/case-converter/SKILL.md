@@ -54,9 +54,14 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 - **ライフサイクル分離 (Lifecycle)**: スキル自体のテスト実行、診断、自己修復、Tier昇格（`skill-evolver` を使用すること）。
 - **インベントリ照合 (Inventory)**: スキル雛形生成やパッケージ化作業（`skill-creator` を使用すること）。
 
+## Requirements & Prerequisites
+
+本スキルは Zero-dependency ツールとして設計されており、外部パッケージの追加インストールは不要です：
+- **Python**: >= 3.10 (Python 標準ライブラリのみで動作)
+
 ## Bundled Resources
 
-### `scripts/` (Executable Tools)
+### `scripts/` (Executable Tools - Zero-dependency)
 - **`scripts/case_converter.py`**: camelCase, snake_case, PascalCase, kebab-case 等の相互変換を行う Zero-dependency CLI ツール。
 
 ### `references/` (On-Demand Knowledge)
@@ -65,3 +70,4 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 ## Guidelines & Best Practices
 - スクリプトは `--help` をサポートし、Python 標準ライブラリのみで動作します。
 - 変換仕様の詳細については `references/guide.md` を参照する。
+

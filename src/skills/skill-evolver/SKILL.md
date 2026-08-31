@@ -69,11 +69,18 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 - **ライフサイクル分離 (Lifecycle)**: 新規スキルの雛形スキャフォールディング、初期プロンプト設計、テンプレート素材管理（`skill-creator` を使用すること）。
 - **インベントリ照合 (Inventory)**: スキル管理・評価ではなく、Python パッケージ全体のビルド・デプロイ作業（標準の `pip` / `twine` ツールを使用すること）。
 
+## Requirements & Prerequisites
+
+本スキルは EDD エコシステム公式の自己進化メタスキルであり、以下の前提環境で動作します：
+- **Python**: >= 3.11
+- **Package**: `pip install -e edd-agent-tools` (または `pip install edd-agent-tools`)
+- **CLI**: `edd` コマンドが環境パスに解決可能であること
+
 ## Bundled Resources
 
-### `scripts/` (Executable Tools - Zero-dependency)
-- **`scripts/evolver.py`**: 評価（eval）、失敗診断（diagnose）、連鎖回帰（cascade）、および Tier 昇格（optimize）を統合実行するオーケストレータCLI。
-- **`scripts/diagnoser.py`**: テスト結果レポートとソースコードを決定論的にパースしてエージェント向けコンテキストを出力する診断CLI。
+### `scripts/` (Executable Tools - Thin CLI Client)
+- **`scripts/evolver.py`**: 評価（eval）、失敗診断（diagnose）、連鎖回帰（cascade）、および Tier 昇格（optimize）を `edd` CLI を介して統合実行するオーケストレータ。
+- **`scripts/diagnoser.py`**: `edd diagnose` を呼び出し失敗コンテキストを出力する診断クライアント。
 
 ### `references/` (On-Demand Knowledge)
 - **`references/eval_framework.md`**: 多層評価テスト（契約、トリガー、ゴールデン、ジャッジ）の評価基準と仕様。
@@ -82,3 +89,5 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 ## Guidelines & Best Practices
 - テスト失敗時は推測で修正せず、必ず `diagnose` の出力を精読してピンポイントで修正すること。
 - Tier 昇格時は連鎖回帰テスト（Cascade Testing）を省略せず、システム全体の健全性を担保すること。
+- スクリプトは `edd` 統合 CLI を呼び出す薄型クライアントとして動作し、パッケージコードとの二重管理を排除すること。
+

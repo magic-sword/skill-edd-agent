@@ -38,11 +38,18 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 
 ※ **自己完結性の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。
 
-### B. 自己改善スキル資産層（`src/skills/`）の責務
+### B. 自己改善スキル資産層（`src/skills/`）の責務と依存関係ポリシー
 - **個別ロジックのカプセル化**:
   スキルの業務ロジック、個別処理スクリプト（`scripts/`）、ドメインスキーマ（`references/`）、出力用テンプレート（`assets/`）、個別契約テスト（`tests/`）は、**必ずスキルディレクトリ内に隔離して実装**してください。
-- **完全な自己完結性（Portability / Zero-dependency）**:
-  スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはなりません。Python 標準ライブラリのみで実装するか、統合 CLI `edd` をプロセス境界 API（CLI-as-an-API）として呼び出す設計としてください。
+- **依存関係ポリシー (Dependency & Prerequisites Policy)**:
+  1. **メタスキル (`skill-creator`, `skill-evolver`)**:
+     - `pytest` が `pytest` のインストールを前提とするのと同様、**`pip install edd-agent-tools` を前提とする薄型クライアント（Thin CLI Client）** です。
+     - 重複実装を排除し、統合 CLI `edd` をプロセス境界（CLI-as-an-API）で呼び出します。
+  2. **一般ドメインスキル（業務・ツールスキル）**:
+     - 軽量ユーティリティ（例: `case-converter`）は Python 標準ライブラリのみで完結させます。
+     - 外部ライブラリ依存（例: `docx`, `xlsx`, `playwright` 等）が必要なスキルは、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（環境構築されている前提で実行）。
+  3. **Python import 境界の厳守**:
+     - スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはなりません。CLI/IO 規約（`--help`、引数、標準入出力）またはサブプロセスでのみ疎結合に連携します。
 - **二重 LLM 呼び出しの禁止**:
   スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を作らず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。
 
