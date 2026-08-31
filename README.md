@@ -49,7 +49,7 @@ flowchart TD
 ```
 
 1.  **単一真実源の原則 (Markdown-First & Template Assets)**
-    *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化。雛形生成用の Markdown テンプレートは `src/skills/skill-creator/assets/templates/` に集約され、エージェント自身の推論によって柔軟に進化可能。
+    *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化。パッケージ内部に公式標準の雛形テンプレート（4大パターン）を同梱し、外部プロジェクトからの拡張も可能。
 2.  **3層リソース分離 (Progressive Disclosure)**
     *   コンテキストウィンドウを圧迫しない3層リソース構造：
         - `scripts/`: 直接実行可能な決定論的スクリプト（Zero-dependency, CLI対応）

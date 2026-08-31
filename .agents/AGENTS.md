@@ -7,32 +7,44 @@
 
 ---
 
-## 1. 単一真実源（SSOT）と開発規約の参照
-* **エージェント開発制約の真実源**:
-  エージェント向けの開発制約、Two-Tier Architecture、Progressive Disclosure、および4段階品質保証パイプラインはすべて [`edd-agent-tools/AGENTS.md`](file:///workspace/edd-agent-tools/src/edd_agent_tools/AGENTS.md) に定義されています。
-* **MCP によるオンデマンド参照**:
-  開発規約や設計ガイドラインは FastMCP サーバー（`edd-agent-mcp`）のリソース（`edd://rules/agents`, `edd://guidelines/*`, `edd://docs/*`）からも参照可能です。
+## 1. 業界標準の疎結合モデル (Runtime vs Content / Zero-Dependency)
+本プロジェクトは、pytest, Ansible, dbt 等の業界標準エコシステムと同様の **「汎用ランタイム＆テストハーネス（pipパッケージ） vs 規約駆動コンテンツ資産（スキル）」** 分離モデルを採用します。
 
-## 2. Two-Tier Architecture と自己改善隔離 (Separation of Concerns)
-* **不変プラットフォーム層 (`edd-agent-tools` - pip ライブラリ)**:
-  - 共通ドメインエンティティ（`core`: `Skill`, `SkillTests`）
+* **汎用ランタイム＆テストハーネス (`edd-agent-tools` - pip パッケージ)**:
   - 状態管理・探索・DAG解析（`state`: `SkillsState`）
   - 静的検証リンター（`validation`: `SkillValidator`）
-  - ディレクトリ雛形配置 & ZIP化（`packaging`: `SkillScaffolder`, `SkillPackager`）
+  - パッケージ組み込み標準テンプレート & ZIP化（`packaging`: `SkillScaffolder`, `SkillPackager`）
   - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`, `LocalWorkspaceEnv`）
   - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `EddSkillToolset` / `mcp`: `create_mcp_server`）
   - 統合 CLI（`cli`: `edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
-  ※ パッケージ内部にプロンプト文体やテンプレート生成コードを過度にハードコードしてはなりません。
-* **自己改善スキル資産層 (`src/skills/`)**:
-  - スキル個別スクリプト（`scripts/`）、ドメインスキーマ（`references/`）、出力用テンプレート（`assets/`）、個別契約テスト（`tests/`）は、エージェントが安全かつ局所的に自己改善（Self-Evolution）できるように、必ずスキルディレクトリ内に隔離して実装してください。
-  - スキル作成テンプレート（`assets/templates/*.md`）は `src/skills/skill-creator` 側を真実源とし、エージェントの自己改善ループによって柔軟に進化させます。
-* **過度なパッケージ集約の禁止 (Anti-Pattern: Excessive Centralization)**:
-  スキル固有の個別処理を「共通化できる」という理由だけで pip パッケージ（`edd-agent-tools`）へ過度に移転・集約してはなりません。
-* **二重 LLM 呼び出しの禁止**:
-  スキル内のスクリプト内部で LLM API を直接叩くバッチ処理を作らず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。
+  ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。
+
+* **規約駆動・ゼロ依存スキル資産層 (`src/skills/<skill>/`)**:
+  - スキル内のスクリプトは `edd_agent_tools` を直接 Python import せず、Python 標準ライブラリと CLI/IO 規約（`--help`、引数、標準入出力）のみで完結するゼロ依存設計とします。
+  - スキル単体（または ZIP）を別プロジェクト（Claude Code, Cursor, Antigravity, Google ADK 等）にコピーするだけで即座に動作するポータビリティを保証します。
+  - メタスキル（`skill-creator`, `skill-evolver`）のスクリプトは、共通処理を再実装（重複）せず、統合 CLI（`edd`）をプロセス境界 API として呼び出す薄型クライアントとします。
+
+---
+
+## 2. 自己進化のための変更境界ルール (Mutation Boundaries)
+エージェントがスキルを進化・修復する際は、以下の境界線を厳格に遵守してください：
+
+* **🟢 エージェント変更可能領域 (Mutable Zone: 自己進化対象)**:
+  - `SKILL.md` (手順、プロンプト、意思決定ツリー、トリガー条件、When NOT to use)
+  - `scripts/` 配下の個別ドメインロジック（ビジネスルール・変換関数）
+  - `references/` (ドメイン知識、スキーマ仕様)
+  - `assets/` (出力用テンプレート・素材)
+  - `tests/` (契約テスト、シミュレーション評価データセット)
+* **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
+  - `edd-agent-tools` パッケージ内部のコード
+  - 評価実行エンジン・静的検証エンジン・Tier 昇格判定エンジン
+
+---
+
+## 3. 単一真実源（SSOT）と開発規約の参照
+* **エージェント開発制約の真実源**:
+  エージェント向けの詳細開発制約、Progressive Disclosure、および4段階品質保証パイプラインはすべて [`edd-agent-tools/AGENTS.md`](file:///workspace/edd-agent-tools/src/edd_agent_tools/AGENTS.md) に定義されています。
+* **MCP によるオンデマンド参照**:
+  開発規約や設計ガイドラインは FastMCP サーバー（`edd-agent-mcp`）のリソース（`edd://rules/agents`, `edd://guidelines/*`, `edd://docs/*`）からも参照可能です。
 * **ローカルインストール**:
   本パッケージは `pip install -e edd-agent-tools` でインストールして開発してください。
-
-## 3. コード品質とシンプルさの徹底
-* **ボイラープレートの排除**: 不要な抽象化レイヤーやモンキーパッチを作らず、フラットで簡潔な実装を維持してください。
-* **不要ファイルの即時削除**: リファクタリングによって不要になったファイルや重複関数は速やかに削除し、コードベース内のノイズを排除してください。

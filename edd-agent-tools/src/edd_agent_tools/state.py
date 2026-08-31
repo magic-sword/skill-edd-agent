@@ -192,6 +192,30 @@ class SkillsState:
                             tier_val = self._get_tier_for_skill(skill_name)
                             discovered[skill_name] = Skill(child, tier=tier_val)
 
+        # 4. Python entry_points (edd_agent_tools.skills) による外部パッケージスキルの探索
+        try:
+            import sys
+            if sys.version_info >= (3, 10):
+                from importlib.metadata import entry_points
+                eps = entry_points(group="edd_agent_tools.skills")
+            else:
+                from importlib_metadata import entry_points
+                eps = entry_points().get("edd_agent_tools.skills", [])
+
+            for ep in eps:
+                try:
+                    loaded = ep.load()
+                    skill_dir = Path(loaded if isinstance(loaded, (str, Path)) else loaded.__file__).parent
+                    if (skill_dir / "SKILL.md").exists():
+                        s_name = ep.name
+                        if s_name not in self.data.exclude and s_name not in discovered:
+                            tier_val = self._get_tier_for_skill(s_name)
+                            discovered[s_name] = Skill(skill_dir, tier=tier_val)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         self._cached_skills = discovered
         return discovered
 

@@ -32,7 +32,7 @@
 
 ### ② 単一真実源の原則 (Single Source of Truth ➔ Markdown-First)
 * 仕様書兼プロンプトである **`SKILL.md` を唯一の真実源** とし、自然言語（Markdown）とコード（Python）のシームレスな統合を図ります。
-* 雛形テンプレート素材は `src/skills/skill-creator/assets/templates/` を真実源とし、ハードコードを排除します。
+* パッケージ内部に公式標準の組み込み雛形テンプレート（`edd_agent_tools.packaging.templates`）を内包し、外部プロジェクト依存のない完全自己完結性を保証します（プロジェクト側の `assets/templates/` によるカスタマイズも可能）。
 
 ### ③ Progressive Disclosure（3層リソース分離）
 * コンテキストウィンドウの効率化と信頼性の両立を図るため、スキル資産を3層に分離します：

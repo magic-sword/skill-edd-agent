@@ -18,6 +18,7 @@ src_tmp*/
 # edd-agent-tools build artifacts
 edd-agent-tools/dist/
 edd-agent-tools/build/
+dist/
 *.egg-info/
 .env
 

@@ -29,7 +29,7 @@ flowchart TD
 
 ### 原則
 1. **プラットフォーム不変性**: `edd-agent-tools` パッケージはスキーマ検証、テスト実行、状態管理、ZIPパッケージャなどの決定論的インフラに徹し、プロンプト文体や生成ロジックをコード内に過度にハードコードしない。
-2. **自己改善の局所性と安全性**: スキルのプロンプト文体、パターン構造（workflow, task_based, reference, capabilities）、テンプレート素材はすべて `src/skills/skill-creator/assets/templates/` に集約し、エージェントが自己改善（プロンプト進化）する際に pip パッケージのコードを変更する必要をなくす。
+2. **自己改善の局所性と安全性**: スキルのプロンプト文体、パターン構造（workflow, task_based, reference, capabilities）、手順指示はスキルディレクトリ内の `SKILL.md` や `scripts/` に集約し、エージェントが自己改善（プロンプト進化）する際に pip パッケージのコードを変更する必要をなくす。
 
 ---
 

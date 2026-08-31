@@ -396,7 +396,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_init = subparsers.add_parser("init", help="Initialize a new skill scaffold")
     p_init.add_argument("skill_name", help="Name of the skill in hyphen-case")
     p_init.add_argument("--path", "-p", default="src/skills", help="Target parent directory (default: src/skills)")
-    p_init.add_argument("--pattern", choices=["workflow", "tool_wrapper", "reference_heavy", "template_generator"], default="workflow", help="Skill pattern template")
+    p_init.add_argument("--pattern", choices=["workflow", "task_based", "reference", "capabilities", "tool_wrapper", "reference_heavy", "template_generator"], default="workflow", help="Skill pattern template")
 
     # 3. validate
     p_val = subparsers.add_parser("validate", help="Statically validate SKILL.md and directory structure (Linter / AST)")
@@ -405,7 +405,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 4. package
     p_pkg = subparsers.add_parser("package", help="Validate and package a skill into a distributable zip archive")
     p_pkg.add_argument("path", help="Path to the skill directory")
-    p_pkg.add_argument("--out", "-o", default="./dist", help="Output directory for zip file (default: ./dist)")
+    p_pkg.add_argument("--out", "--output", "-o", default="./dist", help="Output directory for zip file (default: ./dist)")
 
     # 5. eval
     p_eval = subparsers.add_parser("eval", help="Run contract and simulation evaluation tests on a skill")

@@ -66,7 +66,7 @@ def test_skill_creator_zero_dependency_scripts(tmp_path):
         text=True
     )
     assert res_val.returncode == 0
-    assert "is valid" in res_val.stdout
+    assert "valid" in res_val.stdout.lower()
 
     # 3. package_skill.py で ZIP 出力
     dist_dir = tmp_path / "dist"

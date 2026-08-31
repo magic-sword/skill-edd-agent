@@ -2,7 +2,7 @@
 Skill Scaffolding Utility for edd-agent-tools
 
 Anthropic Claude Skills / Google ADK 2.0 準拠のスキルディレクトリ雛形を高速生成します。
-テンプレート素材（assets/templates/）を単一真実源（SSOT）とし、過度な文体ハードコードを排除した設計。
+パッケージ同梱の標準テンプレート（templates/）をデフォルトSSOTとし、外部パス依存のない自己完結設計。
 """
 
 import os
@@ -90,16 +90,15 @@ class SkillScaffolder:
         skill_name_spaced = skill_name.replace("-", " ")
         primary_script = skill_name.replace("-", "_")
 
-        # 1. テンプレートの探索と読み込み（SSOT: assets/templates/）
+        # 1. テンプレートの探索と読み込み（SSOT: パッケージ組み込み templates/ または明示指定）
         template_content = None
         cand_dirs = []
         if templates_dir:
             cand_dirs.append(Path(templates_dir).resolve())
-        cand_dirs.extend([
-            Path("src/skills/skill-creator/assets/templates"),
-            Path("skills/skill-creator/assets/templates"),
-            Path(".agents/skills/skill-creator/assets/templates"),
-        ])
+        # パッケージ同梱の標準テンプレートディレクトリ
+        builtin_templates_dir = Path(__file__).parent / "templates"
+        if builtin_templates_dir.exists():
+            cand_dirs.append(builtin_templates_dir)
 
         for c_dir in cand_dirs:
             t_path = c_dir / f"{pattern}_template.md"

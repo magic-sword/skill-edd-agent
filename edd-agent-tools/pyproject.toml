@@ -29,7 +29,6 @@ dependencies = [
 
 [project.scripts]
 edd = "edd_agent_tools.cli:main"
-edd-eval = "edd_agent_tools.evaluation.cli:main"
 edd-agent-mcp = "edd_agent_tools.mcp.server:main"
 
 [project.urls]
@@ -38,6 +37,7 @@ edd-agent-mcp = "edd_agent_tools.mcp.server:main"
 [tool.setuptools.package-data]
 "edd_agent_tools" = ["AGENTS.md"]
 "edd_agent_tools.docs" = ["*.md"]
+"edd_agent_tools.packaging" = ["templates/*.md"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -9,49 +9,61 @@
 ### 🎯 プロジェクトの北極星 (North Star)
 本プロジェクトの究極の目的は、**「AI エージェントが自らのスキル（手順書・ドメイン知識・決定論的スクリプト）を自律的にテスト・診断・修復・進化させる自己進化システム（Self-Evolving Agentic Ecosystem）」** を構築することです。
 
-### ⚖️ 最重要トレードオフの原則 (The Core Trade-off)
-一般的なソフトウェア開発では「DRY原則（重複排除・共通ライブラリ化）」が重視されますが、本プロジェクトでは **「自己改善の局所性（Locality of Mutation）と安全な隔離（Isolation）」を DRY原則よりも上位の原則** として優先します。
+### ⚖️ 業界標準の疎結合モデル (Convention-over-Configuration & Zero-Dependency)
+pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用ランタイム＆テストハーネス（pip パッケージ）」と「規約駆動・ゼロ依存アセット（スキル資産）」の完全な疎結合分離**を採用します。
 
-* **なぜパッケージに個別処理を集約してはならないのか？（技術的根拠）**:
+* **なぜパッケージとスキルを疎結合に分離するのか？（技術的根拠）**:
   1. **探索空間の極小化 (Search Space Localization)**:
      エージェントがバグを修正したり性能を改善する際、変更対象が `skills/<skill-name>/` 内に閉じていれば、迷走せず迅速・正確に修正を完了できます。
   2. **爆発半径の極小化 (Blast Radius Minimization)**:
-     スキル内のスクリプトが自己改善の試行錯誤で一時的に壊れても、共通パッケージや他のスキルを巻き込んでシステム全体が停止するリスクをゼロにします。
+     スキル内のスクリプトが自己改善の試行錯誤で一時的に壊れても、共通パッケージや他のスキルを巻き込んでシステム全体が停止するリスクをゼロにします（審判と選手の完全隔離）。
   3. **サンドボックス評価の容易性 (Safe Sandboxing & Rollback)**:
      スキルが単一ディレクトリで完結しているため、仮想環境（`LocalWorkspaceEnv`）に安全に複製して何度でもテスト・評価・ロールバックが可能です。
   4. **ポータビリティの保証 (Drop-in Portability)**:
-     スキルが外部パッケージに直接依存しないことで、Claude Code, Antigravity, Cursor, Google ADK 等のあらゆる環境へ zip 1つで即座に配布・利用できます。
+     スキルが外部パッケージに直接 Python import 依存しないことで、Claude Code, Antigravity, Cursor, Google ADK 等のあらゆる環境へ zip 1つで即座に配布・利用できます。
 
 ---
 
-## 1. パッケージとスキルの責務分離 (Two-Tier Architecture & Self-Evolution Isolation)
+## 1. パッケージとスキルの責務分離 (Two-Tier Architecture & Separation of Concerns)
 
 ### A. 不変プラットフォーム層（pip ライブラリ: `edd-agent-tools`）の責務
-全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム」に徹してください：
+全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム（汎用ランタイム＆テストハーネス）」に徹してください：
 - **共通ドメインエンティティ (`core`)**: `Skill`, `SkillTests`
-- **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析）
+- **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析, `entry_points` 探索）
 - **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証）
-- **スキャフォールド & 配布用 ZIP パッケージャ (`packaging`)**: `SkillScaffolder`, `SkillPackager`
-- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`, `LocalWorkspaceEnv`
+- **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`
+- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
 - **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset`, `create_mcp_server`
 - **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
 
-※ **過度なテンプレート・プロンプトハードコードの禁止**:
-Markdown の文体やテンプレート生成ロジックを pip パッケージ側に過度にハードコードしてはなりません。エージェントがプロンプトを進化させるときに pip パッケージのコードを変更する必要をなくすためです。
+※ **自己完結性の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。
 
 ### B. 自己改善スキル資産層（`src/skills/`）の責務
 - **個別ロジックのカプセル化**:
   スキルの業務ロジック、個別処理スクリプト（`scripts/`）、ドメインスキーマ（`references/`）、出力用テンプレート（`assets/`）、個別契約テスト（`tests/`）は、**必ずスキルディレクトリ内に隔離して実装**してください。
-- **テンプレート素材の単一真実源 (SSOT)**:
-  スキル作成用の Markdown テンプレート（`workflow_template.md`, `task_based_template.md`, `reference_template.md`, `capabilities_template.md`）は `src/skills/skill-creator/assets/templates/` を真実源とし、エージェントの推論と自己改善によって進化させます。
 - **完全な自己完結性（Portability / Zero-dependency）**:
-  スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはなりません。Python 標準ライブラリのみで実装するか、統合 CLI `edd` を subprocess 呼び出しする設計としてください。
+  スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはなりません。Python 標準ライブラリのみで実装するか、統合 CLI `edd` をプロセス境界 API（CLI-as-an-API）として呼び出す設計としてください。
 - **二重 LLM 呼び出しの禁止**:
   スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を作らず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。
 
 ---
 
-## 2. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
+## 2. 自己進化のための変更境界ルール (Mutation Boundary Rules)
+エージェントが自律的にスキルを進化・修復する際の境界線：
+
+* **🟢 エージェント変更可能領域 (Mutable Zone: 自己進化対象)**:
+  - `SKILL.md` (プロンプト指示、意思決定ツリー、トリガー条件、When NOT to use)
+  - `scripts/` 配下の個別ドメインロジック（ビジネスルール・変換関数）
+  - `references/` (ドメイン知識、スキーマ仕様)
+  - `assets/` (出力用テンプレート・素材)
+  - `tests/` (契約テスト、シミュレーション評価データセット)
+* **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
+  - `edd_agent_tools.*` (パッケージ内部のコード)
+  - テスト評価ランナー・静的検証エンジン・Tier 昇格判定エンジン
+
+---
+
+## 3. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
 * **単一真実源 (SSOT) ➔ `SKILL.md`**:
   スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化する。
 * **3層リソース分離**:
@@ -64,7 +76,7 @@ Markdown の文体やテンプレート生成ロジックを pip パッケージ
 
 ---
 
-## 3. 型仕様とドメインモデルの厳密遵守
+## 4. 型仕様とドメインモデルの厳密遵守
 スキル操作・構文解析・テスト実行を行う新規機能やスクリプトを開発する際は、必ずパッケージ内に定義されたドメインモデルおよび評価ランナーに適合させてください。
 
 * **スキル管理モデル**: `edd_agent_tools.Skill`, `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
@@ -74,7 +86,7 @@ Markdown の文体やテンプレート生成ロジックを pip パッケージ
 
 ---
 
-## 4. 依存性注入 (Dependency Injection) 制約
+## 5. 依存性注入 (Dependency Injection) 制約
 テスト実行や安全な試行錯誤を行うスクリプトは、自身の内部で OS や実ファイルシステムに直接アクセスしてはなりません。
 
 * **実行環境の操作制限**:
@@ -83,15 +95,15 @@ Markdown の文体やテンプレート生成ロジックを pip パッケージ
 
 ---
 
-## 5. 自動生成物に対する品質ハーネス (Quality Gates)
+## 6. 自動生成物に対する品質ハーネス (Quality Gates)
 スキルの新規生成や改修時は、必ず以下の4段階品質保証パイプラインを遵守する：
-1. **Stage 1 (Logical Extraction)**: `assets/templates/` を活用した論理設計・雛形生成（`init_skill.py`）
+1. **Stage 1 (Logical Extraction)**: パッケージ同梱テンプレートまたは `assets/templates/` を活用した論理設計・雛形生成（`edd init` / `init_skill.py`）
 2. **Stage 2 (Static Linter)**: `SkillValidator`（または `quick_validate.py`）による静的リンター（構文・実在整合性・文字数制約）の 100% 合格
 3. **Stage 3 (Contract & Trigger Verification)**: `ContractTestRunner` / `SimulationEvalRunner` による契約テスト 100% & トリガーテスト 90% 合格
 4. **Stage 4 (Self-Healing & Tier Promotion)**: テスト失敗時の `edd diagnose` ➔ 差分修正 ➔ `edd tier-gate` による Tier 1〜3 昇格判定
 
 ---
 
-## 6. プロンプトおよび仕様書の文体規約 (Imperative Form)
+## 7. プロンプトおよび仕様書の文体規約 (Imperative Form)
 * **動詞起点・客観的指示**: SKILL.md および指示プロンプトはすべて客観的な指示（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調や曖昧な助動詞を排除してください。
 * **Frontmatter の description**: 第三者視点（"This skill should be used when..."）で、トリガー条件・対象ファイル・対応タスクを100 words以内で極めて具体的に記述してください。
