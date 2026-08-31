@@ -66,4 +66,4 @@ Anthropic 公式標準（Markdown-First & Progressive Disclosure）および Goo
 ---
 
 ## 8. スキル配布用パッケージング (Packaging & Portability)
-* 完成したスキルは `scripts/package_skill.py` を用いて静的バリデーションを実行し、外部プラットフォーム（Claude Code, Antigravity, Cursor 等）へ配布可能な ZIP アーカイブとしてパッケージングする。
+* 完成したスキルは `edd validate <skill-path>` で静的バリデーションを実行し、`edd package <skill-path>` を用いて外部プラットフォーム（Claude Code, Antigravity, Cursor 等）へ配布可能な ZIP アーカイブとしてパッケージングする。

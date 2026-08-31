@@ -104,9 +104,9 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 
 ## 6. 自動生成物に対する品質ハーネス (Quality Gates)
 スキルの新規生成や改修時は、必ず以下の4段階品質保証パイプラインを遵守する：
-1. **Stage 1 (Logical Extraction)**: パッケージ同梱テンプレートまたは `assets/templates/` を活用した論理設計・雛形生成（`edd init` / `init_skill.py`）
-2. **Stage 2 (Static Linter)**: `SkillValidator`（または `quick_validate.py`）による静的リンター（構文・実在整合性・文字数制約）の 100% 合格
-3. **Stage 3 (Contract & Trigger Verification)**: `ContractTestRunner` / `SimulationEvalRunner` による契約テスト 100% & トリガーテスト 90% 合格
+1. **Stage 1 (Logical Extraction)**: パッケージ同梱テンプレートまたは `assets/templates/` を活用した論理設計・雛形生成（`edd init`）
+2. **Stage 2 (Static Linter)**: `SkillValidator`（`edd validate`）による静的リンター（構文・実在整合性・Prerequisites外部依存・文字数制約）の 100% 合格
+3. **Stage 3 (Contract & Trigger Verification)**: `ContractTestRunner` / `SimulationEvalRunner`（`edd eval`）による契約テスト 100% & トリガーテスト 90% 合格
 4. **Stage 4 (Self-Healing & Tier Promotion)**: テスト失敗時の `edd diagnose` ➔ 差分修正 ➔ `edd tier-gate` による Tier 1〜3 昇格判定
 
 ---
