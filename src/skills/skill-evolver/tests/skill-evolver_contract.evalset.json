@@ -2,27 +2,42 @@
   "eval_set_id": "skill-evolver_contract_eval",
   "eval_cases": [
     {
-      "eval_case_id": "test_evolver_cli_help",
-      "script_name": "scripts/evolver.py",
+      "eval_case_id": "test_edd_eval_help",
+      "script_name": "edd",
       "cli_args": [
+        "eval",
         "--help"
       ],
       "expected_exit_code": 0,
       "expected_stdout_contains": [
-        "evolver.py",
-        "Skill Evolver"
+        "--type",
+        "skill_name"
       ]
     },
     {
-      "eval_case_id": "test_diagnoser_cli_help",
-      "script_name": "scripts/diagnoser.py",
+      "eval_case_id": "test_edd_diagnose_help",
+      "script_name": "edd",
       "cli_args": [
+        "diagnose",
         "--help"
       ],
       "expected_exit_code": 0,
       "expected_stdout_contains": [
-        "diagnoser.py",
-        "Skill Failure Diagnoser"
+        "diagnose",
+        "skill_name"
+      ]
+    },
+    {
+      "eval_case_id": "test_edd_optimize_help",
+      "script_name": "edd",
+      "cli_args": [
+        "optimize",
+        "--help"
+      ],
+      "expected_exit_code": 0,
+      "expected_stdout_contains": [
+        "--tier",
+        "skill_name"
       ]
     }
   ]

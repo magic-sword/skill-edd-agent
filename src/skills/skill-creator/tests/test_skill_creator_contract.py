@@ -1,5 +1,5 @@
 """
-Contract tests for skill-creator scripts (quick_validate, init_skill, package_skill).
+Contract tests for skill-creator meta-skill (structure, templates, and unified CLI integration).
 """
 
 import sys
@@ -7,25 +7,28 @@ import subprocess
 from pathlib import Path
 
 
-def test_quick_validate_help():
-    script_path = Path(__file__).parent.parent / "scripts" / "quick_validate.py"
-    assert script_path.exists(), f"Script {script_path} not found"
-    res = subprocess.run([sys.executable, str(script_path), "--help"], capture_output=True, text=True)
+def test_skill_creator_structure_and_assets():
+    skill_dir = Path(__file__).parent.parent
+    assert (skill_dir / "SKILL.md").exists()
+    assert (skill_dir / "references" / "skill_design_guide.md").exists()
+    assert (skill_dir / "assets" / "templates" / "workflow_template.md").exists()
+    assert (skill_dir / "assets" / "templates" / "task_based_template.md").exists()
+    assert (skill_dir / "assets" / "templates" / "reference_template.md").exists()
+    assert (skill_dir / "assets" / "templates" / "capabilities_template.md").exists()
+
+
+def test_skill_creator_cli_contracts():
+    # 1. edd init --help
+    res = subprocess.run([sys.executable, "-m", "edd_agent_tools.cli", "init", "--help"], capture_output=True, text=True)
     assert res.returncode == 0
-    assert "quick_validate.py" in res.stdout or "usage" in res.stdout.lower()
+    assert "--pattern" in res.stdout
 
-
-def test_init_skill_help():
-    script_path = Path(__file__).parent.parent / "scripts" / "init_skill.py"
-    assert script_path.exists(), f"Script {script_path} not found"
-    res = subprocess.run([sys.executable, str(script_path), "--help"], capture_output=True, text=True)
+    # 2. edd validate --help
+    res = subprocess.run([sys.executable, "-m", "edd_agent_tools.cli", "validate", "--help"], capture_output=True, text=True)
     assert res.returncode == 0
-    assert "init_skill.py" in res.stdout or "usage" in res.stdout.lower()
+    assert "validate" in res.stdout.lower()
 
-
-def test_package_skill_help():
-    script_path = Path(__file__).parent.parent / "scripts" / "package_skill.py"
-    assert script_path.exists(), f"Script {script_path} not found"
-    res = subprocess.run([sys.executable, str(script_path), "--help"], capture_output=True, text=True)
+    # 3. edd package --help
+    res = subprocess.run([sys.executable, "-m", "edd_agent_tools.cli", "package", "--help"], capture_output=True, text=True)
     assert res.returncode == 0
-    assert "package_skill.py" in res.stdout or "usage" in res.stdout.lower()
+    assert "package" in res.stdout.lower()
