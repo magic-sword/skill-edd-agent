@@ -102,20 +102,42 @@ class ContractTestRunner:
                     )
                     continue
 
-                if os.path.isabs(script_rel):
-                    script_path = script_rel
-                elif script_rel.startswith("scripts/"):
-                    script_path = os.path.join(skill.root_dir, script_rel)
+                cmd = []
+                if script_rel in ("edd", "cli") or (hasattr(case, "command") and getattr(case, "command", None) in ("edd", "cli")):
+                    cmd = [sys.executable, "-m", "edd_agent_tools.cli", *case.cli_args]
                 else:
-                    script_path = os.path.join(skill.scripts_dir, script_rel)
+                    if os.path.isabs(script_rel):
+                        script_path = script_rel
+                    elif script_rel.startswith("scripts/"):
+                        script_path = os.path.join(skill.root_dir, script_rel)
+                    else:
+                        script_path = os.path.join(skill.scripts_dir, script_rel)
 
-                if not os.path.exists(script_path):
-                    script_path = os.path.join(skill.scripts_dir, os.path.basename(script_rel))
+                    if not os.path.exists(script_path):
+                        script_path = os.path.join(skill.scripts_dir, os.path.basename(script_rel))
+
+                    if not os.path.exists(script_path):
+                        err_msg = f"Script '{script_rel}' not found in skill '{skill.name}'."
+                        failed += 1
+                        failed_cases.append(
+                            FailedCaseDetail(
+                                eval_case_id=case_id,
+                                function_name="CLI",
+                                inputs={"cli_args": case.cli_args},
+                                expected=f"Exit code {case.expected_exit_code}",
+                                actual=err_msg,
+                                error_type="FileNotFoundError",
+                                error_message=err_msg
+                            )
+                        )
+                        continue
+
+                    cmd = [sys.executable, script_path, *case.cli_args]
 
                 import subprocess
                 try:
                     proc = subprocess.run(
-                        [sys.executable, script_path, *case.cli_args],
+                        cmd,
                         capture_output=True,
                         text=True,
                         cwd=skill.root_dir,
