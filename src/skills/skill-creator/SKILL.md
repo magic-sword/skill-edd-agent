@@ -15,9 +15,9 @@ Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層
 
 スキル開発要件に応じて、以下の決定ロジックに従って開発を進行する：
 
-- **If** 新規スキルの作成要件が与えられた場合 ➔ **Then** Step 1 で具体例と論理設計を策定し、`scripts/init_skill.py` で雛形生成後、`assets/templates/` を参考に `SKILL.md` とリソースを実装して `scripts/quick_validate.py` で静的検証する
+- **If** 新規スキルの作成要件が与えられた場合 ➔ **Then** Step 1 で具体例と論理設計を策定し、`edd init` で雛形生成後、`assets/templates/` を参考に `SKILL.md` とリソースを実装して `edd validate` で静的検証する
 - **If** 既存スキルの改修・拡張の場合 ➔ **Then** 既存の `SKILL.md` および `references/` を精査し、必要な差分を適用して静的検証を行う
-- **If** スキルの配布・エクスポートを求められた場合 ➔ **Then** `scripts/package_skill.py` を実行して検証済み ZIP アーカイブを出力する
+- **If** スキルの配布・エクスポートを求められた場合 ➔ **Then** `edd package` を実行して検証済み ZIP アーカイブを出力する
 
 ## Step-by-Step Instructions
 
@@ -26,19 +26,15 @@ Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層
 1. **具体例の特定**: ユーザーが実際に発話するトリガープロンプト（3〜5例）と期待される入出力を明確にする。
 2. **パターン分類**: `workflow`（順次決定木型）、`task_based`（ツール群型）、`reference`（仕様・知識型）、`capabilities`（複合型）から最適構成を選択する。
 3. **3層リソース計画**:
-   - `scripts/`: 決定論的CLIツール（Python 標準ライブラリ、`argparse` 対応）
+   - `scripts/`: 決定論的CLIツール（Python 標準ライブラリ、`argparse` 対応）※ドメイン独自処理がある場合のみ配置
    - `references/`: ドメイン仕様書・スキーマ（オンデマンド参照）
    - `assets/`: 出力用テンプレート素材（ボイラープレート等）
    - `tests/`: 契約テストおよびトリガー評価ケース（`*.evalset.json`）
 
-### Step 2: スキル雛形の生成 *(Tool: `edd init` または `scripts/init_skill.py`)*
+### Step 2: スキル雛形の生成 *(Tool: `edd init`)*
 To initialize the skill scaffold directory and base files, execute:
 ```bash
-# 統合 CLI を使用する場合
 edd init <skill-name> --pattern workflow --path src/skills
-
-# スタンドアロンスクリプトを実行する場合
-python scripts/init_skill.py <skill-name> --pattern workflow --path src/skills
 ```
 
 ### Step 3: リソースの実装と SKILL.md の執筆
@@ -46,25 +42,17 @@ python scripts/init_skill.py <skill-name> --pattern workflow --path src/skills
 2. 計画されたスクリプトを `scripts/` に配置する（`argparse` による `--help` 対応、余計な多層ラッパーを作らないフラットな実装）。
 3. 知識資料を `references/`、テンプレート素材を `assets/`、テストケースを `tests/` に配置する（不要な空ディレクトリは残さない）。
 
-### Step 4: 高速静的検証 *(Tool: `edd validate` または `scripts/quick_validate.py`)*
+### Step 4: 高速静的検証 *(Tool: `edd validate`)*
 To validate the structure, frontmatter, resource references, and naming conventions, execute:
 ```bash
-# 統合 CLI を使用する場合 (AST解析付き高度検証)
 edd validate src/skills/<skill-name>
-
-# スタンドアロンスクリプトを実行する場合
-python scripts/quick_validate.py src/skills/<skill-name>
 ```
 エラーまたは警告が検知された場合は、指摘に従って `SKILL.md` や各リソースファイルを修正する。
 
-### Step 5: 配布用 ZIP パッケージ化 *(Tool: `edd package` または `scripts/package_skill.py`)*
+### Step 5: 配布用 ZIP パッケージ化 *(Tool: `edd package`)*
 To package and export the validated skill for distribution (Claude Code, Antigravity, Cursor, ADK), execute:
 ```bash
-# 統合 CLI を使用する場合
 edd package src/skills/<skill-name> --out dist
-
-# スタンドアロンスクリプトを実行する場合
-python scripts/package_skill.py src/skills/<skill-name> dist
 ```
 
 ## Usage Scenarios & Trigger Examples
@@ -90,11 +78,6 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 
 ## Bundled Resources
 
-### `scripts/` (Executable Tools - Thin CLI Client)
-- **`scripts/init_skill.py`**: `edd init` をプロセス境界で実行しスキル雛形を高速生成するCLIクライアント
-- **`scripts/quick_validate.py`**: `edd validate` をプロセス境界で実行し静的検証を行うCLIクライアント
-- **`scripts/package_skill.py`**: `edd package` をプロセス境界で実行し配布用 ZIP パッケージを出力するCLIクライアント
-
 ### `references/` (On-Demand Knowledge)
 - **`references/skill_design_guide.md`**: スキル設計原則、パターン選定基準、3層リソース分離のガイドライン
 
@@ -104,7 +87,7 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 ## Guidelines & Best Practices
 
 - 既存スキルのインベントリを必ず照合し、重複作成を避けて既存スキルの拡張（Update）を優先すること。
-- 生成・更新したスキルは必ず `scripts/quick_validate.py` または `edd validate` で検証をパスさせること。
-- スクリプトは `edd` 統合 CLI を呼び出す薄型クライアントとして動作し、パッケージコードとの二重管理を排除すること。
+- 生成・更新したスキルは必ず `edd validate` で検証をパスさせること。
+- ドメイン固有のロジックを持たないメタスキルには不要な `scripts/` ラッパーを配置せず、`edd` 統合 CLI を直接利用すること。
 - 未使用の空ディレクトリは残置しないこと。
 

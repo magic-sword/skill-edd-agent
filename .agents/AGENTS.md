@@ -21,11 +21,11 @@
 
 * **規約駆動スキル資産層 (`src/skills/<skill>/`) と依存関係ポリシー**:
   1. **メタスキル (`skill-creator`, `skill-evolver`) の設計思想**:
-     - `pytest` を実行するスクリプトが `pytest` のインストールを前提とするのと同様に、メタスキルは **`pip install edd-agent-tools` を前提とする薄型クライアント（Thin CLI Client）** です。
-     - 重複実装（Pure Python でのバリデータ等の再実装）を避け、統合 CLI `edd` をプロセス境界（CLI-as-an-API）で呼び出すことで、単一真実源（SSOT）と保守性を担保します。
+     - `pytest` を実行するスクリプトが `pytest` のインストールを前提とするのと同様に、メタスキルは **`pip install edd-agent-tools` を前提とし、統合 CLI `edd` を直接呼び出す手順書（CLI-as-an-API）** です。
+     - 不要な薄型ラッパースクリプトを排除し、単一真実源（SSOT）と保守性を最大化します。
   2. **一般ドメインスキル（業務・ツールスキル）の依存関係**:
      - **軽量ユーティリティ（例: `case-converter`）**: Python 標準ライブラリのみで完結させ、追加セットアップ不要で即座に動作させます。
-     - **外部ライブラリを必要とするスキル（例: `docx`, `xlsx`, `pdf`, `playwright` 等）**: Anthropic 公式標準に準拠し、`SKILL.md` 内の `## Requirements & Prerequisites` に必要な pip パッケージ（例: `python-docx`, `openpyxl` 等）を明記します。エージェントは環境構築・セットアップが行われている前提でスキルを実行します。
+     - **外部ライブラリを必要とするスキル（例: `docx`, `xlsx`, `pdf`, `playwright` 等）**: Anthropic 公式標準に準拠し、`SKILL.md` 内の `## Requirements & Prerequisites` に必要な pip パッケージ（例: `python-docx`, `openpyxl` 等）を明記します。`SkillValidator` が AST 解析により記述漏れを自動検知します。
   3. **Python import 境界の厳守**:
      - いずれのスキルもスクリプト内部から `import edd_agent_tools` などの直接 Python import は行わず、CLI/IO 規約（`--help`、引数、標準入出力、サブプロセス）のみで疎結合に連携します。
 
