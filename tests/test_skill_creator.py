@@ -14,8 +14,8 @@ def temp_output_dir(tmp_path):
     return out_dir
 
 
-def test_package_level_skill_scaffolder(temp_output_dir):
-    """edd-agent-tools パッケージ側の SkillScaffolder による雛形生成・検証テスト"""
+def test_package_level_skill_scaffolder_and_cascading(temp_output_dir):
+    """edd-agent-tools パッケージ側の SkillScaffolder による雛形生成・カスケード解決テスト"""
     target_dir = SkillScaffolder.scaffold(
         skill_name="text-analyzer",
         output_base_dir=temp_output_dir,
@@ -36,44 +36,15 @@ def test_package_level_skill_scaffolder(temp_output_dir):
     assert len(generated_skill.list_scripts()) >= 1
 
 
-def test_skill_creator_zero_dependency_scripts(tmp_path):
-    """src/skills/skill-creator 配下の Zero-dependency スクリプト（init, validate, package）の動作テスト"""
+def test_skill_creator_meta_skill_structure_and_validation():
+    """src/skills/skill-creator のメタスキル構造と静的検証テスト"""
     creator_dir = Path("/workspace/src/skills/skill-creator")
-    init_script = creator_dir / "scripts" / "init_skill.py"
-    val_script = creator_dir / "scripts" / "quick_validate.py"
-    pkg_script = creator_dir / "scripts" / "package_skill.py"
+    assert creator_dir.exists()
+    assert (creator_dir / "SKILL.md").exists()
+    assert (creator_dir / "assets" / "templates").exists()
+    assert (creator_dir / "references" / "skill_design_guide.md").exists()
 
-    assert init_script.exists()
-    assert val_script.exists()
-    assert pkg_script.exists()
-
-    # 1. init_skill.py で新規スキル雛形を生成
-    out_dir = tmp_path / "zero_dep_skills"
-    res_init = subprocess.run(
-        [sys.executable, str(init_script), "demo-converter", "--path", str(out_dir), "--pattern", "workflow"],
-        capture_output=True,
-        text=True
-    )
-    assert res_init.returncode == 0
-    demo_dir = out_dir / "demo-converter"
-    assert demo_dir.exists()
-    assert (demo_dir / "SKILL.md").exists()
-
-    # 2. quick_validate.py で検証
-    res_val = subprocess.run(
-        [sys.executable, str(val_script), str(demo_dir)],
-        capture_output=True,
-        text=True
-    )
-    assert res_val.returncode == 0
-    assert "valid" in res_val.stdout.lower()
-
-    # 3. package_skill.py で ZIP 出力
-    dist_dir = tmp_path / "dist"
-    res_pkg = subprocess.run(
-        [sys.executable, str(pkg_script), str(demo_dir), "--output", str(dist_dir)],
-        capture_output=True,
-        text=True
-    )
-    assert res_pkg.returncode == 0
-    assert (dist_dir / "demo-converter.zip").exists()
+    # 静的検証（不要な scripts/ ラッパーがなく純化されていること）
+    val_res = SkillValidator.validate_directory(creator_dir)
+    assert val_res.is_valid is True
+    assert len(val_res.errors) == 0

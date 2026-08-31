@@ -81,7 +81,7 @@ def test_cli_package(tmp_workspace):
     assert zip_path.exists()
 
 def test_skill_evolver_integration():
-    """自己改善メタスキル skill-evolver の静的検証とスクリプト解決のテスト"""
+    """自己改善メタスキル skill-evolver の静的検証と状態管理のテスト"""
     evolver_dir = Path("/workspace/src/skills/skill-evolver")
     val_res = SkillValidator.validate_directory(evolver_dir)
     assert val_res.is_valid is True, f"Validation errors: {val_res.errors}"
@@ -89,12 +89,40 @@ def test_skill_evolver_integration():
     state = SkillsState()
     evolver_skill = state.get_skill("skill-evolver")
     assert evolver_skill is not None
-    assert "evolver.py" in evolver_skill.list_scripts()
-    assert "diagnoser.py" in evolver_skill.list_scripts()
+    assert (Path(evolver_skill.root_dir) / "SKILL.md").exists()
 
-    evolver_mod = evolver_skill.load_module("evolver.py")
-    assert hasattr(evolver_mod, "cmd_eval")
-    assert hasattr(evolver_mod, "cmd_diagnose")
+
+def test_validator_prerequisites_detection(tmp_workspace):
+    """外部ライブラリを import するスクリプトに対し SKILL.md の Requirements 記載を検証するテスト"""
+    skill_dir = SkillScaffolder.scaffold("docx-parser-skill", output_base_dir=tmp_workspace, pattern="task_based")
+
+    # 外部パッケージ (docx) を import するスクリプトを配置
+    script_path = skill_dir / "scripts" / "docx_parser_skill.py"
+    script_path.write_text("""#!/usr/bin/env python3
+import sys
+import argparse
+import docx
+
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()
+""", encoding="utf-8")
+
+    # 1. Requirements 記載がない場合 -> 警告が出る
+    val_res = SkillValidator.validate_directory(skill_dir)
+    assert any("docx" in w and "Requirements & Prerequisites" in w for w in val_res.warnings)
+
+    # 2. SKILL.md に Requirements & Prerequisites を追記した場合 -> 警告が解消する
+    skill_md = skill_dir / "SKILL.md"
+    content = skill_md.read_text(encoding="utf-8")
+    content += "\n## Requirements & Prerequisites\n- `pip install python-docx`\n- `docx` library\n"
+    skill_md.write_text(content, encoding="utf-8")
+
+    val_res2 = SkillValidator.validate_directory(skill_dir)
+    assert not any("docx" in w and "Requirements & Prerequisites" in w for w in val_res2.warnings)
+
 
 def test_validator_adk_spec_enforcement(tmp_workspace):
     """ADK 2.0 / AgentSkills 仕様（文字数制約・ハイフン制約）のバリデータ検査をテスト"""
