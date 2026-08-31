@@ -4,6 +4,21 @@
 
 ---
 
+## 🌟 【必須行動規範】作業開始時の設計思想確認 (Mandatory Initial Orientation)
+**すべての AI エージェントは、タスクに着手する前に必ず本プロジェクトの最新設計思想と規約を確認し、全体像を把握した上で作業を開始しなければなりません。**
+
+* **MCP リソース経由の確認（推奨）**:
+  FastMCP サーバー（`edd-agent-mcp`）が提供する以下のリソースを優先的に読み込んでください：
+  - `edd://docs/design_philosophy` : 中核設計思想・Two-Tier アーキテクチャ・カスケード解決・Prerequisites 方針
+  - `edd://rules/agents` : プラットフォーム不変契約および変更可能領域の定義
+  - `edd://guidelines/progressive_disclosure` : 3層リソース分離（scripts/references/assets）規約
+* **ローカルファイル経由の確認**:
+  MCP が利用できない環境では、以下の SSOT ファイルを直接参照してください：
+  - [`edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md`](file:///workspace/edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md)
+  - [`edd-agent-tools/src/edd_agent_tools/AGENTS.md`](file:///workspace/edd-agent-tools/src/edd_agent_tools/AGENTS.md)
+
+---
+
 ## 0. プロジェクトの目的と設計哲学 (Project Vision & Core Purpose)
 
 ### 🎯 プロジェクトの北極星 (North Star)
