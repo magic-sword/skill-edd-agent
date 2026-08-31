@@ -90,12 +90,21 @@ class SkillScaffolder:
         skill_name_spaced = skill_name.replace("-", " ")
         primary_script = skill_name.replace("-", "_")
 
-        # 1. テンプレートの探索と読み込み（SSOT: パッケージ組み込み templates/ または明示指定）
+        # 1. テンプレートの探索と読み込み（Cascading Template Resolver）
+        # 解決優先順位: 1. 明示指定 (templates_dir) -> 2. ワークスペース内 skill-creator/assets/templates -> 3. パッケージ組み込み templates/
         template_content = None
         cand_dirs = []
         if templates_dir:
             cand_dirs.append(Path(templates_dir).resolve())
-        # パッケージ同梱の標準テンプレートディレクトリ
+
+        # ワークスペース内スキル資産層のテンプレート（自己進化プロンプト資産）
+        base_path = Path(output_base_dir).resolve()
+        if (base_path / "skill-creator" / "assets" / "templates").exists():
+            cand_dirs.append(base_path / "skill-creator" / "assets" / "templates")
+        elif (base_path.parent / "skills" / "skill-creator" / "assets" / "templates").exists():
+            cand_dirs.append(base_path.parent / "skills" / "skill-creator" / "assets" / "templates")
+
+        # パッケージ同梱の標準フォールバック・テンプレートディレクトリ
         builtin_templates_dir = Path(__file__).parent / "templates"
         if builtin_templates_dir.exists():
             cand_dirs.append(builtin_templates_dir)

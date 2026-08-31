@@ -6,6 +6,7 @@ AST解析による Python スクリプト検証、Frontmatter 構文検査、3�
 """
 
 import os
+import sys
 import re
 import ast
 from pathlib import Path
@@ -67,7 +68,11 @@ class SkillValidator:
         cls._validate_directory_cleanliness(skill_path, base_res)
 
         # Python スクリプトの CLI / Black-box Tooling ハーネス検証 (AST静的解析)
+        # Python スクリプトの CLI / Black-box Tooling ハーネス検証 (AST静的解析)
         cls._validate_python_scripts_harness(skill_path, base_res)
+
+        # 外部依存ライブラリ (Requirements & Prerequisites) の照合検証
+        cls._validate_prerequisites_and_imports(skill_path, content, base_res)
 
         return base_res
 
@@ -79,6 +84,56 @@ class SkillValidator:
                 files = [f for f in item.rglob("*") if f.is_file() and not f.name.endswith((".pyc", ".gitkeep"))]
                 if not files:
                     res.add_warning("structure", f"Empty resource directory detected: '{item.name}/'. Unused directories should be removed to reduce context noise.")
+
+    @classmethod
+    def _validate_prerequisites_and_imports(cls, skill_dir: Path, skill_md_content: str, res: ValidationResult) -> None:
+        """scripts/ 配下の Python スクリプトがインポートする外部ライブラリが SKILL.md に記載されているかを検証します。"""
+        scripts_dir = skill_dir / "scripts"
+        if not scripts_dir.exists() or not scripts_dir.is_dir():
+            return
+
+        stdlib = getattr(sys, "stdlib_module_names", set())
+        # 既知のローカルまたは共通モジュール除外
+        ignored_modules = {"edd_agent_tools", skill_dir.name.replace("-", "_")}
+
+        imported_external_pkgs = set()
+
+        for py_file in scripts_dir.glob("*.py"):
+            if py_file.name == "__init__.py":
+                continue
+            try:
+                tree = ast.parse(py_file.read_text(encoding="utf-8"), filename=str(py_file))
+            except Exception:
+                continue
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        top_pkg = alias.name.split(".")[0]
+                        if top_pkg not in stdlib and top_pkg not in ignored_modules:
+                            imported_external_pkgs.add((top_pkg, py_file.name))
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        top_pkg = node.module.split(".")[0]
+                        if top_pkg not in stdlib and top_pkg not in ignored_modules:
+                            imported_external_pkgs.add((top_pkg, py_file.name))
+
+        if not imported_external_pkgs:
+            return
+
+        # SKILL.md 本文の Requirements & Prerequisites セクションを抽出
+        req_match = re.search(r"##\s+(?:Requirements\s+&\s+Prerequisites|Prerequisites|Requirements)(.*?)(?=##|\Z)", skill_md_content, re.DOTALL | re.IGNORECASE)
+        req_text = req_match.group(1).lower() if req_match else ""
+
+        for pkg, script_name in imported_external_pkgs:
+            # パッケージ名（小文字やアンダースコア・ハイフン違い）が含まれているか照合
+            pkg_clean = pkg.lower().replace("_", "-")
+            pkg_raw = pkg.lower()
+            if not req_text or (pkg_clean not in req_text and pkg_raw not in req_text):
+                res.add_warning(
+                    "prerequisites",
+                    f"Script '{script_name}' imports external package '{pkg}', but it is not documented in SKILL.md under 'Requirements & Prerequisites'."
+                )
 
     @classmethod
     def _validate_python_scripts_harness(cls, skill_dir: Path, res: ValidationResult) -> None:

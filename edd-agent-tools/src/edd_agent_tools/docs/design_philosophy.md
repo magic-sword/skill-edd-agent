@@ -19,10 +19,10 @@
   4. **ポータビリティの保証 (Drop-in Portability)**: スキルが外部パッケージに直接 Python import 依存しないことで、Claude Code, Antigravity, Cursor, Google ADK 等のあらゆる環境へ zip 1つで即座に配布・利用できます。
 
 * **スキルの依存関係（Prerequisites / Requirements）に関する標準方針**:
-  - **メタスキル（`skill-creator`, `skill-evolver`）**: `pytest` が `pytest` を前提とするのと同様、**`pip install edd-agent-tools` を前提とする薄型クライアント（Thin CLI Client）** です。重複実装を避け、統合 CLI `edd` をプロセス境界（CLI-as-an-API）で呼び出すことで、単一真実源（SSOT）と保守性を担保します。
+  - **メタスキル（`skill-creator`, `skill-evolver`）**: `pytest` が `pytest` を前提とするのと同様、**`pip install edd-agent-tools` を前提とし、統合 CLI `edd` を直接呼び出す手順書（CLI-as-an-API）** です。不要な薄型ラッパースクリプトを排除し、単一真実源（SSOT）と保守性を最大化します。
   - **一般ドメインスキル（業務・ツールスキル）**:
     - 軽量ユーティリティ（例: `case-converter`）は Python 標準ライブラリのみで完結させます。
-    - 外部ライブラリ依存（例: `docx`, `xlsx`, `playwright` 等）が必要なスキルは、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（環境構築されている前提で実行）。
+    - 外部ライブラリ依存（例: `docx`, `xlsx`, `playwright` 等）が必要なスキルは、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（環境構築されている前提で実行）。`SkillValidator` が AST 解析により記述漏れを自動検知します。
 
 ---
 
@@ -36,16 +36,19 @@
   - スキル作成用の Markdown テンプレート素材（`assets/templates/`）、プロンプト定義（`SKILL.md`）、決定論的スクリプト（`scripts/`）、契約テスト（`tests/`）を集約。
   - エージェントが自己改善（プロンプト進化）する際、pip パッケージのコードを変更することなく安全に進化可能。
 
-### ② 単一真実源の原則 (Single Source of Truth ➔ Markdown-First)
+### ② 単一真実源とカスケード解決 (Cascading Template Resolver)
 * 仕様書兼プロンプトである **`SKILL.md` を唯一の真実源** とし、自然言語（Markdown）とコード（Python）のシームレスな統合を図ります。
-* パッケージ内部に公式標準の組み込み雛形テンプレート（`edd_agent_tools.packaging.templates`）を内包し、外部プロジェクト依存のない完全自己完結性を保証します（プロジェクト側の `assets/templates/` によるカスタマイズも可能）。
+* テンプレート解決は **カスケード解決機構（Cascading Template Resolver）** を採用：
+  1. ワークスペース側の自己改善テンプレート（`skills/skill-creator/assets/templates/`）を最優先で探索
+  2. 存在しない場合はパッケージ組み込みテンプレート（`edd_agent_tools.packaging.templates`）へ安全にフォールバック
+  これにより、エージェントがプロンプトテンプレートを自己改善すると、以降の `edd init` で生成されるスキルの初期品質が自律的に向上します。
 
 ### ③ Progressive Disclosure（3層リソース分離）
 * コンテキストウィンドウの効率化と信頼性の両立を図るため、スキル資産を3層に分離します：
   1. **Level 1: YAML Frontmatter**（常時ロード: `name`, `description`）
   2. **Level 2: SKILL.md 本文**（トリガー時ロード: 意思決定ツリー、手順、ガイドライン）
   3. **Level 3: 3層リソース**（オンデマンド実行・ロード）
-     - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI対応）
+     - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI対応）※ドメイン独自処理がある場合のみ配置
      - `references/`: ドメイン知識・API仕様・スキーマ
      - `assets/`: 出力用テンプレート・素材
      - `tests/`: 契約テストおよびシミュレーション評価データ（`*.evalset.json`）
@@ -67,10 +70,10 @@
 
 ### ⑦ 4段階品質保証パイプライン (4-Stage Quality Gate)
 * スキルの自律生成からマウントまでの品質を保証する4段階の防壁：
-  - **Stage 1 (Authoring & Scaffolding)**: `assets/templates/` を活用した論理設計と雛形生成（`init_skill.py`）
-  - **Stage 2 (Static Validation)**: `SkillValidator` による静的リンター（構文・実在整合性・Imperative文体・DAG依存関係）
+  - **Stage 1 (Authoring & Scaffolding)**: `assets/templates/` を活用した論理設計と雛形生成（`edd init`）
+  - **Stage 2 (Static Validation)**: `SkillValidator` による静的リンター（構文・実在整合性・Imperative文体・Prerequisites外部依存照合・DAG依存関係）
   - **Stage 3 (Contract & Multi-Layer Evaluation)**: サンドボックス環境（`LocalWorkspaceEnv`）での契約テスト（I/O型検査）およびシミュレーション評価（Trigger / Trajectory / Golden）
-  - **Stage 4 (Self-Healing Loop & Cascade Gating)**: 失敗診断（`SkillDiagnoser`）➔ 修正 ➔ 連鎖回帰テスト（`CascadeTestRunner`）➔ Tier 昇格
+  - **Stage 4 (Self-Healing Loop & Cascade Gating)**: 失敗診断（`edd diagnose`）➔ 修正 ➔ 連鎖回帰テスト（`CascadeTestRunner`）➔ Tier 昇格
 
 ### ⑧ 動的ディスパッチ (Dynamic Dispatch) ＆ 統合 CLI (`edd`)
 * スキルが自律的に増殖・追加されてもパッケージ本体の再インストールやコード修正を一切不要とするため、ファイルシステムベースの動的ディスカバリ（`edd run <skill-name>` / `edd <skill-name>`）を採用。
@@ -84,8 +87,8 @@ edd_agent_tools/
 ├── core/           # 共通ドメインエンティティ (Skill, SkillTests)
 ├── state.py        # 状態管理・探索・DAG解析 (SkillsState)
 ├── models/         # データモデル (SkillSpec, SkillTier, EvalCaseSet, EvalRunResult)
-├── validation/     # 汎用静的リンター (SkillValidator, ValidationResult, AST解析)
-├── packaging/      # ZIP パッケージャ (SkillPackager), スキャフォールド (SkillScaffolder)
+├── validation/     # 汎用静的リンター (SkillValidator, ValidationResult, AST解析, Prerequisites照合)
+├── packaging/      # ZIP パッケージャ (SkillPackager), スキャフォールド (SkillScaffolder, Cascading Resolver)
 ├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション, 診断 (SkillDiagnoser), 最適化 (SkillOptimizer), サンドボックス (LocalWorkspaceEnv)
 ├── adk/            # Google ADK 2.0 連携 (create_adk_skill_toolset, EddSkillToolset)
 ├── mcp/            # FastMCP サーバー (edd-agent-mcp)
@@ -99,7 +102,7 @@ edd_agent_tools/
 ```
 src/skills/{skill-name}/
   SKILL.md       # YAML Frontmatter ('This skill should be used when...') + Markdown仕様書 (SSOT)
-  scripts/       # 決定論的スクリプト（直接実行可能・CLI対応・Zero-dependency）
+  scripts/       # 決定論的スクリプト（直接実行可能・CLI対応・Zero-dependency、ドメイン処理がある場合のみ）
     {skill_name}.py
   references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
     guide.md
