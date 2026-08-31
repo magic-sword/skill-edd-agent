@@ -52,6 +52,27 @@ class Skill:
         return os.path.join(self.root_dir, "SKILL.md")
 
     @property
+    def scripts_dir(self) -> str:
+        """scripts/ ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "scripts")
+
+    @property
+    def references_dir(self) -> str:
+        """references/ ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "references")
+
+    @property
+    def assets_dir(self) -> str:
+        """assets/ ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "assets")
+
+    @property
+    def tests_dir(self) -> str:
+        """tests/ ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "tests")
+
+
+    @property
     def spec(self) -> SkillSpec:
         """SKILL.md をパースした SkillSpec インスタンスを取得（キャッシュ付き）"""
         if self._spec is None:

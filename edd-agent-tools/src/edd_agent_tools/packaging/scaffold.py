@@ -8,6 +8,7 @@ Anthropic Claude Skills / Google ADK 2.0 準拠のスキルディレクトリ雛
 import os
 import sys
 import re
+import json
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -158,7 +159,7 @@ if __name__ == "__main__":
 
         # 3. リファレンス・アセットの配置
         (target_dir / "references" / "guide.md").write_text(
-            f"# Reference Guide for {skill_title}\n\nDetailed specifications and reference material.\n",
+            f"# Reference Guide for {skill_title}\n\nDetailed specifications and reference material for {skill_name}.\n",
             encoding="utf-8"
         )
         (target_dir / "assets" / "sample.txt").write_text(
@@ -166,4 +167,65 @@ if __name__ == "__main__":
             encoding="utf-8"
         )
 
+        # 4. 初期テストおよび評価セット（Stage 3 契約・トリガーハーネス）の配置
+        contract_test_code = f'''"""
+Contract test for {skill_name} CLI and tools.
+"""
+
+import sys
+import subprocess
+from pathlib import Path
+
+
+def test_cli_help():
+    script_path = Path(__file__).parent.parent / "scripts" / "{primary_script}.py"
+    assert script_path.exists(), f"Script {{script_path}} not found"
+    res = subprocess.run([sys.executable, str(script_path), "--help"], capture_output=True, text=True)
+    assert res.returncode == 0
+    assert "{skill_title}" in res.stdout or "usage" in res.stdout.lower()
+'''
+        (target_dir / "tests" / f"test_{primary_script}_contract.py").write_text(contract_test_code, encoding="utf-8")
+
+
+        initial_evalset = {
+            "eval_set_id": f"{skill_name}_contract",
+            "skill_name": skill_name,
+            "eval_cases": [
+                {
+                    "eval_case_id": f"{skill_name}_cli_help",
+                    "function_name": "CLI",
+                    "script_name": f"{primary_script}.py",
+                    "cli_args": ["--help"],
+                    "expected_exit_code": 0,
+                    "expected": "usage"
+                }
+            ]
+        }
+        (target_dir / "tests" / f"{skill_name}_contract.evalset.json").write_text(
+            json.dumps(initial_evalset, indent=2, ensure_ascii=False),
+            encoding="utf-8"
+        )
+
+        initial_trigger_set = {
+            "eval_set_id": f"{skill_name}_trigger",
+            "skill_name": skill_name,
+            "cases": [
+                {
+                    "eval_case_id": f"{skill_name}_trigger_positive",
+                    "user_input": f"Please help me perform {skill_name_spaced} workflow on my data.",
+                    "should_trigger": True
+                },
+                {
+                    "eval_case_id": f"{skill_name}_trigger_negative",
+                    "user_input": "What is the capital of France?",
+                    "should_trigger": False
+                }
+            ]
+        }
+        (target_dir / "tests" / f"{skill_name}_trigger.evalset.json").write_text(
+            json.dumps(initial_trigger_set, indent=2, ensure_ascii=False),
+            encoding="utf-8"
+        )
+
         return target_dir
+

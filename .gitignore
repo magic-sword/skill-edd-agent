@@ -11,8 +11,9 @@ walkthrough.md
 tests/*.json
 src/.workflow_tmp/ 
 scratch/
-src/skills/*/tests/
-src/agents/*/tests/
+src/skills/*/tests/results/
+src/agents/*/tests/results/
+
 src_tmp*/
 # edd-agent-tools build artifacts
 edd-agent-tools/dist/

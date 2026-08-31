@@ -1,0 +1,41 @@
+{
+  "eval_set_id": "skill-evolver_trigger_eval",
+  "cases": [
+    {
+      "name": "positive_trigger_1",
+      "user_input": "case-converter スキルの評価テストを実行して結果を確認して",
+      "expected_tools": [
+        "skill-evolver"
+      ],
+      "should_trigger": true
+    },
+    {
+      "name": "positive_trigger_2",
+      "user_input": "テストに失敗したスキルの原因を診断して、自動修復してほしい",
+      "expected_tools": [
+        "skill-evolver"
+      ],
+      "should_trigger": true
+    },
+    {
+      "name": "positive_trigger_3",
+      "user_input": "修正したスキルが他の依存スキルを破壊していないか連鎖回帰テストを実行し、Tier 1 に昇格させて",
+      "expected_tools": [
+        "skill-evolver"
+      ],
+      "should_trigger": true
+    },
+    {
+      "name": "negative_trigger_1",
+      "user_input": "単発のワンライナーコマンド（pytest tests/test_simple.py 等）の直接実行のみで完結する単純なテスト確認。",
+      "expected_tools": [],
+      "should_trigger": false
+    },
+    {
+      "name": "negative_trigger_2",
+      "user_input": "新規スキルの雛形スキャフォールディング、初期プロンプト設計、テンプレート素材管理。",
+      "expected_tools": [],
+      "should_trigger": false
+    }
+  ]
+}

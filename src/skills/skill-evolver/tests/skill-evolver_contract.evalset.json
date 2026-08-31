@@ -1,0 +1,29 @@
+{
+  "eval_set_id": "skill-evolver_contract_eval",
+  "eval_cases": [
+    {
+      "eval_case_id": "test_evolver_cli_help",
+      "script_name": "scripts/evolver.py",
+      "cli_args": [
+        "--help"
+      ],
+      "expected_exit_code": 0,
+      "expected_stdout_contains": [
+        "evolver.py",
+        "Skill Evolver"
+      ]
+    },
+    {
+      "eval_case_id": "test_diagnoser_cli_help",
+      "script_name": "scripts/diagnoser.py",
+      "cli_args": [
+        "--help"
+      ],
+      "expected_exit_code": 0,
+      "expected_stdout_contains": [
+        "diagnoser.py",
+        "Skill Failure Diagnoser"
+      ]
+    }
+  ]
+}

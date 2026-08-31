@@ -11,6 +11,7 @@ Usage:
 import sys
 import os
 import re
+import json
 import argparse
 from pathlib import Path
 
@@ -194,8 +195,68 @@ def init_skill(skill_name: str, path: str = "src/skills", pattern: str = "workfl
     tests_dir.mkdir(exist_ok=True)
     (tests_dir / "results").mkdir(exist_ok=True)
 
+    contract_test_code = f'''"""
+Contract test for {skill_name} CLI and tools.
+"""
+
+import sys
+import subprocess
+from pathlib import Path
+
+
+def test_cli_help():
+    script_path = Path(__file__).parent.parent / "scripts" / "{primary_script}.py"
+    assert script_path.exists(), f"Script {{script_path}} not found"
+    res = subprocess.run([sys.executable, str(script_path), "--help"], capture_output=True, text=True)
+    assert res.returncode == 0
+    assert "{skill_title}" in res.stdout or "usage" in res.stdout.lower()
+'''
+    (tests_dir / f"test_{primary_script}_contract.py").write_text(contract_test_code, encoding="utf-8")
+
+
+    initial_evalset = {
+        "eval_set_id": f"{skill_name}_contract",
+        "skill_name": skill_name,
+        "eval_cases": [
+            {
+                "eval_case_id": f"{skill_name}_cli_help",
+                "function_name": "CLI",
+                "script_name": f"{primary_script}.py",
+                "cli_args": ["--help"],
+                "expected_exit_code": 0,
+                "expected": "usage"
+            }
+        ]
+    }
+    (tests_dir / f"{skill_name}_contract.evalset.json").write_text(
+        json.dumps(initial_evalset, indent=2, ensure_ascii=False),
+        encoding="utf-8"
+    )
+
+    initial_trigger_set = {
+        "eval_set_id": f"{skill_name}_trigger",
+        "skill_name": skill_name,
+        "cases": [
+            {
+                "eval_case_id": f"{skill_name}_trigger_positive",
+                "user_input": f"Please help me perform {skill_title} workflow on my data.",
+                "should_trigger": True
+            },
+            {
+                "eval_case_id": f"{skill_name}_trigger_negative",
+                "user_input": "What is the capital of France?",
+                "should_trigger": False
+            }
+        ]
+    }
+    (tests_dir / f"{skill_name}_trigger.evalset.json").write_text(
+        json.dumps(initial_trigger_set, indent=2, ensure_ascii=False),
+        encoding="utf-8"
+    )
+
     print(f"✅ Successfully initialized skill '{skill_name}' at: {target_dir}")
     return target_dir
+
 
 
 def main():

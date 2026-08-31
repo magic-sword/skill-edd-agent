@@ -194,13 +194,21 @@ def cmd_eval(args: argparse.Namespace) -> int:
     types_to_run = ["trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if args.type == "all" else [args.type]
 
     for t in types_to_run:
-        cand = tests_dir / f"{args.skill_name}_{t}.evalset.json"
-        if not cand.exists():
+        # 多様なファイル命名規則（<skill>_<type>.evalset.json, <type>.evalset.json, evalset.json 等）に対応
+        cand_files = [
+            tests_dir / f"{args.skill_name}_{t}.evalset.json",
+            tests_dir / f"{t}.evalset.json",
+            tests_dir / f"evalset_{t}.json",
+            tests_dir / f"{args.skill_name}.evalset.json",
+        ]
+        cand = next((p for p in cand_files if p.exists()), None)
+        if not cand:
             continue
 
         try:
             with open(cand, "r", encoding="utf-8") as f:
                 cases_data = json.load(f)
+
 
             if t == "contract":
                 c_runner = ContractTestRunner()

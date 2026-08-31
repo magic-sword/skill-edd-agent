@@ -1,0 +1,39 @@
+{
+  "eval_set_id": "skill-creator_contract_eval",
+  "eval_cases": [
+    {
+      "eval_case_id": "test_init_skill_help",
+      "script_name": "scripts/init_skill.py",
+      "cli_args": [
+        "--help"
+      ],
+      "expected_exit_code": 0,
+      "expected_stdout_contains": [
+        "Zero-dependency Skill Initializer CLI",
+        "--pattern"
+      ]
+    },
+    {
+      "eval_case_id": "test_quick_validate_help",
+      "script_name": "scripts/quick_validate.py",
+      "cli_args": [
+        "--help"
+      ],
+      "expected_exit_code": 0,
+      "expected_stdout_contains": [
+        "quick validator for skills"
+      ]
+    },
+    {
+      "eval_case_id": "test_package_skill_help",
+      "script_name": "scripts/package_skill.py",
+      "cli_args": [
+        "--help"
+      ],
+      "expected_exit_code": 0,
+      "expected_stdout_contains": [
+        "skill packager CLI"
+      ]
+    }
+  ]
+}

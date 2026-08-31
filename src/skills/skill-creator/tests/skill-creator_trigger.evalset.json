@@ -1,0 +1,43 @@
+{
+  "eval_set_id": "skill-creator_trigger_eval",
+  "cases": [
+    {
+      "name": "positive_trigger_1",
+      "user_input": "新しいスキルとして、PDFを回転・結合する pdf-tools スキルを作成してください。",
+      "expected_tools": [
+        "skill-creator"
+      ],
+      "should_trigger": true
+    },
+    {
+      "name": "positive_trigger_2",
+      "user_input": "Anthropic 標準と Google ADK に準拠した新規スキル雛形を生成したい。",
+      "expected_tools": [
+        "skill-creator"
+      ],
+      "should_trigger": true
+    },
+    {
+      "name": "positive_trigger_3",
+      "user_input": "作成したスキルを配布用 ZIP パッケージに固めて出力して。",
+      "expected_tools": [
+        "skill-creator"
+      ],
+      "should_trigger": true
+    },
+    {
+      "name": "negative_trigger_1",
+      "user_input": "ls -la コマンドを実行してファイル一覧を見せて。",
+      "expected_tools": [],
+      "should_trigger": false
+    },
+    {
+      "name": "negative_trigger_2",
+      "user_input": "テストに失敗したスキルの原因を診断して自動修復してほしい。",
+      "expected_tools": [
+        "skill-evolver"
+      ],
+      "should_trigger": false
+    }
+  ]
+}

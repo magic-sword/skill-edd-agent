@@ -1,0 +1,33 @@
+{
+  "eval_set_id": "case-converter_trigger_eval",
+  "cases": [
+    {
+      "name": "positive_trigger_1",
+      "user_input": "Please execute case-converter on the input data.",
+      "expected_tools": [
+        "case-converter"
+      ],
+      "should_trigger": true
+    },
+    {
+      "name": "positive_trigger_2",
+      "user_input": "Help me run case-converter workflow.",
+      "expected_tools": [
+        "case-converter"
+      ],
+      "should_trigger": true
+    },
+    {
+      "name": "negative_trigger_1",
+      "user_input": "Simple one-line shell commands that do not need a specialized skill.",
+      "expected_tools": [],
+      "should_trigger": false
+    },
+    {
+      "name": "negative_trigger_2",
+      "user_input": "Unrelated domain operations.",
+      "expected_tools": [],
+      "should_trigger": false
+    }
+  ]
+}
