@@ -7,8 +7,8 @@ import re
 import yaml
 from enum import StrEnum
 from pathlib import Path
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any, Union
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class SkillPattern(StrEnum):
@@ -26,12 +26,17 @@ class ModuleType(StrEnum):
 
 
 class SkillFrontmatter(BaseModel):
-    """SKILL.md の YAML Frontmatter メタデータ"""
+    """SKILL.md の YAML Frontmatter メタデータ (Google ADK 2.0 & Anthropic 準拠)"""
+    model_config = {"populate_by_name": True, "extra": "allow"}
+
     name: str = Field(..., pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", description="スキル識別子 (ハイフンケース)")
     description: str = Field(..., max_length=1024, description="トリガー条件を明記した第三者視点の説明")
     license: Optional[str] = Field("Complete terms in LICENSE.txt", description="ライセンス情報")
+    compatibility: Optional[str] = Field(None, description="環境・プラットフォーム互換性要件")
+    allowed_tools: Optional[Union[str, List[str]]] = Field(default=None, alias="allowed-tools", description="許可されたツール一覧")
     pattern: Optional[SkillPattern] = Field(None, description="スキルパターン（任意）")
     dependencies: List[str] = Field(default_factory=list, description="依存するスキル一覧")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="追加のメタデータ辞書")
 
 
 class SkillSpec(BaseModel):
@@ -150,14 +155,25 @@ class SkillSpec(BaseModel):
         except ImportError:
             raise ImportError("google.adk is not installed.")
 
+        meta = dict(self.frontmatter.metadata or {})
+        meta["pattern"] = str(self.pattern.value if hasattr(self.pattern, "value") else self.pattern)
+        if self.frontmatter.dependencies:
+            meta["dependencies"] = self.frontmatter.dependencies
+
+        allowed_tools_val = None
+        if self.frontmatter.allowed_tools is not None:
+            if isinstance(self.frontmatter.allowed_tools, list):
+                allowed_tools_val = ", ".join(self.frontmatter.allowed_tools)
+            else:
+                allowed_tools_val = str(self.frontmatter.allowed_tools)
+
         adk_fm = adk_models.Frontmatter(
             name=self.frontmatter.name,
             description=self.frontmatter.description,
             license=self.frontmatter.license or "Complete terms in LICENSE.txt",
-            metadata={
-                "pattern": str(self.pattern.value if hasattr(self.pattern, "value") else self.pattern),
-                "dependencies": self.frontmatter.dependencies
-            }
+            compatibility=self.frontmatter.compatibility,
+            allowed_tools=allowed_tools_val,
+            metadata=meta
         )
 
         references = {}
@@ -234,9 +250,12 @@ class SkillSpec(BaseModel):
         frontmatter = SkillFrontmatter(
             name=fm.name,
             description=fm.description,
-            license=getattr(fm, "license", "MIT"),
+            license=getattr(fm, "license", "Complete terms in LICENSE.txt"),
+            compatibility=getattr(fm, "compatibility", None),
+            allowed_tools=getattr(fm, "allowed_tools", None),
             pattern=pat,
-            dependencies=deps
+            dependencies=deps,
+            metadata=metadata if isinstance(metadata, dict) else {}
         )
 
         body_str = skill.instructions or ""

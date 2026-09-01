@@ -214,6 +214,25 @@ class Skill:
                 self._adk_skill = self.spec.to_adk_skill(self.root_dir)
         return self._adk_skill
 
+    def to_adk_skill(self) -> Any:
+        """google.adk.skills.models.Skill オブジェクトを返します（adk_skill のエイリアス）。"""
+        return self.adk_skill
+
+    @property
+    def instructions(self) -> str:
+        """ADK 互換 instructions (SKILL.md 本文)"""
+        return self.spec.body
+
+    @property
+    def frontmatter(self) -> Any:
+        """ADK 互換 frontmatter"""
+        return self.adk_skill.frontmatter
+
+    @property
+    def resources(self) -> Any:
+        """ADK 互換 resources"""
+        return self.adk_skill.resources
+
     def get_metadata(self) -> SkillMetadata:
         """レジストリ・評価・仕様をマージした統合メタデータを返します。"""
         if self._metadata is None:

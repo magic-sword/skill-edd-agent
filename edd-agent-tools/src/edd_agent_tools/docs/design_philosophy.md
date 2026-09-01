@@ -55,8 +55,9 @@
      - `tests/`: 契約テストおよびシミュレーション評価データ（`*.evalset.json`）
 
 ### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`)
-* 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script`）を採用。
-* `google.adk.skills.models` (`Skill`, `Frontmatter`, `Resources`, `Script`) を SSOT として完全統合。`edd_agent_tools.core.Skill` は `Skill.adk_skill` プロパティを通じて `load_skill_from_dir` でロードされた ADK 2.0 純正モデルと 100% 透過的に連携。
+* 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を採用。
+* `google.adk.skills.models` (`Skill`, `Frontmatter`, `Resources`, `Script`) を SSOT として完全統合。`SkillSpec` および `SkillFrontmatter` において `allowed-tools` / `allowed_tools`、`compatibility`、`metadata` などの ADK 2.0 仕様を 100% 損失なく相互変換。
+* `edd_agent_tools.core.Skill` は `Skill.adk_skill` プロパティや `to_adk_skill()` を通じて `load_skill_from_dir` でロードされた ADK 2.0 純正モデルと完全透過に連携。
 * `EddSkillRegistry` により、ADK 純正の `SkillRegistry` 抽象クラスに `SkillsState`（Tier 状態・DAG 解析）を適合させ、動的検索（`SearchSkillsTool`）およびオンデマンドフェッチを提供。
 
 ### ⑤ 実践的ワークフロー規約 (Reconnaissance, Black-box `--help`, Minimal Edits)

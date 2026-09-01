@@ -80,3 +80,66 @@ def test_skill_spec_adk_conversion():
     assert roundtrip_spec.name == "case-converter"
     assert roundtrip_spec.frontmatter.description == spec.frontmatter.description
 
+
+def test_core_skill_adk_properties():
+    """core.Skill ドメインエンティティが ADK 純正モデルと透過的に連携することをテストします。"""
+    from edd_agent_tools.core import Skill as CoreSkill
+    skill = CoreSkill("src/skills/case-converter")
+    assert skill.name == "case-converter"
+    assert skill.frontmatter.name == "case-converter"
+    assert skill.instructions is not None
+    assert "case_converter.py" in skill.resources.scripts
+    adk_skill = skill.to_adk_skill()
+    assert isinstance(adk_skill, Skill)
+
+
+def test_adk_toolset_file_path_execution():
+    """EddSkillToolset が file_path 引数によるスクリプト実行をサポートすることをテストします。"""
+    toolset = EddSkillToolset(skills_root="src/skills")
+    res = toolset.run_skill_script_sync(
+        skill_name="case-converter",
+        file_path="scripts/case_converter.py",
+        args=["--input", "hello_world_test", "--format", "pascal"]
+    )
+    assert res.get("status") == "success"
+    assert res.get("exit_code") == 0
+    assert "HelloWorldTest" in res.get("stdout", "")
+
+
+def test_adk_frontmatter_extended_fields_roundtrip():
+    """allowed-tools, compatibility, metadata を含む Frontmatter の双方向変換をテストします。"""
+    content = """---
+name: sample-extended-skill
+description: This skill should be used when testing extended ADK frontmatter fields.
+license: Apache-2.0
+compatibility: python>=3.10
+allowed-tools:
+  - run_skill_script
+  - bash
+metadata:
+  category: utility
+  author: test-suite
+---
+
+# Sample Extended Skill
+## Overview
+Sample overview text.
+"""
+    spec = SkillSpec.parse_markdown(content)
+    assert spec.frontmatter.compatibility == "python>=3.10"
+    assert spec.frontmatter.allowed_tools == ["run_skill_script", "bash"]
+    assert spec.frontmatter.metadata.get("category") == "utility"
+
+    # ADK Skill への変換
+    adk_skill = spec.to_adk_skill()
+    assert adk_skill.frontmatter.compatibility == "python>=3.10"
+    assert "run_skill_script" in adk_skill.frontmatter.allowed_tools
+    assert adk_skill.frontmatter.metadata.get("author") == "test-suite"
+
+    # ADK Skill からの復元
+    roundtrip = SkillSpec.from_adk_skill(adk_skill)
+    assert roundtrip.frontmatter.compatibility == "python>=3.10"
+    assert "run_skill_script" in str(roundtrip.frontmatter.allowed_tools)
+    assert roundtrip.frontmatter.metadata.get("category") == "utility"
+
+

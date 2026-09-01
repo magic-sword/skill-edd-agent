@@ -68,12 +68,16 @@ class EddSkillRegistry(SkillRegistry):
                 results.append(Frontmatter(
                     name=s.name,
                     description=s.description,
-                    metadata={"tier": t_val, "path": s.root_dir}
+                    metadata={
+                        "tier": t_val,
+                        "path": s.root_dir,
+                        "pattern": str(s.pattern.value if hasattr(s.pattern, "value") else s.pattern)
+                    }
                 ))
         return results
 
     def search_tool_description(self) -> str | None:
-        return "Search available skills in the local EDD skill registry by keyword or capability."
+        return "Search available skills in the local EDD skill registry by keyword, capability, or domain workflow."
 
 
 class EddSkillToolset(SkillToolset):
@@ -182,7 +186,8 @@ class EddSkillToolset(SkillToolset):
         self,
         skill_name: str,
         script_name: Optional[str] = None,
-        args: Optional[List[str]] = None
+        args: Optional[List[str]] = None,
+        file_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """スキルの決定論的スクリプトを同期実行します。"""
         skill = self.state.get_skill(skill_name)
@@ -194,13 +199,16 @@ class EddSkillToolset(SkillToolset):
         if not scripts_dir.exists():
             return {"status": "error", "message": f"Scripts directory not found in skill '{skill_name}'."}
 
+        target_script = file_path or script_name
         script_path = None
-        if script_name:
-            cand = scripts_dir / script_name
+        if target_script:
+            if target_script.startswith("scripts/"):
+                target_script = target_script[len("scripts/"):]
+            cand = scripts_dir / target_script
             if cand.exists():
                 script_path = cand
             else:
-                cand_py = scripts_dir / f"{script_name}.py"
+                cand_py = scripts_dir / f"{target_script}.py"
                 if cand_py.exists():
                     script_path = cand_py
 
