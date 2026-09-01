@@ -8,8 +8,8 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 
 *   **Clean Layered Architecture (`core`, `validation`, `packaging`, `evaluation`, `adk`, `mcp`, `cli`)**
     単一真実源のドメインモデル（`core` / `Skill`, `SkillTests`, `SkillsState`）、AST静的検証リンター（`validation` / `SkillValidator`）、ZIPパッケージング＆スキャフォールド（`packaging` / `SkillPackager`, `SkillScaffolder`）、契約テスト・多層評価・診断・自己修復（`evaluation`）、Google ADK 2.0 連携（`adk` / `EddSkillToolset`）、FastMCP 連携（`mcp`）、統合 CLI（`cli`）を明確に責務分離。
-*   **Markdown-First & Progressive Disclosure 3層リソース管理 (`Skill`, `SkillSpec`, `SkillsState`)**
-    `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）の3層分離を安全にロード・管理するドメインクラスと DAG 依存関係グラフ検証を提供。他プロジェクトへの配布時にもパスに依存しない Zero-Hardcoding 設計。
+*   **Markdown-First & Progressive Disclosure リソース管理 (`Skill`, `SkillSpec`, `SkillsState`)**
+    `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）、`examples/`（使用例用）のリソース分離を安全にロード・管理するドメインクラスと DAG 依存関係グラフ検証を提供。他プロジェクトへの配布時にもパスに依存しない Zero-Hardcoding 設計。
 *   **4段階品質保証パイプライン & 決定論的検証 (`SkillValidator`, `SkillPackager`, `SkillScaffolder`)**
     パッケージ同梱の標準テンプレート展開、高速ディレクトリ雛形生成、および構文・実在整合性・Imperative文体を検査する AST 静的バリデータを提供。外部パスに依存しない完全自己完結設計。
 *   **Gymnasium 互換サンドボックス隔離環境 (`WorkspaceEnvProtocol`, `LocalWorkspaceEnv`)**
@@ -17,7 +17,7 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 *   **多層EDD評価フレームワーク & Tier昇格ゲートキーパー (`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`)**
     契約テスト、トリガー精度テスト、ゴールデン出力評価、および上位ワークフローへの連鎖回帰テストを一元管理する決定論的評価エンジンを提供。
 *   **失敗診断 & 自己進化エンジン (`SkillDiagnoser`, `SkillOptimizer`)**
-    テスト失敗ログを構造的に解析し、根本原因（spec / script / test / reference）の特定と自律的な修復ループ・Tier昇格を実現。
+    テスト失敗ログを構造的に解析し、根本原因（spec / script / test / reference / example）の特定と自律的な修復ループ・Tier昇格を実現。
 *   **Google ADK 2.0 ネイティブ統合 (`EddSkillToolset`, `EddSkillRegistry`, `create_adk_skill_toolset`) & FastMCP サーバー (`edd-agent-mcp`)**
     Google ADK 純正の `SkillToolset` および `SkillRegistry` を完全統合し、Progressive Disclosure ライフサイクル（`list_skills`, `load_skill`, `load_skill_resource`, `run_skill_script`, `search_skills`）および `Skill` モデル相互変換、Claude Code / Antigravity IDE 向け MCP リソース・ツールを提供。
 
@@ -25,7 +25,7 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 
 ## 2. 詳細設計書インデックス (Detailed Documents)
 
-*   **[progressive_disclosure.md](src/edd_agent_tools/docs/progressive_disclosure.md)**: 3層リソース分離とProgressive Disclosure標準規約。
+*   **[progressive_disclosure.md](src/edd_agent_tools/docs/progressive_disclosure.md)**: リソース分離とProgressive Disclosure標準規約。
 *   **[prompt_syntax.md](src/edd_agent_tools/docs/prompt_syntax.md)**: Imperative文体規約とFrontmatter仕様。
 *   **[skill_patterns.md](src/edd_agent_tools/docs/skill_patterns.md)**: 4大スキルパターンの設計ガイド。
 *   **[design_philosophy.md](src/edd_agent_tools/docs/design_philosophy.md)**: 全体設計思想・フォルダ構成規約。

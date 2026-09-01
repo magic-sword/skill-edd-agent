@@ -20,23 +20,17 @@ To determine the appropriate procedure, follow this decision logic:
 
 ## Step-by-Step Instructions
 
-### Step 1: Input Validation and Setup *(Tool: `scripts/{primary_script}.py`)*
-
-To validate prerequisites and parse arguments:
-```bash
-python scripts/{primary_script}.py --input "data"
-```
+### Step 1: Reconnaissance and Input Inspection
+To inspect target data, schema, or files before modification, sample the incoming inputs and verify specifications (consult `references/guide.md` or `examples/` if needed).
 
 ### Step 2: Core Execution *(Tool: `scripts/{primary_script}.py`)*
-
-To execute the workflow:
+To execute the workflow deterministically:
 ```bash
 python scripts/{primary_script}.py --input "data"
 ```
 
 ### Step 3: Result Verification and Output
-
-To verify the generated output and present the final response to the user.
+To verify the generated output matches requirements and return the final response.
 
 ## Usage Scenarios & Trigger Examples
 
@@ -47,8 +41,10 @@ This skill is triggered when handling requests such as:
 ## When NOT to Use This Skill
 
 Do NOT use this skill in the following scenarios:
-- **Simple one-liner operations**: Use native shell commands directly.
-- **Out of scope tasks**: Use specialized skills instead.
+- **粒度境界 (Granularity)**: Simple one-liner operations that do not require structured workflows.
+- **技術的限界 (Out-of-Scope)**: Tasks outside the defined domain boundaries.
+- **ライフサイクル分離 (Lifecycle)**: Skill testing, diagnosis, and evolution (use `skill-evolver`).
+- **インベントリ照合 (Inventory)**: Existing skills in inventory already covering the request.
 
 ## Bundled Resources
 
@@ -58,6 +54,11 @@ Do NOT use this skill in the following scenarios:
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: Specifications and domain guidelines.
 
+### `examples/` (Usage Patterns)
+- **`examples/example_usage.py`**: Example execution patterns and typical configurations.
+
 ## Guidelines & Best Practices
-- Verify inputs before executing operations.
+- **Black-box Execution**: Always run `python scripts/{primary_script}.py --help` first to inspect arguments without cluttering context window.
+- **Reconnaissance First**: Inspect data structure and verify edge cases before applying modifications.
+- **Minimal Edits**: Apply targeted modifications without overwriting unrelated structures or metadata.
 - Ensure all scripts support `--help` and use Python standard libraries.

@@ -39,5 +39,8 @@ Do NOT use this skill in the following scenarios:
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: Specifications and domain guidelines.
 
+### `examples/` (Reference Patterns)
+- **`examples/example_usage.md`**: Example reference structures and architectural patterns.
+
 ## Guidelines & Best Practices
-- Keep reference documents organized in `references/` for on-demand loading.
+- Keep reference documents organized in `references/` and `examples/` for on-demand loading.

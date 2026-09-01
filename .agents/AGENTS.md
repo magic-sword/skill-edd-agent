@@ -14,7 +14,7 @@
   FastMCP サーバー（`edd-agent-mcp`）が提供する以下のリソースを優先的に読み込んでください：
   - `edd://docs/design_philosophy` : 中核設計思想・Two-Tier アーキテクチャ・カスケード解決・Prerequisites 方針
   - `edd://rules/agents` : プラットフォーム不変契約および変更可能領域の定義
-  - `edd://guidelines/progressive_disclosure` : 3層リソース分離（scripts/references/assets）規約
+  - `edd://guidelines/progressive_disclosure` : リソース分離（scripts/references/assets/examples）規約
 * **ローカルファイル経由の確認**:
   MCP が利用できない環境では、以下の SSOT ファイルを直接参照してください：
   - [`edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md`](file:///workspace/edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md)
@@ -54,6 +54,7 @@
   - `scripts/` 配下の個別ドメインロジック（ビジネスルール・変換関数）
   - `references/` (ドメイン知識、スキーマ仕様)
   - `assets/` (出力用テンプレート・素材)
+  - `examples/` (具象コード例・パターン集)
   - `tests/` (契約テスト、シミュレーション評価データセット)
 * **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
   - `edd-agent-tools` パッケージ内部のコード

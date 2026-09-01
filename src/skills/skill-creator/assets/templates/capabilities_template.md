@@ -44,5 +44,10 @@ This skill is triggered when handling requests such as:
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: Specifications and module documentation.
 
+### `examples/` (Usage Patterns)
+- **`examples/example_usage.py`**: Example configurations and mode invocation patterns.
+
 ## Guidelines & Best Practices
+- **Black-box Execution**: Always inspect options with `python scripts/{primary_script}.py --help` first.
+- **Reconnaissance First**: Inspect arguments and operational context before triggering changes.
 - Select the appropriate mode/module based on task requirements.

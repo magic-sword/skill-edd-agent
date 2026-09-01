@@ -37,14 +37,14 @@ flowchart TD
 
 | 分類 | 役割・概要 | 現在の状況 | 対応コンポーネント |
 | :--- | :--- | :--- | :--- |
-| **1. Authoring (自律生成)** | 要件から `SKILL.md`（単一真実源）と 3層リソース（`scripts/`, `references/`, `assets/`, `tests/`）を自律生成・パッケージング | **✅ 完了 (実証済み)** | `skill-creator`（4大パターンテンプレート + 契約テスト完備） |
+| **1. Authoring (自律生成)** | 要件から `SKILL.md`（単一真実源）と Bundled Resources（`scripts/`, `references/`, `assets/`, `examples/`, `tests/`）を自律生成・パッケージング | **✅ 完了 (実証済み)** | `skill-creator`（4大パターンテンプレート + 契約テスト完備） |
 | **2. Evolution (評価・自己改善・昇格)** | 多層評価テスト実行 ➔ 失敗診断 ➔ 差分修正 ➔ 上位連鎖回帰テスト ➔ Tier 昇格の完全改善ループ | **✅ 完了 (実証済み)** | `skill-evolver`（統合 eval / diagnose / optimize） |
 
 ---
 
 ## 3. コア設計思想：Markdown-First による自己改善サイクル
 
-自己改善において、「場当たり的な修正」を厳禁とし、**「決定論的診断・コンテキスト抽出（Diagnosis & Context Extraction）」** と **「エージェントによる推論・3層リソース修正実行（Reasoning & Patching）」** を明確に分離します。
+自己改善において、「場当たり的な修正」を厳禁とし、**「決定論的診断・コンテキスト抽出（Diagnosis & Context Extraction）」** と **「エージェントによる推論・リソース修正実行（Reasoning & Patching）」** を明確に分離します。
 
 ```mermaid
 flowchart TD
@@ -57,11 +57,13 @@ flowchart TD
     Route -->|spec: 仕様・プロンプト不備| UpdateSpec[SKILL.md の Frontmatter / 手順指示更新]
     Route -->|script: 実装ロジックバグ| UpdateScript[scripts/*.py のコード修正]
     Route -->|reference: 知識・スキーマ不足| UpdateRef[references/*.md のドキュメント補強]
+    Route -->|example: 使用例パターンの不備| UpdateEx[examples/*.py のパターン例補強]
     Route -->|test_case: テスト期待値側の不備| UpdateTest[tests/*.evalset.json の期待値修正]
     
     UpdateSpec --> Validator[SkillValidator / edd validate 静的リンター]
     UpdateScript --> Validator
     UpdateRef --> Validator
+    UpdateEx --> Validator
     UpdateTest --> ReTest[再テスト実行: edd eval]
     
     Validator -->|Valid| ReTest
@@ -85,4 +87,5 @@ flowchart TD
 - **`script`**: `scripts/*.py` の実装ロジック修正
 - **`reference`**: `references/*.md` のドキュメント・スキーマ修正
 - **`asset`**: `assets/` のテンプレート修正
+- **`example`**: `examples/` のパターン例修正
 - **`test_case`**: `tests/*.evalset.json` の不備・期待値修正

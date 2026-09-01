@@ -67,6 +67,11 @@ class Skill:
         return os.path.join(self.root_dir, "assets")
 
     @property
+    def examples_dir(self) -> str:
+        """examples/ ディレクトリの絶対パス"""
+        return os.path.join(self.root_dir, "examples")
+
+    @property
     def tests_dir(self) -> str:
         """tests/ ディレクトリの絶対パス"""
         return os.path.join(self.root_dir, "tests")
@@ -152,6 +157,28 @@ class Skill:
             return []
         return sorted([f.name for f in assets_dir.glob("*") if f.is_file()])
 
+    def list_examples(self) -> List[str]:
+        """内包する使用例・パターン例（ファイル名ベース）の一覧を取得"""
+        ex_dir = Path(self.root_dir) / "examples"
+        if not ex_dir.exists():
+            return []
+        return sorted([f.name for f in ex_dir.glob("*") if f.is_file()])
+
+    def read_example(self, rel_path: str) -> str:
+        """指定された使用例ファイルのコンテンツを読み込みます。"""
+        target = Path(self.root_dir) / rel_path
+        if not target.exists():
+            cand = Path(self.root_dir) / "examples" / rel_path
+            if cand.exists():
+                target = cand
+        if not target.exists():
+            raise FileNotFoundError(f"Example '{rel_path}' not found in skill '{self.name}'.")
+        return target.read_text(encoding="utf-8")
+
+    def load_example(self, rel_path: str) -> str:
+        """指定された使用例ファイルのコンテンツを読み込みます（read_example のエイリアス）。"""
+        return self.read_example(rel_path)
+
     def read_reference(self, rel_path: str) -> str:
         """指定された参照資料のコンテンツを読み込みます。"""
         target = Path(self.root_dir) / rel_path
@@ -233,7 +260,8 @@ class Skill:
                 description=self.description,
                 scripts=self.list_scripts(),
                 references=self.list_references(),
-                assets=self.list_assets()
+                assets=self.list_assets(),
+                examples=self.list_examples()
             )
         return self._metadata
 

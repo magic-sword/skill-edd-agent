@@ -25,6 +25,7 @@ def test_skill_scaffolder_and_validator(tmp_workspace):
     assert (skill_dir / "scripts" / "custom_pdf_tool.py").exists()
     assert (skill_dir / "references" / "guide.md").exists()
     assert (skill_dir / "assets" / "sample.txt").exists()
+    assert (skill_dir / "examples" / "example_usage.py").exists()
 
     # 静的検証
     val_res = SkillValidator.validate_directory(skill_dir)
@@ -60,10 +61,15 @@ def test_skill_domain_class_resource_access(tmp_workspace):
     assert "my_domain_skill.py" in skill.list_scripts()
     assert "guide.md" in skill.list_references()
     assert "sample.txt" in skill.list_assets()
+    assert "example_usage.py" in skill.list_examples()
 
     # リファレンスロード
     ref_content = skill.load_reference("guide.md")
     assert "Reference Guide for" in ref_content
+
+    # 使用例ロード
+    ex_content = skill.load_example("example_usage.py")
+    assert "Example usage pattern for" in ex_content
 
     # スクリプトパス解決 & ロードテスト
     script_path = skill.get_script_path("my_domain_skill.py")

@@ -47,6 +47,7 @@ class SkillSpec(BaseModel):
     scripts: List[str] = Field(default_factory=list, description="言及されている scripts/ 配下のファイル")
     references: List[str] = Field(default_factory=list, description="言及されている references/ 配下のファイル")
     assets: List[str] = Field(default_factory=list, description="言及されている assets/ 配下のファイル")
+    examples: List[str] = Field(default_factory=list, description="言及または配置されている examples/ 配下のファイル")
 
     @property
     def name(self) -> str:
@@ -115,10 +116,11 @@ class SkillSpec(BaseModel):
                 if line.startswith(("-", "*")):
                     when_not_to_use.append(line.lstrip("-* ").strip())
 
-        # リソース言及の抽出 (scripts/..., references/..., assets/...)
+        # リソース言及の抽出 (scripts/..., references/..., assets/..., examples/...)
         scripts = sorted(list(set(re.findall(r"`?scripts/([a-zA-Z0-9_\-\./]+)`?", body_str))))
         references = sorted(list(set(re.findall(r"`?references/([a-zA-Z0-9_\-\./]+)`?", body_str))))
         assets = sorted(list(set(re.findall(r"`?assets/([a-zA-Z0-9_\-\./]+)`?", body_str))))
+        examples = sorted(list(set(re.findall(r"`?examples/([a-zA-Z0-9_\-\./]+)`?", body_str))))
 
         return cls(
             frontmatter=frontmatter,
@@ -129,7 +131,8 @@ class SkillSpec(BaseModel):
             when_not_to_use=when_not_to_use,
             scripts=scripts,
             references=references,
-            assets=assets
+            assets=assets,
+            examples=examples
         )
 
     @classmethod
@@ -168,6 +171,17 @@ class SkillSpec(BaseModel):
                 for f in ref_dir.rglob("*"):
                     if f.is_file():
                         rel = str(f.relative_to(ref_dir))
+                        try:
+                            references[rel] = f.read_text(encoding="utf-8")
+                        except Exception:
+                            references[rel] = ""
+
+            # examples/ も ADK references（オンデマンドドキュメント）として統合
+            ex_dir = dir_path / "examples"
+            if ex_dir.exists():
+                for f in ex_dir.rglob("*"):
+                    if f.is_file():
+                        rel = f"examples/{f.relative_to(ex_dir)}"
                         try:
                             references[rel] = f.read_text(encoding="utf-8")
                         except Exception:
@@ -242,7 +256,9 @@ class SkillSpec(BaseModel):
                     when_not_to_use.append(line.lstrip("-* ").strip())
 
         scripts = list(skill.resources.scripts.keys()) if hasattr(skill.resources, "scripts") else []
-        references = list(skill.resources.references.keys()) if hasattr(skill.resources, "references") else []
+        all_refs = list(skill.resources.references.keys()) if hasattr(skill.resources, "references") else []
+        references = [r for r in all_refs if not r.startswith("examples/")]
+        examples = [r.replace("examples/", "") for r in all_refs if r.startswith("examples/")]
         assets = list(skill.resources.assets.keys()) if hasattr(skill.resources, "assets") else []
 
         return cls(
@@ -254,7 +270,8 @@ class SkillSpec(BaseModel):
             when_not_to_use=when_not_to_use,
             scripts=scripts,
             references=references,
-            assets=assets
+            assets=assets,
+            examples=examples
         )
 
 
@@ -269,3 +286,4 @@ class SkillMetadata(BaseModel):
     scripts: List[str] = Field(default_factory=list, description="内包するスクリプト一覧")
     references: List[str] = Field(default_factory=list, description="内包する参照資料一覧")
     assets: List[str] = Field(default_factory=list, description="内包するアセット一覧")
+    examples: List[str] = Field(default_factory=list, description="内包する使用例一覧")

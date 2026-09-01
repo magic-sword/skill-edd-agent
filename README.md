@@ -19,7 +19,7 @@ Googleの **ADK 2.0** が提唱する「スキル」によるエージェント�
 > [!IMPORTANT]
 > **本プロジェクトの結論**
 > エージェント開発者が何よりもまず優先して構築すべきなのは、**「評価駆動開発を自律的に行うメタエージェント」**です。
-> 人間の自然言語指示（Vibe）を受け取り、エージェント自身が安全に **Markdown-First** かつ **3層リソース分離（Progressive Disclosure）** でスキルを生成・テスト・評価し、テストをクリアしたスキルだけを自律的に自身の武器（ツール）としてマウント（統合）する。これこそが、本プロジェクトが提案する **「自己進化型 EDD エージェント」** です。
+> 人間の自然言語指示（Vibe）を受け取り、エージェント自身が安全に **Markdown-First** かつ **Progressive Disclosure（段階的情報開示）** でスキルを生成・テスト・評価し、テストをクリアしたスキルだけを自律的に自身の武器（ツール）としてマウント（統合）する。これこそが、本プロジェクトが提案する **「自己進化型 EDD エージェント」** です。
 
 ---
 
@@ -30,11 +30,11 @@ Googleの **ADK 2.0** が提唱する「スキル」によるエージェント�
 ```mermaid
 flowchart TD
     subgraph PlatformLayer ["不変プラットフォーム層 (pip: edd-agent-tools)"]
-        Validator["SkillValidator (AST/構文静的リンター)"]
+        Validator["SkillValidator (AST/構文静的リンター, examples/対応)"]
         Runners["ContractTestRunner & SimulationEvalRunner (サンドボックス実行)"]
         StateEngine["SkillsState & DAG Validator (状態・Tier 1~3 管理)"]
         Packager["SkillPackager (安全な ZIP アーカイブ生成)"]
-        ADKAdapter["ADK Adapter (create_adk_skill_toolset, EddSkillRegistry, EddSkillToolset)"]
+        ADKAdapter["ADK 2.0 Native Adapter (SkillToolset, EddSkillRegistry, models.Skill)"]
         UnifiedCLI["統合 CLI edd (動的ディスパッチ)"]
     end
 
@@ -45,17 +45,20 @@ flowchart TD
     end
 
     PlatformLayer -->|基盤SDK・テストハーネス提供| SkillAssets
-    SkillAssets -->|自己改善ループ (Markdown/Scripts/Assets修正)| SkillAssets
+    SkillAssets -->|自己改善ループ (Markdown/Scripts/Assets/Examples修正)| SkillAssets
 ```
 
 1.  **単一真実源の原則 (Markdown-First & Template Assets)**
     *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化。パッケージ内部に公式標準の雛形テンプレート（4大パターン）を同梱し、外部プロジェクトからの拡張も可能。
-2.  **3層リソース分離 (Progressive Disclosure)**
-    *   コンテキストウィンドウを圧迫しない3層リソース構造：
-        - `scripts/`: 直接実行可能な決定論的スクリプト（Zero-dependency, CLI対応）
+2.  **Progressive Disclosure (段階的リソース分離)**
+    *   コンテキストウィンドウを圧迫しない階層化リソース構造：
+        - `scripts/`: 直接実行可能な決定論的スクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）
         - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ
         - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
-3.  **自己完結型 EDD テスト (Self-Contained Evaluation)**
+        - `examples/`: エージェントが真似できる具象コード例・パターン集
+3.  **実践的運用規約 (Reconnaissance-then-Action & Black-box `--help`)**
+    *   変更前にデータ構造・セレクタをサンプリング調査する偵察先行パターン、および `--help` によるブラックボックス実行を徹底。
+4.  **自己完結型 EDD テスト (Self-Contained Evaluation)**
     *   各スキルディレクトリ配下の `tests/*.evalset.json` に契約テスト・シミュレーション評価ケースを同梱し、局所的・決定論的に品質を検証。
 
 ---

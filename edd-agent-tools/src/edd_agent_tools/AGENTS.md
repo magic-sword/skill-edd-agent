@@ -11,7 +11,7 @@
   FastMCP サーバー（`edd-agent-mcp`）が提供する以下のリソースを優先的に読み込んでください：
   - `edd://docs/design_philosophy` : 中核設計思想・Two-Tier アーキテクチャ・カスケード解決・Prerequisites 方針
   - `edd://rules/agents` : プラットフォーム不変契約および変更可能領域の定義
-  - `edd://guidelines/progressive_disclosure` : 3層リソース分離（scripts/references/assets）規約
+  - `edd://guidelines/progressive_disclosure` : リソース分離（scripts/references/assets/examples）規約
 * **ローカルファイル経由の確認**:
   MCP が利用できない環境では、以下の SSOT ファイルを直接参照してください：
   - [`edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md`](file:///workspace/edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md)
@@ -78,6 +78,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
   - `scripts/` 配下の個別ドメインロジック（ビジネスルール・変換関数）
   - `references/` (ドメイン知識、スキーマ仕様)
   - `assets/` (出力用テンプレート・素材)
+  - `examples/` (具象コード例・パターン集)
   - `tests/` (契約テスト、シミュレーション評価データセット)
 * **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
   - `edd_agent_tools.*` (パッケージ内部のコード)
@@ -88,11 +89,15 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 ## 3. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
 * **単一真実源 (SSOT) ➔ `SKILL.md`**:
   スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化する。
-* **3層リソース分離**:
-  - `scripts/`: 直接実行可能な決定論的スクリプト（CLI対応, `--help` 必須）
+* **リソース分離**:
+  - `scripts/`: 直接実行可能な決定論的スクリプト（CLI対応, `--help` 必須, Black-box 実行）
   - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）
   - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
+  - `examples/`: 具象コード例・パターン集（エージェントが真似できる実装例）
   - `tests/`: 契約テストおよびシミュレーション評価ケース（`*.evalset.json`）
+* **実践的ワークフロー規約**:
+  - **Reconnaissance-then-Action**: 変更前にデータ構造・セレクタをサンプリング調査する。
+  - **Minimal Edits & Batching**: ピンポイントな最小編集とバッチ処理による非破壊編集を行う。
 * **ボイラープレートの排除**:
   多層ラッパー構造（`models.py`, `handler.py`, `nodes/`）を作成せず、フラットで簡潔な実装を行う。
 

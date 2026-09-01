@@ -5,11 +5,11 @@ license: MIT
 pattern: capabilities
 ---
 
-# {skill_title}
+# {Skill Title}
 
 ## Overview
 
-{skill_title} に関する複数の統合機能と操作を提供します。
+{Brief overview of the integrated capabilities and operational domain.}
 
 ## Core Capabilities
 
@@ -30,8 +30,8 @@ python scripts/{primary_script}.py --mode mode2 <arguments>
 ## Usage Scenarios & Trigger Examples
 
 This skill is triggered when handling requests such as:
-- "Perform capability_1 using {skill_name}."
-- "Execute capability_2 on target data."
+- "Perform {capability_1} using {skill_name}."
+- "Execute {capability_2} on target data."
 
 ## When NOT to Use This Skill
 - **Simple one-off shell operations**: Use native commands directly.
@@ -44,5 +44,10 @@ This skill is triggered when handling requests such as:
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: Specifications and module documentation.
 
+### `examples/` (Usage Patterns)
+- **`examples/example_usage.py`**: Example configurations and mode invocation patterns.
+
 ## Guidelines & Best Practices
+- **Black-box Execution**: Always inspect options with `python scripts/{primary_script}.py --help` first.
+- **Reconnaissance First**: Inspect arguments and operational context before triggering changes.
 - Select the appropriate mode/module based on task requirements.

@@ -52,5 +52,10 @@ Do NOT use this skill in the following scenarios:
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: Detailed options and schemas.
 
+### `examples/` (Usage Patterns)
+- **`examples/example_usage.py`**: Example command invocations and argument patterns.
+
 ## Guidelines & Best Practices
+- **Black-box Execution**: Always execute `python scripts/{primary_script}.py --help` first to inspect parameters rather than reading script code into context.
+- **Reconnaissance First**: Validate input data formats and edge cases before running operations.
 - Ensure script flags and help messages (`--help`) are clear.

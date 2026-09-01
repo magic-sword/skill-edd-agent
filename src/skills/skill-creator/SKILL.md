@@ -25,10 +25,11 @@ Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層
 ユーザーの要求を分析し、以下の要素を策定する（詳細仕様は `references/skill_design_guide.md` を参照）：
 1. **具体例の特定**: ユーザーが実際に発話するトリガープロンプト（3〜5例）と期待される入出力を明確にする。
 2. **パターン分類**: `workflow`（順次決定木型）、`task_based`（ツール群型）、`reference`（仕様・知識型）、`capabilities`（複合型）から最適構成を選択する。
-3. **3層リソース計画**:
-   - `scripts/`: 決定論的CLIツール（Python 標準ライブラリ、`argparse` 対応）※ドメイン独自処理がある場合のみ配置
+3. **リソース計画**:
+   - `scripts/`: 決定論的CLIツール（Python 標準ライブラリ、`argparse` による `--help` 対応, Black-box 実行）※ドメイン独自処理がある場合のみ配置
    - `references/`: ドメイン仕様書・スキーマ（オンデマンド参照）
    - `assets/`: 出力用テンプレート素材（ボイラープレート等）
+   - `examples/`: 具象コード例・パターン集（エージェント向け実装例）
    - `tests/`: 契約テストおよびトリガー評価ケース（`*.evalset.json`）
 
 ### Step 2: スキル雛形の生成 *(Tool: `edd init`)*
@@ -40,7 +41,7 @@ edd init <skill-name> --pattern workflow --path src/skills
 ### Step 3: リソースの実装と SKILL.md の執筆
 1. `assets/templates/` 配下の Markdown テンプレート素材（`workflow_template.md`, `task_based_template.md`, `reference_template.md`, `capabilities_template.md` 等）を参考に、`SKILL.md` の Frontmatter（`name`, `description`）および手順書を客観的動詞起点（Imperative form）で執筆する。
 2. 計画されたスクリプトを `scripts/` に配置する（`argparse` による `--help` 対応、余計な多層ラッパーを作らないフラットな実装）。
-3. 知識資料を `references/`、テンプレート素材を `assets/`、テストケースを `tests/` に配置する（不要な空ディレクトリは残さない）。
+3. 知識資料を `references/`、テンプレート素材を `assets/`、使用例を `examples/`、テストケースを `tests/` に配置する（不要な空ディレクトリは残さない）。
 
 ### Step 4: 高速静的検証 *(Tool: `edd validate`)*
 To validate the structure, frontmatter, resource references, and naming conventions, execute:

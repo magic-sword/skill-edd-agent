@@ -20,7 +20,7 @@
 │   └── src/edd_agent_tools/
 │       ├── AGENTS.md       # AIエージェント向けシステム制約（ドキュメント規約の真実のソース）
 │       └── docs/           # パッケージドキュメントセンター（Whyの集約先）
-│           ├── progressive_disclosure.md # 3層リソース分離（scripts, references, assets）規約
+│           ├── progressive_disclosure.md # リソース分離（scripts, references, assets, examples）規約
 │           ├── prompt_syntax.md          # Imperative文体・客観的プロンプト規約
 │           ├── skill_patterns.md         # 4大スキル構造パターン
 │           ├── design_philosophy.md      # スキル設計思想・フォルダ構成規約
@@ -28,7 +28,7 @@
 │           ├── eval_design.md            # サンドボックス隔離・アサーションポリシー
 │           └── sandbox_design.md         # Gymnasium仮想環境（DI）とCLI仕様
 └── src/                    # 自己進化エージェントの本体およびスキル（Tier管理下）
-    └── skills/             # すべてのスキルおよび合成ワークフロー（3層リソース構造）
+    └── skills/             # すべてのスキルおよび合成ワークフロー（Progressive Disclosure構造）
         ├── skill-creator/  # Anthropic & Google ADK 準拠のスキル設計・雛形生成・パッケージャ
         ├── skill-evolver/  # 評価・失敗診断・自己修復・Tier昇格を司る自己改善メタスキル
         ├── case-converter/ # テキストケース変換（ゴールデンサンプル）
@@ -56,12 +56,16 @@
 
 1. **単一真実源 (Markdown-First)**:
    - スキルの振る舞い、インターフェース、意思決定ツリー、手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化します。
-2. **3層リソース分離 (Progressive Disclosure)**:
-   - `scripts/`: 直接実行可能な決定論的スクリプト（Python/Bash）
+2. **Progressive Disclosure (リソース分離)**:
+   - `scripts/`: 直接実行可能な決定論的スクリプト（Python/Bash, `--help` 必須, Black-box 実行）
    - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド参照資料）
    - `assets/`: 出力用テンプレート・素材・ボイラープレート
-3. **ボイラープレートの排除 (Minimal Boilerplate)**:
+   - `examples/`: エージェントが真似できる具象コード例・パターン集
+3. **実践的ワークフロー規約**:
+   - **Reconnaissance-then-Action**: 変更前にデータ構造・セレクタをサンプリング調査する。
+   - **Minimal Edits & Batching**: ピンポイントな最小編集とバッチ処理による非破壊編集を行う。
+4. **ボイラープレートの排除 (Minimal Boilerplate)**:
    - `nodes/`, `handlers/`, `workflow.py`, `models.py` などの過剰な多層ラッパーを作らず、フラットで簡潔な実装を行ってください。
-4. **客観的指示文体 (Imperative Form)**:
+5. **客観的指示文体 (Imperative Form)**:
    - 全体指示文は動詞起点（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調を排除してください。
    - Frontmatter の `description` は第三者視点（"This skill should be used when..."）で100 words以内で簡潔に記述してください。

@@ -67,7 +67,12 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: 対応ケース形式一覧およびエッジケース仕様。
 
+### `examples/` (Usage Patterns)
+- **`examples/case_conversion_examples.py`**: 各種ケース変換の具体的な引数・実行パターン集。
+
 ## Guidelines & Best Practices
-- スクリプトは `--help` をサポートし、Python 標準ライブラリのみで動作します。
-- 変換仕様の詳細については `references/guide.md` を参照する。
+- **Black-box Execution**: スクリプト実行時はまず `python scripts/case_converter.py --help` でオプション仕様を確認し、コンテキスト節約のためスクリプトを直接読み込まないこと。
+- **Reconnaissance First**: ファイル一括変換時は、まず入力ファイルの識別子パターンをサンプリング確認（偵察）した上で変換を実行すること。
+- **Minimal Edits**: 変換結果の適用時は、対象外の構造やコメントを破壊しないこと。
+- 変換仕様の詳細については `references/guide.md`、使用例は `examples/case_conversion_examples.py` を参照する。
 

@@ -78,6 +78,7 @@ class SkillPackager:
         scripts = [n for n in names if "/scripts/" in n and n.endswith(".py")]
         references = [n for n in names if "/references/" in n]
         assets = [n for n in names if "/assets/" in n]
+        examples = [n for n in names if "/examples/" in n]
         tests = [n for n in names if "/tests/" in n]
 
         return {
@@ -87,6 +88,7 @@ class SkillPackager:
             "scripts": scripts,
             "references": references,
             "assets": assets,
+            "examples": examples,
             "tests": tests,
             "is_valid_structure": has_skill_md
         }

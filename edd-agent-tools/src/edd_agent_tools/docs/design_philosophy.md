@@ -43,22 +43,28 @@
   2. 存在しない場合はパッケージ組み込みテンプレート（`edd_agent_tools.packaging.templates`）へ安全にフォールバック
   これにより、エージェントがプロンプトテンプレートを自己改善すると、以降の `edd init` で生成されるスキルの初期品質が自律的に向上します。
 
-### ③ Progressive Disclosure（3層リソース分離）
-* コンテキストウィンドウの効率化と信頼性の両立を図るため、スキル資産を3層に分離します：
+### ③ Progressive Disclosure（段階的情報開示とリソース分離）
+* コンテキストウィンドウの効率化と信頼性の両立を図るため、スキル資産を明確な3階層に分離します：
   1. **Level 1: YAML Frontmatter**（常時ロード: `name`, `description`）
-  2. **Level 2: SKILL.md 本文**（トリガー時ロード: 意思決定ツリー、手順、ガイドライン）
-  3. **Level 3: 3層リソース**（オンデマンド実行・ロード）
-     - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI対応）※ドメイン独自処理がある場合のみ配置
-     - `references/`: ドメイン知識・API仕様・スキーマ
-     - `assets/`: 出力用テンプレート・素材
+  2. **Level 2: SKILL.md 本文**（トリガー時ロード: 意思決定ツリー、手順、ガイドライン、When NOT to use）
+  3. **Level 3: Bundled Resources**（オンデマンド実行・ロード）
+     - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）
+     - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド読み込み）
+     - `assets/`: 出力用テンプレート・素材（成果物への流用・コピー用）
+     - `examples/`: 具象コード例・パターン集（エージェントが真似できる実装例）
      - `tests/`: 契約テストおよびシミュレーション評価データ（`*.evalset.json`）
 
-### ④ Google ADK 2.0 ネイティブ統合 (`SkillToolset`, `SkillRegistry`, `create_adk_skill_toolset`)
-* 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 標準の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script`）を採用。
+### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`)
+* 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script`）を採用。
+* `google.adk.skills.models` (`Skill`, `Frontmatter`, `Resources`, `Script`) を SSOT として完全統合し、バイナリ自動注入（Content Injection）および安全な自己展開実行（`_SkillScriptCodeExecutor`）を標準活用。
 * `EddSkillRegistry` により、ADK 純正の `SkillRegistry` 抽象クラスに `SkillsState`（Tier 状態・DAG 解析）を適合させ、動的検索（`SearchSkillsTool`）およびオンデマンドフェッチを提供。
-* `create_adk_skill_toolset` ファクトリにより、Tier 状態（Production / Verified / Draft）に応じたフィルタリングと、ADK 2.0 の自動システム命令注入（`DEFAULT_SKILL_SYSTEM_INSTRUCTION`）を活用した安全なエージェント統合を提供。
 
-### ⑤ スキルの完全ポータビリティと自己完結型テスト (Self-Contained Evaluation)
+### ⑤ 実践的ワークフロー規約 (Reconnaissance, Black-box `--help`, Minimal Edits)
+* **Reconnaissance-then-Action（偵察先行）**: 編集前にまずデータ構造・セレクタ・メタデータをサンプリング調査してから変更を実行。
+* **Black-box Execution**: スクリプト実行時はまず `--help` で引数仕様を確認し、スクリプト本体をコンテキストに読み込まずブラックボックス実行。
+* **Minimal Edits & Batching**: ピンポイントな最小編集とバッチ処理による非破壊原則。
+
+### ⑥ スキルの完全ポータビリティと自己完結型テスト (Self-Contained Evaluation)
 * 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor, ADK 等）へドロップイン可能な自己完結性を持つ。
 * 各スキルの `tests/` ディレクトリに契約テスト（`*.evalset.json`）を同梱し、単体で `edd eval` による 100% 契約検証を実施可能。
 
@@ -103,11 +109,13 @@ edd_agent_tools/
 ```
 src/skills/{skill-name}/
   SKILL.md       # YAML Frontmatter ('This skill should be used when...') + Markdown仕様書 (SSOT)
-  scripts/       # 決定論的スクリプト（直接実行可能・CLI対応・Zero-dependency、ドメイン処理がある場合のみ）
+  scripts/       # 決定論的スクリプト（直接実行可能・CLI --help 対応・Zero-dependency、ドメイン処理がある場合のみ）
     {skill_name}.py
   references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
     guide.md
   assets/        # 出力用テンプレート・素材（任意・空ディレクトリ不可）
     templates/   # スキル作成用のMarkdownテンプレート素材（skill-creatorの場合）
+  examples/      # 具象コード例・パターン集（エージェントが真似できる実装例）
+    example_usage.py
   tests/         # 評価データセット（{skill_name}_contract.evalset.json 等）
 ```
