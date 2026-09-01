@@ -212,11 +212,10 @@ def test_cli_help():
             "eval_cases": [
                 {
                     "eval_case_id": f"{skill_name}_cli_help",
-                    "function_name": "CLI",
-                    "script_name": f"{primary_script}.py",
+                    "script_name": f"scripts/{primary_script}.py",
                     "cli_args": ["--help"],
                     "expected_exit_code": 0,
-                    "expected": "usage"
+                    "expected_stdout_contains": ["--help"]
                 }
             ]
         }

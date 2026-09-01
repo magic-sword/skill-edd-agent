@@ -9,9 +9,6 @@ import os
 import sys
 import json
 import datetime
-import types
-import inspect
-import importlib.util
 from pathlib import Path
 from typing import Literal, Any, Optional, List, Dict
 
@@ -205,48 +202,17 @@ class Skill:
             return str(cand_py)
         return str(cand)
 
-    def load_module(self, script_name: Optional[str] = None) -> types.ModuleType:
-        """スキルのスクリプトを動的に Python モジュールとしてインポート・ロードします。"""
-        scripts_dir = Path(self.root_dir) / "scripts"
-        if not scripts_dir.exists():
-            raise FileNotFoundError(f"Scripts directory not found for skill: {self.name}")
-
-        script_path = None
-        if script_name:
-            cand = scripts_dir / script_name
-            if cand.exists():
-                script_path = cand
-            else:
-                cand_py = scripts_dir / f"{script_name}.py"
-                if cand_py.exists():
-                    script_path = cand_py
-
-        if not script_path:
-            cand1 = scripts_dir / f"{self.name.replace('-', '_')}.py"
-            cand2 = scripts_dir / f"{self.name}.py"
-            cand3 = scripts_dir / "main.py"
-            for c in [cand1, cand2, cand3]:
-                if c.exists():
-                    script_path = c
-                    break
-
-        if not script_path:
-            py_files = [f for f in scripts_dir.glob("*.py") if f.name != "__init__.py"]
-            if py_files:
-                script_path = py_files[0]
-
-        if not script_path or not script_path.exists():
-            raise FileNotFoundError(f"No executable script found for skill: {self.name}")
-
-        module_name = f"edd_skill_{self.name.replace('-', '_')}_{script_path.stem}"
-        spec = importlib.util.spec_from_file_location(module_name, str(script_path))
-        if spec is None or spec.loader is None:
-            raise ImportError(f"Failed to load module spec for: {script_path}")
-
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
-        spec.loader.exec_module(module)
-        return module
+    @property
+    def adk_skill(self) -> Any:
+        """Google ADK 2.0 純正の Skill (google.adk.skills.models.Skill) オブジェクトを取得（キャッシュ付き）"""
+        if not hasattr(self, "_adk_skill") or self._adk_skill is None:
+            try:
+                from google.adk.skills import load_skill_from_dir
+                self._adk_skill = load_skill_from_dir(Path(self.root_dir))
+            except Exception:
+                # SKILL.md 等が存在しない場合のフォールバック変換
+                self._adk_skill = self.spec.to_adk_skill(self.root_dir)
+        return self._adk_skill
 
     def get_metadata(self) -> SkillMetadata:
         """レジストリ・評価・仕様をマージした統合メタデータを返します。"""

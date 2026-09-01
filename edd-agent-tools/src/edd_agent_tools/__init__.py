@@ -24,7 +24,6 @@ from .models.state import (
     SkillsStateJson
 )
 from .models.eval import (
-    ExpectedResultType,
     EvalCase,
     EvalCaseSet,
     FailedCaseDetail,
@@ -67,7 +66,6 @@ __all__ = [
     "InheritEntry",
     "ProjectSkillInfo",
     "SkillsStateJson",
-    "ExpectedResultType",
     "EvalCase",
     "EvalCaseSet",
     "FailedCaseDetail",

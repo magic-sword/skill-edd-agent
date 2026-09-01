@@ -77,6 +77,6 @@ Anthropic 公式標準（Markdown-First & Progressive Disclosure）および Goo
 
 ---
 
-## 8. スキル配布用パッケージングとマルチプラットフォーム対応 (Packaging & Portability)
+## 9. スキル配布用パッケージングとマルチプラットフォーム対応 (Packaging & Portability)
 * 完成したスキルは `edd validate <skill-path>` で静的バリデーションを実行し、`edd package <skill-path>` を用いて配布用 ZIP アーカイブとして出力する。
-* 各スキルは Google ADK 2.0（`google.adk.skills.load_skill_from_dir`）、Claude Code、Antigravity、Cursor 等のあらゆる主要エージェント基盤へドロップイン可能であり、`SkillSpec.to_adk_skill()` を通じて ADK 純正の `Skill` / `SkillToolset` へシームレスにマウント可能。
+* 各スキルは Google ADK 2.0（`google.adk.skills.load_skill_from_dir`）、Claude Code、Antigravity、Cursor 等のあらゆる主要エージェント基盤へドロップイン可能であり、`Skill.adk_skill` プロパティを通じて ADK 純正の `Skill` / `SkillToolset` へシームレスにマウント可能。

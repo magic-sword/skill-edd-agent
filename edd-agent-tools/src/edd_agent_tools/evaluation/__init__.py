@@ -8,7 +8,6 @@ from typing import Any
 
 from edd_agent_tools.core.protocols import WorkspaceEnvProtocol
 from edd_agent_tools.models import (
-    ExpectedResultType,
     EvalCase,
     EvalCaseSet,
     FailedCaseDetail,
@@ -26,7 +25,6 @@ from .generator import EvalSetGenerator, generate_evalset
 
 __all__ = [
     "WorkspaceEnvProtocol",
-    "ExpectedResultType",
     "EvalCase",
     "EvalCaseSet",
     "FailedCaseDetail",

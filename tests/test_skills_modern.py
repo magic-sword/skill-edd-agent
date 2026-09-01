@@ -71,12 +71,15 @@ def test_skill_domain_class_resource_access(tmp_workspace):
     ex_content = skill.load_example("example_usage.py")
     assert "Example usage pattern for" in ex_content
 
-    # スクリプトパス解決 & ロードテスト
+    # スクリプトパス解決 & ADK 2.0 純正モデル統合テスト
     script_path = skill.get_script_path("my_domain_skill.py")
     assert script_path.endswith("my_domain_skill.py")
-    mod = skill.load_module("my_domain_skill.py")
-    assert hasattr(mod, "run")
-    assert mod.run() == "Success"
+    
+    # ADK 2.0 純正 Skill オブジェクトの検証
+    adk_skill = skill.adk_skill
+    assert adk_skill is not None
+    assert adk_skill.frontmatter.name == "my-domain-skill"
+    assert "my_domain_skill.py" in adk_skill.resources.scripts
 
 def test_cli_package(tmp_workspace):
     """SkillPackager によるパッケージング機能のテスト"""
@@ -155,7 +158,7 @@ def test_validator_adk_spec_enforcement(tmp_workspace):
 def test_cli_contract_runner(tmp_workspace):
     """ContractTestRunner による CLI サブプロセス実行テストを検証"""
     from edd_agent_tools.evaluation import ContractTestRunner, LocalWorkspaceEnv
-    from edd_agent_tools.models import EvalCaseSet, EvalCase, ExpectedResultType
+    from edd_agent_tools.models import EvalCaseSet, EvalCase
 
     skill_dir = SkillScaffolder.scaffold("cli-contract-skill", output_base_dir=tmp_workspace, pattern="workflow")
     skill = Skill(root_dir=str(skill_dir), tier=1)

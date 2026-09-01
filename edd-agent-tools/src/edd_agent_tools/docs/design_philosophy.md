@@ -56,7 +56,7 @@
 
 ### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`)
 * 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script`）を採用。
-* `google.adk.skills.models` (`Skill`, `Frontmatter`, `Resources`, `Script`) を SSOT として完全統合し、バイナリ自動注入（Content Injection）および安全な自己展開実行（`_SkillScriptCodeExecutor`）を標準活用。
+* `google.adk.skills.models` (`Skill`, `Frontmatter`, `Resources`, `Script`) を SSOT として完全統合。`edd_agent_tools.core.Skill` は `Skill.adk_skill` プロパティを通じて `load_skill_from_dir` でロードされた ADK 2.0 純正モデルと 100% 透過的に連携。
 * `EddSkillRegistry` により、ADK 純正の `SkillRegistry` 抽象クラスに `SkillsState`（Tier 状態・DAG 解析）を適合させ、動的検索（`SearchSkillsTool`）およびオンデマンドフェッチを提供。
 
 ### ⑤ 実践的ワークフロー規約 (Reconnaissance, Black-box `--help`, Minimal Edits)
@@ -68,21 +68,21 @@
 * 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor, ADK 等）へドロップイン可能な自己完結性を持つ。
 * 各スキルの `tests/` ディレクトリに契約テスト（`*.evalset.json`）を同梱し、単体で `edd eval` による 100% 契約検証を実施可能。
 
-### ⑥ 4次元ネガティブ・ハーネス (`When NOT to Use` による過剰適用防止)
+### ⑦ 4次元ネガティブ・ハーネス (`When NOT to Use` による過剰適用防止)
 * 以下の4軸から客観的な除外条件（When NOT to use）を導出し、過剰適用（Over-tooling）や競合による誤発火を防止：
   1. **粒度境界 (Granularity)**: 単発のワンライナーや標準OSコマンドで完結する軽微なタスク。
   2. **技術的限界 (Out-of-Scope)**: ドメイン範囲外の高度な変換や別領域の処理。
   3. **ライフサイクル分離 (Lifecycle)**: 前後のフェーズ（作成、診断、評価、最適化）の住み分け。
   4. **インベントリ照合 (Inventory)**: 既存スキルで既にカバーされているタスク。
 
-### ⑦ 4段階品質保証パイプライン (4-Stage Quality Gate)
+### ⑧ 4段階品質保証パイプライン (4-Stage Quality Gate)
 * スキルの自律生成からマウントまでの品質を保証する4段階の防壁：
   - **Stage 1 (Authoring & Scaffolding)**: `assets/templates/` を活用した論理設計と雛形生成（`edd init`）
   - **Stage 2 (Static Validation)**: `SkillValidator` による静的リンター（構文・実在整合性・Imperative文体・Prerequisites外部依存照合・DAG依存関係）
-  - **Stage 3 (Contract & Multi-Layer Evaluation)**: サンドボックス環境（`LocalWorkspaceEnv`）での契約テスト（I/O型検査）およびシミュレーション評価（Trigger / Trajectory / Golden）
+  - **Stage 3 (Contract & Multi-Layer Evaluation)**: サンドボックス環境（`LocalWorkspaceEnv`）での決定論的 Black-box CLI 契約テスト（終了コード・標準出力）およびシミュレーション評価（Trigger / Trajectory / Golden）
   - **Stage 4 (Self-Healing Loop & Cascade Gating)**: 失敗診断（`edd diagnose`）➔ 修正 ➔ 連鎖回帰テスト（`CascadeTestRunner`）➔ Tier 昇格
 
-### ⑧ 動的ディスパッチ (Dynamic Dispatch) ＆ 統合 CLI (`edd`)
+### ⑨ 動的ディスパッチ (Dynamic Dispatch) ＆ 統合 CLI (`edd`)
 * スキルが自律的に増殖・追加されてもパッケージ本体の再インストールやコード修正を一切不要とするため、ファイルシステムベースの動的ディスカバリ（`edd run <skill-name>` / `edd <skill-name>`）を採用。
 
 ---
