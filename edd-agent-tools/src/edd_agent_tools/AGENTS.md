@@ -48,7 +48,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 - **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証）
 - **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`
 - **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
-- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset`, `create_mcp_server`
+- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset`, `EddSkillRegistry`, `create_mcp_server`
 - **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
 
 ※ **自己完結性の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。

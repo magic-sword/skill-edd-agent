@@ -30,7 +30,7 @@
   - 静的検証リンター（`validation`: `SkillValidator`）
   - パッケージ組み込み標準テンプレート & ZIP化（`packaging`: `SkillScaffolder`, `SkillPackager`）
   - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`, `LocalWorkspaceEnv`）
-  - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `EddSkillToolset` / `mcp`: `create_mcp_server`）
+  - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `EddSkillToolset`, `EddSkillRegistry` / `mcp`: `create_mcp_server`）
   - 統合 CLI（`cli`: `edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
   ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。
 

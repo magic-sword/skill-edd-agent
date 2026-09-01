@@ -34,7 +34,7 @@ flowchart TD
         Runners["ContractTestRunner & SimulationEvalRunner (サンドボックス実行)"]
         StateEngine["SkillsState & DAG Validator (状態・Tier 1~3 管理)"]
         Packager["SkillPackager (安全な ZIP アーカイブ生成)"]
-        ADKAdapter["ADK Adapter (create_adk_skill_toolset)"]
+        ADKAdapter["ADK Adapter (create_adk_skill_toolset, EddSkillRegistry, EddSkillToolset)"]
         UnifiedCLI["統合 CLI edd (動的ディスパッチ)"]
     end
 

@@ -140,6 +140,123 @@ class SkillSpec(BaseModel):
             raise FileNotFoundError(f"SKILL.md not found at: {path}")
         return cls.parse_markdown(path.read_text(encoding="utf-8"))
 
+    def to_adk_skill(self, skill_dir: Optional[str | Path] = None) -> Any:
+        """google.adk.skills.models.Skill オブジェクトへ変換します。"""
+        try:
+            from google.adk.skills import models as adk_models
+        except ImportError:
+            raise ImportError("google.adk is not installed.")
+
+        adk_fm = adk_models.Frontmatter(
+            name=self.frontmatter.name,
+            description=self.frontmatter.description,
+            license=self.frontmatter.license or "Complete terms in LICENSE.txt",
+            metadata={
+                "pattern": str(self.pattern.value if hasattr(self.pattern, "value") else self.pattern),
+                "dependencies": self.frontmatter.dependencies
+            }
+        )
+
+        references = {}
+        assets = {}
+        scripts = {}
+
+        if skill_dir:
+            dir_path = Path(skill_dir).resolve()
+            ref_dir = dir_path / "references"
+            if ref_dir.exists():
+                for f in ref_dir.rglob("*"):
+                    if f.is_file():
+                        rel = str(f.relative_to(ref_dir))
+                        try:
+                            references[rel] = f.read_text(encoding="utf-8")
+                        except Exception:
+                            references[rel] = ""
+
+            asset_dir = dir_path / "assets"
+            if asset_dir.exists():
+                for f in asset_dir.rglob("*"):
+                    if f.is_file():
+                        rel = str(f.relative_to(asset_dir))
+                        try:
+                            assets[rel] = f.read_text(encoding="utf-8")
+                        except Exception:
+                            assets[rel] = ""
+
+            scripts_dir = dir_path / "scripts"
+            if scripts_dir.exists():
+                for f in scripts_dir.rglob("*.py"):
+                    if f.is_file():
+                        rel = str(f.relative_to(scripts_dir))
+                        try:
+                            scripts[rel] = adk_models.Script(src=f.read_text(encoding="utf-8"))
+                        except Exception:
+                            scripts[rel] = adk_models.Script(src="")
+
+        adk_resources = adk_models.Resources(
+            references=references,
+            assets=assets,
+            scripts=scripts
+        )
+
+        return adk_models.Skill(
+            frontmatter=adk_fm,
+            instructions=self.body,
+            resources=adk_resources
+        )
+
+    @classmethod
+    def from_adk_skill(cls, skill: Any) -> "SkillSpec":
+        """google.adk.skills.models.Skill オブジェクトから SkillSpec を生成します。"""
+        fm = skill.frontmatter
+        metadata = getattr(fm, "metadata", {}) or {}
+        pattern_val = metadata.get("pattern", "workflow") if isinstance(metadata, dict) else "workflow"
+        deps = metadata.get("dependencies", []) if isinstance(metadata, dict) else []
+        try:
+            pat = SkillPattern(pattern_val)
+        except ValueError:
+            pat = SkillPattern.WORKFLOW
+
+        frontmatter = SkillFrontmatter(
+            name=fm.name,
+            description=fm.description,
+            license=getattr(fm, "license", "MIT"),
+            pattern=pat,
+            dependencies=deps
+        )
+
+        body_str = skill.instructions or ""
+        title_match = re.search(r"^#\s+(.+)$", body_str, re.MULTILINE)
+        title = title_match.group(1).strip() if title_match else fm.name
+
+        overview_match = re.search(r"##\s+Overview\s*\n+(.*?)(?=\n##|\Z)", body_str, re.DOTALL | re.IGNORECASE)
+        overview = overview_match.group(1).strip() if overview_match else ""
+
+        when_not_match = re.search(r"##\s+When NOT to Use[^\n]*\s*\n+(.*?)(?=\n##|\Z)", body_str, re.DOTALL | re.IGNORECASE)
+        when_not_to_use = []
+        if when_not_match:
+            when_not_text = when_not_match.group(1).strip()
+            for line in when_not_text.splitlines():
+                line = line.strip()
+                if line.startswith(("-", "*")):
+                    when_not_to_use.append(line.lstrip("-* ").strip())
+
+        scripts = list(skill.resources.scripts.keys()) if hasattr(skill.resources, "scripts") else []
+        references = list(skill.resources.references.keys()) if hasattr(skill.resources, "references") else []
+        assets = list(skill.resources.assets.keys()) if hasattr(skill.resources, "assets") else []
+
+        return cls(
+            frontmatter=frontmatter,
+            title=title,
+            overview=overview,
+            body=body_str,
+            pattern=pat,
+            when_not_to_use=when_not_to_use,
+            scripts=scripts,
+            references=references,
+            assets=assets
+        )
+
 
 class SkillMetadata(BaseModel):
     """レジストリ情報と仕様情報をマージした統合メタデータ"""

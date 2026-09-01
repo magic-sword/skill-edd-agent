@@ -18,8 +18,8 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
     契約テスト、トリガー精度テスト、ゴールデン出力評価、および上位ワークフローへの連鎖回帰テストを一元管理する決定論的評価エンジンを提供。
 *   **失敗診断 & 自己進化エンジン (`SkillDiagnoser`, `SkillOptimizer`)**
     テスト失敗ログを構造的に解析し、根本原因（spec / script / test / reference）の特定と自律的な修復ループ・Tier昇格を実現。
-*   **Google ADK 2.0 ネイティブ統合 (`EddSkillToolset`, `create_adk_skill_toolset`) & FastMCP サーバー (`edd-agent-mcp`)**
-    Google ADK の Progressive Disclosure ライフサイクルおよび Claude Code / Antigravity IDE 向け MCP リソース・ツールを提供。
+*   **Google ADK 2.0 ネイティブ統合 (`EddSkillToolset`, `EddSkillRegistry`, `create_adk_skill_toolset`) & FastMCP サーバー (`edd-agent-mcp`)**
+    Google ADK 純正の `SkillToolset` および `SkillRegistry` を完全統合し、Progressive Disclosure ライフサイクル（`list_skills`, `load_skill`, `load_skill_resource`, `run_skill_script`, `search_skills`）および `Skill` モデル相互変換、Claude Code / Antigravity IDE 向け MCP リソース・ツールを提供。
 
 ---
 

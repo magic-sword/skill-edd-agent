@@ -53,9 +53,10 @@
      - `assets/`: 出力用テンプレート・素材
      - `tests/`: 契約テストおよびシミュレーション評価データ（`*.evalset.json`）
 
-### ④ Google ADK 2.0 ネイティブ統合 (`SkillToolset` & `create_adk_skill_toolset`)
+### ④ Google ADK 2.0 ネイティブ統合 (`SkillToolset`, `SkillRegistry`, `create_adk_skill_toolset`)
 * 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 標準の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script`）を採用。
-* `create_adk_skill_toolset` ヘルパーにより、Tier 状態（Production / Verified / Draft）に応じたフィルタリングと安全なエージェント統合を提供。
+* `EddSkillRegistry` により、ADK 純正の `SkillRegistry` 抽象クラスに `SkillsState`（Tier 状態・DAG 解析）を適合させ、動的検索（`SearchSkillsTool`）およびオンデマンドフェッチを提供。
+* `create_adk_skill_toolset` ファクトリにより、Tier 状態（Production / Verified / Draft）に応じたフィルタリングと、ADK 2.0 の自動システム命令注入（`DEFAULT_SKILL_SYSTEM_INSTRUCTION`）を活用した安全なエージェント統合を提供。
 
 ### ⑤ スキルの完全ポータビリティと自己完結型テスト (Self-Contained Evaluation)
 * 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor, ADK 等）へドロップイン可能な自己完結性を持つ。

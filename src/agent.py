@@ -18,24 +18,20 @@ skill_toolset = create_adk_skill_toolset(
     include_system_skills={"skill-creator", "skill-evolver"}
 )
 
-# 2. エージェントの定義（FunctionTool の一括展開を排除し、コンテキスト消費を極小化）
-instruction_text = """あなたは評価駆動開発（EDD）および自己進化型スキル開発を自律遂行する統合エージェントです。
-Google ADK 2.0 および Anthropic 公式標準の Progressive Disclosure（段階的情報開示）と Markdown-First 原則に従って動作してください。
+# 2. エージェントの定義（ADK 2.0 純正 SkillToolset により Progressive Disclosure 命令は自動注入）
+instruction_text = """あなたは評価駆動開発（EDD: Evaluation-Driven Development）およびスキルの自己進化を自律遂行する統合エージェントです。
+Google ADK 2.0 および Anthropic 公式標準（Markdown-First & Progressive Disclosure）に従って動作します。
 
-## 動作原則 (Progressive Disclosure)
-1. 提供されている `SkillToolset` のツール群を用いてスキルを管理・実行する：
-   - `list_skills`: 利用可能なスキル一覧（名前と説明）を確認する（Level 1）
-   - `load_skill`: 選択したスキルの `SKILL.md`（手順・意思決定ツリー）をオンデマンドでロードする（Level 2）
-   - `load_skill_resource`: `references/` や `assets/` のファイルを必要に応じて取得する（Level 3）
-   - `run_skill_script`: `scripts/` 配下の Python/Bash スクリプトをブラックボックス実行する（Level 3）
-2. 開発環境の操作や追加のシェルコマンド実行には `EnvironmentToolset`（LocalEnvironment）を利用する。
-3. テスト・評価・自己修復ループは `skill-evolver` を通じて自律的に実行する。
+## 主要責務と行動指針
+1. **スキルの活用と探索**: マウントされた SkillToolset を通じて、必要に応じてスキル（Level 2 手順書）やリソース（Level 3 スクリプト/リファレンス）をオンデマンドで活用してタスクを解決してください。
+2. **自己進化と品質保証**: 新規スキルの設計・作成は `skill-creator` を、スキルのテスト評価・失敗診断・自己修復・Tier昇格は `skill-evolver` を自律的に実行して達成してください。
+3. **安全な実行環境**: 決定論的スクリプトはコンテキストを節約するためブラックボックス実行し、環境操作には `EnvironmentToolset` を利用してください。
 """
 
 root_agent = Agent(
     model='gemini-2.5-flash',
     name='evaluation_driven_development_agent',
-    description='Google ADK と Anthropic スキル標準に完全準拠した、自己進化型評価駆動開発エージェント',
+    description='Google ADK 2.0 と Anthropic スキル標準に完全準拠した自己進化型評価駆動開発エージェント',
     instruction=instruction_text,
     tools=[
         skill_toolset,
