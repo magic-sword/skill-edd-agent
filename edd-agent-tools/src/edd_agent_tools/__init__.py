@@ -47,12 +47,15 @@ from .evaluation.cascade_runner import CascadeTestRunner
 from .evaluation.diagnoser import SkillDiagnoser
 from .evaluation.optimizer import SkillOptimizer
 from .evaluation.environment import LocalWorkspaceEnv
+from .evaluation.adk_eval import AdkEvalAdapter
+from .evaluation.co_loaded_runner import CoLoadedEvalRunner
 from .core.protocols import WorkspaceEnvProtocol
 
 # ADK Integration
 from .adk.toolset import EddSkillToolset, create_adk_skill_toolset
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
+
 
 __all__ = [
     # Models
@@ -88,8 +91,11 @@ __all__ = [
     "SkillDiagnoser",
     "SkillOptimizer",
     "LocalWorkspaceEnv",
+    "AdkEvalAdapter",
+    "CoLoadedEvalRunner",
     "WorkspaceEnvProtocol",
     # ADK
     "EddSkillToolset",
     "create_adk_skill_toolset",
 ]
+

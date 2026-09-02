@@ -1,11 +1,16 @@
 # 多層評価フレームワーク仕様 (Evaluation Framework)
 
-## 評価テストの種類
+Google 『Agent Skills』ホワイトペーパー（May 2026）および Google ADK 2.0 純正評価フレームワーク準拠の評価仕様です。
 
-| テスト種類 (`--type`) | 対象 | 合格基準 | 説明 |
+---
+
+## 評価テストの種類と CLI オプション
+
+| テスト種類 (`--type`) | 主な検証内容 | 合格基準 | 推奨 CLI オプション |
 | :--- | :--- | :--- | :--- |
-| `contract` | CLI引数・終了コード・出力形式 | 100% | 決定論的スクリプトの入出力契約検査 |
-| `trigger` | ユーザー発話・トリガー条件 | 90% 以上 | SKILL.md Frontmatter のトリガー精度評価 |
-| `golden` | ゴールデンデータセット | 90% 以上 | 代表的ユースケースの完全性検証 |
-| `trajectory` | エージェントの行動軌跡 | 85% 以上 | 手順書のステップ実行順序の正確性 |
-| `judge` | LLM-as-a-Judge による品質評価 | 85% 以上 | 出力テキストの品質・安全性・網羅性 |
+| **`contract`** | CLI引数・終了コード・出力形式の Black-box 実行 | 100% | `edd eval <skill> -t contract --pass-k 3` |
+| **`trigger`** | ユーザー発話に対するインテント判定（正例3件・負例3件） | 90% 以上 | `edd eval <skill> -t trigger` |
+| **`trajectory`** | ADK 準拠のツール呼び出し軌跡（`EXACT` / `IN_ORDER` / `ANY_ORDER`） | 100% | `edd eval <skill> -t trajectory --trajectory-mode in_order` |
+| **`golden`** | 複合環境設定・エッジケースの出力完全性アサーション | 90% 以上 | `edd eval <skill> -t golden` |
+| **`judge`** | Google ADK 純正 `AgentEvaluator` によるルーブリック採点 (Position Swapping) | 85% 以上 | `edd eval <skill> -t judge` |
+| **`co-loaded`** | 5〜15 スキル同時展開下での Context Rot 防止ベンチマーク | 80% 以上 | `edd eval <skill> --co-loaded` |

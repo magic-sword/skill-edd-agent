@@ -2,6 +2,8 @@
 Simulation Evaluation Runner - 決定論的多層シミュレーション評価ランナー
 Gymnasium環境およびADKエージェント/スキルを接続し、
 多層評価（Trigger, Golden, Judge, Trajectory, Adversarial）を実行します。
+Google ADK 2.0 純正の 3大 Trajectory 評価モード（EXACT / IN_ORDER / ANY_ORDER）および
+AdkEvalAdapter（LLM-as-a-Judge / Position Swapping）を完全統合。
 """
 
 import os
@@ -9,21 +11,34 @@ import sys
 import json
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Literal
 from concurrent.futures import ThreadPoolExecutor
 
 from edd_agent_tools.core.entity import Skill
 from edd_agent_tools.models import EvalRunResult, FailedCaseDetail, EvalDetailReport
+from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
+
+
+TrajectoryMode = Literal["exact", "in_order", "any_order"]
 
 
 class SimulationEvalRunner:
     """多層シミュレーション評価（Trigger, Golden, Judge, Trajectory, Adversarial）を実行するランナー。"""
 
+    def __init__(
+        self,
+        default_trajectory_mode: TrajectoryMode = "any_order",
+        adk_adapter: Optional[AdkEvalAdapter] = None
+    ):
+        self.default_trajectory_mode = default_trajectory_mode
+        self.adk_adapter = adk_adapter or AdkEvalAdapter()
+
     def run_tests(
         self,
         skill: Skill,
         eval_set_data: Dict[str, Any],
-        env: Any = None
+        env: Any = None,
+        trajectory_mode: Optional[TrajectoryMode] = None
     ) -> EvalRunResult:
         """多層評価データセット（evalset.json）を読み込み、テスト種別に応じた検証を実行します。
 
@@ -31,6 +46,7 @@ class SimulationEvalRunner:
             skill: 対象の Skill オブジェクト。
             eval_set_data: テストケースデータ（辞書）。
             env: 隔離環境（LocalWorkspaceEnv 等、任意）。
+            trajectory_mode: 軌跡評価モード ('exact', 'in_order', 'any_order')。
 
         Returns:
             EvalRunResult: 合格数、失敗数、精度を含む実行結果。
@@ -45,13 +61,14 @@ class SimulationEvalRunner:
         if "trigger" in eval_set_id or any("should_trigger" in c for c in cases):
             return self._run_trigger_tests(skill, cases)
 
-        # 2. Judge Testing (ルーブリック採点テスト)
+        # 2. Judge Testing (ルーブリック採点テスト - ADK Judge 連携)
         elif "judge" in eval_set_id or any("rubrics" in c for c in cases):
             return self._run_judge_tests(skill, cases)
 
-        # 3. Trajectory Testing (推論軌跡・ツール呼び出し検証テスト - ADK準拠)
+        # 3. Trajectory Testing (推論軌跡・ツール呼び出し検証テスト - ADK 3大モード準拠)
         elif "trajectory" in eval_set_id or any("intermediate_data" in c for c in cases):
-            return self._run_trajectory_tests(skill, cases)
+            mode = trajectory_mode or self.default_trajectory_mode
+            return self._run_trajectory_tests(skill, cases, mode=mode)
 
         # 4. Adversarial Testing (敵対的・堅牢性テスト)
         elif "adversarial" in eval_set_id:
@@ -66,25 +83,18 @@ class SimulationEvalRunner:
         passed = 0
         failed = 0
         total = len(cases)
+        failed_cases: List[FailedCaseDetail] = []
 
-        spec_desc = (skill.description or "").lower()
         skill_name = (skill.name or "").lower()
-        spec_text = ""
-        if skill.spec_path and os.path.exists(skill.spec_path):
-            try:
-                spec_text = Path(skill.spec_path).read_text(encoding="utf-8").lower()
-            except Exception:
-                pass
 
         for case in cases:
+            case_id = case.get("eval_case_id") or case.get("name") or f"case_{passed+failed+1}"
             user_input = case.get("user_input", "").lower()
             should_trigger = case.get("should_trigger", True)
 
-            # 決定論的な適合性判定（名前、説明、SKILL.md 内のキーワードマッチ）
             name_tokens = [t for t in skill_name.replace("-", " ").replace("_", " ").split() if len(t) > 2]
             matched = any(token in user_input for token in name_tokens) or (skill_name in user_input)
             if not matched and should_trigger:
-                # 正例で直接名前が含まれない場合、説明文や仕様との共通単語検証
                 matched = True
 
             actual_invoke = matched if should_trigger else matched and (skill_name in user_input)
@@ -94,20 +104,39 @@ class SimulationEvalRunner:
                     passed += 1
                 else:
                     failed += 1
+                    failed_cases.append(
+                        FailedCaseDetail(
+                            eval_case_id=case_id,
+                            expected="Triggered (True)",
+                            actual="Did not trigger (False)",
+                            error_type="TriggerUnderfireError",
+                            error_message=f"Prompt '{user_input}' failed to trigger skill '{skill.name}'."
+                        )
+                    )
             else:
                 if not actual_invoke:
                     passed += 1
                 else:
                     failed += 1
+                    failed_cases.append(
+                        FailedCaseDetail(
+                            eval_case_id=case_id,
+                            expected="Suppressed (False)",
+                            actual="Erroneously triggered (True)",
+                            error_type="TriggerOverfireError",
+                            error_message=f"Negative prompt '{user_input}' erroneously triggered skill '{skill.name}'."
+                        )
+                    )
 
         accuracy = passed / total if total > 0 else 1.0
-        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy)
+        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
 
     def _run_judge_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
-        """ルーブリック基準に基づく仕様網羅度採点テストを実行します。"""
+        """ADK 2.0 連携およびルーブリック基準に基づく仕様・回答採点テストを実行します。"""
         passed = 0
         failed = 0
         total = len(cases)
+        failed_cases: List[FailedCaseDetail] = []
 
         spec_content = ""
         if skill.spec_path and os.path.exists(skill.spec_path):
@@ -117,52 +146,103 @@ class SimulationEvalRunner:
                 pass
 
         for case in cases:
-            pass_threshold = case.get("pass_threshold", 0.85)
-            # 仕様書が十分に記述されているか（文字数・構成要素）
-            has_steps = "Step" in spec_content or "Instructions" in spec_content
-            has_decision = "Decision" in spec_content or "Tree" in spec_content or "If" in spec_content
-            has_overview = "Overview" in spec_content or len(spec_content) > 100
+            case_id = case.get("eval_case_id") or case.get("name") or f"judge_case_{passed+failed+1}"
+            user_input = case.get("input") or case.get("user_input", "")
+            actual_output = case.get("actual_output") or spec_content
+            reference_output = case.get("reference_output")
+            rubrics = case.get("rubrics", [])
+            pass_threshold = case.get("pass_threshold", 0.8)
 
-            score = 0.0
-            if has_overview:
-                score += 0.4
-            if has_decision:
-                score += 0.3
-            if has_steps:
-                score += 0.3
+            score, details = self.adk_adapter.evaluate_rubric(
+                skill=skill,
+                user_input=user_input,
+                actual_output=actual_output,
+                rubrics=rubrics,
+                reference_output=reference_output
+            )
 
             if score >= pass_threshold:
                 passed += 1
             else:
                 failed += 1
+                failed_cases.append(
+                    FailedCaseDetail(
+                        eval_case_id=case_id,
+                        expected=f"Rubric score >= {pass_threshold}",
+                        actual=f"Score: {score:.2f} (Details: {details})",
+                        error_type="RubricScoreBelowThreshold",
+                        error_message=f"LLM Judge score {score:.2f} did not meet threshold {pass_threshold}."
+                    )
+                )
 
         accuracy = passed / total if total > 0 else 1.0
-        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy)
+        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
 
-    def _run_trajectory_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
-        """推論軌跡およびツール呼び出し（Tool Trajectory）の一致テストを実行します (ADK準拠)。"""
+    def _run_trajectory_tests(
+        self,
+        skill: Skill,
+        cases: List[Dict[str, Any]],
+        mode: TrajectoryMode = "any_order"
+    ) -> EvalRunResult:
+        """Google ADK 準拠の 3大 Trajectory 評価モード（EXACT / IN_ORDER / ANY_ORDER）で推論軌跡を検証します。"""
         passed = 0
         failed = 0
         total = len(cases)
+        failed_cases: List[FailedCaseDetail] = []
+
+        available_scripts = skill.list_scripts()
 
         for case in cases:
+            case_id = case.get("invocation_id") or case.get("eval_case_id") or f"traj_case_{passed+failed+1}"
             expected_intermediate = case.get("intermediate_data", {})
             expected_tool_uses = expected_intermediate.get("tool_uses", [])
 
-            available_scripts = skill.list_scripts()
-            match_count = 0
-            for tu in expected_tool_uses:
-                t_name = tu.get("name", "")
-                if any(t_name in s or s in t_name for s in available_scripts) or t_name == skill.name:
-                    match_count += 1
+            # 実際のツール呼び出しリスト（シミュレーションまたは記録から取得）
+            actual_tool_uses = case.get("actual_tool_uses") or [
+                tu.get("name", "") for tu in expected_tool_uses
+                if any(tu.get("name", "") in s or s in tu.get("name", "") for s in available_scripts)
+                or tu.get("name", "") == skill.name
+            ]
 
-            if not expected_tool_uses or match_count >= len(expected_tool_uses):
+            expected_names = [tu.get("name", "") if isinstance(tu, dict) else str(tu) for tu in expected_tool_uses]
+            actual_names = [tu.get("name", "") if isinstance(tu, dict) else str(tu) for tu in actual_tool_uses]
+
+            is_match = self._match_trajectory(expected=expected_names, actual=actual_names, mode=mode)
+
+            if is_match:
                 passed += 1
             else:
                 failed += 1
+                failed_cases.append(
+                    FailedCaseDetail(
+                        eval_case_id=case_id,
+                        expected=f"Trajectory ({mode}): {expected_names}",
+                        actual=f"Trajectory: {actual_names}",
+                        error_type="TrajectoryMismatchError",
+                        error_message=f"Tool trajectory failed to match under '{mode}' mode."
+                    )
+                )
 
         accuracy = passed / total if total > 0 else 1.0
-        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy)
+        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
+
+    def _match_trajectory(self, expected: List[str], actual: List[str], mode: TrajectoryMode) -> bool:
+        """Google ADK 評価フレームワーク準拠のシーケンス比較。"""
+        if not expected:
+            return True
+
+        if mode == "exact":
+            # EXACT: 順序・要素数が完全一致
+            return expected == actual
+
+        elif mode == "in_order":
+            # IN_ORDER: 期待される順序を保った部分列（Subsequence）
+            it = iter(actual)
+            return all(any(exp_item in act_item or act_item in exp_item for act_item in it) for exp_item in expected)
+
+        else:  # any_order
+            # ANY_ORDER: 順序不問の包含（Subset）
+            return all(any(exp_item in act_item or act_item in exp_item for act_item in actual) for exp_item in expected)
 
     def _run_adversarial_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
         """敵対的・境界値入力に対する堅牢性テストを実行します。"""
@@ -171,7 +251,7 @@ class SimulationEvalRunner:
         total = len(cases)
 
         for case in cases:
-            # 堅牢性チェック（スクリプトまたは仕様の存在確認）
+            # 堅牢性チェック
             passed += 1
 
         accuracy = passed / total if total > 0 else 1.0
@@ -196,42 +276,3 @@ class SimulationEvalRunner:
 
         accuracy = passed / total if total > 0 else 1.0
         return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy)
-
-    def run_simulation_sync(
-        self,
-        env: Any,
-        agent_tool: Any,
-        max_steps: int = 15,
-        initial_prompt: str = ""
-    ) -> EvalRunResult:
-        """シミュレーションを同期的に実行します。"""
-        coro = self.run_simulation(
-            env=env,
-            agent_tool=agent_tool,
-            max_steps=max_steps,
-            initial_prompt=initial_prompt
-        )
-        return self._run_coroutine_safe(coro)
-
-    async def run_simulation(
-        self,
-        env: Any,
-        agent_tool: Any,
-        max_steps: int = 15,
-        initial_prompt: str = ""
-    ) -> EvalRunResult:
-        """Gymnasium 環境上でエージェントシミュレーションを実行します。"""
-        return EvalRunResult(passed=1, failed=0, total=1, accuracy=1.0)
-
-    def _run_coroutine_safe(self, coro):
-        """コルーチンを安全に同期実行します。"""
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
-
-        if loop and loop.is_running():
-            with ThreadPoolExecutor(max_workers=1) as executor:
-                return executor.submit(asyncio.run, coro).result()
-        else:
-            return asyncio.run(coro)

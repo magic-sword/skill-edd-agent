@@ -9,27 +9,31 @@
 ```mermaid
 flowchart TD
     subgraph PlatformLayer ["不変プラットフォーム層 (pip: edd-agent-tools)"]
-        Validator["SkillValidator (AST/構文静的リンター)"]
-        Runners["ContractTestRunner & SimulationEvalRunner (サンドボックス実行)"]
+        Validator["SkillValidator (AST/構文静的リンター, examples/対応)"]
+        AdkEval["AdkEvalAdapter (Google ADK 2.0 純正 LLM Judge & Position Swapping)"]
+        SimRunner["SimulationEvalRunner (3大 Trajectory: EXACT / IN_ORDER / ANY_ORDER)"]
+        ContractRunner["ContractTestRunner (pass^k 連続一貫性検証 & サンドボックス)"]
+        CoLoadRunner["CoLoadedEvalRunner (複数スキル同時展開時の Context Rot ベンチマーク)"]
         StateEngine["SkillsState & DAG Validator (状態・Tier 1~3 管理)"]
+        Optimizer["SkillOptimizer (Human Sign-off ゲート & 一括最適化)"]
         Packager["SkillPackager (安全な ZIP アーカイブ生成)"]
-        ADKAdapter["ADK Adapter (create_adk_skill_toolset)"]
-        UnifiedCLI["統合 CLI edd (動的ディスパッチ)"]
+        ADKAdapter["ADK 2.0 Native Adapter (SkillToolset, EddSkillRegistry)"]
+        UnifiedCLI["統合 CLI edd (CLI-as-an-API 動的ディスパッチ)"]
     end
 
     subgraph SkillAssets ["自己改善スキル資産層 (src/skills/)"]
         Creator["skill-creator: スキル設計・Markdownテンプレート・雛形生成"]
         Evolver["skill-evolver: 失敗診断・自己修復ループ・Tier昇格"]
-        DomainSkills["case-converter 等の実用ドメインスキル"]
+        DomainSkills["case-converter, secret-sanitizer 等の実用ドメインスキル"]
     end
 
     PlatformLayer -->|基盤SDK・テストハーネス提供| SkillAssets
-    SkillAssets -->|自己改善ループ (Markdown/Scripts/Assets修正)| SkillAssets
+    SkillAssets -->|自己改善ループ (Markdown/Scripts/Assets/Examples/Tests修正)| SkillAssets
 ```
 
 ### 原則
 1. **プラットフォーム不変性**: `edd-agent-tools` パッケージはスキーマ検証、テスト実行、状態管理、ZIPパッケージャなどの決定論的インフラに徹し、プロンプト文体や生成ロジックをコード内に過度にハードコードしない。
-2. **自己改善の局所性と安全性**: スキルのプロンプト文体、パターン構造（workflow, task_based, reference, capabilities）、手順指示はスキルディレクトリ内の `SKILL.md` や `scripts/` に集約し、エージェントが自己改善（プロンプト進化）する際に pip パッケージのコードを変更する必要をなくす。
+2. **自己改善の局所性と安全性**: スキルのプロンプト文体、手順指示はスキルディレクトリ内の `SKILL.md` や `scripts/` に集約し、エージェントが自己改善（プロンプト進化）する際に pip パッケージのコードを変更する必要をなくす。
 
 ---
 
@@ -37,8 +41,8 @@ flowchart TD
 
 | 分類 | 役割・概要 | 現在の状況 | 対応コンポーネント |
 | :--- | :--- | :--- | :--- |
-| **1. Authoring (自律生成)** | 要件から `SKILL.md`（単一真実源）と Bundled Resources（`scripts/`, `references/`, `assets/`, `examples/`, `tests/`）を自律生成・パッケージング | **✅ 完了 (実証済み)** | `skill-creator`（4大パターンテンプレート + 契約テスト完備） |
-| **2. Evolution (評価・自己改善・昇格)** | 多層評価テスト実行 ➔ 失敗診断 ➔ 差分修正 ➔ 上位連鎖回帰テスト ➔ Tier 昇格の完全改善ループ | **✅ 完了 (実証済み)** | `skill-evolver`（統合 eval / diagnose / optimize） |
+| **1. Authoring (自律生成)** | 要件から `SKILL.md`（単一真実源）と Bundled Resources（`scripts/`, `references/`, `assets/`, `examples/`, `tests/`）を自律生成・パッケージング | **✅ 完了 (実証済み)** | `skill-creator`（パターンテンプレート + 契約テスト完備） |
+| **2. Evolution (評価・自己改善・昇格)** | 多層評価テスト実行（ADK 評価・Trajectory・pass^k） ➔ 失敗診断 ➔ 差分修正 ➔ 上位連鎖回帰テスト ➔ Human Sign-off ➔ Tier 昇格の完全改善ループ | **✅ 完了 (実証済み)** | `skill-evolver`（統合 eval / diagnose / optimize / tier-gate） |
 
 ---
 
@@ -69,7 +73,9 @@ flowchart TD
     Validator -->|Valid| ReTest
     
     ReTest -->|合格| Cascade[連鎖回帰テスト: edd tier-gate / CascadeTestRunner]
-    Cascade -->|合格| Success([Tier 昇格 / 完了])
+    Cascade -->|合格| SignOffCheck{Tier 3 かつ Human Sign-off あり?}
+    SignOffCheck -->|Yes| Success([Tier 3 昇格 / 完了])
+    SignOffCheck -->|No (Tier 1~2)| SuccessTier12([Tier 1~2 昇格 / 完了])
     Cascade -->|不合格| Retry{リトライ上限内?}
     ReTest -->|不合格| Retry
     Retry -->|Yes| Diagnoser

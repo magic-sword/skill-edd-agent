@@ -212,19 +212,25 @@ def cmd_eval(args: argparse.Namespace) -> int:
 
             if t == "contract":
                 c_runner = ContractTestRunner()
-                res = c_runner.run_tests(skill=skill, test_cases_data=cases_data, env=env)
+                res = c_runner.run_tests(skill=skill, test_cases_data=cases_data, env=env, pass_k=getattr(args, "pass_k", 1))
                 report["results"]["contract"] = {
                     "passed": res.passed,
                     "failed": res.failed,
                     "total": res.total,
                     "accuracy": res.accuracy,
+                    "pass_k": getattr(args, "pass_k", 1),
                     "detail_file_path": res.detail_file_path
                 }
                 report["summary"]["total_passed"] += res.passed
                 report["summary"]["total_failed"] += res.failed
             else:
-                sim_runner = SimulationEvalRunner()
-                res = sim_runner.run_tests(skill=skill, eval_set_data=cases_data, env=env)
+                sim_runner = SimulationEvalRunner(default_trajectory_mode=getattr(args, "trajectory_mode", "any_order"))
+                res = sim_runner.run_tests(
+                    skill=skill,
+                    eval_set_data=cases_data,
+                    env=env,
+                    trajectory_mode=getattr(args, "trajectory_mode", "any_order")
+                )
                 report["results"][t] = {
                     "passed": res.passed,
                     "failed": res.failed,
@@ -236,6 +242,12 @@ def cmd_eval(args: argparse.Namespace) -> int:
         except Exception as e:
             report["results"][t] = {"error": str(e), "accuracy": 0.0}
             report["summary"]["total_failed"] += 1
+
+    # Co-loaded 評価が要求された場合
+    if getattr(args, "co_loaded", False):
+        from edd_agent_tools.evaluation.co_loaded_runner import CoLoadedEvalRunner
+        co_res = CoLoadedEvalRunner(state=state).run_co_loaded_evaluation(target_skill_name=args.skill_name)
+        report["results"]["co_loaded"] = co_res
 
     total_tests = report["summary"]["total_passed"] + report["summary"]["total_failed"]
     if total_tests > 0:
@@ -250,6 +262,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
     print(f"  • Total Passed: {report['summary']['total_passed']}")
     print(f"  • Total Failed: {report['summary']['total_failed']}")
     print(f"  • Overall Accuracy: {report['summary']['overall_accuracy']:.1%}")
+    if getattr(args, "co_loaded", False):
+        print(f"  • Co-loaded Benchmark: {'✅ Clean' if not report['results']['co_loaded'].get('context_rot_detected') else '⚠️ Context Rot Detected'}")
     print(f"  • Report saved to: {out_p}")
 
     return 0 if report["summary"]["total_failed"] == 0 else 1
@@ -268,12 +282,14 @@ def cmd_tier_gate(args: argparse.Namespace) -> int:
         print(f"❌ Dependency DAG validation failed: {dag_errors}", file=sys.stderr)
         return 1
 
-    env = LocalWorkspaceEnv()
+    env = LocalWorkspaceEnv(target_files=[f"src/skills/{args.skill_name}"])
     skill_tests_dir = Path(skill.root_dir) / "tests"
 
     def _find_evalset(test_type: str) -> Optional[Path]:
         cand = skill_tests_dir / f"{args.skill_name}_{test_type}.evalset.json"
         return cand if cand.exists() else None
+
+    pass_k = getattr(args, "pass_k", 1)
 
     # Tier 1 判定: 契約テスト(100%) + トリガーテスト(90%)
     if args.tier >= 1:
@@ -281,7 +297,7 @@ def cmd_tier_gate(args: argparse.Namespace) -> int:
         if cf:
             with open(cf, "r", encoding="utf-8") as f:
                 cases = json.load(f)
-            c_res = ContractTestRunner().run_tests(skill=skill, test_cases_data=cases, env=env)
+            c_res = ContractTestRunner().run_tests(skill=skill, test_cases_data=cases, env=env, pass_k=pass_k)
             if c_res.failed > 0 or c_res.accuracy < 1.0:
                 print(f"❌ Tier 1 Contract tests failed: {c_res.passed}/{c_res.total} passed.", file=sys.stderr)
                 return 1
@@ -295,7 +311,7 @@ def cmd_tier_gate(args: argparse.Namespace) -> int:
                 print(f"❌ Tier 1 Trigger test accuracy ({t_res.accuracy:.1%}) < 90%.", file=sys.stderr)
                 return 1
 
-    # Tier 2 判定: ゴールデン(90%) + ジャッジ(85%)
+    # Tier 2 判定: ゴールデン(90%)
     if args.tier >= 2:
         gf = _find_evalset("golden")
         if gf:
@@ -305,6 +321,13 @@ def cmd_tier_gate(args: argparse.Namespace) -> int:
             if g_res.accuracy < 0.9:
                 print(f"❌ Tier 2 Golden test accuracy ({g_res.accuracy:.1%}) < 90%.", file=sys.stderr)
                 return 1
+
+    # Tier 3 判定: Human Sign-off 検査
+    if args.tier >= 3:
+        if not getattr(args, "yes", False):
+            print("❌ Error: Tier 3 (Action-Allowed) promotion requires explicit Human Sign-off.", file=sys.stderr)
+            print("Please pass '--yes' / '-y' to confirm human approval.", file=sys.stderr)
+            return 1
 
     # 昇格成功
     state.register_skill(skill_name=args.skill_name, tier=SkillTier(args.tier))
@@ -334,7 +357,9 @@ def cmd_optimize(args: argparse.Namespace) -> int:
     res = optimizer.optimize_skill(
         skill_name=args.skill_name,
         target_tier=args.tier,
-        run_cascade=not args.no_cascade
+        run_cascade=not args.no_cascade,
+        pass_k=getattr(args, "pass_k", None),
+        human_approved=getattr(args, "yes", False)
     )
     if res.get("status") == "promoted":
         print(f"🎉 Success: {res.get('message')}")
@@ -345,6 +370,7 @@ def cmd_optimize(args: argparse.Namespace) -> int:
         if "details" in res:
             print(json.dumps(res["details"], ensure_ascii=False, indent=2), file=sys.stderr)
         return 1
+
 
 
 def cmd_list(args: argparse.Namespace) -> int:
@@ -411,12 +437,17 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_eval = subparsers.add_parser("eval", help="Run contract and simulation evaluation tests on a skill")
     p_eval.add_argument("skill_name", help="Target skill name")
     p_eval.add_argument("--type", "-t", choices=["all", "contract", "trigger", "golden", "judge", "trajectory", "adversarial"], default="all", help="Evaluation test type")
+    p_eval.add_argument("--pass-k", "-k", type=int, default=1, help="Sustained reliability pass^k count (default: 1)")
+    p_eval.add_argument("--trajectory-mode", choices=["exact", "in_order", "any_order"], default="any_order", help="ADK Trajectory matching mode (default: any_order)")
+    p_eval.add_argument("--co-loaded", action="store_true", help="Run co-loaded multi-skill coexistence benchmark")
     p_eval.add_argument("--report", "-r", help="Custom output report path")
 
     # 6. tier-gate
     p_tier = subparsers.add_parser("tier-gate", help="Run multi-layer test gates for Tier promotion (Tier 1~3)")
     p_tier.add_argument("skill_name", help="Target skill name")
     p_tier.add_argument("--tier", type=int, choices=[1, 2, 3], default=1, help="Target Tier to promote to (1: Production, 2: Verified, 3: Mastered)")
+    p_tier.add_argument("--pass-k", "-k", type=int, default=1, help="Sustained reliability pass^k count (default: 1)")
+    p_tier.add_argument("--yes", "-y", action="store_true", help="Approve Human Sign-off for Tier 3 promotion")
 
     # 7. diagnose
     p_diag = subparsers.add_parser("diagnose", help="Extract structured failure context from evaluation reports")
@@ -428,6 +459,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_opt = subparsers.add_parser("optimize", help="Verify, evaluate, run cascade tests, and promote a skill")
     p_opt.add_argument("skill_name", help="Target skill name")
     p_opt.add_argument("--tier", type=int, choices=[1, 2, 3], default=1, help="Target Tier (default: 1)")
+    p_opt.add_argument("--pass-k", "-k", type=int, help="Sustained reliability pass^k count (default: 3 for Tier 3)")
+    p_opt.add_argument("--yes", "-y", action="store_true", help="Approve Human Sign-off for Tier 3 promotion")
     p_opt.add_argument("--no-cascade", action="store_true", help="Skip cascade regression tests on dependents")
 
     # 9. list

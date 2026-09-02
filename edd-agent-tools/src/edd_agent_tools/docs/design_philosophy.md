@@ -1,6 +1,7 @@
 # Agent Skill 設計思想 (Design Philosophy)
 
 本プロジェクトにおける Google ADK 2.0 および Anthropic 標準（Markdown-First & Progressive Disclosure）スキルの設計思想とベストプラクティスを記録します。
+Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠した最新の評価・品質防壁アーキテクチャを採用しています。
 
 ---
 
@@ -21,7 +22,7 @@
 * **スキルの依存関係（Prerequisites / Requirements）に関する標準方針**:
   - **メタスキル（`skill-creator`, `skill-evolver`）**: `pytest` が `pytest` を前提とするのと同様、**`pip install edd-agent-tools` を前提とし、統合 CLI `edd` を直接呼び出す手順書（CLI-as-an-API）** です。不要な薄型ラッパースクリプトを排除し、単一真実源（SSOT）と保守性を最大化します。
   - **一般ドメインスキル（業務・ツールスキル）**:
-    - 軽量ユーティリティ（例: `case-converter`）は Python 標準ライブラリのみで完結させます。
+    - 軽量ユーティリティ（例: `case-converter`, `secret-sanitizer`）は Python 標準ライブラリのみで完結させます。
     - 外部ライブラリ依存（例: `docx`, `xlsx`, `playwright` 等）が必要なスキルは、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（環境構築されている前提で実行）。`SkillValidator` が AST 解析により記述漏れを自動検知します。
 
 ---
@@ -30,10 +31,10 @@
 
 ### ① Two-Tier Architecture（不変プラットフォーム vs 自己改善資産）
 * **不変プラットフォーム層 (`edd-agent-tools`)**:
-  - スキルのスキーマ検証（`SkillValidator`）、サンドボックス実行（`LocalWorkspaceEnv`）、多層評価（`ContractTestRunner`）、Tier状態管理（`SkillsState`）、ZIPパッケージャなどの決定論的インフラを提供。
+  - スキルのスキーマ検証（`SkillValidator`）、サンドボックス実行（`LocalWorkspaceEnv`）、多層評価（`ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter`, `CoLoadedEvalRunner`）、Tier状態管理（`SkillsState`）、ZIPパッケージャなどの決定論的インフラを提供。
   - プロンプト文体や生成ロジックをコード内に過度にハードコードしない。
 * **自己改善スキル資産層 (`src/skills/`)**:
-  - スキル作成用の Markdown テンプレート素材（`assets/templates/`）、プロンプト定義（`SKILL.md`）、決定論的スクリプト（`scripts/`）、契約テスト（`tests/`）を集約。
+  - スキル作成用の Markdown テンプレート素材、プロンプト定義（`SKILL.md`）、決定論的スクリプト（`scripts/`）、契約テスト（`tests/`）を集約。
   - エージェントが自己改善（プロンプト進化）する際、pip パッケージのコードを変更することなく安全に進化可能。
 
 ### ② 単一真実源とカスケード解決 (Cascading Template Resolver)
@@ -41,7 +42,6 @@
 * テンプレート解決は **カスケード解決機構（Cascading Template Resolver）** を採用：
   1. ワークスペース側の自己改善テンプレート（`skills/skill-creator/assets/templates/`）を最優先で探索
   2. 存在しない場合はパッケージ組み込みテンプレート（`edd_agent_tools.packaging.templates`）へ安全にフォールバック
-  これにより、エージェントがプロンプトテンプレートを自己改善すると、以降の `edd init` で生成されるスキルの初期品質が自律的に向上します。
 
 ### ③ Progressive Disclosure（段階的情報開示とリソース分離）
 * コンテキストウィンドウの効率化と信頼性の両立を図るため、スキル資産を明確な3階層に分離します：
@@ -54,37 +54,28 @@
      - `examples/`: 具象コード例・パターン集（エージェントが真似できる実装例）
      - `tests/`: 契約テストおよびシミュレーション評価データ（`*.evalset.json`）
 
-### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`)
-* 全スキルの Python 関数を直接 `FunctionTool` として一括展開するアンチパターン（Context Bloat）を排除し、Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を採用。
-* `google.adk.skills.models` (`Skill`, `Frontmatter`, `Resources`, `Script`) を SSOT として完全統合。`SkillSpec` および `SkillFrontmatter` において `allowed-tools` / `allowed_tools`、`compatibility`、`metadata` などの ADK 2.0 仕様を 100% 損失なく相互変換。
-* `edd_agent_tools.core.Skill` は `Skill.adk_skill` プロパティや `to_adk_skill()` を通じて `load_skill_from_dir` でロードされた ADK 2.0 純正モデルと完全透過に連携。
-* `EddSkillRegistry` により、ADK 純正の `SkillRegistry` 抽象クラスに `SkillsState`（Tier 状態・DAG 解析）を適合させ、動的検索（`SearchSkillsTool`）およびオンデマンドフェッチを提供。
+### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `AgentEvaluator`)
+* Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を採用。
+* `AdkEvalAdapter` により、ADK 純正の `AgentEvaluator` および Rubrics-based Criteria（`rubric_based_final_response_quality_v1` 等）を透過接続。
+* 評価の順序バイアスを中和する **Position Swapping** を標準装備。
 
-### ⑤ 実践的ワークフロー規約 (Reconnaissance, Black-box `--help`, Minimal Edits)
-* **Reconnaissance-then-Action（偵察先行）**: 編集前にまずデータ構造・セレクタ・メタデータをサンプリング調査してから変更を実行。
-* **Black-box Execution**: スクリプト実行時はまず `--help` で引数仕様を確認し、スクリプト本体をコンテキストに読み込まずブラックボックス実行。
-* **Minimal Edits & Batching**: ピンポイントな最小編集とバッチ処理による非破壊原則。
+### ⑤ 3大 Tool Trajectory 評価モード (Google ADK 準拠)
+* 出力結果だけでなく、ツールの呼び出し順序（Tool Trajectory）を別個に検証：
+  - **`EXACT`**: 順序・要素数が完全一致
+  - **`IN_ORDER`**: 期待される順序を保った部分列（Action-Allowed Tier 3 用）
+  - **`ANY_ORDER`**: 順序不問の包含関係（Read-Only Tier 1 用）
 
-### ⑥ スキルの完全ポータビリティと自己完結型テスト (Self-Contained Evaluation)
-* 各スキルは単体で外部プラットフォーム（Claude Code, Antigravity, Cursor, ADK 等）へドロップイン可能な自己完結性を持つ。
-* 各スキルの `tests/` ディレクトリに契約テスト（`*.evalset.json`）を同梱し、単体で `edd eval` による 100% 契約検証を実施可能。
+### ⑥ $pass^k$ (Sustained Reliability) & Co-loaded 共存テスト
+* 1 回のラッキー合格（$pass@1$）を排除し、指定された $k$ 回連続実行で全勝を要求する **$pass^k$ 指標** を導入。
+* 5〜15 スキルが同時マウントされた高トークン負荷環境下での **Context Rot 防止ベンチマーク（`CoLoadedEvalRunner`）** を実施。
 
 ### ⑦ 4次元ネガティブ・ハーネス (`When NOT to Use` による過剰適用防止)
-* 以下の4軸から客観的な除外条件（When NOT to use）を導出し、過剰適用（Over-tooling）や競合による誤発火を防止：
-  1. **粒度境界 (Granularity)**: 単発のワンライナーや標準OSコマンドで完結する軽微なタスク。
-  2. **技術的限界 (Out-of-Scope)**: ドメイン範囲外の高度な変換や別領域の処理。
-  3. **ライフサイクル分離 (Lifecycle)**: 前後のフェーズ（作成、診断、評価、最適化）の住み分け。
-  4. **インベントリ照合 (Inventory)**: 既存スキルで既にカバーされているタスク。
+* 粒度境界、技術的限界、ライフサイクル分離、インベントリ照合の4軸から客観的な除外条件を明記し、過剰適用を防ぎます。
 
-### ⑧ 4段階品質保証パイプライン (4-Stage Quality Gate)
-* スキルの自律生成からマウントまでの品質を保証する4段階の防壁：
-  - **Stage 1 (Authoring & Scaffolding)**: `assets/templates/` を活用した論理設計と雛形生成（`edd init`）
-  - **Stage 2 (Static Validation)**: `SkillValidator` による静的リンター（構文・実在整合性・Imperative文体・Prerequisites外部依存照合・DAG依存関係）
-  - **Stage 3 (Contract & Multi-Layer Evaluation)**: サンドボックス環境（`LocalWorkspaceEnv`）での決定論的 Black-box CLI 契約テスト（終了コード・標準出力）およびシミュレーション評価（Trigger / Trajectory / Golden）
-  - **Stage 4 (Self-Healing Loop & Cascade Gating)**: 失敗診断（`edd diagnose`）➔ 修正 ➔ 連鎖回帰テスト（`CascadeTestRunner`）➔ Tier 昇格
-
-### ⑨ 動的ディスパッチ (Dynamic Dispatch) ＆ 統合 CLI (`edd`)
-* スキルが自律的に増殖・追加されてもパッケージ本体の再インストールやコード修正を一切不要とするため、ファイルシステムベースの動的ディスカバリ（`edd run <skill-name>` / `edd <skill-name>`）を採用。
+### ⑧ 4段階品質保証パイプライン & Human Sign-off (The Read / Draft / Act Ladder)
+* **Tier 1 (`READ_ONLY`)**: 静的検証（`edd validate` 警告/エラー0）+ CLI契約テスト（100%合格）+ トリガー精度（90%以上）
+* **Tier 2 (`DRAFT_ONLY`)**: ゴールデンデータセット評価（90%以上）+ 連鎖回帰テスト（Cascade Regression 100%パス）
+* **Tier 3 (`ACTION_ALLOWED`)**: Trajectory 評価（`IN_ORDER` / `EXACT`）+ $pass^k$ 持続的一貫性（$k \ge 3$）+ Co-loaded 共存テスト + **人間の明示的承認（Human Sign-off: `--yes`）**
 
 ---
 
@@ -97,7 +88,7 @@ edd_agent_tools/
 ├── models/         # データモデル (SkillSpec, SkillTier, EvalCaseSet, EvalRunResult)
 ├── validation/     # 汎用静的リンター (SkillValidator, ValidationResult, AST解析, Prerequisites照合)
 ├── packaging/      # ZIP パッケージャ (SkillPackager), スキャフォールド (SkillScaffolder, Cascading Resolver)
-├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション, 診断 (SkillDiagnoser), 最適化 (SkillOptimizer), サンドボックス (LocalWorkspaceEnv)
+├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション, ADK連携 (AdkEvalAdapter), 共存テスト (CoLoadedEvalRunner), 診断 (SkillDiagnoser), 最適化 (SkillOptimizer), サンドボックス (LocalWorkspaceEnv)
 ├── adk/            # Google ADK 2.0 連携 (create_adk_skill_toolset, EddSkillToolset)
 ├── mcp/            # FastMCP サーバー (edd-agent-mcp)
 └── cli.py          # 統合 CLI (edd run/init/validate/package/eval/tier-gate/diagnose/optimize/list)

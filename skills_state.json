@@ -16,6 +16,9 @@
     },
     "case-converter": {
       "tier": 1
+    },
+    "secret-sanitizer": {
+      "tier": 3
     }
   },
   "agents": {}

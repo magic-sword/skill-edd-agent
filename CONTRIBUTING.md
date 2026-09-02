@@ -20,18 +20,19 @@
 │   └── src/edd_agent_tools/
 │       ├── AGENTS.md       # AIエージェント向けシステム制約（ドキュメント規約の真実のソース）
 │       └── docs/           # パッケージドキュメントセンター（Whyの集約先）
-│           ├── progressive_disclosure.md # リソース分離（scripts, references, assets, examples）規約
+│           ├── progressive_disclosure.md # リソース分離（scripts, references, assets, examples, tests）規約
 │           ├── prompt_syntax.md          # Imperative文体・客観的プロンプト規約
-│           ├── skill_patterns.md         # 4大スキル構造パターン
-│           ├── design_philosophy.md      # スキル設計思想・フォルダ構成規約
-│           ├── test_architecture.md      # テスト Generator-Executor ペアリング仕様
+│           ├── skill_patterns.md         # スキル構造パターン設計ガイド
+│           ├── design_philosophy.md      # スキル設計思想・Two-Tier 構造
+│           ├── test_architecture.md      # 多層テスト・ADK 評価統合仕様
 │           ├── eval_design.md            # サンドボックス隔離・アサーションポリシー
-│           └── sandbox_design.md         # Gymnasium仮想環境（DI）とCLI仕様
+│           └── sandbox_design.md         # 仮想環境（DI）とCLI仕様
 └── src/                    # 自己進化エージェントの本体およびスキル（Tier管理下）
-    └── skills/             # すべてのスキルおよび合成ワークフロー（Progressive Disclosure構造）
-        ├── skill-creator/  # Anthropic & Google ADK 準拠のスキル設計・雛形生成・パッケージャ
+    └── skills/             # すべてのスキル（Progressive Disclosure構造）
+        ├── skill-creator/  # スキル設計・雛形生成・パッケージャ
         ├── skill-evolver/  # 評価・失敗診断・自己修復・Tier昇格を司る自己改善メタスキル
-        ├── case-converter/ # テキストケース変換（ゴールデンサンプル）
+        ├── case-converter/ # テキストケース変換
+        ├── secret-sanitizer/ # 機密情報マスキング・サニタイズ (Tier 3)
         └── ...
 ```
 
@@ -58,22 +59,29 @@
    - スキルの振る舞い、インターフェース、意思決定ツリー、手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化します。
    - メタスキル（`skill-creator`, `skill-evolver`）は `pip install edd-agent-tools` を前提とし、統合 CLI `edd` を直接呼び出す手順書（CLI-as-an-API）として記述します。
 2. **Progressive Disclosure (リソース分離)**:
-   - `scripts/`: 直接実行可能な決定論的スクリプト（Python/Bash, `--help` 必須, Black-box 実行）※ドメイン固有の処理がある場合のみ配置
+   - `scripts/`: 直接実行可能な決定論的スクリプト（Python/Bash, `--help` 必須, Black-box 実行）
    - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド参照資料）
    - `assets/`: 出力用テンプレート・素材・ボイラープレート（空ディレクトリは残置しない）
    - `examples/`: エージェントが真似できる具象コード例・パターン集
    - `tests/`: 契約テストおよびシミュレーション評価ケース（`*.evalset.json`）
 3. **依存関係ポリシー (Prerequisites & Zero-Dependency)**:
    - 軽量ユーティリティは Python 標準ライブラリのみで完結させます。
-   - 外部ライブラリを必要とするスキルは、`SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（`SkillValidator` が AST 解析により検証）。
+   - 外部ライブラリを必要とするスキルは、`SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（`SkillValidator` が AST 解析により自動検証）。
    - スキル内部から `import edd_agent_tools` などの直接 Python import は行わず、CLI/IO 規約でのみ連携します。
-4. **実践的ワークフロー規約**:
-   - **Reconnaissance-then-Action**: 変更前にデータ構造・セレクタをサンプリング調査する。
-   - **Black-box Execution**: スクリプト実行時はまず `--help` で引数仕様を確認し、スクリプト本体を直接コンテキストに読み込まない。
-   - **Minimal Edits & Batching**: ピンポイントな最小編集とバッチ処理による非破壊編集を行う。
-5. **4次元ネガティブ・ハーネス (`When NOT to Use This Skill`)**:
-   - 粒度境界、技術的限界、ライフサイクル分離、インベントリ照合の4軸から客観的な除外条件を明記し、過剰適用を防ぐ。
-6. **客観的指示文体 (Imperative Form)**:
+4. **4次元ネガティブ・ハーネス (`When NOT to Use This Skill`)**:
+   - 粒度境界、技術的限界、ライフサイクル分離、インベントリ照合の4軸から客観的な除外条件を明記し、過剰適用を防ぎます。
+5. **客観的指示文体 (Imperative Form)**:
    - 全体指示文は動詞起点（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調を排除してください。
    - Frontmatter の `description` は第三者視点（"This skill should be used when..."）で100 words以内で簡潔に記述してください。
 
+---
+
+## 4. 品質防壁と Tier 昇格基準 (The Read / Draft / Act Ladder)
+
+ホワイトペーパー（May 2026）に準拠し、スキルは以下の 3 段階の防壁を経て昇格・マウントされます：
+
+| Tier | 権限レベル | 必須合格条件 |
+| :---: | :--- | :--- |
+| **Tier 1** | **`READ_ONLY`** (Production Gate) | 静的バリデーション（`edd validate` 警告/エラー0件）+ CLI 契約テスト（100% 合格）+ トリガー精度（90% 以上） |
+| **Tier 2** | **`DRAFT_ONLY`** (Verified Gate) | ゴールデンデータセット評価（90% 以上）+ 上位依存スキルの連鎖回帰テスト（Cascade Regression 100% パス） |
+| **Tier 3** | **`ACTION_ALLOWED`** (Mastered Gate) | Tool Trajectory 評価（`IN_ORDER` または `EXACT`）+ $pass^k$ 持続的一貫性（$k \ge 3$ 連続合格）+ Co-loaded 共存テスト + **人間の明示的承認（Human Sign-off: `--yes`）** |
