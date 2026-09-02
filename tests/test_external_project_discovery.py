@@ -43,13 +43,13 @@ def test_adk_toolset_with_external_skills_root(tmp_path: Path):
     SkillScaffolder.scaffold("weather-reporter", output_base_dir=custom_root, pattern="task_based")
 
     toolset = EddSkillToolset(skills_root=custom_root)
-    listed = toolset.list_skills()
+    listed = toolset.list_skills_sync()
 
     assert len(listed) >= 1
     assert any(s["name"] == "weather-reporter" for s in listed)
 
     # ロードテスト
-    loaded = toolset.load_skill("weather-reporter")
+    loaded = toolset.load_skill_sync("weather-reporter")
     assert loaded.get("status") == "loaded"
     assert "weather-reporter" in loaded.get("name", "")
 

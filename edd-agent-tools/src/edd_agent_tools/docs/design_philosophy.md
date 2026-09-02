@@ -54,10 +54,12 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
      - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）。**Shift Intelligence Left** により、モデルの推論プロンプトから決定論的処理をコードへオフロード。
      - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド読み込み）
      - `assets/`: 出力用テンプレート・素材（成果物への流用・コピー用）
-### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `AgentEvaluator`)
-* Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を採用。
+### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `LocalCodeExecutor`)
+* Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を完全採用。
+* **モンキーパッチの排除と公式 Code Executor 採用**: ADK 内部メソッドの上書き（monkey patch）を全廃し、ADK 公式の `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入してスクリプトを安全かつ正規の手順で実行。
 * `AdkEvalAdapter` により、ADK 純正の `AgentEvaluator` および Rubrics-based Criteria（`rubric_based_final_response_quality_v1` 等）を透過接続。
-* 評価の順序バイアスを中和する **Position Swapping** を標準装備。
+* 評価の順序バイアスを中和する **Position Swapping**（参照と実回答を入れ替えて2回推論し相加平均）を標準装備。
+* **Don't reinvent MCP as scripts (MCP再発明の禁止)**: 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはならない。スキルは Know-how（決定論的手順と処理）に集中する。
 
 ### ⑤ 3大 Tool Trajectory 評価モード (Google ADK 準拠)
 * 出力結果だけでなく、ツールの呼び出し順序（Tool Trajectory）を別個に検証：

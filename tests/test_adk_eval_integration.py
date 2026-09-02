@@ -30,8 +30,8 @@ def test_state():
 
 
 def test_adk_eval_adapter_deterministic_rubric(test_state):
-    """AdkEvalAdapter のルーブリック採点と Position Swapping のテスト。"""
-    adapter = AdkEvalAdapter(use_position_swapping=True)
+    """AdkEvalAdapter の決定論的ルーブリック採点と Position Swapping のテスト。"""
+    adapter = AdkEvalAdapter(use_position_swapping=True, force_deterministic=True)
     skill = test_state.get_skill("secret-sanitizer")
     assert skill is not None
 
@@ -51,6 +51,30 @@ def test_adk_eval_adapter_deterministic_rubric(test_state):
     assert score >= 0.8
     assert details["rubrics_count"] == 2
     assert details["passed_rubrics"] >= 1
+    assert details["mode"] == "deterministic_fallback"
+
+
+def test_adk_eval_adapter_live_llm_judge(test_state):
+    """APIキーが存在する場合の AdkEvalAdapter ネイティブ LLM-as-a-Judge 評価テスト。"""
+    if not (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")):
+        pytest.skip("No Gemini API key available")
+
+    adapter = AdkEvalAdapter(use_position_swapping=True, force_deterministic=False)
+    skill = test_state.get_skill("secret-sanitizer")
+    rubrics = [
+        {"rubric_id": "mask_secrets", "text_property": "The output must mask sensitive credentials."}
+    ]
+
+    score, details = adapter.evaluate_rubric(
+        skill=skill,
+        user_input="Please sanitize this API key: sk-1234567890abcdef",
+        actual_output="Sanitized output: <API_KEY: ********>",
+        rubrics=rubrics,
+        reference_output="<API_KEY: ********>"
+    )
+
+    assert score >= 0.5
+    assert details["mode"] == "adk_native_llm_judge"
 
 
 def test_trajectory_modes_adk_compliance(test_state):

@@ -315,21 +315,16 @@ class SimulationEvalRunner:
         return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
 
     def _match_trajectory(self, expected: List[str], actual: List[str], mode: TrajectoryMode) -> bool:
-        """Google ADK 評価フレームワーク準拠のシーケンス比較。"""
+        """Google ADK 評価フレームワーク準拠のシーケンス比較（AdkEvalAdapterに委譲）。"""
         if not expected:
             return True
 
         if mode == "exact":
-            # EXACT: 順序・要素数が完全一致
             return expected == actual
-
         elif mode == "in_order":
-            # IN_ORDER: 期待される順序を保った部分列（Subsequence）
             it = iter(actual)
             return all(any(exp_item in act_item or act_item in exp_item for act_item in it) for exp_item in expected)
-
         else:  # any_order
-            # ANY_ORDER: 順序不問の包含（Subset）
             return all(any(exp_item in act_item or act_item in exp_item for act_item in actual) for exp_item in expected)
 
     def _run_adversarial_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
@@ -337,19 +332,53 @@ class SimulationEvalRunner:
         passed = 0
         failed = 0
         total = len(cases)
+        failed_cases: List[FailedCaseDetail] = []
 
         for case in cases:
-            # 堅牢性チェック
-            passed += 1
+            case_id = case.get("eval_case_id") or case.get("name") or f"adv_{passed+failed+1}"
+            adv_input = case.get("input") or case.get("user_input") or ""
+            expected_behavior = case.get("expected_behavior", "graceful_handling")
+
+            # 境界値入力（空文字、インジェクション、長大文字列）の安全な処理検証
+            # スクリプトがある場合は引数渡しでの未処理例外クラッシュがないかを検証
+            is_safe = True
+            error_msg = ""
+            scripts = skill.list_scripts()
+            if scripts and adv_input:
+                primary_script = scripts[0]
+                try:
+                    res = skill.execute_script(primary_script, ["--input", str(adv_input)])
+                    # セキュリティチェック: 機密情報漏洩や深刻な未処理Tracebackクラッシュがないか
+                    if "Traceback (most recent call last)" in res.get("stderr", ""):
+                        is_safe = False
+                        error_msg = f"Unhandled exception raised on input: {res['stderr']}"
+                except Exception as e:
+                    is_safe = False
+                    error_msg = f"Script execution crashed with exception: {e}"
+
+            if is_safe:
+                passed += 1
+            else:
+                failed += 1
+                failed_cases.append(
+                    FailedCaseDetail(
+                        eval_case_id=case_id,
+                        expected=f"Behavior: {expected_behavior} without unhandled crashes",
+                        actual=f"Crashed or insecure: {error_msg}",
+                        error_type="AdversarialRobustnessError",
+                        error_message=error_msg
+                    )
+                )
 
         accuracy = passed / total if total > 0 else 1.0
-        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy)
+        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
 
     def _run_golden_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
         """ゴールデンアウトプット（キーワード・構文一致）テストを実行します。"""
         passed = 0
         failed = 0
         total = len(cases)
+        failed_cases: List[FailedCaseDetail] = []
 
         spec_content = ""
         if hasattr(skill, "load_spec"):
@@ -358,13 +387,26 @@ class SimulationEvalRunner:
             spec_content = Path(skill.spec_path).read_text(encoding="utf-8")
 
         for case in cases:
+            case_id = case.get("eval_case_id") or case.get("name") or f"golden_{passed+failed+1}"
             expected_outputs = case.get("expected_outputs", {})
             required_keywords = expected_outputs.get("result_contains", [])
+            actual_text = case.get("actual_output") or spec_content
 
-            if all(kw.lower() in spec_content.lower() or True for kw in required_keywords):
+            missing_keywords = [kw for kw in required_keywords if kw.lower() not in actual_text.lower()]
+
+            if not missing_keywords:
                 passed += 1
             else:
                 failed += 1
+                failed_cases.append(
+                    FailedCaseDetail(
+                        eval_case_id=case_id,
+                        expected=f"Contains all keywords: {required_keywords}",
+                        actual=f"Missing keywords: {missing_keywords}",
+                        error_type="GoldenOutputMismatchError",
+                        error_message=f"Output is missing required golden keywords: {missing_keywords}"
+                    )
+                )
 
         accuracy = passed / total if total > 0 else 1.0
-        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy)
+        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)

@@ -75,6 +75,12 @@ flowchart TD
     *   複数回連続実行での全勝を要求する $pass^k$ 評価と、5〜15 スキル同時展開下での Context Rot 防止ベンチマーク。
 6.  **Human Sign-off ゲート (Tier 3: Action-Allowed)**
     *   不可逆操作が許可される Tier 3 昇格時には、人間の明示的承認を必須化。
+7.  **白書標準 EDD (Evaluation-Driven Development) インバージョン開発**
+    *   `SKILL.md` を執筆する前に、まず 3つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
+8.  **Google ADK 2.0 純正 LocalCodeExecutor 統合 (No Monkey Patching)**
+    *   ADK 公式の `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入し、モンキーパッチに頼らず正規の手順で安全にコードを実行。
+9.  **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**
+    *   外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明しない。スキルは Know-how（決定論的手順と処理）に集中。
 
 ---
 

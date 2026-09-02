@@ -48,19 +48,23 @@ edd init <skill-name> --pattern workflow --path src/skills
 edd harvest-trace <path/to/trace.json> <skill-name> --out src/skills
 ```
 
-### Step 3: リソースの実装と SKILL.md の執筆
-1. `assets/templates/` 配下の Markdown テンプレート素材（`workflow_template.md`, `task_based_template.md`, `reference_template.md`, `capabilities_template.md` 等）を参考に、`SKILL.md` の Frontmatter（`name`, `description`）および手順書を客観的動詞起点（Imperative form）で執筆する。
-2. 計画されたスクリプトを `scripts/` に配置する（`argparse` による `--help` 対応、余計な多層ラッパーを作らないフラットな実装）。
-3. 知識資料を `references/`、テンプレート素材を `assets/`、使用例を `examples/`、テストケースを `tests/` に配置する（不要な空ディレクトリは残さない）。
+### Step 3: インバージョン開発 (EDD Inversion) による評価ケース先行策定
+`SKILL.md` の本文を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に白書 Snippet 3 標準フォーマットの 3 つの評価ケース（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定する。
+期待されるツール呼び出し軌跡（Tool Trajectory）と採点ルーブリックを先に定義することで、スキルの機能仕様と境界が明確化され、プロンプトの曖昧性やハルシネーションを未然に防止する。
 
-### Step 4: 高速静的検証 *(Tool: `edd validate`)*
-To validate the structure, frontmatter, resource references, and naming conventions, execute:
+### Step 4: リソースの実装と SKILL.md の執筆
+1. `assets/templates/` 配下の Markdown テンプレート素材（`workflow_template.md`, `task_based_template.md`, `reference_template.md`, `capabilities_template.md` 等）を参考に、`SKILL.md` の Frontmatter（`name`, `description`）および手順書を客観的動詞起点（Imperative form）で執筆する。
+2. 計画された決定論的スクリプトを `scripts/` に配置する（`argparse` による `--help` 対応、余計な多層ラッパーを作らないフラットな実装。※外部API再実装は避け、MCPとの役割分担を守ること）。
+3. 知識資料を `references/`、テンプレート素材を `assets/`、使用例を `examples/` に配置する（不要な空ディレクトリは残さない）。
+
+### Step 5: 高速静的検証 *(Tool: `edd validate`)*
+To validate the structure, frontmatter, resource references, naming conventions, and AST cleanliness, execute:
 ```bash
 edd validate src/skills/<skill-name>
 ```
 エラーまたは警告が検知された場合は、指摘に従って `SKILL.md` や各リソースファイルを修正する。
 
-### Step 5: 配布用 ZIP パッケージ化 *(Tool: `edd package`)*
+### Step 6: 配布用 ZIP パッケージ化 *(Tool: `edd package`)*
 To package and export the validated skill for distribution (Claude Code, Antigravity, Cursor, ADK), execute:
 ```bash
 edd package src/skills/<skill-name> --out dist

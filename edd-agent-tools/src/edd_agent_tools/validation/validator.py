@@ -126,6 +126,13 @@ class SkillValidator:
         req_text = req_match.group(1).lower() if req_match else ""
 
         for pkg, script_name in imported_external_pkgs:
+            # 白書 Don't: Reinvent MCP as scripts の検知
+            if pkg in ["requests", "httpx", "aiohttp", "urllib3"]:
+                res.add_warning(
+                    "anti_pattern",
+                    f"Script '{script_name}' imports network HTTP client '{pkg}'. Remember: 'Don't reinvent MCP as scripts' (Whitepaper Appendix A). Skills are for procedural know-how; external API integrations should be handled via MCP tools."
+                )
+
             # パッケージ名（小文字やアンダースコア・ハイフン違い）が含まれているか照合
             pkg_clean = pkg.lower().replace("_", "-")
             pkg_raw = pkg.lower()

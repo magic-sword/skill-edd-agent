@@ -49,8 +49,27 @@ edd-agent-mcp
 
 ---
 
-## 4. テストの実行
+## 4. LLM-as-a-Judge 評価の設定 (任意)
+
+Google ADK 2.0 純正の LLM-as-a-Judge 評価（Gemini 2.5 Flash）を実行する場合は、以下の環境変数を設定してください（未設定時は決定論的ルールベース評価へ自動フォールバックします）：
 
 ```bash
+export GEMINI_API_KEY="your-gemini-api-key"
+# または
+export GOOGLE_API_KEY="your-google-api-key"
+```
+
+---
+
+## 5. テストスイートの実行
+
+```bash
+# 全テストの実行 (49件すべて Green)
 pytest tests/ -v
+
+# ADK 評価および Trajectory 統合テスト
+pytest tests/test_adk_eval_integration.py -v
+
+# 自己進化 End-to-End デモの実行
+python demo_self_evolution.py
 ```

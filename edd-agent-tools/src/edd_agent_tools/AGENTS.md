@@ -43,15 +43,15 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 
 ### A. 不変プラットフォーム層（pip ライブラリ: `edd-agent-tools`）の責務
 全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム（汎用ランタイム＆テストハーネス）」に徹してください：
-- **共通ドメインエンティティ (`core`)**: `Skill`, `SkillTests`
+- **共通ドメインエンティティ (`core`)**: `Skill`（`load_resource`, `execute_script` 自己完結実行カプセル化）, `SkillTests`
 - **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析, `entry_points` 探索）
-- **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証）
-- **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`
-- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
-- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset`, `EddSkillRegistry`, `create_mcp_server`
+- **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、MCP再発明検知）
+- **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（Snippet 3 インバージョン生成）
+- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (3大 Trajectory: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & 決定論的ルールベース), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
+- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (ADK公式 `UnsafeLocalCodeExecutor` 標準注入、モンキーパッチ禁止), `EddSkillRegistry`, `create_mcp_server`
 - **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
 
-※ **自己完結性の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。
+※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチによる ADK メソッド上書きは厳禁とし、公式 Code Executor を使用します。
 
 ### B. 自己改善スキル資産層（`src/skills/`）の責務と依存関係ポリシー
 - **個別ロジックのカプセル化**:
@@ -61,9 +61,13 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
      - `pytest` が `pytest` のインストールを前提とするのと同様、**`pip install edd-agent-tools` を前提とし、統合 CLI `edd` を直接呼び出す手順書（CLI-as-an-API）** です。
      - 不要な薄型ラッパースクリプトを排除し、単一真実源（SSOT）と保守性を最大化します。
   2. **一般ドメインスキル（業務・ツールスキル）**:
-     - 軽量ユーティリティ（例: `case-converter`）は Python 標準ライブラリのみで完結させます。
+     - 軽量ユーティリティ（例: `case-converter`, `secret-sanitizer`）は Python 標準ライブラリのみで完結させます。
      - 外部ライブラリ依存（例: `docx`, `xlsx`, `playwright` 等）が必要なスキルは、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（環境構築されている前提で実行）。`SkillValidator` が AST 解析により記述漏れを自動検知します。
-  3. **Python import 境界の厳守**:
+  3. **Don't reinvent MCP as scripts (MCP再発明の禁止)**:
+     - 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します。
+  4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発**:
+     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず 3つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。
+  5. **Python import 境界の厳守**:
      - スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはなりません。CLI/IO 規約（`--help`、引数、標準入出力）またはサブプロセスでのみ疎結合に連携します。
 - **二重 LLM 呼び出しの禁止**:
   スキル内のスクリプト内部で直接 LLM API を叩くバッチ処理を作らず、エージェント自身が `SKILL.md` の指示に従って対話・推論を行う設計としてください。

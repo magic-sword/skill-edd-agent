@@ -93,7 +93,8 @@ class EddSkillToolset(SkillToolset):
         min_tier: int = 1,
         include_system_skills: Optional[Set[str]] = None,
         additional_tools: Optional[List[Any]] = None,
-        tool_name_prefix: Optional[str] = None
+        tool_name_prefix: Optional[str] = None,
+        code_executor: Optional[Any] = None
     ):
         self.state = state or (SkillsState(skills_roots=[Path(skills_root)]) if skills_root else SkillsState())
         self.registry = EddSkillRegistry(state=self.state, min_tier=min_tier)
@@ -107,14 +108,27 @@ class EddSkillToolset(SkillToolset):
             include_system_skills=self.system_skills
         )
 
+        # コードエグゼキュータのデフォルト解決（ADK公式のUnsafeLocalCodeExecutorを利用）
+        if code_executor is None:
+            try:
+                from google.adk.code_executors import UnsafeLocalCodeExecutor
+                code_executor = UnsafeLocalCodeExecutor()
+            except Exception:
+                code_executor = None
+
         super().__init__(
             skills=preloaded_skills,
             registry=self.registry,
+            code_executor=code_executor,
             additional_tools=additional_tools,
             tool_name_prefix=tool_name_prefix
         )
 
-    # 従来の同期呼び出し用ヘルパーメソッド（互換性および直接利用向け）
+    # =========================================================================
+    # 同期呼び出し用明示的ヘルパーメソッド（CLI、テスト、および同期スクリプト向け）
+    # ※ ADK 純正メソッド（非同期ツール等）と名前衝突・モンキーパッチを回避
+    # =========================================================================
+
     def list_skills_sync(self) -> List[Dict[str, Any]]:
         """利用可能な全スキルの Level 1 Frontmatter（name, description, tier）を返します。"""
         res = []
@@ -129,8 +143,6 @@ class EddSkillToolset(SkillToolset):
                 "path": s.root_dir
             })
         return res
-
-    list_skills = list_skills_sync
 
     def search_skills_sync(self, query: str) -> List[Dict[str, Any]]:
         """クエリに基づいて関連するスキルを検索します。"""
@@ -253,11 +265,6 @@ class EddSkillToolset(SkillToolset):
                 "script_path": str(script_path)
             }
 
-    search_skills = search_skills_sync
-    load_skill = load_skill_sync
-    load_skill_resource = load_skill_resource_sync
-    run_skill_script = run_skill_script_sync
-
 
 def load_adk_skills_from_state(
     skills_dir: Optional[Union[str, Path]] = None,
@@ -294,7 +301,8 @@ def create_adk_skill_toolset(
     min_tier: int = 1,
     include_system_skills: Optional[Set[str]] = None,
     additional_tools: Optional[List[Any]] = None,
-    tool_name_prefix: Optional[str] = None
+    tool_name_prefix: Optional[str] = None,
+    code_executor: Optional[Any] = None
 ) -> EddSkillToolset:
     """
     Google ADK 2.0 純正仕様に完全準拠した EddSkillToolset インスタンスを生成して返します。
@@ -305,5 +313,6 @@ def create_adk_skill_toolset(
         min_tier=min_tier,
         include_system_skills=include_system_skills,
         additional_tools=additional_tools,
-        tool_name_prefix=tool_name_prefix
+        tool_name_prefix=tool_name_prefix,
+        code_executor=code_executor
     )
