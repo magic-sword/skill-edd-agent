@@ -27,12 +27,13 @@
 
 * **汎用ランタイム＆テストハーネス (`edd-agent-tools` - pip パッケージ)**:
   - 状態管理・探索・DAG解析（`state`: `SkillsState`）
-  - 静的検証リンター（`validation`: `SkillValidator` - AST解析、Prerequisites照合、MCP再発明検知）
+  - 共通ドメインエンティティ（`core`: `SkillPackage`, `SkillTests`）
+  - 静的検証リンター（`validation`: `SkillValidator` - AST解析、Prerequisites照合、白書命名規則検査、MCP再発明検知）
   - パッケージ組み込み標準テンプレート & ZIP化（`packaging`: `SkillScaffolder`, `SkillPackager` - Snippet 3 インバージョン生成）
-  - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter` [LLM-as-a-Judge & Position Swapping], `CascadeTestRunner`, `LocalWorkspaceEnv`）
-  - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `EddSkillToolset` [UnsafeLocalCodeExecutor標準注入], `EddSkillRegistry` / `mcp`: `create_mcp_server`）
+  - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter` [ADK純正 ToolTrajectoryCriterion, LLM-as-a-Judge, Position Swapping], `CascadeTestRunner`, `LocalWorkspaceEnv`）
+  - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `EddSkillToolset` [UnsafeLocalCodeExecutor標準注入・重複コード実行排除], `EddSkillRegistry` / `mcp`: `create_mcp_server`）
   - 統合 CLI（`cli`: `edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
-  ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチによる ADK メソッド上書きは厳禁とし、公式 Code Executor を使用します。
+  ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。公式 Code Executor を使用します。
 
 * **規約駆動スキル資産層 (`src/skills/<skill>/`) と依存関係ポリシー**:
   1. **メタスキル (`skill-creator`, `skill-evolver`) の設計思想**:

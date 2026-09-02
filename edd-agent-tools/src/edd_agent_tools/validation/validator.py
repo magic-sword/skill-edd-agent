@@ -227,8 +227,12 @@ class SkillValidator:
                 res.add_warning("frontmatter", f"Skill name '{name}' contains vendor prefix. Best practice is vendor-neutral naming (e.g., 'converting-case' rather than 'gemini-case-converter').")
             if name in ["utils", "tools", "helper", "data", "misc"]:
                 res.add_warning("frontmatter", f"Skill name '{name}' is too generic. Use specific domain naming (e.g. 'processing-pdfs').")
-            if skill_dir and skill_dir.name != name:
-                res.add_warning("frontmatter", f"Directory name '{skill_dir.name}' does not match skill name '{name}'")
+            if skill_dir:
+                dir_name = skill_dir.name
+                # 白書 Appendix A 準拠: ディレクトリ名は snake_case, スキル名は kebab-case（または一致）
+                is_canonical_match = (dir_name == name) or (dir_name == name.replace("-", "_")) or (dir_name.replace("-", "_") == name.replace("-", "_"))
+                if not is_canonical_match:
+                    res.add_warning("frontmatter", f"Directory name '{dir_name}' does not correspond to skill name '{name}'. Whitepaper standard: Directory is snake_case (e.g. '{name.replace('-', '_')}'), skill name is kebab-case ('{name}').")
 
         desc = fm.get("description")
         if not desc or not isinstance(desc, str):

@@ -16,7 +16,7 @@ from ..models.spec import SkillSpec, SkillPattern, ModuleType, SkillMetadata
 from ..models.state import SkillTier
 
 
-class Skill:
+class SkillPackage:
     """Markdown-First & Progressive Disclosure に準拠したスキルパッケージ管理ドメインクラス。
 
     SKILL.md を単一真実源（Single Source of Truth）とし、
@@ -256,8 +256,55 @@ class Skill:
             )
         return self._metadata
 
+    def load_resource(self, resource_rel_path: str) -> str:
+        """指定された相対パスのリソースファイル内容を取得します。"""
+        target_path = Path(self.root_dir) / resource_rel_path
+        if not target_path.exists():
+            raise FileNotFoundError(f"Resource '{resource_rel_path}' not found in skill '{self.name}'.")
+        return target_path.read_text(encoding="utf-8")
+
+    def execute_script(
+        self,
+        script_name: Optional[str] = None,
+        args: Optional[List[str]] = None,
+        extra_env: Optional[Dict[str, str]] = None,
+        timeout: int = 60
+    ) -> Dict[str, Any]:
+        """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。"""
+        scripts = self.list_scripts()
+        target_script = None
+
+        if script_name:
+            clean_name = script_name[len("scripts/"):] if script_name.startswith("scripts/") else script_name
+            for s in scripts:
+                if s == clean_name or s == f"{clean_name}.py" or os.path.basename(s) == clean_name:
+                    target_script = os.path.join(self.scripts_dir, s)
+                    break
+        elif scripts:
+            target_script = os.path.join(self.scripts_dir, scripts[0])
+
+        if not target_script or not os.path.exists(target_script):
+            raise FileNotFoundError(f"Could not resolve execution script in '{self.scripts_dir}'.")
+
+        cmd = [sys.executable, target_script] + (args or [])
+        run_env = os.environ.copy()
+        run_env["EDD_SKILL_NAME"] = self.name
+        run_env["EDD_SKILL_ROOT"] = self.root_dir
+        if extra_env:
+            run_env.update(extra_env)
+
+        import subprocess
+        proc = subprocess.run(cmd, env=run_env, capture_output=True, text=True, timeout=timeout)
+        return {
+            "status": "success" if proc.returncode == 0 else "failed",
+            "exit_code": proc.returncode,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "script_path": target_script
+        }
+
     def __repr__(self) -> str:
-        return f"<Skill name='{self.name}' tier={self.tier} path='{self.root_dir}'>"
+        return f"<SkillPackage name='{self.name}' tier={self.tier} path='{self.root_dir}'>"
 
 
 class SkillTests:
@@ -401,49 +448,7 @@ class SkillTests:
             for p in glob.glob(os.path.join(self.tests_dir, "*.evalset.json"))
         ]
 
-    def load_resource(self, resource_rel_path: str) -> str:
-        """指定された相対パスのリソースファイル内容を取得します。"""
-        target_path = Path(self.root_dir) / resource_rel_path
-        if not target_path.exists():
-            raise FileNotFoundError(f"Resource '{resource_rel_path}' not found in skill '{self.name}'.")
-        return target_path.read_text(encoding="utf-8")
 
-    def execute_script(
-        self,
-        script_name: Optional[str] = None,
-        args: Optional[List[str]] = None,
-        extra_env: Optional[Dict[str, str]] = None,
-        timeout: int = 60
-    ) -> Dict[str, Any]:
-        """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。"""
-        scripts = self.list_scripts()
-        target_script = None
+# Google ADK 2.0 純正 google.adk.skills.models.Skill との同名衝突を解消したエイリアス定義
+Skill = SkillPackage
 
-        if script_name:
-            clean_name = script_name[len("scripts/"):] if script_name.startswith("scripts/") else script_name
-            for s in scripts:
-                if s == clean_name or s == f"{clean_name}.py" or os.path.basename(s) == clean_name:
-                    target_script = os.path.join(self.scripts_dir, s)
-                    break
-        elif scripts:
-            target_script = os.path.join(self.scripts_dir, scripts[0])
-
-        if not target_script or not os.path.exists(target_script):
-            raise FileNotFoundError(f"Could not resolve execution script in '{self.scripts_dir}'.")
-
-        cmd = [sys.executable, target_script] + (args or [])
-        run_env = os.environ.copy()
-        run_env["EDD_SKILL_NAME"] = self.name
-        run_env["EDD_SKILL_ROOT"] = self.root_dir
-        if extra_env:
-            run_env.update(extra_env)
-
-        import subprocess
-        proc = subprocess.run(cmd, env=run_env, capture_output=True, text=True, timeout=timeout)
-        return {
-            "status": "success" if proc.returncode == 0 else "failed",
-            "exit_code": proc.returncode,
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
-            "script_path": target_script
-        }

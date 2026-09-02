@@ -201,69 +201,26 @@ class EddSkillToolset(SkillToolset):
         args: Optional[List[str]] = None,
         file_path: Optional[str] = None
     ) -> Dict[str, Any]:
-        """スキルの決定論的スクリプトを同期実行します。"""
-        skill = self.state.get_skill(skill_name)
-        if not skill or not skill.root_dir:
+        """スキルの決定論的スクリプトを同期実行します（SkillPackage.execute_script に一本化）。"""
+        skill_meta = self.state.get_skill(skill_name)
+        if not skill_meta or not skill_meta.root_dir:
             return {"status": "error", "message": f"Skill '{skill_name}' not found."}
 
-        root_dir = Path(skill.root_dir)
-        scripts_dir = root_dir / "scripts"
-        if not scripts_dir.exists():
-            return {"status": "error", "message": f"Scripts directory not found in skill '{skill_name}'."}
-
-        target_script = file_path or script_name
-        script_path = None
-        if target_script:
-            if target_script.startswith("scripts/"):
-                target_script = target_script[len("scripts/"):]
-            cand = scripts_dir / target_script
-            if cand.exists():
-                script_path = cand
-            else:
-                cand_py = scripts_dir / f"{target_script}.py"
-                if cand_py.exists():
-                    script_path = cand_py
-
-        if not script_path:
-            cand1 = scripts_dir / f"{skill_name.replace('-', '_')}.py"
-            cand2 = scripts_dir / f"{skill_name}.py"
-            cand3 = scripts_dir / "main.py"
-            cand4 = scripts_dir / "run.py"
-            for c in [cand1, cand2, cand3, cand4]:
-                if c.exists():
-                    script_path = c
-                    break
-
-        if not script_path:
-            py_files = [f for f in scripts_dir.glob("*.py") if f.name != "__init__.py"]
-            if len(py_files) == 1:
-                script_path = py_files[0]
-
-        if not script_path:
-            return {"status": "error", "message": f"Could not resolve execution script in '{scripts_dir}'."}
-
-        cmd = [sys.executable, str(script_path)] + (args or [])
-        env = os.environ.copy()
-        env["EDD_SKILL_NAME"] = skill_name
-        env["EDD_SKILL_ROOT"] = str(root_dir)
+        from edd_agent_tools.core.entity import SkillPackage
+        pkg = SkillPackage(skill_meta.root_dir, tier=skill_meta.tier)
+        target = file_path or script_name
 
         try:
-            proc = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=60)
-            return {
-                "status": "success" if proc.returncode == 0 else "failed",
-                "exit_code": proc.returncode,
-                "stdout": proc.stdout,
-                "stderr": proc.stderr,
-                "script_path": str(script_path)
-            }
+            return pkg.execute_script(script_name=target, args=args)
         except Exception as e:
             return {
                 "status": "error",
                 "exit_code": -1,
                 "stdout": "",
                 "stderr": str(e),
-                "script_path": str(script_path)
+                "script_path": str(target)
             }
+
 
 
 def load_adk_skills_from_state(

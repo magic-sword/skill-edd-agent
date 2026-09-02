@@ -96,31 +96,38 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
 
 ```
 edd_agent_tools/
-├── core/           # 共通ドメインエンティティ (Skill, SkillTests)
+├── core/           # 共通ドメインエンティティ (SkillPackage, SkillTests)
 ├── state.py        # 状態管理・探索・DAG解析 (SkillsState)
-├── models/         # データモデル (SkillSpec, SkillTier, EvalCaseSet, EvalRunResult)
-├── validation/     # 汎用静的リンター (SkillValidator, ValidationResult, AST解析, Prerequisites照合)
+├── models/         # データモデル (SkillSpec, SkillTier, EvalCaseSet, EvalRunResult, EDDTestCase)
+├── validation/     # 汎用静的リンター (SkillValidator - AST解析, Prerequisites照合, 白書命名規則検査)
 ├── packaging/      # ZIP パッケージャ (SkillPackager), スキャフォールド (SkillScaffolder, Cascading Resolver)
-├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション, ADK連携 (AdkEvalAdapter), 共存テスト (CoLoadedEvalRunner), 診断 (SkillDiagnoser), 最適化 (SkillOptimizer), サンドボックス (LocalWorkspaceEnv)
-├── adk/            # Google ADK 2.0 連携 (create_adk_skill_toolset, EddSkillToolset)
+├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション, ADK連携 (AdkEvalAdapter, ToolTrajectoryCriterion), 共存テスト (CoLoadedEvalRunner), 診断 (SkillDiagnoser), 最適化 (SkillOptimizer), サンドボックス (LocalWorkspaceEnv)
+├── adk/            # Google ADK 2.0 連携 (create_adk_skill_toolset, EddSkillToolset, UnsafeLocalCodeExecutor)
 ├── mcp/            # FastMCP サーバー (edd-agent-mcp)
 └── cli.py          # 統合 CLI (edd run/init/validate/package/eval/tier-gate/diagnose/optimize/list)
 ```
 
 ---
 
-## 4. スキルフォルダ構造の規約 (Standard Layout)
+## 4. スキルフォルダ構造および命名規約 (Standard Layout & Appendix A Naming)
+
+白書 Appendix A（The Practical Cheatsheet）に完全準拠したディレクトリ構造と命名規則を採用します：
+
+* **Directory Name**: `snake_case`（例: `cafe_preparation`, `case_converter`）※従来の `kebab-case` も透過互換
+* **Skill Name (Frontmatter)**: `kebab-case`（例: `cafe-preparation`, `case-converter`）
+* **動名詞の推奨 (Prefer gerund form)**: 名詞（`pdf-processor`）より動名詞（`processing-pdfs`）を推奨
+* **ベンダープレフィックスおよび汎用名の排除**: `gemini-*`, `claude-*` や `utils`, `tools` などの曖昧な命名を禁止
 
 ```
-src/skills/{skill-name}/
+src/skills/{skill_dir_name}/
   SKILL.md       # YAML Frontmatter (動詞起点 + Use when + Do NOT use) + Markdown仕様書 (SSOT)
   scripts/       # 決定論的スクリプト（直接実行可能・CLI --help 対応・Zero-dependency、ドメイン処理がある場合のみ）
-    {skill_name}.py
+    {script_name}.py
   references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
     guide.md
-  assets/        # 出力用テンプレート・素材（任意・空ディレクトリ不可）
-    templates/   # スキル作成用のMarkdownテンプレート素材（skill-creatorの場合）
+  assets/        # 出力用テンプレート・素材（成果物への流用・コピー用）
+    templates/   # スキル作成用のMarkdownテンプレート素材（skill_creatorの場合）
   examples/      # 具象コード例・パターン集（エージェントが真似できる実装例）
     example_usage.py
-  tests/         # 評価データセット（{skill_name}_edd.evalset.json 等）
+  tests/         # 白書 Snippet 3 評価データセット（{skill_name}_edd.evalset.json 等）
 ```

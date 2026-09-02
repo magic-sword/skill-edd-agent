@@ -14,10 +14,63 @@ import json
 from typing import Dict, Any, List, Optional, Tuple, Literal
 from pathlib import Path
 
-from edd_agent_tools.core.entity import Skill
+from edd_agent_tools.core.entity import Skill, SkillPackage
 from edd_agent_tools.models import EvalRunResult, FailedCaseDetail, EvalDetailReport
 
+try:
+    from google.adk.evaluation.eval_metrics import ToolTrajectoryCriterion
+    ADK_MATCH_TYPE = ToolTrajectoryCriterion.MatchType
+except ImportError:
+    ToolTrajectoryCriterion = None
+    ADK_MATCH_TYPE = None
+
+try:
+    from google.adk.evaluation.eval_case import EvalCase as NativeAdkEvalCase, Invocation, SessionInput
+    from google.adk.evaluation.eval_set import EvalSet as NativeAdkEvalSet
+except ImportError:
+    NativeAdkEvalCase = None
+    NativeAdkEvalSet = None
+
 TrajectoryMode = Literal["exact", "in_order", "any_order"]
+
+
+def convert_edd_to_adk_eval_case(edd_case: Dict[str, Any]) -> Any:
+    """白書 Snippet 3 形式の EDD 評価ケースを Google ADK 2.0 純正 EvalCase モデルに変換します。"""
+    if NativeAdkEvalCase is None:
+        return edd_case
+
+    case_id = edd_case.get("case_id") or edd_case.get("eval_case_id", "case_001")
+    user_input = edd_case.get("input") or edd_case.get("user_input", "")
+    rubric_list = edd_case.get("rubric") or []
+
+    # ADK 純正 EvalCase 構造にマッピング
+    try:
+        from google.genai import types
+        from google.adk.evaluation.eval_case import Invocation, Rubric
+
+        user_content = types.Content(parts=[types.Part.from_text(text=user_input)])
+        inv = Invocation(
+            invocation_id=case_id,
+            user_content=user_content
+        )
+        adk_rubrics = []
+        for i, r in enumerate(rubric_list, 1):
+            if isinstance(r, str):
+                adk_rubrics.append(Rubric(rubric_id=f"r_{i}", rubric_content={"text_property": r}))
+            elif isinstance(r, dict) and "rubric_id" in r:
+                adk_rubrics.append(Rubric.model_validate(r))
+
+        return NativeAdkEvalCase(
+            eval_id=case_id,
+            conversation=[inv],
+            rubrics=adk_rubrics
+        )
+    except Exception:
+        # Pydantic 互換フォールバック
+        return edd_case
+
+
+
 
 
 class AdkEvalAdapter:
@@ -329,4 +382,18 @@ Respond ONLY with a JSON object in this exact format:
             if not missing:
                 return True, "Any-order inclusion match"
             return False, f"Missing expected tools: {missing} in {actual_names}"
+
+    def to_adk_criterion(self, mode: TrajectoryMode = "any_order", threshold: float = 1.0) -> Any:
+        """Google ADK 2.0 純正の ToolTrajectoryCriterion インスタンスを生成して返します。"""
+        if ToolTrajectoryCriterion is None or ADK_MATCH_TYPE is None:
+            return None
+
+        match_type_map = {
+            "exact": getattr(ADK_MATCH_TYPE, "EXACT", 0),
+            "in_order": getattr(ADK_MATCH_TYPE, "IN_ORDER", 1),
+            "any_order": getattr(ADK_MATCH_TYPE, "ANY_ORDER", 2)
+        }
+        adk_match = match_type_map.get(mode, getattr(ADK_MATCH_TYPE, "ANY_ORDER", 2))
+        return ToolTrajectoryCriterion(threshold=threshold, match_type=adk_match)
+
 

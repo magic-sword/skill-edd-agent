@@ -43,12 +43,12 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 
 ### A. 不変プラットフォーム層（pip ライブラリ: `edd-agent-tools`）の責務
 全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム（汎用ランタイム＆テストハーネス）」に徹してください：
-- **共通ドメインエンティティ (`core`)**: `Skill`（`load_resource`, `execute_script` 自己完結実行カプセル化）, `SkillTests`
+- **共通ドメインエンティティ (`core`)**: `SkillPackage`（旧 `Skill` と完全互換、`load_resource`, `execute_script` 自己完結実行カプセル化）, `SkillTests`
 - **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析, `entry_points` 探索）
-- **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、MCP再発明検知）
+- **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、白書命名規則、MCP再発明検知）
 - **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（Snippet 3 インバージョン生成）
-- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (3大 Trajectory: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & 決定論的ルールベース), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
-- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (ADK公式 `UnsafeLocalCodeExecutor` 標準注入、モンキーパッチ禁止), `EddSkillRegistry`, `create_mcp_server`
+- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK 3大 Trajectory: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & ToolTrajectoryCriterion 連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
+- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (ADK公式 `UnsafeLocalCodeExecutor` 標準注入、重複コード実行の完全排除), `EddSkillRegistry`, `create_mcp_server`
 - **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
 
 ※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチによる ADK メソッド上書きは厳禁とし、公式 Code Executor を使用します。
@@ -110,7 +110,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 ## 4. 型仕様とドメインモデルの厳密遵守
 スキル操作・構文解析・テスト実行を行う新規機能やスクリプトを開発する際は、必ずパッケージ内に定義されたドメインモデルおよび評価ランナーに適合させてください。
 
-* **スキル管理モデル**: `edd_agent_tools.Skill`, `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
+* **スキル管理モデル**: `edd_agent_tools.SkillPackage` (旧 `Skill`), `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
 * **品質保証・パッケージング**: `edd_agent_tools.SkillValidator`, `edd_agent_tools.SkillScaffolder`, `edd_agent_tools.SkillPackager`
 * **評価実行基盤**: `edd_agent_tools.ContractTestRunner`, `edd_agent_tools.SimulationEvalRunner`, `edd_agent_tools.CascadeTestRunner`, `edd_agent_tools.SkillDiagnoser`, `edd_agent_tools.SkillOptimizer`
 * **Google ADK 統合**: `edd_agent_tools.adk.create_adk_skill_toolset`, `edd_agent_tools.adk.EddSkillToolset`, `edd_agent_tools.adk.EddSkillRegistry`
