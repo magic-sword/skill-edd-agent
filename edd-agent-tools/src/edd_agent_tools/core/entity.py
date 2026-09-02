@@ -352,10 +352,16 @@ class SkillTests:
                     f"{name}_contract.evalset.json",
                     f"{name}-contract.evalset.json",
                 ])
+            # 白書 Snippet 3 統一データセットへのフォールバック
+            candidates.extend([
+                f"{name}_edd.evalset.json",
+                f"{name}-edd.evalset.json",
+            ])
 
         candidates.extend([
             f"{test_type}.evalset.json",
             f"{test_type}_eval.evalset.json",
+            "edd.evalset.json",
         ])
         if test_type == "contract":
             candidates.append("unit.evalset.json")
@@ -372,7 +378,12 @@ class SkillTests:
         if matches:
             return os.path.abspath(matches[0])
 
+        edd_matches = glob.glob(os.path.join(self.tests_dir, "*edd*.evalset.json"))
+        if edd_matches:
+            return os.path.abspath(edd_matches[0])
+
         return None
+
 
     def save_report(
         self,

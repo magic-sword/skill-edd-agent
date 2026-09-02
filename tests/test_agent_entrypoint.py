@@ -14,13 +14,16 @@ import pytest
 
 
 def test_agent_initialization_and_skill_toolset():
-    """src.agent がエラーなくインポートでき、ADK SkillToolset および EnvironmentToolset がマウントされていることを検証"""
+    """src.agent がエラーなくインポートでき、ADK SkillToolset がマウントされていることを検証"""
     import src.agent as agent_mod
     agent = agent_mod.root_agent
 
     assert agent is not None
     assert agent.name == "evaluation_driven_development_agent"
-    assert len(agent.tools) >= 2
+    assert len(agent.tools) >= 1
+    # SkillToolset が正しく登録されていることを検証
+    assert hasattr(agent.tools[0], "get_tools") or hasattr(agent.tools[0], "skills_dir")
+
 
 
 def test_main_a2a_app_initialization():

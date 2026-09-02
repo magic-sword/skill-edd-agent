@@ -163,34 +163,45 @@ class SkillsState:
                 continue
 
             if (target_path / "SKILL.md").exists():
-                skill_name = entry.name or target_path.name
-                if skill_name not in self.data.exclude:
-                    tier_val = self._get_tier_for_skill(skill_name)
-                    discovered[skill_name] = Skill(target_path, tier=tier_val)
+                skill_obj = Skill(target_path, tier=self._get_tier_for_skill(entry.name or target_path.name))
+                canonical_name = skill_obj.name
+                if canonical_name not in self.data.exclude:
+                    discovered[canonical_name] = skill_obj
+                    if target_path.name != canonical_name:
+                        discovered[target_path.name] = skill_obj
             elif target_path.is_dir():
                 for sub_dir in sorted(target_path.iterdir()):
                     if sub_dir.is_dir() and (sub_dir / "SKILL.md").exists():
-                        skill_name = sub_dir.name
-                        if skill_name not in self.data.exclude:
-                            tier_val = self._get_tier_for_skill(skill_name)
-                            discovered[skill_name] = Skill(sub_dir, tier=tier_val)
+                        tier_val = self._get_tier_for_skill(sub_dir.name)
+                        skill_obj = Skill(sub_dir, tier=tier_val)
+                        canonical_name = skill_obj.name
+                        if canonical_name not in self.data.exclude:
+                            # Frontmatter の name とディレクトリ名（snake_case）の両方で引けるように登録
+                            discovered[canonical_name] = skill_obj
+                            if sub_dir.name != canonical_name:
+                                discovered[sub_dir.name] = skill_obj
 
         # 3. カスタム探索パス
         for cp in self.custom_skills_roots:
             if not cp.exists() or not cp.is_dir():
                 continue
             if (cp / "SKILL.md").exists():
-                skill_name = cp.name
-                if skill_name not in self.data.exclude:
-                    tier_val = self._get_tier_for_skill(skill_name)
-                    discovered[skill_name] = Skill(cp, tier=tier_val)
+                skill_obj = Skill(cp, tier=self._get_tier_for_skill(cp.name))
+                canonical_name = skill_obj.name
+                if canonical_name not in self.data.exclude:
+                    discovered[canonical_name] = skill_obj
+                    if cp.name != canonical_name:
+                        discovered[cp.name] = skill_obj
             else:
                 for child in sorted(cp.iterdir()):
                     if child.is_dir() and (child / "SKILL.md").exists():
-                        skill_name = child.name
-                        if skill_name not in self.data.exclude:
-                            tier_val = self._get_tier_for_skill(skill_name)
-                            discovered[skill_name] = Skill(child, tier=tier_val)
+                        tier_val = self._get_tier_for_skill(child.name)
+                        skill_obj = Skill(child, tier=tier_val)
+                        canonical_name = skill_obj.name
+                        if canonical_name not in self.data.exclude:
+                            discovered[canonical_name] = skill_obj
+                            if child.name != canonical_name:
+                                discovered[child.name] = skill_obj
 
         # 4. Python entry_points (edd_agent_tools.skills) による外部パッケージスキルの探索
         try:
@@ -221,23 +232,35 @@ class SkillsState:
 
     def _get_tier_for_skill(self, skill_name: str) -> int:
         """skills_state.json から指定スキルの Tier を取得"""
-        if self.data and self.data.skills and skill_name in self.data.skills:
-            t = self.data.skills[skill_name].tier
-            return t.value if hasattr(t, "value") else int(t)
+        if self.data and self.data.skills:
+            for cand in [skill_name, skill_name.replace("_", "-"), skill_name.replace("-", "_")]:
+                if cand in self.data.skills:
+                    t = self.data.skills[cand].tier
+                    return t.value if hasattr(t, "value") else int(t)
         return int(SkillTier.SANDBOX)
 
     def get_skill(self, name: str) -> Optional[Skill]:
-        """論理名からスキルを取得します。"""
+        """論理名からスキルを取得します（kebab-case / snake_case 双方向解決）。"""
         skills = self.scan_skills()
         if name in skills:
             return skills[name]
 
+        for alt in [name.replace("-", "_"), name.replace("_", "-")]:
+            if alt in skills:
+                return skills[alt]
+
         # 直接探索フォールバック
-        for cand_dir in [self.project_root / "src" / "skills" / name, self.project_root / "skills" / name]:
-            if cand_dir.exists() and (cand_dir / "SKILL.md").exists():
-                return Skill(root_dir=cand_dir, tier=self._get_tier_for_skill(name))
+        for cand_name in [name, name.replace("-", "_"), name.replace("_", "-")]:
+            for cand_dir in [
+                self.project_root / "src" / "skills" / cand_name,
+                self.project_root / "skills" / cand_name,
+                self.project_root / ".agents" / "skills" / cand_name
+            ]:
+                if cand_dir.exists() and (cand_dir / "SKILL.md").exists():
+                    return Skill(root_dir=cand_dir, tier=self._get_tier_for_skill(cand_name))
 
         return None
+
 
     def list_skills(self) -> List[Skill]:
         """検出された全スキルオブジェクトのリストを返します。"""

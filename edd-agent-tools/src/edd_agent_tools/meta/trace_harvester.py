@@ -65,25 +65,32 @@ class TraceHarvester:
             
             spec_path.write_text(content, encoding="utf-8")
 
-        # トレースから初期の契約テストケースを生成
+        # トレースから白書 Snippet 3 形式の初期評価データセットを生成
         tests_dir = skill_dir / "tests"
         if tests_dir.exists():
-            contract_file = tests_dir / f"{suggested_skill_name}_contract.evalset.json"
+            edd_file = tests_dir / f"{suggested_skill_name}_edd.evalset.json"
             eval_case_data = {
-                "eval_set_id": f"{suggested_skill_name}_harvested_eval",
-                "name": f"Harvested test suite for {suggested_skill_name}",
-                "eval_cases": [
+                "eval_set_id": f"{suggested_skill_name}_edd",
+                "skill_name": suggested_skill_name,
+                "cases": [
                     {
-                        "eval_case_id": "test_harvested_flow_1",
-                        "script_name": f"{suggested_skill_name}.py",
-                        "cli_args": ["--help"],
-                        "expected_exit_code": 0,
-                        "expected_stdout_contains": ["--help"]
+                        "case_id": f"{suggested_skill_name.replace('-', '_')}_harvested_001",
+                        "input": user_intent or f"Execute {suggested_skill_name} workflow",
+                        "expected_skill": suggested_skill_name,
+                        "expected_tool_calls": [
+                            {"tool": f"scripts/{suggested_skill_name.replace('-', '_')}.py", "args": ["--help"]}
+                        ],
+                        "expected_output_format": "status_confirmation",
+                        "rubric": [
+                            f"correctly invokes {suggested_skill_name.replace('-', '_')}.py",
+                            "completes harvested workflow"
+                        ]
                     }
                 ]
             }
-            with open(contract_file, "w", encoding="utf-8") as f:
+            with open(edd_file, "w", encoding="utf-8") as f:
                 json.dump(eval_case_data, f, ensure_ascii=False, indent=2)
+
 
         return {
             "status": "harvested",

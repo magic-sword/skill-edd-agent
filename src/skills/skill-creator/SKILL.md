@@ -35,7 +35,8 @@ Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層
    - `references/`: ドメイン仕様書・スキーマ（オンデマンド参照）
    - `assets/`: 出力用テンプレート素材（ボイラープレート等）
    - `examples/`: 具象コード例・パターン集（エージェント向け実装例）
-   - `tests/`: 契約テストおよびトリガー評価ケース（`*.evalset.json`）
+   - `tests/`: 白書 Snippet 3 形式評価データセット（`<skill-name>_edd.evalset.json`: 正例・負例・Tool Trajectory・Rubric を一本化）
+
 
 ### Step 2: スキル雛形の生成 *(Tool: `edd init` または `edd harvest-trace`)*
 手動で新規作成する場合：

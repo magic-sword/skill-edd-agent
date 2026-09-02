@@ -66,21 +66,24 @@ flowchart TD
         - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ
         - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
         - `examples/`: エージェントが真似できる具象コード例・パターン集
-        - `tests/`: 契約テスト・シミュレーション評価データセット（`*.evalset.json`）
-3.  **Google ADK 2.0 純正評価統合 & Position Swapping**
+        - `tests/`: 白書 Snippet 3 形式評価データセット（`<skill-name>_edd.evalset.json`: 単一真実源: SSOT）
+3.  **Google ADK 2.0 純正ランタイム完全一致命名規約**
+    *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。
+4.  **Google ADK 2.0 純正評価統合 & Position Swapping**
     *   ADK 2.0 の `AgentEvaluator` / `RubricsBasedCriterion` を透過接続し、参照回答と生成回答を入れ替えて順序バイアスを中和する Position Swapping を標準装備。
-4.  **ADK 準拠の 3大 Tool Trajectory 評価モード**
+5.  **ADK 準拠の 3大 Tool Trajectory 評価モード**
     *   `EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）による厳密なツール呼び出し軌跡検証。
-5.  **$pass^k$ (Sustained Reliability) & Co-loaded 共存テスト**
+6.  **$pass^k$ (Sustained Reliability) & Co-loaded 共存テスト**
     *   複数回連続実行での全勝を要求する $pass^k$ 評価と、5〜15 スキル同時展開下での Context Rot 防止ベンチマーク。
-6.  **Human Sign-off ゲート (Tier 3: Action-Allowed)**
+7.  **Human Sign-off ゲート (Tier 3: Action-Allowed)**
     *   不可逆操作が許可される Tier 3 昇格時には、人間の明示的承認を必須化。
-7.  **白書標準 EDD (Evaluation-Driven Development) インバージョン開発**
-    *   `SKILL.md` を執筆する前に、まず 3つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
-8.  **Google ADK 2.0 純正 LocalCodeExecutor 統合 (No Monkey Patching)**
+8.  **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**
+    *   `SKILL.md` を執筆する前に、まず `tests/<skill-name>_edd.evalset.json`（単一真実源: SSOT）として 3〜4 つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`、正例＋負例完備）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
+9.  **Google ADK 2.0 純正 LocalCodeExecutor 統合 (No Monkey Patching)**
     *   ADK 公式の `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入し、モンキーパッチに頼らず正規の手順で安全にコードを実行。
-9.  **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**
+10. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**
     *   外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明しない。スキルは Know-how（決定論的手順と処理）に集中。
+
 
 ---
 

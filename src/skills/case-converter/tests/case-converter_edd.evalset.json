@@ -50,6 +50,18 @@
         "correctly converts snake_case to CONSTANT_CASE",
         "invokes scripts/case_converter.py CLI tool"
       ]
+    },
+    {
+      "case_id": "case_conv_edd_neg_001",
+      "input": "Summarize the architectural benefits of Google ADK 2.0",
+      "expected_skill": null,
+      "expected_tool_calls": [],
+      "expected_output_format": "conceptual_summary",
+      "rubric": [
+        "does not trigger case-converter",
+        "provides direct explanation without calling conversion tools"
+      ]
     }
   ]
 }
+

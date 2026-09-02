@@ -50,6 +50,18 @@
         "verifies Tier 1 entry gates (90% trigger accuracy & contract tests)",
         "updates skills_state.json registration securely"
       ]
+    },
+    {
+      "case_id": "evolver_edd_neg_001",
+      "input": "Create a completely new skill for processing markdown docs",
+      "expected_skill": "skill-creator",
+      "expected_tool_calls": [],
+      "expected_output_format": "handoff_or_redirection",
+      "rubric": [
+        "does not trigger skill-evolver for new skill creation",
+        "delegates to skill-creator"
+      ]
     }
   ]
 }
+

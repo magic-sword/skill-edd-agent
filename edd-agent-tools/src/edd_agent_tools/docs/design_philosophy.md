@@ -111,23 +111,28 @@ edd_agent_tools/
 
 ## 4. スキルフォルダ構造および命名規約 (Standard Layout & Appendix A Naming)
 
-白書 Appendix A（The Practical Cheatsheet）に完全準拠したディレクトリ構造と命名規則を採用します：
+Google ADK 2.0 公式ランタイム制約および白書標準（Appendix A & Section 4）に完全準拠したディレクトリ構造と命名規則を採用します：
 
-* **Directory Name**: `snake_case`（例: `cafe_preparation`, `case_converter`）※従来の `kebab-case` も透過互換
-* **Skill Name (Frontmatter)**: `kebab-case`（例: `cafe-preparation`, `case-converter`）
-* **動名詞の推奨 (Prefer gerund form)**: 名詞（`pdf-processor`）より動名詞（`processing-pdfs`）を推奨
-* **ベンダープレフィックスおよび汎用名の排除**: `gemini-*`, `claude-*` や `utils`, `tools` などの曖昧な命名を禁止
+* **Directory Name & Skill Name (Frontmatter)**: **`kebab-case`（例: `case-converter`, `secret-sanitizer`）**
+  - **重要**: Google ADK 2.0 公式ランタイム（`load_skill_from_dir`）は、内部で `skill_dir.name == frontmatter.name`（完全一致）を必須バリデーションとしてアサートしています。そのため、ディレクトリ名とスキル名は必ず一致させて配置します（Anthropic 公式 `awesome-claude-skills` も同規約）。
+  - なお、白書 Appendix A で言及される `snake_case` ディレクトリ名（例: `case_converter`）が万一指定された場合でも、`edd` ランタイム（`SkillsState`, `cli`）は双方向で透過的に自動解決する耐障害性を備えています。
+* **Script Name**: **`snake_case`（例: `case_converter.py`）** - Python のモジュール・スクリプト標準。
+* **動名詞の推奨 (Prefer gerund form)**: 名詞（`pdf-processor`）より動名詞（`processing-pdfs`）を推奨。
+* **ベンダープレフィックスおよび汎用名の排除**: `gemini-*`, `claude-*` や `utils`, `tools` などの曖昧な命名を禁止。
+* **評価データセット単一真実源 (SSOT)**: 乱立する複数のテストファイルを廃止し、白書 Snippet 3 形式（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）の **`{skill_name}_edd.evalset.json`（正例 3 件＋負例 1 件）に一元化**。
 
 ```
-src/skills/{skill_dir_name}/
+src/skills/{skill_name}/
   SKILL.md       # YAML Frontmatter (動詞起点 + Use when + Do NOT use) + Markdown仕様書 (SSOT)
-  scripts/       # 決定論的スクリプト（直接実行可能・CLI --help 対応・Zero-dependency、ドメイン処理がある場合のみ）
-    {script_name}.py
+  scripts/       # 決定論的スクリプト（Python標準 snake_case、CLI --help 対応、Zero-dependency、ドメイン処理がある場合のみ）
+    {primary_script}.py
   references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
     guide.md
   assets/        # 出力用テンプレート・素材（成果物への流用・コピー用）
-    templates/   # スキル作成用のMarkdownテンプレート素材（skill_creatorの場合）
+    sample.txt
   examples/      # 具象コード例・パターン集（エージェントが真似できる実装例）
     example_usage.py
-  tests/         # 白書 Snippet 3 評価データセット（{skill_name}_edd.evalset.json 等）
+  tests/         # 白書 Snippet 3 形式評価データセット（単一真実源: SSOT）
+    {skill_name}_edd.evalset.json
 ```
+

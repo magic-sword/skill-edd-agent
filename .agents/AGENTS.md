@@ -44,10 +44,13 @@
      - **外部ライブラリを必要とするスキル（例: `docx`, `xlsx`, `pdf`, `playwright` 等）**: Anthropic 公式標準に準拠し、`SKILL.md` 内の `## Requirements & Prerequisites` に必要な pip パッケージ（例: `python-docx`, `openpyxl` 等）を明記します。`SkillValidator` が AST 解析により記述漏れを自動検知します。
   3. **Don't reinvent MCP as scripts (MCP再発明の禁止)**:
      - 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します。
-  4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発**:
-     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず 3つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。
+  4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**:
+     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず `tests/{skill_name}_edd.evalset.json`（単一真実源: SSOT）として 3〜4 つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`、正例＋負例完備）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。
+     - 乱立する複数のテストファイルを排し、この単一ファイルから契約テスト・トリガー判定・Trajectory・ルーブリック評価を一元的に実施します。
   5. **Python import 境界の厳守**:
      - いずれのスキルもスクリプト内部から `import edd_agent_tools` などの直接 Python import は行わず、CLI/IO 規約（`--help`、引数、標準入出力、サブプロセス）のみで疎結合に連携します。
+  6. **スキル命名規約と ADK 2.0 完全一致要件**:
+     - Google ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名およびスキル名は `kebab-case`（例: `case-converter`）で完全一致させます。内部スクリプトは Python 標準の `snake_case`（例: `case_converter.py`）とします。
 
 ---
 
@@ -60,7 +63,8 @@
   - `references/` (ドメイン知識、スキーマ仕様)
   - `assets/` (出力用テンプレート・素材)
   - `examples/` (具象コード例・パターン集)
-  - `tests/` (契約テスト、シミュレーション評価データセット)
+  - `tests/` (白書 Snippet 3 形式評価データセット `*_edd.evalset.json`)
+
 * **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
   - `edd-agent-tools` パッケージ内部のコード
   - 評価実行エンジン・静的検証エンジン・Tier 昇格判定エンジン

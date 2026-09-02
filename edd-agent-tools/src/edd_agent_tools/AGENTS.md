@@ -65,8 +65,9 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
      - 外部ライブラリ依存（例: `docx`, `xlsx`, `playwright` 等）が必要なスキルは、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（環境構築されている前提で実行）。`SkillValidator` が AST 解析により記述漏れを自動検知します。
   3. **Don't reinvent MCP as scripts (MCP再発明の禁止)**:
      - 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します。
-  4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発**:
-     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず 3つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。
+  4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**:
+     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず `tests/{skill_name}_edd.evalset.json`（単一真実源: SSOT）として 3〜4 つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`、正例＋負例完備）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。
+     - 乱立する複数のテストファイルを排し、この単一ファイルから契約テスト・トリガー判定・Trajectory・ルーブリック評価を一元的に実施します。
   5. **Python import 境界の厳守**:
      - スキル内のスクリプトは外部パッケージ `edd_agent_tools` を直接 Python import してはなりません。CLI/IO 規約（`--help`、引数、標準入出力）またはサブプロセスでのみ疎結合に連携します。
 - **二重 LLM 呼び出しの禁止**:
@@ -83,7 +84,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
   - `references/` (ドメイン知識、スキーマ仕様)
   - `assets/` (出力用テンプレート・素材)
   - `examples/` (具象コード例・パターン集)
-  - `tests/` (契約テスト、シミュレーション評価データセット)
+  - `tests/` (白書 Snippet 3 形式評価データセット `*_edd.evalset.json`)
 * **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
   - `edd_agent_tools.*` (パッケージ内部のコード)
   - テスト評価ランナー・静的検証エンジン・Tier 昇格判定エンジン
@@ -91,14 +92,15 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 ---
 
 ## 3. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
-* **単一真実源 (SSOT) ➔ `SKILL.md`**:
-  スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化する。
+* **単一真実源 (SSOT) ➔ `SKILL.md` & `*_edd.evalset.json`**:
+  スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化し、評価基準は `tests/{skill_name}_edd.evalset.json` に一元化する。
 * **リソース分離**:
-  - `scripts/`: 直接実行可能な決定論的スクリプト（CLI対応, `--help` 必須, Black-box 実行）
+  - `scripts/`: 直接実行可能な決定論的スクリプト（Python標準 `snake_case`、CLI対応, `--help` 必須, Black-box 実行）
   - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）
   - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
   - `examples/`: 具象コード例・パターン集（エージェントが真似できる実装例）
-  - `tests/`: 契約テストおよびシミュレーション評価ケース（`*.evalset.json`）
+  - `tests/`: 白書 Snippet 3 形式評価データセット（単一真実源: SSOT）
+
 * **実践的ワークフロー規約**:
   - **Reconnaissance-then-Action**: 変更前にデータ構造・セレクタをサンプリング調査する。
   - **Minimal Edits & Batching**: ピンポイントな最小編集とバッチ処理による非破壊編集を行う。
@@ -147,3 +149,14 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
   - `SKILL.md` 本文は 5,000 words 以内に抑え、詳細な仕様やエッジケースは `references/` に分離（Progressive Disclosure）。
   - 「Give the reason, not just the rule」: `ALWAYS` や `NEVER` などの大文字命令を乱用せず、設計理由と客観的指示を記述する。
   - **Shift Intelligence Left**: 決定論的な処理は `scripts/` にオフロードし、CLI `--help` によるブラックボックス実行を行う。
+
+---
+
+## 8. スキル命名規則と ADK 2.0 完全一致要件 (Naming Conventions)
+* **Directory Name & Skill Name (Frontmatter)**: **`kebab-case` で完全一致させる（例: `case-converter`）**
+  - **重要**: Google ADK 2.0 公式ランタイム（`load_skill_from_dir`）は、内部で `skill_dir.name == frontmatter.name`（完全一致）をアサートしており、不一致の場合例外（`ValueError`）を送出します。そのため、ディレクトリ名とスキル名は必ず一致させて配置します。
+  - なお、白書 Appendix A で言及される `snake_case` ディレクトリ名（例: `case_converter`）が万一指定された場合でも、`edd` ランタイム（`SkillsState`, `cli`）は双方向で透過的に自動解決します。
+* **Script Name**: **`snake_case`（例: `case_converter.py`）** - Python モジュール標準。
+* **動名詞の推奨 (Prefer gerund form)**: 名詞（`pdf-processor`）より動名詞（`processing-pdfs`）を推奨。
+* **ベンダー名・汎用名の排除**: `gemini-*`, `claude-*` や `utils`, `tools` などの曖昧な命名を禁止。
+

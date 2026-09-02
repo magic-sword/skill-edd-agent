@@ -73,10 +73,20 @@ class CoLoadedEvalRunner:
             with open(test_dataset_path, "r", encoding="utf-8") as f:
                 eval_data = json.load(f)
         else:
-            trigger_file = Path(target_skill.root_dir) / "tests" / f"{target_skill_name}_trigger.evalset.json"
-            if trigger_file.exists():
-                with open(trigger_file, "r", encoding="utf-8") as f:
-                    eval_data = json.load(f)
+            trigger_path_str = target_skill.tests.get_evalset_path("trigger")
+            if trigger_path_str and os.path.exists(trigger_path_str):
+                with open(trigger_path_str, "r", encoding="utf-8") as f:
+                    raw_data = json.load(f)
+                if "cases" in raw_data and "eval_set_id" in raw_data:
+                    t_cases = []
+                    for c in raw_data["cases"]:
+                        u_in = c.get("input") or c.get("user_input", "")
+                        exp_s = c.get("expected_skill")
+                        should_trig = bool(exp_s and (exp_s == target_skill_name or exp_s.replace("-", "_") == target_skill_name.replace("-", "_")))
+                        t_cases.append({"user_input": u_in, "should_trigger": should_trig})
+                    eval_data = {"eval_set_id": f"{target_skill_name}_coloaded_trigger", "cases": t_cases}
+                else:
+                    eval_data = raw_data
             else:
                 eval_data = {
                     "eval_set_id": f"{target_skill_name}_coloaded_trigger",
@@ -85,6 +95,7 @@ class CoLoadedEvalRunner:
                         {"user_input": "What is the capital of France?", "should_trigger": False}
                     ]
                 }
+
 
         # シミュレーション評価の実行
         res = self.sim_runner.run_tests(skill=target_skill, eval_set_data=eval_data)

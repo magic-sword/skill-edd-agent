@@ -56,13 +56,13 @@ class SkillOptimizer:
 
         # 2. 契約テスト (pass^k 連続実行)
         if skill:
-            contract_file = skill_dir / "tests" / f"{skill_name}_contract.evalset.json"
-            if contract_file.exists():
+            contract_path_str = skill.tests.get_evalset_path("contract")
+            if contract_path_str and os.path.exists(contract_path_str):
                 import json
-                with open(contract_file, "r", encoding="utf-8") as f:
+                with open(contract_path_str, "r", encoding="utf-8") as f:
                     cases = json.load(f)
                 runner = ContractTestRunner()
-                env = LocalWorkspaceEnv(target_files=[f"src/skills/{skill_name}"])
+                env = LocalWorkspaceEnv(target_files=[str(skill.root_dir)])
                 res = runner.run_tests(skill=skill, test_cases_data=cases, env=env, pass_k=pass_k)
                 if res.failed > 0:
                     return {
@@ -72,6 +72,7 @@ class SkillOptimizer:
                         "failed_count": res.failed,
                         "pass_k": pass_k
                     }
+
 
         return {
             "status": "success",

@@ -64,8 +64,9 @@ export GOOGLE_API_KEY="your-google-api-key"
 ## 5. テストスイートの実行
 
 ```bash
-# 全テストの実行 (49件すべて Green)
+# 全テストの実行 (52件すべて Green)
 pytest tests/ -v
+
 
 # ADK 評価および Trajectory 統合テスト
 pytest tests/test_adk_eval_integration.py -v

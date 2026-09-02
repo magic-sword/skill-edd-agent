@@ -74,12 +74,15 @@ def cmd_run(args: argparse.Namespace, extra_args: List[str]) -> int:
         if direct_path.exists() and direct_path.is_dir():
             skill_dir = direct_path
         else:
-            candidates = [
-                Path("src/skills") / skill_name,
-                Path("skills") / skill_name,
-                Path(".agents/skills") / skill_name,
-                Path(skill_name)
-            ]
+            candidates = []
+            for name_variant in [skill_name, skill_name.replace("-", "_"), skill_name.replace("_", "-")]:
+                candidates.extend([
+                    Path("src/skills") / name_variant,
+                    Path("skills") / name_variant,
+                    Path(".agents/skills") / name_variant,
+                    Path(name_variant)
+                ])
+
             found = False
             for cand in candidates:
                 if cand.exists() and cand.is_dir():
@@ -401,13 +404,33 @@ def cmd_tune_desc(args: argparse.Namespace) -> int:
         print(f"❌ Error: Skill '{args.skill_name}' not found.", file=sys.stderr)
         return 1
 
-    trigger_file = Path(skill.root_dir) / "tests" / f"{args.skill_name}_trigger.evalset.json"
-    if not trigger_file.exists():
-        print(f"❌ Error: Trigger dataset not found at '{trigger_file}'.", file=sys.stderr)
+    trigger_path_str = skill.tests.get_evalset_path("trigger")
+    if not trigger_path_str:
+        print(f"❌ Error: Trigger or EDD evalset dataset not found for '{args.skill_name}'.", file=sys.stderr)
         return 1
 
+    trigger_file = Path(trigger_path_str)
     with open(trigger_file, "r", encoding="utf-8") as f:
-        trigger_data = json.load(f)
+        loaded_data = json.load(f)
+
+    # 白書 Snippet 3 形式からの動的変換
+    if "cases" in loaded_data and "eval_set_id" in loaded_data:
+        trigger_cases = []
+        for c in loaded_data["cases"]:
+            u_input = c.get("input") or c.get("user_input", "")
+            exp_skill = c.get("expected_skill")
+            should_trigger = bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
+            trigger_cases.append({
+                "user_input": u_input,
+                "should_trigger": should_trigger
+            })
+        trigger_data = {
+            "eval_set_id": f"{skill.name}_trigger_from_edd",
+            "cases": trigger_cases
+        }
+    else:
+        trigger_data = loaded_data
+
 
     optimizer = DescriptionOptimizer(target_accuracy=args.target_accuracy)
     res = optimizer.optimize_description(skill=skill, trigger_dataset=trigger_data, dry_run=args.dry_run)

@@ -67,7 +67,54 @@ Google ADK 2.0 の評価フレームワーク（`google.adk.evaluation`）とシ
 
 ---
 
-## 6. 多層評価パターンとアサーション設計一覧
+---
+
+## 6. 白書標準 EDD (Evaluation-Driven Development) Snippet 3 形式 (SSOT)
+
+白書 Section 4 に完全準拠し、すべてのスキルは `SKILL.md` を執筆する前に、まず `tests/{skill_name}_edd.evalset.json` を単一真実源（SSOT）として先行定義します：
+
+```json
+{
+  "eval_set_id": "example_skill_edd_eval",
+  "skill_name": "example-skill",
+  "cases": [
+    {
+      "case_id": "example_001",
+      "input": "Execute example processing on sample input",
+      "expected_skill": "example-skill",
+      "expected_tool_calls": [
+        {"tool": "scripts/example_script.py", "args": {"input": "sample"}}
+      ],
+      "expected_output_format": "processed_result",
+      "rubric": [
+        "invokes scripts/example_script.py CLI tool",
+        "preserves data integrity"
+      ]
+    },
+    {
+      "case_id": "example_neg_001",
+      "input": "Summarize the architectural benefits of Google ADK 2.0",
+      "expected_skill": null,
+      "expected_tool_calls": [],
+      "expected_output_format": "conceptual_summary",
+      "rubric": [
+        "does not trigger example-skill",
+        "answers user query directly without tool calls"
+      ]
+    }
+  ]
+}
+```
+
+* **4大評価の単一ファイル完結**:
+  - `expected_tool_calls` ➔ `ContractTestRunner` による決定論的 CLI 契約テスト（`args` を自動フラグ化）
+  - `expected_skill` ➔ `SimulationEvalRunner` によるトリガー判定（正例・負例）
+  - `expected_tool_calls` のシーケンス ➔ ADK 3大 Trajectory 判定（`EXACT` / `IN_ORDER` / `ANY_ORDER`）
+  - `rubric` ➔ ADK 2.0 `AgentEvaluator` による Position Swapping ルーブリック採点
+
+---
+
+## 7. 多層評価パターンとアサーション設計一覧
 
 | 評価パターン | 主な検証目的 | 判定ポリシー（合否の基準） |
 | :--- | :--- | :--- |
@@ -76,3 +123,4 @@ Google ADK 2.0 の評価フレームワーク（`google.adk.evaluation`）とシ
 | **推論軌跡 (Trajectory)** | 期待されるツール呼び出し順序の正しさ。 | `EXACT` / `IN_ORDER` / `ANY_ORDER` に従ったシーケンス判定。 |
 | **ルーブリック採点 (Judge)** | 回答の質・安全性・網羅度。 | ADK 純正 `AgentEvaluator` または決定論的フォールバックによる Position Swapping 採点。 |
 | **共存テスト (Co-loaded)** | 複数スキル共存下でのコンテキスト破綻（Context Rot）防止。 | 5〜15 スキル同時展開下でのトリガー精度 80% 以上を保証。 |
+

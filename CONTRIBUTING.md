@@ -63,15 +63,20 @@
    - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド参照資料）
    - `assets/`: 出力用テンプレート・素材・ボイラープレート（空ディレクトリは残置しない）
    - `examples/`: エージェントが真似できる具象コード例・パターン集
-   - `tests/`: 契約テストおよびシミュレーション評価ケース（`*.evalset.json`）
-3. **依存関係ポリシー (Prerequisites & Zero-Dependency)**:
+   - `tests/`: 白書 Snippet 3 形式評価データセット（`<skill-name>_edd.evalset.json`: 単一真実源: SSOT）
+3. **命名規約 (ADK 2.0 ランタイム完全一致)**:
+   - ディレクトリ名・スキル名は `kebab-case`（例: `case-converter`）で完全一致させます（ADK 2.0 `load_skill_from_dir` の必須要件）。
+   - スクリプト名は Python 標準の `snake_case`（例: `case_converter.py`）とします。
+4. **依存関係ポリシー (Prerequisites & Zero-Dependency)**:
    - 軽量ユーティリティは Python 標準ライブラリのみで完結させます。
    - 外部ライブラリを必要とするスキルは、`SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（`SkillValidator` が AST 解析により自動検証）。
    - スキル内部から `import edd_agent_tools` などの直接 Python import は行わず、CLI/IO 規約でのみ連携します。
-4. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**:
+5. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**:
    - 外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します（`SkillValidator` が AST 解析で検知・警告）。
-5. **白書標準 EDD インバージョン開発 (Evaluation-Driven Development)**:
-   - `SKILL.md` の本文を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に白書 Snippet 3 標準フォーマットの 3 つの評価ケース（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定してください。ツールの呼び出し軌跡と採点ルーブリックを先に定義することで、スキルの機能仕様と境界を明確化します。
+6. **白書標準 EDD インバージョン開発と単一真実源 (SSOT)**:
+   - `SKILL.md` の本文を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に白書 Snippet 3 標準フォーマットの 3〜4 つの評価ケース（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`、正例＋負例完備）を先行定義してください。
+   - 乱立する複数のテストファイルを排し、契約テスト・トリガー判定・Trajectory・ルーブリック評価をこの単一アセットから決定論的に実行します。
+
 6. **4次元ネガティブ・ハーネス (`When NOT to Use This Skill`)**:
    - 粒度境界、技術的限界、ライフサイクル分離、インベントリ照合の4軸から客観的な除外条件を明記し、過剰適用を防ぎます。
 7. **客観的指示文体 (Imperative Form & Routing Algorithm)**:

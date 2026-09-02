@@ -94,12 +94,19 @@ class SkillScaffolder:
         """
         指定された名前とパターンでスキルディレクトリ雛形をスキャフォールドします。
         """
-        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", skill_name):
-            raise ValueError(f"Skill name '{skill_name}' must be lowercase hyphen-case (e.g. pdf-tools)")
+        canonical_skill_name = skill_name.replace("_", "-")
+        canonical_dir_name = canonical_skill_name
+        primary_script = skill_name.replace("-", "_")
 
-        target_dir = Path(output_base_dir).resolve() / skill_name
+        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", canonical_skill_name):
+            raise ValueError(f"Skill name '{skill_name}' must be lowercase alphanumeric with hyphens/underscores (e.g. pdf-tools)")
+
+        # Google ADK 2.0 の load_skill_from_dir は skill_dir.name == frontmatter.name を必須要求するため、
+        # ディレクトリ名は canonical_skill_name (kebab-case) を完全一致で配置します。
+        target_dir = Path(output_base_dir).resolve() / canonical_skill_name
         if target_dir.exists():
             raise FileExistsError(f"Target skill directory already exists: {target_dir}")
+
 
         target_dir.mkdir(parents=True, exist_ok=False)
         (target_dir / "scripts").mkdir(exist_ok=True)
@@ -109,12 +116,13 @@ class SkillScaffolder:
         (target_dir / "tests").mkdir(exist_ok=True)
         (target_dir / "tests" / "results").mkdir(exist_ok=True)
 
-        skill_title = skill_name.replace("-", " ").title()
-        skill_name_spaced = skill_name.replace("-", " ")
-        primary_script = skill_name.replace("-", "_")
+        skill_title = canonical_skill_name.replace("-", " ").title()
+        skill_name_spaced = canonical_skill_name.replace("-", " ")
+        primary_script = canonical_skill_name.replace("-", "_")
+
 
         # 1. テンプレートの探索と読み込み（Cascading Template Resolver）
-        # 解決優先順位: 1. 明示指定 (templates_dir) -> 2. ワークスペース内 skill-creator/assets/templates -> 3. パッケージ組み込み templates/
+        # 解決優先順位: 1. 明示指定 (templates_dir) -> 2. ワークスペース内 skill_creator/assets/templates -> 3. パッケージ組み込み templates/
         template_content = None
         cand_dirs = []
         if templates_dir:
@@ -122,10 +130,11 @@ class SkillScaffolder:
 
         # ワークスペース内スキル資産層のテンプレート（自己進化プロンプト資産）
         base_path = Path(output_base_dir).resolve()
-        if (base_path / "skill-creator" / "assets" / "templates").exists():
-            cand_dirs.append(base_path / "skill-creator" / "assets" / "templates")
-        elif (base_path.parent / "skills" / "skill-creator" / "assets" / "templates").exists():
-            cand_dirs.append(base_path.parent / "skills" / "skill-creator" / "assets" / "templates")
+        for creator_dir_name in ["skill_creator", "skill-creator"]:
+            if (base_path / creator_dir_name / "assets" / "templates").exists():
+                cand_dirs.append(base_path / creator_dir_name / "assets" / "templates")
+            elif (base_path.parent / "skills" / creator_dir_name / "assets" / "templates").exists():
+                cand_dirs.append(base_path.parent / "skills" / creator_dir_name / "assets" / "templates")
 
         # パッケージ同梱の標準フォールバック・テンプレートディレクトリ
         builtin_templates_dir = Path(__file__).parent / "templates"
@@ -145,7 +154,7 @@ class SkillScaffolder:
             template_content = MINIMAL_SKILL_TEMPLATE
 
         # プレースホルダ置換
-        rendered_md = template_content.replace("{skill_name}", skill_name)
+        rendered_md = template_content.replace("{skill_name}", canonical_skill_name)
         rendered_md = rendered_md.replace("{skill_title}", skill_title)
         rendered_md = rendered_md.replace("{skill_name_spaced}", skill_name_spaced)
         rendered_md = rendered_md.replace("{primary_script}", primary_script)
@@ -166,7 +175,7 @@ import argparse
 
 def run(input_val: str | None = None) -> str:
     """Core task execution."""
-    print(f"Executing {skill_name} with input: {{input_val}}")
+    print(f"Executing {canonical_skill_name} with input: {{input_val}}")
     return "Success"
 
 
@@ -190,127 +199,75 @@ if __name__ == "__main__":
 
         # 3. リファレンス・アセット・使用例の配置
         (target_dir / "references" / "guide.md").write_text(
-            f"# Reference Guide for {skill_title}\n\nDetailed specifications and reference material for {skill_name}.\n",
+            f"# Reference Guide for {skill_title}\n\nDetailed specifications and reference material for {canonical_skill_name}.\n",
             encoding="utf-8"
         )
         (target_dir / "assets" / "sample.txt").write_text(
-            f"Sample asset template for {skill_name}\n",
+            f"Sample asset template for {canonical_skill_name}\n",
             encoding="utf-8"
         )
         (target_dir / "examples" / "example_usage.py").write_text(
             f'''"""
-Example usage pattern for {skill_name}.
+Example usage pattern for {canonical_skill_name}.
 """
 
-# Example: executing {skill_name}
+# Example: executing {canonical_skill_name}
 # Run with: python scripts/{primary_script}.py --help
 ''',
             encoding="utf-8"
         )
 
-        # 4. 初期テストおよび評価セット（Stage 3 契約・トリガーハーネス）の配置
-        contract_test_code = f'''"""
-Contract test for {skill_name} CLI and tools.
-"""
-
-import sys
-import subprocess
-from pathlib import Path
-
-
-def test_cli_help():
-    script_path = Path(__file__).parent.parent / "scripts" / "{primary_script}.py"
-    assert script_path.exists(), f"Script {{script_path}} not found"
-    res = subprocess.run([sys.executable, str(script_path), "--help"], capture_output=True, text=True)
-    assert res.returncode == 0
-    assert "{skill_title}" in res.stdout or "usage" in res.stdout.lower()
-'''
-        (target_dir / "tests" / f"test_{primary_script}_contract.py").write_text(contract_test_code, encoding="utf-8")
-
-
-        initial_evalset = {
-            "eval_set_id": f"{skill_name}_contract",
-            "skill_name": skill_name,
-            "eval_cases": [
-                {
-                    "eval_case_id": f"{skill_name}_cli_help",
-                    "script_name": f"scripts/{primary_script}.py",
-                    "cli_args": ["--help"],
-                    "expected_exit_code": 0,
-                    "expected_stdout_contains": ["--help"]
-                }
-            ]
-        }
-        (target_dir / "tests" / f"{skill_name}_contract.evalset.json").write_text(
-            json.dumps(initial_evalset, indent=2, ensure_ascii=False),
-            encoding="utf-8"
-        )
-
-        initial_trigger_set = {
-            "eval_set_id": f"{skill_name}_trigger",
-            "skill_name": skill_name,
-            "cases": [
-                {
-                    "eval_case_id": f"{skill_name}_trigger_pos_01",
-                    "user_input": f"Please help me perform {skill_name_spaced} workflow on my data.",
-                    "should_trigger": True
-                },
-                {
-                    "eval_case_id": f"{skill_name}_trigger_pos_02",
-                    "user_input": f"Run the {skill_name} task for my files.",
-                    "should_trigger": True
-                },
-                {
-                    "eval_case_id": f"{skill_name}_trigger_pos_03",
-                    "user_input": f"Execute {skill_name_spaced} processing.",
-                    "should_trigger": True
-                },
-                {
-                    "eval_case_id": f"{skill_name}_trigger_neg_01",
-                    "user_input": "What is the capital of France?",
-                    "should_trigger": False
-                },
-                {
-                    "eval_case_id": f"{skill_name}_trigger_neg_02",
-                    "user_input": "Schedule a meeting with the team for 3 PM tomorrow.",
-                    "should_trigger": False
-                },
-                {
-                    "eval_case_id": f"{skill_name}_trigger_neg_03",
-                    "user_input": "Show me git commit history for this repository.",
-                    "should_trigger": False
-                }
-            ]
-        }
-        (target_dir / "tests" / f"{skill_name}_trigger.evalset.json").write_text(
-            json.dumps(initial_trigger_set, indent=2, ensure_ascii=False),
-            encoding="utf-8"
-        )
-
+        # 4. 白書標準 EDD (Evaluation-Driven Development) Snippet 3 評価データセット（単一真実源: SSOT）の配置
+        # 白書 Section 4: 執筆前に 3つの評価ケース（正例2件、負例1件）を先行定義
         initial_edd_set = {
-            "eval_set_id": f"{skill_name}_edd",
-            "skill_name": skill_name,
+            "eval_set_id": f"{canonical_skill_name}_edd",
+            "skill_name": canonical_skill_name,
             "cases": [
                 {
-                    "case_id": f"{skill_name}_exec_001",
-                    "input": f"Execute {skill_name_spaced} with sample parameters",
-                    "expected_skill": skill_name,
+                    "case_id": f"{canonical_dir_name}_001",
+                    "input": f"Please execute {skill_name_spaced} workflow with --help parameter",
+                    "expected_skill": canonical_skill_name,
                     "expected_tool_calls": [
-                        {"tool": f"scripts/{primary_script}.py", "args": {"--help": True}}
+                        {"tool": f"scripts/{primary_script}.py", "args": ["--help"]}
                     ],
-                    "expected_output_format": "status_confirmation",
+                    "expected_output_format": "usage_help",
                     "rubric": [
                         f"correctly invokes {primary_script}.py",
                         "verifies execution output",
                         "does not clutter context window"
                     ]
+                },
+                {
+                    "case_id": f"{canonical_dir_name}_002",
+                    "input": f"Run {canonical_skill_name} task for target data",
+                    "expected_skill": canonical_skill_name,
+                    "expected_tool_calls": [
+                        {"tool": f"scripts/{primary_script}.py", "args": ["--input", "sample_value"]}
+                    ],
+                    "expected_output_format": "execution_confirmation",
+                    "rubric": [
+                        f"runs {primary_script}.py with inputs",
+                        "preserves data structure"
+                    ]
+                },
+                {
+                    "case_id": f"{canonical_dir_name}_neg_001",
+                    "input": "What is the capital of France?",
+                    "expected_skill": None,
+                    "expected_tool_calls": [],
+                    "expected_output_format": "general_answer",
+                    "rubric": [
+                        "does not trigger the skill",
+                        "answers directly without invoking tools"
+                    ]
                 }
             ]
         }
-        (target_dir / "tests" / f"{skill_name}_edd.evalset.json").write_text(
+        (target_dir / "tests" / f"{canonical_skill_name}_edd.evalset.json").write_text(
             json.dumps(initial_edd_set, indent=2, ensure_ascii=False),
             encoding="utf-8"
         )
 
         return target_dir
+
 

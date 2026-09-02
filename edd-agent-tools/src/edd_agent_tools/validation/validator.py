@@ -9,10 +9,12 @@ import os
 import sys
 import re
 import ast
+import json
 from pathlib import Path
 from typing import List, Optional
 from pydantic import BaseModel, Field
 import yaml
+
 
 from ..models.spec import SkillSpec, SkillPattern
 
@@ -74,7 +76,11 @@ class SkillValidator:
         # 外部依存ライブラリ (Requirements & Prerequisites) の照合検証
         cls._validate_prerequisites_and_imports(skill_path, content, base_res)
 
+        # 白書 Snippet 3 評価ケース (EDD Inversion) の整合性検証
+        cls._validate_evalset_structure(skill_path, base_res)
+
         return base_res
+
 
     @classmethod
     def _validate_directory_cleanliness(cls, skill_dir: Path, res: ValidationResult) -> None:
@@ -141,6 +147,46 @@ class SkillValidator:
                     "prerequisites",
                     f"Script '{script_name}' imports external package '{pkg}', but it is not documented in SKILL.md under 'Requirements & Prerequisites'."
                 )
+
+    @classmethod
+    def _validate_evalset_structure(cls, skill_dir: Path, res: ValidationResult) -> None:
+        """白書 Snippet 3 評価データセット（tests/*.evalset.json）の整合性を検証します。"""
+        tests_dir = skill_dir / "tests"
+        if not tests_dir.exists() or not tests_dir.is_dir():
+            res.add_warning(
+                "evalset",
+                f"Missing 'tests/' directory in skill '{skill_dir.name}'. Every skill must have tests committed (Whitepaper Section 4: 'A skill without a test is a hope, not a capability')."
+            )
+            return
+
+        evalsets = list(tests_dir.glob("*.evalset.json"))
+        if not evalsets:
+            res.add_warning(
+                "evalset",
+                "No '*.evalset.json' found in 'tests/'. Whitepaper EDD standard requires upfront JSON evaluation cases (Snippet 3 format: case_id, input, expected_skill, expected_tool_calls, rubric)."
+            )
+            return
+
+        # Snippet 3 形式のケースが含まれているか検査
+        has_snippet3_case = False
+        for es_path in evalsets:
+            try:
+                data = json.loads(es_path.read_text(encoding="utf-8"))
+                cases = data.get("cases") or data.get("eval_cases") or []
+                for c in cases:
+                    if "case_id" in c and "input" in c:
+                        has_snippet3_case = True
+                        # ツール呼び出しとルーブリックの存在確認
+                        if "expected_tool_calls" not in c and "expected_skill" not in c:
+                            res.add_warning("evalset", f"Eval case '{c.get('case_id')}' in '{es_path.name}' is missing 'expected_tool_calls' or 'expected_skill'.")
+            except Exception as e:
+                res.add_error("evalset", f"Failed to parse JSON in '{es_path.name}': {e}")
+
+        if not has_snippet3_case:
+            res.add_warning(
+                "evalset",
+                f"No standard Snippet 3 evaluation cases found in '{tests_dir}'. Recommended: define at least 3 JSON eval cases with 'case_id', 'input', 'expected_tool_calls', and 'rubric'."
+            )
 
     @classmethod
     def _validate_python_scripts_harness(cls, skill_dir: Path, res: ValidationResult) -> None:
@@ -232,7 +278,10 @@ class SkillValidator:
                 # 白書 Appendix A 準拠: ディレクトリ名は snake_case, スキル名は kebab-case（または一致）
                 is_canonical_match = (dir_name == name) or (dir_name == name.replace("-", "_")) or (dir_name.replace("-", "_") == name.replace("-", "_"))
                 if not is_canonical_match:
-                    res.add_warning("frontmatter", f"Directory name '{dir_name}' does not correspond to skill name '{name}'. Whitepaper standard: Directory is snake_case (e.g. '{name.replace('-', '_')}'), skill name is kebab-case ('{name}').")
+                    res.add_warning("frontmatter", f"Directory name '{dir_name}' does not match skill name '{name}'. Note: Google ADK 2.0 load_skill_from_dir requires exact match between directory name and skill name ('{name}').")
+                elif dir_name != name:
+                    res.add_warning("frontmatter", f"Directory name '{dir_name}' uses snake_case while skill name is '{name}'. Warning: Google ADK 2.0 load_skill_from_dir enforces exact match (skill_dir.name == frontmatter.name). Use '{name}' as directory name for native ADK compatibility.")
+
 
         desc = fm.get("description")
         if not desc or not isinstance(desc, str):

@@ -50,6 +50,18 @@
         "packages validated skill into portable ZIP archive",
         "verifies package integrity before distribution"
       ]
+    },
+    {
+      "case_id": "creator_edd_neg_001",
+      "input": "Diagnose evaluation failures and optimize prompt for existing skill",
+      "expected_skill": "skill-evolver",
+      "expected_tool_calls": [],
+      "expected_output_format": "handoff_or_diagnosis",
+      "rubric": [
+        "does not use skill-creator for repair/evaluation workflow",
+        "delegates to skill-evolver"
+      ]
     }
   ]
 }
+

@@ -12,7 +12,7 @@
 ```mermaid
 graph TD
     Spec[SKILL.md / scripts] -->|1. Analyze & Design| Gen["Test Authoring (references/eval_framework.md)"]
-    Gen -->|2. Save Asset| File[(tests/skill_name/test_type.evalset.json)]
+    Gen -->|2. Save Asset (SSOT)| File[(tests/{skill_name}_edd.evalset.json)]
     File -->|3. Read & Run| Exec["skill-evolver (edd eval)"]
     Env[LocalWorkspaceEnv (Git Sandbox)] -->|4. Assert & Run| Exec
     Exec -->|5. Aggregate & Report| Result[(tests/results/latest_report.json)]
@@ -20,14 +20,15 @@ graph TD
     Result -->|7. Gating & Promotion| Gate["skill-evolver (edd tier-gate / edd optimize)"]
 ```
 
-1.  **テスト設計・配置フェーズ**:
-    仕様定義（`SKILL.md` や `scripts/`）を基に、指定されたテストタイプ（`trigger`, `contract`, `golden`, `judge`, `trajectory`, `adversarial`）の評価セットを設計し、`tests/<skill_name>_<type>.evalset.json` に**物理的なアセットファイルとして保存**します。
+1.  **テスト設計・配置フェーズ (EDD Inversion & Snippet 3 SSOT)**:
+    仕様定義（`SKILL.md` や `scripts/`）を先行決定する前に、白書 Snippet 3 形式（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）の評価ケース（正例2〜3件、負例1件）を策定し、`tests/<skill_name>_edd.evalset.json` に**単一真実源（SSOT）アセットとして保存**します。契約テスト・トリガー判定・ツール軌跡・ルーブリック採点の全データがこの単一ファイルに統合されます。
 2.  **評価実行フェーズ (`edd eval`)**:
-    保存された JSON 評価セットをロードし、隔離されたサンドボックス環境（`LocalWorkspaceEnv`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。結果は `latest_report.json` に構造化ログとして永続化されます。
+    保存された Snippet 3 評価セットをロードし、隔離されたサンドボックス環境（`LocalWorkspaceEnv`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。結果は `latest_report.json` に構造化ログとして永続化されます。
 3.  **失敗診断・自己修復フェーズ (`edd diagnose`)**:
     テスト失敗時に構造化されたコンテキスト（SKILL.md、関連スクリプト、スタックトレース）を抽出し、エージェントが自律的にプロンプトやスクリプトを自己修復します。
 4.  **Tier 昇格ゲートキーパーフェーズ (`edd tier-gate` / `edd optimize`)**:
     Tier 階層（Tier 1: READ_ONLY, Tier 2: DRAFT_ONLY, Tier 3: ACTION_ALLOWED）に応じた防壁テスト、上位依存スキルの連鎖回帰テスト、および Human Sign-off を一括検証し、合格時に `SkillsState` へ登録・昇格させます。
+
 
 ---
 

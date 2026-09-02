@@ -47,18 +47,50 @@ class ContractTestRunner:
         Returns:
             EvalRunResult: テストの実行結果。
         """
+        eval_cases = []
         if isinstance(test_cases_data, dict):
-            test_case_set = EvalCaseSet.model_validate(test_cases_data)
+            if "eval_cases" in test_cases_data:
+                test_case_set = EvalCaseSet.model_validate(test_cases_data)
+                eval_cases = test_case_set.eval_cases
+            elif "cases" in test_cases_data:
+                # 白書 Snippet 3 形式からの動的マッピング
+                for idx, c in enumerate(test_cases_data["cases"]):
+                    tool_calls = c.get("expected_tool_calls") or []
+                    for tc in tool_calls:
+                        t_name = tc.get("tool", "")
+                        t_args = tc.get("args") or []
+                        if isinstance(t_args, dict):
+                            cli_args = []
+                            for k, v in t_args.items():
+                                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+                                if v is True:
+                                    cli_args.append(flag)
+                                elif v is not False and v is not None:
+                                    cli_args.extend([flag, str(v)])
+
+                        elif isinstance(t_args, list):
+                            cli_args = [str(a) for a in t_args]
+                        else:
+                            cli_args = [str(t_args)] if t_args else []
+                        eval_cases.append(EvalCase(
+                            eval_case_id=c.get("case_id", f"case_{idx}"),
+                            script_name=t_name,
+                            cli_args=cli_args,
+                            expected_exit_code=0
+                        ))
+            else:
+                test_case_set = EvalCaseSet.model_validate(test_cases_data)
+                eval_cases = test_case_set.eval_cases
         elif isinstance(test_cases_data, EvalCaseSet):
-            test_case_set = test_cases_data
+            eval_cases = test_cases_data.eval_cases
         else:
             raise TypeError("test_cases_data must be a dict or EvalCaseSet")
 
-        eval_cases = test_case_set.eval_cases
         passed = 0
         failed = 0
         total = len(eval_cases) * max(1, pass_k)
         failed_cases: list[FailedCaseDetail] = []
+
 
         for k_idx in range(max(1, pass_k)):
             if pass_k > 1:
