@@ -391,6 +391,84 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_tune_desc(args: argparse.Namespace) -> int:
+
+    """スキルの Frontmatter description を自動反復チューニングします。"""
+    from edd_agent_tools.meta.description_optimizer import DescriptionOptimizer
+    state = SkillsState()
+    skill = state.get_skill(args.skill_name)
+    if not skill:
+        print(f"❌ Error: Skill '{args.skill_name}' not found.", file=sys.stderr)
+        return 1
+
+    trigger_file = Path(skill.root_dir) / "tests" / f"{args.skill_name}_trigger.evalset.json"
+    if not trigger_file.exists():
+        print(f"❌ Error: Trigger dataset not found at '{trigger_file}'.", file=sys.stderr)
+        return 1
+
+    with open(trigger_file, "r", encoding="utf-8") as f:
+        trigger_data = json.load(f)
+
+    optimizer = DescriptionOptimizer(target_accuracy=args.target_accuracy)
+    res = optimizer.optimize_description(skill=skill, trigger_dataset=trigger_data, dry_run=args.dry_run)
+
+    print(f"\n🎯 Description Optimization Results for '{args.skill_name}':")
+    print(f"  • Status: {res['status']}")
+    print(f"  • Initial Accuracy: {res['initial_accuracy']:.1%}")
+    print(f"  • Final Accuracy: {res['final_accuracy']:.1%}")
+    print(f"  • Optimized Description:\n    {res['optimized_description']}\n")
+    return 0
+
+
+def cmd_harvest_trace(args: argparse.Namespace) -> int:
+    """会話・ツール実行ログ（Trace）からスキル雛形を自動抽出します。"""
+    from edd_agent_tools.meta.trace_harvester import TraceHarvester
+    trace_path = Path(args.trace_file)
+    if not trace_path.exists():
+        print(f"❌ Error: Trace file '{args.trace_file}' not found.", file=sys.stderr)
+        return 1
+
+    with open(trace_path, "r", encoding="utf-8") as f:
+        trace_data = json.load(f)
+
+    harvester = TraceHarvester()
+    res = harvester.harvest_skill_from_trace(
+        trace_data=trace_data,
+        suggested_skill_name=args.skill_name,
+        output_base_dir=args.out,
+        pattern=args.pattern
+    )
+
+    print(f"🎉 Success: {res['message']}")
+    print(f"  • Directory: {res['skill_dir']}")
+    print(f"  • Extracted Steps: {len(res['extracted_steps'])}")
+    print(f"  • Tools Used: {', '.join(res['tools_used']) if res['tools_used'] else 'None'}\n")
+    return 0
+
+
+def cmd_profile(args: argparse.Namespace) -> int:
+    """Capability Profiles の一覧表示またはアクティブスキルの解決を行います。"""
+    from edd_agent_tools.meta.capability_profile import CapabilityProfileManager
+    mgr = CapabilityProfileManager()
+
+    if args.profile_name:
+        skills = mgr.resolve_active_skills(args.profile_name)
+        prof = mgr.get_profile(args.profile_name)
+        print(f"\n🛡️ Active Skills for Capability Profile '{args.profile_name}':")
+        print(f"  • Description: {prof.description}")
+        print(f"  • Tier Range: Tier {prof.min_tier} ~ Tier {prof.max_tier}")
+        print(f"  • Guardrails: {', '.join(prof.system_guardrails)}")
+        print(f"  • Skills Count: {len(skills)}\n" + "=" * 60)
+        for s in skills:
+            print(f"  • {s['name']} [Tier {s['tier']}] - {s['description']}")
+    else:
+        print("\n🛡️ Available Capability Profiles:\n" + "=" * 60)
+        for name, p in mgr.profiles.items():
+            print(f"• \033[1m{name}\033[0m (Tier {p.min_tier} ~ {p.max_tier}): {p.description}")
+    return 0
+
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -466,6 +544,23 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 9. list
     subparsers.add_parser("list", help="List all registered agent skills")
 
+    # 10. tune-desc (Section 6: Description Tuning Loop)
+    p_tune = subparsers.add_parser("tune-desc", help="Automatically tune Frontmatter description for trigger accuracy")
+    p_tune.add_argument("skill_name", help="Target skill name")
+    p_tune.add_argument("--target-accuracy", type=float, default=0.9, help="Target trigger accuracy (default: 0.9)")
+    p_tune.add_argument("--dry-run", action="store_true", help="Simulate without writing changes to SKILL.md")
+
+    # 11. harvest-trace (Section 6: Authoring from Traces)
+    p_harv = subparsers.add_parser("harvest-trace", help="Harvest reusable skill scaffold from execution traces")
+    p_harv.add_argument("trace_file", help="Path to execution trace JSON file")
+    p_harv.add_argument("skill_name", help="Name of the skill to generate")
+    p_harv.add_argument("--out", "-o", default="src/skills", help="Output base directory (default: src/skills)")
+    p_harv.add_argument("--pattern", default="task_based", help="Skill pattern template")
+
+    # 12. profile (Section 7: Capability Profiles)
+    p_prof = subparsers.add_parser("profile", help="Manage and inspect Capability Profiles (role/tier bundling)")
+    p_prof.add_argument("profile_name", nargs="?", help="Name of the capability profile to inspect")
+
     # パース実行（run 用に未知の引数も許容）
     args, extra = parser.parse_known_args(argv)
 
@@ -491,6 +586,13 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_optimize(args)
     elif args.command == "list":
         return cmd_list(args)
+    elif args.command == "tune-desc":
+        return cmd_tune_desc(args)
+    elif args.command == "harvest-trace":
+        return cmd_harvest_trace(args)
+    elif args.command == "profile":
+        return cmd_profile(args)
+
 
     return 0
 

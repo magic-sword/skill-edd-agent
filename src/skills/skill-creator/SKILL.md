@@ -10,12 +10,14 @@ pattern: workflow
 ## Overview
 
 Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層リソース分離: `scripts/`, `references/`, `assets/`）に準拠した高品質なスキルパッケージを対話的・段階的に設計・構築するメタスキル。
+実行ログ・トレースからのスキル自律抽出（Authoring from Traces: `edd harvest-trace`）にも対応。
 
 ## Workflow Decision Tree
 
 スキル開発要件に応じて、以下の決定ロジックに従って開発を進行する：
 
 - **If** 新規スキルの作成要件が与えられた場合 ➔ **Then** Step 1 で具体例と論理設計を策定し、`edd init` で雛形生成後、`assets/templates/` を参考に `SKILL.md` とリソースを実装して `edd validate` で静的検証する
+- **If** エージェントの会話履歴・ツール実行トレースからスキルを抽出する場合 ➔ **Then** `edd harvest-trace <trace.json> <skill-name>` を実行して自律生成する
 - **If** 既存スキルの改修・拡張の場合 ➔ **Then** 既存の `SKILL.md` および `references/` を精査し、必要な差分を適用して静的検証を行う
 - **If** スキルの配布・エクスポートを求められた場合 ➔ **Then** `edd package` を実行して検証済み ZIP アーカイブを出力する
 
@@ -23,7 +25,7 @@ Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層
 
 ### Step 1: 要件ヒアリングと具体例の明確化 (Concrete Examples)
 ユーザーの要求を分析し、以下の要素を策定する（詳細仕様は `references/skill_design_guide.md` を参照）：
-1. **具体例の特定**: ユーザーが実際に発話するトリガープロンプト（3〜5例）と期待される入出力を明確にする。
+1. **具体例の特定**: ユーザーが実際に発話するトリガープロンプト（正例3件・負例3件）と期待される入出力を明確にする。
 2. **パターン分類**: `workflow`（順次決定木型）、`task_based`（ツール群型）、`reference`（仕様・知識型）、`capabilities`（複合型）から最適構成を選択する。
 3. **リソース計画**:
    - `scripts/`: 決定論的CLIツール（Python 標準ライブラリ、`argparse` による `--help` 対応, Black-box 実行）※ドメイン独自処理がある場合のみ配置
@@ -32,10 +34,15 @@ Anthropic 公式標準および Google ADK 2.0 の Progressive Disclosure（3層
    - `examples/`: 具象コード例・パターン集（エージェント向け実装例）
    - `tests/`: 契約テストおよびトリガー評価ケース（`*.evalset.json`）
 
-### Step 2: スキル雛形の生成 *(Tool: `edd init`)*
-To initialize the skill scaffold directory and base files, execute:
+### Step 2: スキル雛形の生成 *(Tool: `edd init` または `edd harvest-trace`)*
+手動で新規作成する場合：
 ```bash
 edd init <skill-name> --pattern workflow --path src/skills
+```
+
+会話ログ・ツール実行トレースから自動抽出する場合：
+```bash
+edd harvest-trace <path/to/trace.json> <skill-name> --out src/skills
 ```
 
 ### Step 3: リソースの実装と SKILL.md の執筆
@@ -59,6 +66,7 @@ edd package src/skills/<skill-name> --out dist
 ## Usage Scenarios & Trigger Examples
 
 - "新しいスキルとして、PDFを回転・結合する pdf-tools スキルを作成してください。"
+- "過去の成功した実行ログ（trace.json）から新しいスキルを自動生成してほしい。"
 - "既存の text-analyzer スキルに JSON 解析機能を追加・更新したい。"
 - "作成したスキルを配布用 ZIP パッケージに固めて出力して。"
 
@@ -91,4 +99,3 @@ Do NOT use this skill in the following scenarios (use native tools or alternativ
 - 生成・更新したスキルは必ず `edd validate` で検証をパスさせること。
 - ドメイン固有のロジックを持たないメタスキルには不要な `scripts/` ラッパーを配置せず、`edd` 統合 CLI を直接利用すること。
 - 未使用の空ディレクトリは残置しないこと。
-

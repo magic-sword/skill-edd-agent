@@ -51,10 +51,16 @@ from .evaluation.adk_eval import AdkEvalAdapter
 from .evaluation.co_loaded_runner import CoLoadedEvalRunner
 from .core.protocols import WorkspaceEnvProtocol
 
+# Meta-Skills & Evolution (Section 6 & 7)
+from .meta.description_optimizer import DescriptionOptimizer
+from .meta.trace_harvester import TraceHarvester
+from .meta.capability_profile import CapabilityProfile, CapabilityProfileManager
+
 # ADK Integration
 from .adk.toolset import EddSkillToolset, create_adk_skill_toolset
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
+
 
 
 __all__ = [
@@ -94,8 +100,14 @@ __all__ = [
     "AdkEvalAdapter",
     "CoLoadedEvalRunner",
     "WorkspaceEnvProtocol",
+    # Meta-Skills & Evolution
+    "DescriptionOptimizer",
+    "TraceHarvester",
+    "CapabilityProfile",
+    "CapabilityProfileManager",
     # ADK
     "EddSkillToolset",
     "create_adk_skill_toolset",
 ]
+
 

@@ -1,14 +1,40 @@
 """
-Evaluation Models for edd-agent-tools
+Evaluation Models for edd-agent-tools (Google ADK 2.0 Native Integration)
+
+Google ADK 2.0 純正の google.adk.evaluation.eval_set.EvalSet および
+google.adk.evaluation.eval_case.EvalCase をシームレスに継承・統合した評価データモデル。
 """
 
 from typing import Dict, Any, List, Optional, Literal, Union
 from pydantic import BaseModel, Field, model_validator
 
+# Google ADK 2.0 純正評価モデルのインポート
+try:
+    from google.adk.evaluation.eval_set import EvalSet as AdkEvalSet
+    from google.adk.evaluation.eval_case import (
+        EvalCase as AdkEvalCase,
+        IntermediateData,
+        ToolCallAndResponse,
+        Rubric,
+        SessionInput,
+        SessionState,
+        StaticConversation
+    )
+except ImportError:
+    AdkEvalSet = BaseModel
+    AdkEvalCase = BaseModel
+    IntermediateData = Any
+    ToolCallAndResponse = Any
+    Rubric = Any
+    SessionInput = Any
+    SessionState = Any
+    StaticConversation = Any
 
-class EvalCase(BaseModel):
-    """個別のテストケース定義（Black-box CLI & 契約テスト）"""
-    eval_case_id: str = Field(..., description="テストケース識別ID")
+
+class EvalCase(AdkEvalCase):
+    """Google ADK 2.0 純正準拠のテストケース定義（CLI契約テスト拡張対応）"""
+    # ADK 純正フィールド (eval_id, conversation, session_input 等) を継承
+    eval_case_id: Optional[str] = Field(None, description="テストケース識別ID")
     script_name: Optional[str] = Field(None, description="対象スクリプト名（scripts/配下）またはコマンド")
     cli_args: Optional[List[str]] = Field(default_factory=list, description="CLI実行時のコマンドライン引数")
     expected_exit_code: Optional[int] = Field(0, description="期待されるCLI終了コード")
@@ -17,10 +43,30 @@ class EvalCase(BaseModel):
     inputs: Dict[str, Any] = Field(default_factory=dict, description="任意の入力パラメータ")
     expected: Optional[Any] = Field(None, description="任意の期待結果")
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_case_and_adk_compatibility(cls, values: Any) -> Any:
+        if isinstance(values, dict):
+            # eval_id と eval_case_id の相互同期
+            if "eval_id" in values and "eval_case_id" not in values:
+                values["eval_case_id"] = str(values["eval_id"])
+            elif "eval_case_id" in values and "eval_id" not in values:
+                values["eval_id"] = str(values["eval_case_id"])
+            elif "eval_id" not in values and "eval_case_id" not in values:
+                values["eval_id"] = "case_0"
+                values["eval_case_id"] = "case_0"
 
-class EvalCaseSet(BaseModel):
-    """スキル評価用テストケースセット"""
-    eval_set_id: Optional[str] = Field(None, description="テストセットID")
+            # ADK ensure_conversation_xor_conversation_scenario を満足させるための互換処理
+            has_conv = "conversation" in values and values["conversation"] is not None
+            has_scen = "conversation_scenario" in values and values["conversation_scenario"] is not None
+            if not has_conv and not has_scen:
+                values["conversation"] = []
+        return values
+
+
+class EvalCaseSet(AdkEvalSet):
+    """Google ADK 2.0 純正準拠のテストケースセット (EvalSet)"""
+    # ADK 純正フィールド (eval_set_id, name, description, eval_cases 等) を継承
     skill_name: Optional[str] = Field(None, description="対象スキル名")
     test_type: Optional[str] = Field("contract", description="テスト種別 (contract, trigger, golden, judge, trajectory, adversarial)")
     eval_cases: List[EvalCase] = Field(default_factory=list, description="テストケース一覧")
@@ -33,6 +79,10 @@ class EvalCaseSet(BaseModel):
                 values["eval_cases"] = values.get("cases", [])
             if "skill_name" not in values and "eval_set_id" in values:
                 values["skill_name"] = str(values["eval_set_id"]).split("_")[0]
+            if "eval_set_id" not in values:
+                values["eval_set_id"] = "default_eval_set"
+            if "name" not in values:
+                values["name"] = values.get("eval_set_id", "default_eval_set")
         return values
 
 

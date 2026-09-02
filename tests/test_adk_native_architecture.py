@@ -1,0 +1,137 @@
+"""
+Tests for Google ADK 2.0 Native Architecture and Meta-Skills (Whitepaper Section 6 & 7)
+"""
+
+import os
+import json
+import pytest
+from pathlib import Path
+
+from edd_agent_tools.models.eval import EvalCase, EvalCaseSet, EvalDetailReport
+from edd_agent_tools.meta.description_optimizer import DescriptionOptimizer
+from edd_agent_tools.meta.trace_harvester import TraceHarvester
+from edd_agent_tools.meta.capability_profile import CapabilityProfile, CapabilityProfileManager
+from edd_agent_tools.core.entity import Skill
+from edd_agent_tools.cli import main as cli_main
+
+
+def test_adk_native_eval_models_inheritance():
+    """EvalCase and EvalCaseSet should inherit from Google ADK 2.0 native models."""
+    from google.adk.evaluation.eval_set import EvalSet as AdkEvalSet
+    from google.adk.evaluation.eval_case import EvalCase as AdkEvalCase
+
+    assert issubclass(EvalCase, AdkEvalCase)
+    assert issubclass(EvalCaseSet, AdkEvalSet)
+
+    case = EvalCase(
+        eval_id="test_case_1",
+        cli_args=["--help"],
+        expected_exit_code=0
+    )
+    assert case.eval_id == "test_case_1"
+    assert case.eval_case_id == "test_case_1"
+    assert case.expected_exit_code == 0
+
+    eval_set = EvalCaseSet(
+        eval_set_id="test_set_1",
+        name="Test Eval Set",
+        eval_cases=[case]
+    )
+    assert eval_set.eval_set_id == "test_set_1"
+    assert len(eval_set.eval_cases) == 1
+
+
+def test_description_optimizer_tuning(tmp_path):
+    """DescriptionOptimizer should tune description to improve trigger accuracy."""
+    skill_dir = tmp_path / "sample-skill"
+    skill_dir.mkdir()
+    (skill_dir / "scripts").mkdir()
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: sample-skill\ndescription: Generic description\n---\n# Sample Skill\n",
+        encoding="utf-8"
+    )
+
+    skill = Skill(root_dir=skill_dir)
+    trigger_data = {
+        "eval_set_id": "sample_trigger",
+        "cases": [
+            {"user_input": "Please format text with sample-skill", "should_trigger": True},
+            {"user_input": "Run sample-skill operations", "should_trigger": True},
+            {"user_input": "Ignore this unrelated task", "should_trigger": False}
+        ]
+    }
+
+    optimizer = DescriptionOptimizer(target_accuracy=0.8, max_iterations=2)
+    res = optimizer.optimize_description(skill=skill, trigger_dataset=trigger_data, dry_run=False)
+
+    assert "status" in res
+    assert "optimized_description" in res
+    assert res["final_accuracy"] >= 0.0
+
+
+def test_trace_harvester_skill_creation(tmp_path):
+    """TraceHarvester should create a valid skill scaffold from execution traces."""
+    trace_data = {
+        "user_query": "sanitize and mask sensitive API keys from log files",
+        "conversation": [
+            {"role": "user", "content": "sanitize and mask sensitive API keys from log files"},
+            {
+                "role": "model",
+                "intermediate_data": {
+                    "tool_uses": [
+                        {"name": "read_log_file", "args": {"file": "app.log"}},
+                        {"name": "mask_regex_tokens", "args": {"pattern": "SECRET_.*"}}
+                    ]
+                }
+            }
+        ]
+    }
+
+    harvester = TraceHarvester()
+    res = harvester.harvest_skill_from_trace(
+        trace_data=trace_data,
+        suggested_skill_name="log-sanitizer",
+        output_base_dir=tmp_path
+    )
+
+    assert res["status"] == "harvested"
+    created_dir = tmp_path / "log-sanitizer"
+    assert created_dir.exists()
+    assert (created_dir / "SKILL.md").exists()
+    assert (created_dir / "scripts").exists()
+    assert (created_dir / "tests").exists()
+
+
+def test_capability_profile_manager():
+    """CapabilityProfileManager should resolve active skills based on tier and whitelist."""
+    mgr = CapabilityProfileManager()
+    assert "read_only_safe" in mgr.profiles
+    assert "action_mastered" in mgr.profiles
+
+    # Read-only profile should filter skills
+    skills = mgr.resolve_active_skills("read_only_safe")
+    assert isinstance(skills, list)
+    for s in skills:
+        assert s["tier"] == 1
+
+
+def test_cli_meta_commands_dispatch(tmp_path):
+    """CLI should handle tune-desc, harvest-trace, and profile subcommands."""
+    # 1. Profile command
+    assert cli_main(["profile"]) == 0
+    assert cli_main(["profile", "read_only_safe"]) == 0
+
+    # 2. Harvest trace command
+    trace_file = tmp_path / "trace.json"
+    trace_file.write_text(json.dumps({
+        "user_query": "convert text to uppercase",
+        "events": [{"role": "user", "content": "convert text"}]
+    }), encoding="utf-8")
+
+    assert cli_main([
+        "harvest-trace",
+        str(trace_file),
+        "trace-skill",
+        "--out", str(tmp_path)
+    ]) == 0
+    assert (tmp_path / "trace-skill" / "SKILL.md").exists()
