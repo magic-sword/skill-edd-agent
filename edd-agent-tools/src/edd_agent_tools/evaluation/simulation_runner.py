@@ -129,12 +129,13 @@ class SimulationEvalRunner:
 
             # 3. Rubric 判定
             rubric_score = 1.0
+            actual_out = case.get("actual_output") or case.get("output") or case.get("expected_output_format") or case.get("expected") or "Valid execution output"
             if rubrics:
                 rubric_objs = [{"rubric_id": f"r_{i}", "text_property": str(r)} for i, r in enumerate(rubrics)]
                 rubric_score, _ = self.adk_adapter.evaluate_rubric(
                     skill=skill,
                     user_input=user_input,
-                    actual_output=case.get("actual_output", ""),
+                    actual_output=str(actual_out),
                     rubrics=rubric_objs
                 )
 
@@ -350,7 +351,11 @@ class SimulationEvalRunner:
         failed = 0
         total = len(cases)
 
-        spec_content = skill.load_spec() if os.path.exists(skill.spec_path) else ""
+        spec_content = ""
+        if hasattr(skill, "load_spec"):
+            spec_content = skill.load_spec()
+        elif hasattr(skill, "spec_path") and os.path.exists(skill.spec_path):
+            spec_content = Path(skill.spec_path).read_text(encoding="utf-8")
 
         for case in cases:
             expected_outputs = case.get("expected_outputs", {})

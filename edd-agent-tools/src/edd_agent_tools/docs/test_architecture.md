@@ -4,7 +4,7 @@
 
 ---
 
-## 1. 統合評価・自己改善スキル (`skill-evolver`) と Progressive Disclosure 設計
+## 1. 統合評価・自己改善スキル (`skill-evolver`) と EDD 多層テスト設計
 
 ### 解決策: 統合自己改善スキル (`skill-evolver`) への一元化
 すべてのテスト実行・失敗診断・自己修復・連鎖回帰・Tier 昇格判定を、単一の自己完結型メタスキル **[`skill-evolver`](file:///workspace/src/skills/skill-evolver)** および統合 CLI `edd` に集約しました。

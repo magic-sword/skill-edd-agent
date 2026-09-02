@@ -98,6 +98,12 @@ class Skill:
         except Exception:
             return os.path.basename(self.root_dir)
 
+    def load_spec(self) -> str:
+        """SKILL.md の生テキストを取得します。"""
+        if os.path.exists(self.spec_path):
+            return Path(self.spec_path).read_text(encoding="utf-8")
+        return ""
+
     @property
     def dependencies(self) -> List[str]:
         """このスキルが依存している他のスキル名のリスト"""

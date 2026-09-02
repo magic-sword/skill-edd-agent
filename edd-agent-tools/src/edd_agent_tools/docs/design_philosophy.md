@@ -69,7 +69,11 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
 * 1 回のラッキー合格（$pass@1$）を排除し、指定された $k$ 回連続実行で全勝を要求する **$pass^k$ 指標** を導入。
 * 5〜15 スキルが同時マウントされた高トークン負荷環境下での **Context Rot 防止ベンチマーク（`CoLoadedEvalRunner`）** を実施。
 
-### ⑦ 4段階品質保証パイプライン (The Read / Draft / Act Ladder)
+### ⑦ 白書標準 EDD (Evaluation-Driven Development) インバージョン開発
+* `SKILL.md` を書き始める前に、まず 3つの JSON 評価ケース（白書 Snippet 3 標準フォーマット: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を策定する「インバージョン開発」を徹底。
+* 期待されるツール呼び出し軌跡（Tool Trajectory）と評価ルーブリックを先に定義することで、スキルの機能仕様と境界が明確化され、ハルシネーションや誤発火を未然に防止。
+
+### ⑧ 4段階品質保証パイプライン (The Read / Draft / Act Ladder)
 * **Tier 1 (`READ_ONLY`)**: 静的検証（`edd validate` 警告/エラー0）+ CLI契約テスト（100%合格）+ トリガー精度（90%以上）
 * **Tier 2 (`DRAFT_ONLY`)**: ゴールデンデータセット評価（90%以上）+ 連鎖回帰テスト（Cascade Regression 100%パス）
 * **Tier 3 (`ACTION_ALLOWED`)**: Trajectory 評価（`IN_ORDER` / `EXACT`）+ $pass^k$ 持続的一貫性（$k \ge 3$）+ Co-loaded 共存テスト + **人間の明示的承認（Human Sign-off: `--yes`）**

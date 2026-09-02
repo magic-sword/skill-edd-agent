@@ -31,10 +31,36 @@ except ImportError:
     StaticConversation = Any
 
 
+class EDDToolCall(BaseModel):
+    """白書 Snippet 3 準拠の期待されるツール呼び出し定義"""
+    tool: str = Field(..., description="呼び出されるべきツール名またはスクリプトパス")
+    args: Dict[str, Any] = Field(default_factory=dict, description="期待される引数パラメータ")
+
+
+class EDDTestCase(BaseModel):
+    """白書 Snippet 3 準拠の EDD (Evaluation-Driven Development) テストケース"""
+    case_id: str = Field(..., description="評価ケースの一意識別子")
+    input: str = Field(..., description="エージェントへのユーザ入力プロンプト")
+    expected_skill: Optional[str] = Field(None, description="トリガーされるべき期待スキル名")
+    expected_tool_calls: List[Union[EDDToolCall, Dict[str, Any], str]] = Field(
+        default_factory=list, description="期待されるツール呼び出し軌跡"
+    )
+    expected_output_format: Optional[str] = Field(None, description="期待される出力フォーマット仕様")
+    rubric: List[str] = Field(default_factory=list, description="LLM-as-a-Judge 用の評価ルーブリック項目一覧")
+
+
 class EvalCase(AdkEvalCase):
-    """Google ADK 2.0 純正準拠のテストケース定義（CLI契約テスト拡張対応）"""
+    """Google ADK 2.0 純正準拠のテストケース定義（CLI契約テストおよび白書 EDD 複合ケース両対応）"""
     # ADK 純正フィールド (eval_id, conversation, session_input 等) を継承
     eval_case_id: Optional[str] = Field(None, description="テストケース識別ID")
+    case_id: Optional[str] = Field(None, description="白書 Snippet 3 準拠のテストケース識別ID")
+    input: Optional[str] = Field(None, description="白書 Snippet 3 準拠のユーザ入力プロンプト")
+    expected_skill: Optional[str] = Field(None, description="期待スキル名")
+    expected_tool_calls: List[Union[EDDToolCall, Dict[str, Any], str]] = Field(default_factory=list, description="期待ツール呼び出し軌跡")
+    expected_output_format: Optional[str] = Field(None, description="期待出力フォーマット")
+    rubric: List[str] = Field(default_factory=list, description="評価ルーブリック")
+
+    # 従来の CLI 契約テスト用フィールド
     script_name: Optional[str] = Field(None, description="対象スクリプト名（scripts/配下）またはコマンド")
     cli_args: Optional[List[str]] = Field(default_factory=list, description="CLI実行時のコマンドライン引数")
     expected_exit_code: Optional[int] = Field(0, description="期待されるCLI終了コード")
@@ -47,14 +73,17 @@ class EvalCase(AdkEvalCase):
     @classmethod
     def normalize_case_and_adk_compatibility(cls, values: Any) -> Any:
         if isinstance(values, dict):
-            # eval_id と eval_case_id の相互同期
-            if "eval_id" in values and "eval_case_id" not in values:
-                values["eval_case_id"] = str(values["eval_id"])
-            elif "eval_case_id" in values and "eval_id" not in values:
-                values["eval_id"] = str(values["eval_case_id"])
-            elif "eval_id" not in values and "eval_case_id" not in values:
-                values["eval_id"] = "case_0"
-                values["eval_case_id"] = "case_0"
+            # case_id と eval_case_id / eval_id の相互同期
+            cid = values.get("case_id") or values.get("eval_case_id") or values.get("eval_id") or "case_0"
+            values["case_id"] = cid
+            values["eval_case_id"] = cid
+            values["eval_id"] = cid
+
+            # input と inputs の同期
+            if "input" in values and "user_input" not in values:
+                values["user_input"] = values["input"]
+            elif "user_input" in values and "input" not in values:
+                values["input"] = values["user_input"]
 
             # ADK ensure_conversation_xor_conversation_scenario を満足させるための互換処理
             has_conv = "conversation" in values and values["conversation"] is not None

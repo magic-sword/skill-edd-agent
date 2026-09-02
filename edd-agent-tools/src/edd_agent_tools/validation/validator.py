@@ -216,6 +216,10 @@ class SkillValidator:
                 res.add_error("frontmatter", f"Skill name '{name}' must be hyphen-case (lowercase letters, digits, single hyphens)")
             if len(name) > 64:
                 res.add_error("frontmatter", f"Skill name '{name}' exceeds ADK 2.0 limit of 64 characters ({len(name)} chars)")
+            if any(name.startswith(p) for p in ["claude-", "gemini-", "anthropic-", "google-"]):
+                res.add_warning("frontmatter", f"Skill name '{name}' contains vendor prefix. Best practice is vendor-neutral naming (e.g., 'converting-case' rather than 'gemini-case-converter').")
+            if name in ["utils", "tools", "helper", "data", "misc"]:
+                res.add_warning("frontmatter", f"Skill name '{name}' is too generic. Use specific domain naming (e.g. 'processing-pdfs').")
             if skill_dir and skill_dir.name != name:
                 res.add_warning("frontmatter", f"Directory name '{skill_dir.name}' does not match skill name '{name}'")
 
@@ -237,6 +241,9 @@ class SkillValidator:
             
             if "when" not in desc_lower and "use" not in desc_lower:
                 res.add_warning("frontmatter", "Description should include clear trigger conditions (e.g., 'Use when the user asks to...').")
+
+            if "do not" not in desc_lower and "not use" not in desc_lower and "not for" not in desc_lower:
+                res.add_warning("frontmatter", "Description should include a 'Do NOT use for...' clause to prevent over-triggering and boundary confusion.")
 
         # 3. Context Rot (コンテキスト腐敗) 対策: SKILL.md 本文のサイズ検査
         word_count = len(body_str.split())

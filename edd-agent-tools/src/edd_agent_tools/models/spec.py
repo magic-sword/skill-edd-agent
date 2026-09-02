@@ -66,6 +66,24 @@ class SkillSpec(BaseModel):
     def dependencies(self) -> List[str]:
         return self.frontmatter.dependencies
 
+    @property
+    def word_count(self) -> int:
+        """SKILL.md 本文の語数（5000語上限の判定用）"""
+        return len(self.body.split())
+
+    @property
+    def capitalized_imperatives(self) -> List[str]:
+        """Context Debt の要因となる大文字強制命令（ALWAYS, NEVER 等）のリスト"""
+        return re.findall(r"\b(ALWAYS|NEVER|MUST NOT|SHALL NOT|DO NOT MISS)\b", self.body)
+
+    @property
+    def is_description_compliant(self) -> bool:
+        """白書規約（What it does, When to use, When NOT to use）を満たしているか"""
+        desc_lower = self.description.lower()
+        has_use = "use when" in desc_lower or "use this" in desc_lower or "when " in desc_lower
+        has_not = "do not" in desc_lower or "not for" in desc_lower or "not use" in desc_lower
+        return len(self.description) <= 1024 and has_use and has_not
+
     @classmethod
     def parse_markdown(cls, content: str) -> "SkillSpec":
         """Markdown文字列をパースして SkillSpec インスタンスを生成します。"""

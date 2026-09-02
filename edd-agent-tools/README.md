@@ -40,9 +40,9 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 pip install -e edd-agent-tools
 
 # 統合 CLI (edd) - 動的ディスパッチによるスキルの直接実行
-edd run case-converter --input "hello_world" --format camel
+edd run case-converter "hello_world" --to camel
 # またはスキル名を直接サブコマンドとして指定可能 (Git プラグイン方式)
-edd case-converter --input "hello_world" --format camel
+edd case-converter "hello_world" --to camel
 
 # スキルライフサイクル管理
 edd init my-skill --pattern workflow
@@ -51,10 +51,14 @@ edd package src/skills/my-skill --out dist
 edd list
 
 # EDD 多層評価・Tier 昇格・失敗診断・一括最適化
+edd eval my-skill --type edd
 edd eval my-skill --type all
 edd tier-gate my-skill --tier 1
 edd diagnose my-skill
 edd optimize my-skill --tier 1
+
+# トレースからのスキル自動抽出
+edd harvest-trace path/to/trace.json my-harvested-skill
 
 # MCP サーバー起動
 edd-agent-mcp

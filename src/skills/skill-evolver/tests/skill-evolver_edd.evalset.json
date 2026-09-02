@@ -1,0 +1,55 @@
+{
+  "eval_set_id": "skill-evolver_edd_eval",
+  "skill_name": "skill-evolver",
+  "cases": [
+    {
+      "case_id": "evolver_edd_001",
+      "input": "Evaluate case-converter skill across all multi-layered test suites",
+      "expected_skill": "skill-evolver",
+      "expected_tool_calls": [
+        {
+          "tool": "edd eval",
+          "args": {"skill_name": "case-converter", "type": "all"}
+        }
+      ],
+      "expected_output_format": "evaluation_summary_report",
+      "rubric": [
+        "triggers skill evaluation suite via edd eval",
+        "evaluates triggers, tool trajectories, and rubrics",
+        "generates structured evaluation report"
+      ]
+    },
+    {
+      "case_id": "evolver_edd_002",
+      "input": "Diagnose failed evaluation cases for secret-sanitizer skill",
+      "expected_skill": "skill-evolver",
+      "expected_tool_calls": [
+        {
+          "tool": "edd diagnose",
+          "args": {"skill_name": "secret-sanitizer"}
+        }
+      ],
+      "expected_output_format": "failure_diagnosis_markdown",
+      "rubric": [
+        "analyzes latest evaluation failure report",
+        "identifies root causes in SKILL.md or scripts"
+      ]
+    },
+    {
+      "case_id": "evolver_edd_003",
+      "input": "Promote case-converter to Tier 1 Read-Only after verified eval pass",
+      "expected_skill": "skill-evolver",
+      "expected_tool_calls": [
+        {
+          "tool": "edd tier-gate",
+          "args": {"skill_name": "case-converter", "tier": 1}
+        }
+      ],
+      "expected_output_format": "tier_promotion_status",
+      "rubric": [
+        "verifies Tier 1 entry gates (90% trigger accuracy & contract tests)",
+        "updates skills_state.json registration securely"
+      ]
+    }
+  ]
+}
