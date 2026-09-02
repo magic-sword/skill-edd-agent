@@ -1,6 +1,9 @@
 ---
 name: {skill_name}
-description: This skill should be used when users need reference guidelines, domain specifications, or architectural standards for {skill_description_context}.
+description: |
+  Provides architectural references and guidelines for {skill_title}.
+  Use when the user asks for domain specifications, design rules, or best practices for {skill_name}.
+  Do NOT use for active automated code generation or script execution.
 license: MIT
 pattern: reference
 ---

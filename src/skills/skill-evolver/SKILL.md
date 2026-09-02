@@ -1,6 +1,9 @@
 ---
 name: skill-evolver
-description: This skill should be used when users or agents need to evaluate, diagnose test failures, iteratively self-heal, run cascade regression tests, and promote skills through quality tiers (Tier 1~3).
+description: |
+  Evaluates, diagnoses test failures, iteratively self-heals, runs cascade regression tests, and promotes skills through quality tiers (Tier 1~3).
+  Use when the user or agent needs to run multi-layer evaluations, tune trigger descriptions, diagnose errors, self-heal skills, or promote tiers.
+  Do NOT use for creating brand-new skill boilerplates or managing Python package releases.
 license: MIT
 pattern: workflow
 ---

@@ -1,6 +1,9 @@
 ---
 name: secret-sanitizer
-description: This skill should be used when users need to detect, mask, or sanitize sensitive credentials (API keys, JWT tokens, passwords, email addresses, IP addresses) in text strings or code files.
+description: |
+  Detects and masks sensitive credentials (API keys, JWT tokens, passwords, email addresses, IP addresses) in text strings or code files.
+  Use when the user asks to sanitize logs, mask confidential credentials, or prepare snippets for sharing.
+  Do NOT use for encryption/decryption tasks or simple single-character replacements.
 license: MIT
 pattern: task_based
 ---

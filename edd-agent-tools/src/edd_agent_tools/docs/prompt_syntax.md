@@ -21,8 +21,11 @@ All instructions in `SKILL.md` and agent prompts must use **imperative/infinitiv
 - Must match the directory name.
 - Example: `pdf-tools`, `git-conflict-resolver`.
 
-### `description` Field
-- Write in **third-person** perspective ("This skill should be used when...").
-- Keep under 500 characters / ~100 words.
-- Explicitly state trigger scenarios, file types, and task goals.
+### `description` Field (Routing Algorithm)
+- Treat the description as the agent's routing algorithm.
+- Structure with 3 key components (~50-100 words, ≤1024 chars):
+  1. **Verb-led purpose sentence**: Describe what it does starting with an active verb (e.g., "Converts text between case styles...").
+  2. **Trigger conditions**: Explicitly state when to trigger (e.g., "Use when the user asks to..."). Front-load trigger keywords.
+  3. **Anti-trigger / Bounds**: Explicitly state when NOT to trigger (e.g., "Do NOT use for...").
+- Avoid vague phrases (e.g., "A helpful skill for", "Helps with").
 - Avoid angle brackets (`<` or `>`).

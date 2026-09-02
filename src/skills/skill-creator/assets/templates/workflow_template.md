@@ -1,6 +1,9 @@
 ---
 name: {skill_name}
-description: This skill should be used when users need to perform {skill_description_context}.
+description: |
+  Performs {skill_title} workflows with deterministic execution.
+  Use when the user asks to execute {skill_name}, process relevant inputs, or orchestrate this domain task.
+  Do NOT use for simple one-off commands or unrelated administrative tasks.
 license: MIT
 pattern: workflow
 ---

@@ -17,7 +17,10 @@ from ..validation.validator import SkillValidator
 
 MINIMAL_SKILL_TEMPLATE = """---
 name: {skill_name}
-description: This skill should be used when users need to perform {skill_name_spaced} tasks.
+description: |
+  Performs {skill_name_spaced} tasks and workflows.
+  Use when the user asks to execute {skill_name_spaced}, process relevant inputs, or automate this domain workflow.
+  Do NOT use for simple one-off commands or unrelated administrative tasks.
 license: MIT
 pattern: {pattern}
 ---
@@ -26,35 +29,54 @@ pattern: {pattern}
 
 ## Overview
 
-Enables specialized execution of {skill_name_spaced} workflows.
+Performs {skill_name_spaced} workflows with deterministic scripts and clear domain guidelines.
+
+## Workflow Decision Tree
+
+To determine the appropriate procedure:
+- **If** standard {skill_name_spaced} execution is requested ➔ **Then** run `scripts/{primary_script}.py`
+- **If** domain specifications or edge cases must be consulted ➔ **Then** read `references/guide.md`
 
 ## Step-by-Step Instructions
 
-### Step 1: Initialize and Validate Inputs *(Tool: `scripts/{primary_script}.py`)*
-To verify input parameters, inspect incoming arguments before execution.
+### Step 1: Reconnaissance and Argument Inspection
+To inspect incoming parameters and verify inputs before execution:
+```bash
+python scripts/{primary_script}.py --help
+```
 
 ### Step 2: Execute Core Logic *(Tool: `scripts/{primary_script}.py`)*
-To execute the task, run `scripts/{primary_script}.py` with the appropriate parameters.
+To execute the task deterministically:
+```bash
+python scripts/{primary_script}.py --input "<data>"
+```
+
+### Step 3: Result Verification
+To verify the output matches requirements and return the formatted result.
 
 ## Usage Scenarios & Trigger Examples
 
 - "Please help me execute {skill_name} on target data."
+- "Run the {skill_name} workflow for my files."
+- "Process this {skill_name_spaced} task."
 
 ## When NOT to Use This Skill
 
 - Simple one-off commands that do not require specialized workflow execution.
+- Unrelated tasks outside the domain scope of {skill_name}.
 
 ## Bundled Resources
 
-### `scripts/` (Executable Tools)
+### `scripts/` (Executable Tools - Zero-dependency)
 - **`scripts/{primary_script}.py`**: Core CLI tool for {skill_title}.
 
 ### `references/` (On-Demand Knowledge)
-- **`references/guide.md`**: Detailed reference documentation.
+- **`references/guide.md`**: Detailed reference specifications and edge cases.
 
 ## Guidelines & Best Practices
 
-- Always verify arguments before execution.
+- Run `python scripts/{primary_script}.py --help` first to inspect options without polluting context window.
+- Ensure all outputs are verified before returning to the user.
 """
 
 
@@ -229,19 +251,64 @@ def test_cli_help():
             "skill_name": skill_name,
             "cases": [
                 {
-                    "eval_case_id": f"{skill_name}_trigger_positive",
+                    "eval_case_id": f"{skill_name}_trigger_pos_01",
                     "user_input": f"Please help me perform {skill_name_spaced} workflow on my data.",
                     "should_trigger": True
                 },
                 {
-                    "eval_case_id": f"{skill_name}_trigger_negative",
+                    "eval_case_id": f"{skill_name}_trigger_pos_02",
+                    "user_input": f"Run the {skill_name} task for my files.",
+                    "should_trigger": True
+                },
+                {
+                    "eval_case_id": f"{skill_name}_trigger_pos_03",
+                    "user_input": f"Execute {skill_name_spaced} processing.",
+                    "should_trigger": True
+                },
+                {
+                    "eval_case_id": f"{skill_name}_trigger_neg_01",
                     "user_input": "What is the capital of France?",
+                    "should_trigger": False
+                },
+                {
+                    "eval_case_id": f"{skill_name}_trigger_neg_02",
+                    "user_input": "Schedule a meeting with the team for 3 PM tomorrow.",
+                    "should_trigger": False
+                },
+                {
+                    "eval_case_id": f"{skill_name}_trigger_neg_03",
+                    "user_input": "Show me git commit history for this repository.",
                     "should_trigger": False
                 }
             ]
         }
         (target_dir / "tests" / f"{skill_name}_trigger.evalset.json").write_text(
             json.dumps(initial_trigger_set, indent=2, ensure_ascii=False),
+            encoding="utf-8"
+        )
+
+        initial_edd_set = {
+            "eval_set_id": f"{skill_name}_edd",
+            "skill_name": skill_name,
+            "cases": [
+                {
+                    "case_id": f"{skill_name}_exec_001",
+                    "input": f"Execute {skill_name_spaced} with sample parameters",
+                    "expected_skill": skill_name,
+                    "expected_tool_calls": [
+                        {"tool": f"scripts/{primary_script}.py", "args": {"--help": True}}
+                    ],
+                    "expected_output_format": "status_confirmation",
+                    "rubric": [
+                        f"correctly invokes {primary_script}.py",
+                        "verifies execution output",
+                        "does not clutter context window"
+                    ]
+                }
+            ]
+        }
+        (target_dir / "tests" / f"{skill_name}_edd.evalset.json").write_text(
+            json.dumps(initial_edd_set, indent=2, ensure_ascii=False),
             encoding="utf-8"
         )
 

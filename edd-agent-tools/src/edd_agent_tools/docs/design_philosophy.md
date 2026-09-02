@@ -46,14 +46,14 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
 ### ③ Progressive Disclosure（段階的情報開示とリソース分離）
 * コンテキストウィンドウの効率化と信頼性の両立を図るため、スキル資産を明確な3階層に分離します：
   1. **Level 1: YAML Frontmatter**（常時ロード: `name`, `description`）
+     - **Routing Algorithm**: `description` はエージェントがスキルを発動するかを判断する唯一のルーティング指標。**動詞起点（Verb-led sentence）** で開始し、「Use when...（発動条件）」および「Do NOT use for...（除外条件）」を明記し、トリガーキーワードを前方に集める（Front-load keywords）。
   2. **Level 2: SKILL.md 本文**（トリガー時ロード: 意思決定ツリー、手順、ガイドライン、When NOT to use）
+     - **Context Rot 対策**: 本文は 5,000 words（約 15,000 文字）以内に抑え、詳細な仕様やエッジケースは `references/` に分離。
+     - **Give the reason, not just the rule**: `ALWAYS` や `NEVER` などの大文字命令を詰め込む Context Debt を避け、設計理由と客観的指示（Imperative form: "To accomplish X, do Y"）を記述。
   3. **Level 3: Bundled Resources**（オンデマンド実行・ロード）
-     - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）
+     - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）。**Shift Intelligence Left** により、モデルの推論プロンプトから決定論的処理をコードへオフロード。
      - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド読み込み）
      - `assets/`: 出力用テンプレート・素材（成果物への流用・コピー用）
-     - `examples/`: 具象コード例・パターン集（エージェントが真似できる実装例）
-     - `tests/`: 契約テストおよびシミュレーション評価データ（`*.evalset.json`）
-
 ### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `AgentEvaluator`)
 * Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を採用。
 * `AdkEvalAdapter` により、ADK 純正の `AgentEvaluator` および Rubrics-based Criteria（`rubric_based_final_response_quality_v1` 等）を透過接続。
@@ -69,17 +69,24 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
 * 1 回のラッキー合格（$pass@1$）を排除し、指定された $k$ 回連続実行で全勝を要求する **$pass^k$ 指標** を導入。
 * 5〜15 スキルが同時マウントされた高トークン負荷環境下での **Context Rot 防止ベンチマーク（`CoLoadedEvalRunner`）** を実施。
 
-### ⑦ 4次元ネガティブ・ハーネス (`When NOT to Use` による過剰適用防止)
-* 粒度境界、技術的限界、ライフサイクル分離、インベントリ照合の4軸から客観的な除外条件を明記し、過剰適用を防ぎます。
-
-### ⑧ 4段階品質保証パイプライン & Human Sign-off (The Read / Draft / Act Ladder)
+### ⑦ 4段階品質保証パイプライン (The Read / Draft / Act Ladder)
 * **Tier 1 (`READ_ONLY`)**: 静的検証（`edd validate` 警告/エラー0）+ CLI契約テスト（100%合格）+ トリガー精度（90%以上）
 * **Tier 2 (`DRAFT_ONLY`)**: ゴールデンデータセット評価（90%以上）+ 連鎖回帰テスト（Cascade Regression 100%パス）
 * **Tier 3 (`ACTION_ALLOWED`)**: Trajectory 評価（`IN_ORDER` / `EXACT`）+ $pass^k$ 持続的一貫性（$k \ge 3$）+ Co-loaded 共存テスト + **人間の明示的承認（Human Sign-off: `--yes`）**
 
 ---
 
-## 2. システム・アーキテクチャのレイヤード構造
+## 2. スキル品質の 5 大原則 (The Five Quality Principles)
+
+1. **One Skill, One Job**: 1文で説明できないスキルは分割する。不要な「and」で無関係な機能を束ねない。
+2. **Descriptions are an Interface**: Description はルーティングアルゴリズム。曖昧な説明文は未発動（Under-trigger）または誤爆（Over-trigger）の原因。
+3. **Shift Intelligence Left**: 実行時に LLM のプロンプトで複雑なルールを守らせるのではなく、テスト可能なスクリプトや明確なスキーマにロジックを落とし込む。
+4. **Context is a Budget, Not a Vessel**: コンテキスト容量が 1M トークンあっても、50K トークンを超えると精度劣化（Context Rot / Lost in the Middle）が発生する。不要な情報を常に削ぎ落とす。
+5. **Treat Skills as Code**: スキルは依存ライブラリと同様にバージョン管理・テスト・PRレビューを行う。テストのないスキルは機能ではなく単なる期待に過ぎない。
+
+---
+
+## 3. システム・アーキテクチャのレイヤード構造
 
 ```
 edd_agent_tools/
@@ -96,11 +103,11 @@ edd_agent_tools/
 
 ---
 
-## 3. スキルフォルダ構造の規約 (Standard Layout)
+## 4. スキルフォルダ構造の規約 (Standard Layout)
 
 ```
 src/skills/{skill-name}/
-  SKILL.md       # YAML Frontmatter ('This skill should be used when...') + Markdown仕様書 (SSOT)
+  SKILL.md       # YAML Frontmatter (動詞起点 + Use when + Do NOT use) + Markdown仕様書 (SSOT)
   scripts/       # 決定論的スクリプト（直接実行可能・CLI --help 対応・Zero-dependency、ドメイン処理がある場合のみ）
     {skill_name}.py
   references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
@@ -109,5 +116,5 @@ src/skills/{skill-name}/
     templates/   # スキル作成用のMarkdownテンプレート素材（skill-creatorの場合）
   examples/      # 具象コード例・パターン集（エージェントが真似できる実装例）
     example_usage.py
-  tests/         # 評価データセット（{skill_name}_contract.evalset.json 等）
+  tests/         # 評価データセット（{skill_name}_edd.evalset.json 等）
 ```

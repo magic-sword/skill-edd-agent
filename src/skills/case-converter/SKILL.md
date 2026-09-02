@@ -1,6 +1,9 @@
 ---
 name: case-converter
-description: This skill should be used when users need to convert text or identifier case styles (camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case) across strings or files.
+description: |
+  Converts text or identifier case styles (camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case) across strings or files.
+  Use when the user asks to convert naming conventions, format code identifiers, or transform variable cases.
+  Do NOT use for trivial single-word uppercase/lowercase or complex AST-based code refactoring.
 license: MIT
 pattern: task_based
 ---

@@ -70,9 +70,11 @@
    - スキル内部から `import edd_agent_tools` などの直接 Python import は行わず、CLI/IO 規約でのみ連携します。
 4. **4次元ネガティブ・ハーネス (`When NOT to Use This Skill`)**:
    - 粒度境界、技術的限界、ライフサイクル分離、インベントリ照合の4軸から客観的な除外条件を明記し、過剰適用を防ぎます。
-5. **客観的指示文体 (Imperative Form)**:
+5. **客観的指示文体 (Imperative Form & Routing Algorithm)**:
    - 全体指示文は動詞起点（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調を排除してください。
-   - Frontmatter の `description` は第三者視点（"This skill should be used when..."）で100 words以内で簡潔に記述してください。
+   - Frontmatter の `description` はエージェントのルーティングアルゴリズムです。動詞起点（Verb-led sentence）で開始し、「Use when...（発動条件）」および「Do NOT use for...（除外条件）」を明記してください（50〜100 words, ≤1024 chars）。
+   - Context Rot 対策として、`SKILL.md` 本文は 5,000 words 以内に抑え、詳細仕様は `references/` に分離してください。
+   - Context Debt 対策として、`ALWAYS` や `NEVER` などの大文字命令を詰め込まず「理由を付記（Give the reason, not just the rule）」してください。
 
 ---
 

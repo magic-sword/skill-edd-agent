@@ -1,6 +1,9 @@
 ---
 name: {skill_name}
-description: This skill should be used when users need utility tasks for {skill_description_context}.
+description: |
+  Provides utility tasks and tools for {skill_title}.
+  Use when the user asks to convert, inspect, or process domain data using {skill_name}.
+  Do NOT use for trivial one-off operations or complex multi-stage workflows.
 license: MIT
 pattern: task_based
 ---

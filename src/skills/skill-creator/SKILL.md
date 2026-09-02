@@ -1,6 +1,9 @@
 ---
 name: skill-creator
-description: This skill should be used when users want to create new skills or redesign existing skills following the Anthropic Markdown-First and Google ADK 2.0 Progressive Disclosure (scripts, references, assets) standard.
+description: |
+  Creates and scaffolds new agent skills or redesigns existing skills following Anthropic Markdown-First and Google ADK 2.0 Progressive Disclosure standards.
+  Use when the user asks to author a skill, scaffold a skill package, extract skills from execution traces, or export distributable skill ZIP packages.
+  Do NOT use for skill evaluation, regression diagnosis, self-healing loops, or tier promotion (use skill-evolver).
 license: MIT
 pattern: workflow
 ---

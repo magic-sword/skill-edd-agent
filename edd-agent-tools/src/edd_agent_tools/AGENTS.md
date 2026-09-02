@@ -131,6 +131,15 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 
 ---
 
-## 7. プロンプトおよび仕様書の文体規約 (Imperative Form)
-* **動詞起点・客観的指示**: SKILL.md および指示プロンプトはすべて客観的な指示（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調や曖昧な助動詞を排除してください。
-* **Frontmatter の description**: 第三者視点（"This skill should be used when..."）で、トリガー条件・対象ファイル・対応タスクを100 words以内で極めて具体的に記述してください。
+## 7. プロンプトおよび仕様書の文体規約 (Imperative Form & Routing Algorithm)
+* **動詞起点・客観的指示 (Imperative Instructions)**:
+  `SKILL.md` および指示プロンプトはすべて客観的な指示（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調や曖昧な助動詞（you should, please）を排除してください。
+* **Frontmatter の description (Routing Algorithm)**:
+  `description` はエージェントがスキルを発動するかを判断する唯一のルーティング指標です。以下の3要素を 50〜100 words (≤1024 chars) で構成してください：
+  1. **動詞起点（Verb-led sentence）**: 何を行うスキルかを端的に定義（例: "Converts text between case styles..."）
+  2. **Use when ...**: トリガー条件・発話キーワード
+  3. **Do NOT use for ...**: 誤爆を防ぐ除外条件・境界定義
+* **Context Rot & Context Debt 対策**:
+  - `SKILL.md` 本文は 5,000 words 以内に抑え、詳細な仕様やエッジケースは `references/` に分離（Progressive Disclosure）。
+  - 「Give the reason, not just the rule」: `ALWAYS` や `NEVER` などの大文字命令を乱用せず、設計理由と客観的指示を記述する。
+  - **Shift Intelligence Left**: 決定論的な処理は `scripts/` にオフロードし、CLI `--help` によるブラックボックス実行を行う。

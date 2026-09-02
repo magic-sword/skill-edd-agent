@@ -228,11 +228,24 @@ class SkillValidator:
             if len(desc) > 1024:
                 res.add_error("frontmatter", f"Description exceeds ADK 2.0 limit of 1024 characters ({len(desc)} chars)")
             elif len(desc) > 500:
-                res.add_warning("frontmatter", f"Description is relatively long ({len(desc)} chars). Recommended: <500 chars (~100 words)")
-            if not desc.startswith("This skill should be used when"):
-                res.add_warning("frontmatter", "Description should start with 'This skill should be used when...' for third-person clarity")
+                res.add_warning("frontmatter", f"Description is relatively long ({len(desc)} chars). Recommended: <500 chars (~50-100 words)")
+            
+            # ルーティングアルゴリズムとしての品質検査 (Agent Skills 白書 & Anthropic/ADK 標準)
+            desc_lower = desc.lower()
+            if desc_lower.startswith("a helpful skill") or desc_lower.startswith("helps with"):
+                res.add_warning("frontmatter", "Description should be verb-led (e.g., 'Converts...', 'Generates...') and front-load trigger keywords instead of vague phrases like 'helps with'.")
+            
+            if "when" not in desc_lower and "use" not in desc_lower:
+                res.add_warning("frontmatter", "Description should include clear trigger conditions (e.g., 'Use when the user asks to...').")
 
-        # 3. リソース実在参照の検証
+        # 3. Context Rot (コンテキスト腐敗) 対策: SKILL.md 本文のサイズ検査
+        word_count = len(body_str.split())
+        if word_count > 5000:
+            res.add_warning("context_rot", f"SKILL.md body exceeds 5,000 words ({word_count} words). Move detailed reference material to references/ to avoid context rot.")
+        elif len(body_str) > 15000:
+            res.add_warning("context_rot", f"SKILL.md body is very large ({len(body_str)} chars). Consider progressive disclosure by moving detailed documentation to references/.")
+
+        # 4. リソース実在参照の検証
         if skill_dir and skill_dir.exists():
             scripts = sorted(list(set(re.findall(r"`?scripts/([a-zA-Z0-9_\-\./]+)", body_str))))
             for s in scripts:
@@ -258,7 +271,7 @@ class SkillValidator:
                 if clean_e and not (skill_dir / "examples" / clean_e).exists():
                     res.add_error("resources", f"Referenced example does not exist: examples/{clean_e}")
 
-        # 4. 文体（Imperative / 客観的指示）の検査 (指示手順部を対象とし、ユーザー発話例セクションは除外)
+        # 5. 文体（Imperative / 客観的指示）の検査 (指示手順部を対象とし、ユーザー発話例セクションは除外)
         instruction_body = re.sub(r"## Usage Scenarios & Trigger Examples.*?(?=##|\Z)", "", body_str, flags=re.DOTALL)
         second_person_patterns = [
             r"\byou should\b", r"\byou can\b", r"\byou must\b", r"\byou will\b",
@@ -269,5 +282,10 @@ class SkillValidator:
             if matches:
                 res.add_warning("tone", f"Found conversational phrasing '{matches[0].group(0)}' in instructions. Use objective imperative instructions ('To accomplish X, do Y').")
                 break
+
+        # 6. Context Debt (大文字命令の乱用) 対策
+        uppercase_imperatives = re.findall(r"\b(ALWAYS|NEVER|MUST NOT)\b", instruction_body)
+        if len(uppercase_imperatives) >= 5:
+            res.add_warning("context_debt", f"Detected frequent uppercase imperatives ({len(uppercase_imperatives)} occurrences: {set(uppercase_imperatives)}). 'Give the reason, not just the rule' to avoid context debt and improve generalization.")
 
         return res

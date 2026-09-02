@@ -1,0 +1,55 @@
+{
+  "eval_set_id": "case-converter_edd_eval",
+  "skill_name": "case-converter",
+  "cases": [
+    {
+      "case_id": "case_conv_edd_001",
+      "input": "Convert 'hello_world_example' to camelCase",
+      "expected_skill": "case-converter",
+      "expected_tool_calls": [
+        {
+          "tool": "scripts/case_converter.py",
+          "args": {"input": "hello_world_example", "to": "camel"}
+        }
+      ],
+      "expected_output_format": "helloWorldExample",
+      "rubric": [
+        "correctly converts snake_case to camelCase",
+        "invokes scripts/case_converter.py CLI tool",
+        "output matches helloWorldExample without conversational filler"
+      ]
+    },
+    {
+      "case_id": "case_conv_edd_002",
+      "input": "Convert 'UserProfileData' to kebab-case",
+      "expected_skill": "case-converter",
+      "expected_tool_calls": [
+        {
+          "tool": "scripts/case_converter.py",
+          "args": {"input": "UserProfileData", "to": "kebab"}
+        }
+      ],
+      "expected_output_format": "user-profile-data",
+      "rubric": [
+        "correctly converts PascalCase to kebab-case",
+        "invokes scripts/case_converter.py CLI tool"
+      ]
+    },
+    {
+      "case_id": "case_conv_edd_003",
+      "input": "Convert 'api_response_status' to CONSTANT_CASE",
+      "expected_skill": "case-converter",
+      "expected_tool_calls": [
+        {
+          "tool": "scripts/case_converter.py",
+          "args": {"input": "api_response_status", "to": "constant"}
+        }
+      ],
+      "expected_output_format": "API_RESPONSE_STATUS",
+      "rubric": [
+        "correctly converts snake_case to CONSTANT_CASE",
+        "invokes scripts/case_converter.py CLI tool"
+      ]
+    }
+  ]
+}

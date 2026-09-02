@@ -28,9 +28,12 @@ Anthropic 公式標準（Markdown-First & Progressive Disclosure）および Goo
 
 ---
 
-## 3. Frontmatter & メタデータ規約 (Level 1)
+## 3. Frontmatter & メタデータ規約 (Level 1 - Routing Algorithm)
 * **`name`**: ハイフンケース（ケバブケース: `^[a-z0-9]+(-[a-z0-9]+)*$`）のみ（例: `pdf-tools`, `git-conflict-resolver`）。
-* **`description`**: 客観的な第三者視点（"This skill should be used when..."）で記述し、トリガー条件、対象ファイル、主要タスクを 1024 文字（約 100 words）以内で具体的に記述する。
+* **`description`**: エージェントがスキルを発動するかを判断する**ルーティングアルゴリズム**として設計する。以下の3要素を 50〜100 words (≤1024 chars) で構成する：
+  1. **動詞起点（Verb-led sentence）**: 何を行うスキルかを端的に定義（例: "Converts text between case styles..."）
+  2. **Use when ...**: トリガー条件・発話キーワード
+  3. **Do NOT use for ...**: 誤爆を防ぐ除外条件・境界定義
 * **`pattern`**: 4大スキルパターン（`workflow`, `task_based`, `reference`, `capabilities`）のいずれかを指定。
 
 ---

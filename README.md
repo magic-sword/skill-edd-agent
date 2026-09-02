@@ -56,9 +56,13 @@ flowchart TD
 
 1.  **単一真実源の原則 (Markdown-First & Template Assets)**
     *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化。パッケージ内部に公式標準の雛形テンプレートを同梱。
-2.  **Progressive Disclosure (段階的リソース分離)**
-    *   コンテキストウィンドウを圧迫しない階層化リソース構造：
-        - `scripts/`: 直接実行可能な決定論的スクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）
+2.  **Progressive Disclosure (段階的リソース分離) & ルーティング設計**
+    *   **Level 1: YAML Frontmatter (Routing Algorithm)**:
+        - `description` は動詞起点（Verb-led sentence）で開始し、「Use when...（発動条件）」および「Do NOT use for...（除外条件）」を明記（50〜100 words）。
+    *   **Level 2: SKILL.md 本文 (Instructions)**:
+        - 客観的動詞起点（Imperative form: "To accomplish X, do Y"）で記述。Context Rot 対策として 5,000 words 以内に抑え、詳細仕様は `references/` に分離。
+    *   **Level 3: Bundled Resources (On-demand & Execution)**:
+        - `scripts/`: 直接実行可能な決定論的スクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）。**Shift Intelligence Left** により決定論的処理をコードへオフロード。
         - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ
         - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
         - `examples/`: エージェントが真似できる具象コード例・パターン集

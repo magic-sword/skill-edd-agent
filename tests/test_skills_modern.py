@@ -190,3 +190,59 @@ def test_cli_contract_runner(tmp_workspace):
     assert res.passed == 2
     assert res.failed == 0
     assert res.accuracy == 1.0
+
+
+def test_validator_context_rot_and_debt_detection():
+    """Context Rot (>5,000 words) および Context Debt (ALWAYS/NEVER 乱用) の静的検知テスト"""
+    # 1. 大文字命令の乱用 (Context Debt)
+    debt_content = """---
+name: debt-skill
+description: Performs tasks. Use when the user asks for it.
+---
+# Debt Skill
+ALWAYS do A. NEVER do B. MUST NOT do C. ALWAYS do D. NEVER do E.
+"""
+    res_debt = SkillValidator.validate_content(debt_content)
+    assert any("context_debt" in issue.category for issue in res_debt.issues)
+
+    # 2. 巨大な本文 (Context Rot)
+    large_body = "word " * 5001
+    rot_content = f"""---
+name: rot-skill
+description: Performs tasks. Use when the user asks for it.
+---
+# Rot Skill
+{large_body}
+"""
+    res_rot = SkillValidator.validate_content(rot_content)
+    assert any("context_rot" in issue.category for issue in res_rot.issues)
+
+
+def test_simulation_runner_edd_composite_eval(tmp_workspace):
+    """白書 Snippet 3 準拠の EDD 複合ケース（Trigger, Trajectory, Rubric）の評価テスト"""
+    from edd_agent_tools.evaluation import SimulationEvalRunner
+    skill_dir = SkillScaffolder.scaffold("edd-eval-skill", output_base_dir=tmp_workspace, pattern="workflow")
+    skill = Skill(root_dir=str(skill_dir), tier=1)
+
+    edd_eval_data = {
+        "eval_set_id": "edd_composite_test",
+        "cases": [
+            {
+                "case_id": "edd_001",
+                "input": "Execute edd-eval-skill workflow",
+                "expected_skill": "edd-eval-skill",
+                "expected_tool_calls": [
+                    {"tool": "scripts/edd_eval_skill.py", "args": {"--help": True}}
+                ],
+                "expected_output_format": "success",
+                "rubric": ["correct execution", "clear response"]
+            }
+        ]
+    }
+
+    runner = SimulationEvalRunner()
+    result = runner.run_tests(skill=skill, eval_set_data=edd_eval_data)
+    assert result.passed == 1
+    assert result.failed == 0
+    assert result.accuracy == 1.0
+

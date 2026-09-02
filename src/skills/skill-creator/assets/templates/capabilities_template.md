@@ -1,6 +1,9 @@
 ---
 name: {skill_name}
-description: This skill should be used when users need multiple integrated capabilities and operations for {skill_description_context}.
+description: |
+  Provides multi-capability operations for {skill_description_context}.
+  Use when the user asks to execute multi-mode workflows or complex operations with {skill_name}.
+  Do NOT use for simple one-off commands or isolated script runs.
 license: MIT
 pattern: capabilities
 ---

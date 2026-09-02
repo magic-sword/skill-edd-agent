@@ -1,32 +1,35 @@
 {
   "eval_set_id": "case-converter_trigger_eval",
+  "skill_name": "case-converter",
   "cases": [
     {
-      "name": "positive_trigger_1",
-      "user_input": "Please execute case-converter on the input data.",
-      "expected_tools": [
-        "case-converter"
-      ],
+      "eval_case_id": "case_conv_trigger_pos_01",
+      "user_input": "この snake_case の変数リストを camelCase に一括変換してほしい",
       "should_trigger": true
     },
     {
-      "name": "positive_trigger_2",
-      "user_input": "Help me run case-converter workflow.",
-      "expected_tools": [
-        "case-converter"
-      ],
+      "eval_case_id": "case_conv_trigger_pos_02",
+      "user_input": "Convert the identifier 'my_user_profile_data' to PascalCase",
       "should_trigger": true
     },
     {
-      "name": "negative_trigger_1",
-      "user_input": "Simple one-line shell commands that do not need a specialized skill.",
-      "expected_tools": [],
+      "eval_case_id": "case_conv_trigger_pos_03",
+      "user_input": "ファイル内の識別子をすべて kebab-case に変換してください",
+      "should_trigger": true
+    },
+    {
+      "eval_case_id": "case_conv_trigger_neg_01",
+      "user_input": "What is the current time in Tokyo?",
       "should_trigger": false
     },
     {
-      "name": "negative_trigger_2",
-      "user_input": "Unrelated domain operations.",
-      "expected_tools": [],
+      "eval_case_id": "case_conv_trigger_neg_02",
+      "user_input": "このログファイルから API キーやパスワードをマスキングして",
+      "should_trigger": false
+    },
+    {
+      "eval_case_id": "case_conv_trigger_neg_03",
+      "user_input": "AST構文木を解析してクラスの継承ツリーをリファクタリングして",
       "should_trigger": false
     }
   ]

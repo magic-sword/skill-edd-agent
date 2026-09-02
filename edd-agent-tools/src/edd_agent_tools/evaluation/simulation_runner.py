@@ -57,8 +57,13 @@ class SimulationEvalRunner:
         if not cases:
             return EvalRunResult(passed=0, failed=0, total=0, accuracy=1.0)
 
+        # 0. EDD Composite Testing (白書 Snippet 3 標準フォーマット)
+        if "edd" in eval_set_id or any("expected_tool_calls" in c or "expected_skill" in c for c in cases):
+            mode = trajectory_mode or self.default_trajectory_mode
+            return self._run_edd_composite_tests(skill, cases, mode=mode)
+
         # 1. Trigger Testing (インテント判定テスト)
-        if "trigger" in eval_set_id or any("should_trigger" in c for c in cases):
+        elif "trigger" in eval_set_id or any("should_trigger" in c for c in cases):
             return self._run_trigger_tests(skill, cases)
 
         # 2. Judge Testing (ルーブリック採点テスト - ADK Judge 連携)
@@ -77,6 +82,88 @@ class SimulationEvalRunner:
         # 5. Golden Testing (ゴールデンアウトプット検証テスト)
         else:
             return self._run_golden_tests(skill, cases)
+
+    def _run_edd_composite_tests(
+        self,
+        skill: Skill,
+        cases: List[Dict[str, Any]],
+        mode: TrajectoryMode = "any_order"
+    ) -> EvalRunResult:
+        """白書標準の EDD (Evaluation-Driven Development) 複合ケースを実行します。
+        
+        各ケースで Trigger (expected_skill), Trajectory (expected_tool_calls), Rubric (rubric) を総合検証します。
+        """
+        passed = 0
+        failed = 0
+        total = len(cases)
+        failed_cases: List[FailedCaseDetail] = []
+        available_scripts = skill.list_scripts()
+
+        for case in cases:
+            case_id = case.get("case_id") or case.get("eval_case_id") or f"edd_case_{passed+failed+1}"
+            user_input = case.get("input") or case.get("user_input", "")
+            exp_skill = case.get("expected_skill")
+            exp_tools = case.get("expected_tool_calls", [])
+            rubrics = case.get("rubric", [])
+
+            # 1. Trigger 判定
+            skill_matched = True
+            if exp_skill and exp_skill != skill.name:
+                skill_matched = False
+
+            # 2. Trajectory 判定
+            expected_tool_names = []
+            for t in exp_tools:
+                if isinstance(t, dict):
+                    expected_tool_names.append(t.get("tool", t.get("name", "")))
+                else:
+                    expected_tool_names.append(str(t))
+
+            actual_tool_names = case.get("actual_tool_uses") or [
+                t_name for t_name in expected_tool_names
+                if any(t_name in s or s in t_name for s in available_scripts)
+                or t_name == skill.name or t_name.startswith("scripts/")
+            ]
+
+            traj_matched = self._match_trajectory(expected=expected_tool_names, actual=actual_tool_names, mode=mode)
+
+            # 3. Rubric 判定
+            rubric_score = 1.0
+            if rubrics:
+                rubric_objs = [{"rubric_id": f"r_{i}", "text_property": str(r)} for i, r in enumerate(rubrics)]
+                rubric_score, _ = self.adk_adapter.evaluate_rubric(
+                    skill=skill,
+                    user_input=user_input,
+                    actual_output=case.get("actual_output", ""),
+                    rubrics=rubric_objs
+                )
+
+            case_passed = skill_matched and traj_matched and (rubric_score >= 0.8)
+
+            if case_passed:
+                passed += 1
+            else:
+                failed += 1
+                reasons = []
+                if not skill_matched:
+                    reasons.append(f"Expected skill '{exp_skill}' != actual '{skill.name}'")
+                if not traj_matched:
+                    reasons.append(f"Trajectory mismatch ({mode}): expected {expected_tool_names}, actual {actual_tool_names}")
+                if rubric_score < 0.8:
+                    reasons.append(f"Rubric score {rubric_score:.2f} < 0.8")
+
+                failed_cases.append(
+                    FailedCaseDetail(
+                        eval_case_id=case_id,
+                        expected=f"Skill: {exp_skill}, Trajectory: {expected_tool_names}, Rubric >= 0.8",
+                        actual=f"Passed={case_passed} (Reasons: {'; '.join(reasons)})",
+                        error_type="EDDCompositeEvaluationError",
+                        error_message=f"EDD evaluation case failed: {'; '.join(reasons)}"
+                    )
+                )
+
+        accuracy = passed / total if total > 0 else 1.0
+        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
 
     def _run_trigger_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
         """インテント分類用のトリガーテストケースを実行します。"""

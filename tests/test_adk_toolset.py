@@ -110,7 +110,7 @@ def test_adk_frontmatter_extended_fields_roundtrip():
     """allowed-tools, compatibility, metadata を含む Frontmatter の双方向変換をテストします。"""
     content = """---
 name: sample-extended-skill
-description: This skill should be used when testing extended ADK frontmatter fields.
+description: Tests extended ADK frontmatter fields. Use when validating frontmatter compatibility.
 license: Apache-2.0
 compatibility: python>=3.10
 allowed-tools:
