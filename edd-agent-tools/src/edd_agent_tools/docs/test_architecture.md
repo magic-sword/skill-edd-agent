@@ -53,10 +53,11 @@ flowchart LR
 - テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
 - 3大モード：`EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）。
 
-### ③ Google ADK 2.0 純正 LLM-as-a-Judge (`AdkEvalAdapter`)
-- Google ADK 2.0 の `AgentEvaluator` および `RubricsBasedCriterion`（`rubric_based_final_response_quality_v1` 等）を透過接続。
+### ③ Google ADK 2.0 純正 ResponseEvaluator (ROUGE-1) & LLM-as-a-Judge (`AdkEvalAdapter`)
+- ADK 2.0 公式の `ResponseEvaluator`（ROUGE-1 `response_match_score`）により、アドホックな正規表現判定（車輪の再発明）を完全排除して高速かつ客観的なテキスト品質判定を実施。
+- ライブ検証時は Google ADK 2.0 の `AgentEvaluator` および `RubricBasedFinalResponseQualityV1Evaluator`（`rubric_based_final_response_quality_v1`）を透過接続。
 - 参照回答とモデル回答の位置を反転させて 2 回推論する **Position Swapping** により順序バイアスを中和。
-- 通常テスト・CI は決定論的フォールバックでミリ秒単位で高速実行し、`--live` オプション時のみリモート推論を実行。
+- 通常テスト・CI は決定論的 Evaluator（`TrajectoryEvaluator` + `ResponseEvaluator`）でミリ秒単位で高速実行し、`--live` オプション時のみ Gemini API リモート推論を実行。
 
 ### ④ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
 - **Black-box 実行**: Python 内部コードを直接インポートせず、CLI インターフェース（`cli_args`）経由でサブプロセス実行。

@@ -593,7 +593,7 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
         print(f"❌ Error: No evalset found for skill '{args.skill_name}'.", file=sys.stderr)
         return 1
 
-    agent_module = getattr(args, "agent_module", "src.main") or "src.main"
+    agent_module = getattr(args, "agent_module", "src") or "src"
 
     print(f"🚀 Running Google ADK 2.0 AgentEvaluator on '{args.skill_name}'...")
     print(f"   Agent Module: {agent_module}")
@@ -602,7 +602,7 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
     from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
     import asyncio
     try:
-        adapter = AdkEvalAdapter()
+        adapter = AdkEvalAdapter(live=True)
         asyncio.run(adapter.evaluate_with_adk_agent(
             agent_module=agent_module,
             eval_dataset_file_path_or_dir=eval_file
@@ -718,7 +718,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_adk_eval = subparsers.add_parser("adk-eval", help="Directly run Google ADK AgentEvaluator on a skill")
     p_adk_eval.add_argument("skill_name", help="Target skill name")
     p_adk_eval.add_argument("--evalset", "-e", help="Path to custom evalset JSON")
-    p_adk_eval.add_argument("--agent-module", "-m", default="src.main", help="Agent module path containing root_agent (default: src.main)")
+    p_adk_eval.add_argument("--agent-module", "-m", default="src", help="Agent module path containing root_agent (default: src)")
 
     # パース実行（run 用に未知の引数も許容）
     args, extra = parser.parse_known_args(argv)

@@ -30,7 +30,7 @@
   - 共通ドメインエンティティ（`core`: `SkillPackage`, `SkillTests`）
   - 静的検証リンター（`validation`: `SkillValidator` - AST解析、Prerequisites照合、白書命名規則検査、MCP再発明検知）
   - パッケージ組み込み標準テンプレート & ZIP化（`packaging`: `SkillScaffolder`, `SkillPackager` - Snippet 3 インバージョン生成）
-  - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter` [ADK純正 ToolTrajectoryCriterion, LLM-as-a-Judge, Position Swapping], `CascadeTestRunner`, `LocalWorkspaceEnv`）
+  - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter` [ADK純正 TrajectoryEvaluator, ResponseEvaluator ROUGE-1, RubricBasedFinalResponseQualityV1Evaluator, Position Swapping], `CascadeTestRunner`, `LocalWorkspaceEnv`）
   - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `EddSkillToolset` [UnsafeLocalCodeExecutor標準注入・重複コード実行排除], `EddSkillRegistry` / `mcp`: `create_mcp_server`）
   - 統合 CLI（`cli`: `edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
   ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。公式 Code Executor を使用します。

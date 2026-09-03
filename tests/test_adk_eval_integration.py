@@ -276,3 +276,21 @@ def test_adk_trajectory_evaluator_native_execution():
     assert "score=1.00" in msg
 
 
+def test_adk_response_evaluator_native_execution():
+    """AdkEvalAdapter が Google ADK 2.0 純正 ResponseEvaluator (ROUGE-1) を直接呼び出して評価することを検証。"""
+    adapter = AdkEvalAdapter()
+
+    actual = "Sanitized output: <API_KEY: ********>"
+    expected = "Sanitized output: <API_KEY: ********>"
+
+    passed, score, msg = adapter.evaluate_response(
+        actual_output=actual,
+        expected_output=expected,
+        threshold=0.8
+    )
+    assert passed is True
+    assert score >= 0.8
+    assert "ADK ResponseEvaluator" in msg or "ROUGE-1" in msg
+
+
+

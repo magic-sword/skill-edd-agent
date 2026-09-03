@@ -32,16 +32,18 @@
 
 ## 2. Google ADK 2.0 純正評価連携 (`AdkEvalAdapter`)
 
-Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）とシームレスに統合し、手書きロジックによる車輪の再発明を完全に排除しています：
+Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）とシームレスに統合し、手書きロジックやアドホックな正規表現による車輪の再発明を完全に排除しています：
 
 * **`TrajectoryEvaluator` 直接駆動 & 第1級標準**:
   Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。テストケースおよびエージェント実行におけるツール呼び出しは、ADK 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用し、従来のスクリプト直接表記（`scripts/xxx.py`）も透過的に正規化。
+* **`ResponseEvaluator` (ROUGE-1) による決定論的回答品質検証**:
+  ADK 公式の `google.adk.evaluation.response_evaluator.ResponseEvaluator` を直接駆動し、参照回答との ROUGE-1 類似度（`response_match_score`、デフォルト閾値 0.8）を客観的かつ高速に検証。特定ドメイン向けの正規表現キーワード判定を完全排除。
 * **Google ADK 2.0 純正 `AgentEvaluator` 連携**:
   `AdkEvalAdapter.evaluate_with_adk_agent()` を通じて、ADK 公式の `AgentEvaluator.evaluate()`（セッション追跡、実際のツール呼び出し軌跡取得、Rubrics 採点の一括実行）をシームレスに駆動。
 * **`rubric_based_final_response_quality_v1` & Position Swapping**:
   ADK 純正のクライテリアに基づき、参照回答と生成回答の順序を反転させて 2 回推論する Position Swapping により順序バイアスを中和。
 * **決定論的高速評価とライブ推論の分離**:
-  テストの Flakiness を根絶するため、通常テスト・CI は決定論的フォールバック（ミリ秒単位）で安定実行し、`--live` フラグ指定時のみ Vertex AI / Gemini API 経由でリモート推論を実行。
+  テストの Flakiness を根絶するため、CI や高速テスト実行時は ADK 純正の決定論的 Evaluator（`TrajectoryEvaluator` + `ResponseEvaluator`）でミリ秒単位で安定実行し、`--live` フラグ指定時のみ Gemini API 経由でリモート推論・LLM-as-a-Judge を実行。
 
 ---
 

@@ -100,11 +100,37 @@ class SimulationEvalRunner:
         available_scripts = skill.list_scripts()
 
         for case in cases:
-            case_id = case.get("case_id") or case.get("eval_case_id") or f"edd_case_{passed+failed+1}"
+            case_id = case.get("eval_id") or case.get("case_id") or case.get("eval_case_id") or f"edd_case_{passed+failed+1}"
+            
+            # ADK 2.0 純正 conversation からの抽出
+            conversation = case.get("conversation", [])
+            inv = conversation[0] if conversation and isinstance(conversation, list) else {}
+            
             user_input = case.get("input") or case.get("user_input", "")
+            if not user_input and isinstance(inv, dict):
+                user_cnt = inv.get("user_content", {})
+                if isinstance(user_cnt, dict):
+                    parts = user_cnt.get("parts", [])
+                    if parts and isinstance(parts[0], dict):
+                        user_input = parts[0].get("text", "")
+
             exp_skill = case.get("expected_skill")
-            exp_tools = case.get("expected_tool_calls", [])
-            rubrics = case.get("rubric", [])
+            exp_tools = case.get("expected_tool_calls")
+            if exp_tools is None and isinstance(inv, dict):
+                inter_data = inv.get("intermediate_data", {})
+                if isinstance(inter_data, dict):
+                    exp_tools = inter_data.get("tool_uses", [])
+            exp_tools = exp_tools or []
+
+            ref_output = case.get("expected_output_format") or case.get("expected")
+            if not ref_output and isinstance(inv, dict):
+                fin_resp = inv.get("final_response", {})
+                if isinstance(fin_resp, dict):
+                    parts = fin_resp.get("parts", [])
+                    if parts and isinstance(parts[0], dict):
+                        ref_output = parts[0].get("text", "")
+
+            rubrics = case.get("rubrics") or case.get("rubric") or []
 
             # 1. Trigger 判定 (正例・負例)
             if exp_skill is not None:
@@ -128,7 +154,7 @@ class SimulationEvalRunner:
                     # 期待されるツール呼び出しのスクリプト実在性・健全性検査
                     for t_item in exp_tools:
                         t_call = t_item if isinstance(t_item, dict) else {"tool": str(t_item)}
-                        t_name = t_call.get("tool", "")
+                        t_name = t_call.get("tool") or t_call.get("name", "")
                         t_args = t_call.get("args", {}) if isinstance(t_call.get("args"), dict) else {}
                         if t_name == "run_skill_script":
                             f_path = t_args.get("file_path", "")
@@ -154,17 +180,19 @@ class SimulationEvalRunner:
                         skill_name=skill.name
                     )
 
-
-            # 3. Rubric 判定
+            # 3. Rubric & Response 判定 (ADK 2.0 純正 ResponseEvaluator / RubricEvaluator に委譲)
             rubric_score = 1.0
-            actual_out = case.get("actual_output") or case.get("output") or case.get("expected_output_format") or case.get("expected") or "Valid execution output"
-            if rubrics:
-                rubric_objs = [{"rubric_id": f"r_{i}", "text_property": str(r)} for i, r in enumerate(rubrics)]
+            actual_out = case.get("actual_output") or case.get("output") or ref_output or "Valid execution output"
+            if rubrics or ref_output:
+                rubric_objs = rubrics if (rubrics and isinstance(rubrics[0], dict)) else [
+                    {"rubric_id": f"r_{i}", "text_property": str(r)} for i, r in enumerate(rubrics)
+                ]
                 rubric_score, _ = self.adk_adapter.evaluate_rubric(
                     skill=skill,
                     user_input=user_input,
                     actual_output=str(actual_out),
-                    rubrics=rubric_objs
+                    rubrics=rubric_objs,
+                    reference_output=str(ref_output) if ref_output else None
                 )
 
             case_passed = skill_matched and traj_matched and (rubric_score >= 0.8)

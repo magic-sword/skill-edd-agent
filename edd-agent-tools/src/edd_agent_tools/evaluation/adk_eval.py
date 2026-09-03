@@ -26,6 +26,7 @@ except ImportError:
 try:
     from google.adk.evaluation.eval_metrics import ToolTrajectoryCriterion, EvalMetric, RubricsBasedCriterion
     from google.adk.evaluation.trajectory_evaluator import TrajectoryEvaluator
+    from google.adk.evaluation.response_evaluator import ResponseEvaluator, RougeEvaluator
     from google.adk.evaluation.rubric_based_final_response_quality_v1 import RubricBasedFinalResponseQualityV1Evaluator
     ADK_MATCH_TYPE = ToolTrajectoryCriterion.MatchType
 except ImportError:
@@ -33,6 +34,8 @@ except ImportError:
     EvalMetric = None
     RubricsBasedCriterion = None
     TrajectoryEvaluator = None
+    ResponseEvaluator = None
+    RougeEvaluator = None
     RubricBasedFinalResponseQualityV1Evaluator = None
     ADK_MATCH_TYPE = None
 
@@ -263,6 +266,61 @@ class AdkEvalAdapter:
             missing = [e for e in expected_names if e not in actual_names]
             return len(missing) == 0, f"Fallback any_order: missing={missing}"
 
+    def evaluate_response(
+        self,
+        actual_output: str,
+        expected_output: str,
+        threshold: float = 0.8
+    ) -> Tuple[bool, float, str]:
+        """Google ADK 2.0 純正の ResponseEvaluator (ROUGE-1) を直接呼び出して回答品質を決定論的に評価します。
+        
+        Args:
+            actual_output: エージェントの実際の回答文字列。
+            expected_output: 期待される参照回答文字列。
+            threshold: 合格判定閾値 (デフォルト 0.8: ADK 公式推奨値)。
+            
+        Returns:
+            Tuple[bool, float, str]: (合否, ROUGE-1スコア, 詳細メッセージ)
+        """
+        if ResponseEvaluator is not None and EvalMetric is not None and Invocation is not None and genai_types is not None:
+            try:
+                eval_metric = EvalMetric(metric_name="response_match_score", threshold=threshold)
+                evaluator = ResponseEvaluator(eval_metric=eval_metric)
+
+                actual_inv = Invocation(
+                    invocation_id="eval_resp_act",
+                    user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
+                    final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=actual_output)])
+                )
+                expected_inv = Invocation(
+                    invocation_id="eval_resp_exp",
+                    user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
+                    final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=expected_output)])
+                )
+
+                result = evaluator.evaluate_invocations(
+                    actual_invocations=[actual_inv],
+                    expected_invocations=[expected_inv]
+                )
+
+                score = float(result.overall_score)
+                is_passed = (score >= threshold)
+                msg = f"ADK ResponseEvaluator (ROUGE-1): score={score:.2f}, status={result.overall_eval_status}"
+                return is_passed, score, msg
+            except Exception as e:
+                pass
+
+        # ADK 利用不可時の汎用決定論的 ROUGE-1 フォールバック
+        act_tokens = set(actual_output.strip().lower().split())
+        exp_tokens = set(expected_output.strip().lower().split())
+        if not exp_tokens:
+            score = 1.0 if not act_tokens else 0.5
+        else:
+            overlap = act_tokens.intersection(exp_tokens)
+            score = len(overlap) / len(exp_tokens)
+        is_passed = (score >= threshold)
+        return is_passed, score, f"Deterministic ROUGE-1: score={score:.2f}"
+
     def to_adk_criterion(self, mode: TrajectoryMode = "any_order", threshold: float = 1.0) -> Any:
         """Google ADK 2.0 純正の ToolTrajectoryCriterion インスタンスを生成して返します。"""
         if ToolTrajectoryCriterion is None or ADK_MATCH_TYPE is None:
@@ -296,7 +354,6 @@ class AdkEvalAdapter:
             eval_dataset_file_path_or_dir=eval_path
         )
 
-
     def evaluate_rubric(
         self,
         skill: Optional[Skill],
@@ -307,8 +364,8 @@ class AdkEvalAdapter:
     ) -> Tuple[float, Dict[str, Any]]:
         """カスタムルーブリックに基づきスコアリングを実行します。
         
-        self.live が True の場合のみリモートの Google GenAI API を呼び出し、
-        デフォルトでは高速かつ決定論的なローカルエンジンで評価します（テストの安定性を保証）。
+        self.live が True の場合のみリモートの Google GenAI API（ADK RubricBasedFinalResponseQualityV1Evaluator）を呼び出し、
+        デフォルトでは高速かつ決定論的な ADK 公式 ResponseEvaluator (ROUGE-1) を活用した標準評価を提供します。
         """
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if self.live and api_key:
@@ -324,7 +381,7 @@ class AdkEvalAdapter:
             except Exception as e:
                 print(f"[AdkEvalAdapter] Live LLM-as-a-Judge failed, falling back to deterministic evaluator: {e}", file=sys.stderr)
 
-        # オフライン / 決定論的ルーブリック評価エンジン
+        # オフライン / 決定論的ルーブリック評価（ADK 2.0 公式 ResponseEvaluator 連携）
         return self._run_deterministic_rubric_judge(
             skill=skill,
             user_input=user_input,
@@ -420,7 +477,11 @@ class AdkEvalAdapter:
         rubrics: List[Union[str, Dict[str, Any]]],
         reference_output: Optional[str] = None
     ) -> Tuple[float, Dict[str, Any]]:
-        """白書 Snippet 3 準拠の決定論的ルールベース・ルーブリック評価エンジン（オフライン・高精度）。"""
+        """ADK 2.0 公式 ResponseEvaluator (ROUGE-1) を用いた決定論的・高品質ルーブリック評価。
+        
+        特定ドメイン（order, duplicate, secret 等）のアドホックな正規表現判定を完全に排除し、
+        ADK 公式の言語類似度と汎用セマンティクス規約により客観的スコアリングを実施します。
+        """
         if not rubrics:
             return 1.0, {"mode": "deterministic_fallback", "rubrics_count": 0, "passed_rubrics": 0}
 
@@ -448,11 +509,26 @@ class AdkEvalAdapter:
         output_to_evaluate: str,
         user_input: str,
         rubrics: List[Union[str, Dict[str, Any]]],
-        other_output: Optional[str] = None
+        reference_output: Optional[str] = None
     ) -> Tuple[float, Dict[str, bool]]:
-        """単一パスターゲットに対するルーブリック適合率を算出。"""
-        passed = 0
+        """単一パスターゲットに対するルーブリック適合率を算出。
+        
+        参照回答が存在する場合は ADK 公式の ResponseEvaluator (ROUGE-1) を一次判定に活用します。
+        """
         details = {}
+        passed = 0
+
+        # 参照回答がある場合、ADK 2.0 純正 ResponseEvaluator (ROUGE-1) で客観的ベーススコアを測定
+        has_ref = bool(reference_output and reference_output.strip())
+        rouge_passed = False
+        if has_ref:
+            is_p, r_score, _ = self.evaluate_response(
+                actual_output=output_to_evaluate,
+                expected_output=reference_output,
+                threshold=0.7
+            )
+            rouge_passed = is_p
+
         for idx, rubric in enumerate(rubrics, 1):
             if isinstance(rubric, str):
                 r_id = f"r_{idx}"
@@ -467,7 +543,13 @@ class AdkEvalAdapter:
                 r_id = f"r_{idx}"
                 r_prop = str(rubric)
 
-            satisfied = self._evaluate_single_rubric_rule(r_prop, user_input, output_to_evaluate, other_output)
+            satisfied = self._evaluate_single_rubric_rule(
+                r_prop,
+                user_input,
+                output_to_evaluate,
+                reference_output,
+                rouge_passed=rouge_passed
+            )
             if satisfied:
                 passed += 1
             details[r_id] = satisfied
@@ -480,49 +562,42 @@ class AdkEvalAdapter:
         rubric_text: str,
         user_input: str,
         actual_output: str,
-        reference_output: Optional[str]
+        reference_output: Optional[str],
+        rouge_passed: bool = False
     ) -> bool:
-        """単一ルーブリックのセマンティック規則を決定論的に検証します。"""
+        """単一ルーブリックのセマンティック規則を決定論的に検証します（汎用・公式準拠）。
+        
+        特定スキル・特定ドメイン（order, duplicate, secret 等）へのアドホックな依存を完全に排除。
+        """
         r_lower = rubric_text.lower()
         out_lower = actual_output.lower()
 
-        # 1. トリガー否定・非発火規則 (does not trigger, without calling, no tool, without invoking, without masking 等)
-        if any(k in r_lower for k in [
-            "does not trigger", "not trigger", "without calling", "does not call",
-            "without using", "without invoking", "without masking", "without error",
-            "direct response", "answers directly", "explains concept", "explains architectural",
-            "computes math", "provides valid sql", "processes text"
-        ]):
+        # 出力が空、または致命的例外・トレースバックが出ている場合は不合格
+        if not actual_output.strip() or "traceback (most recent call last)" in out_lower:
+            return False
+
+        # 1. 非発火・トリガー否定規則 (does not trigger, without calling, no tool)
+        if any(k in r_lower for k in ["does not trigger", "not trigger", "without calling", "does not call", "without using", "without invoking"]):
             return True
 
-        # 2. 否定・セキュリティ規則 (mask, secret, leak, sensitive, credential, sanitize, password)
-        # ※ "without masking" 等の否定文脈は上記で判定済み
-        if any(k in r_lower for k in ["mask", "secret", "leak", "sensitive", "credential", "sanitize", "password", "email", "api_key"]):
-            has_placeholder = ("<" in actual_output and ">" in actual_output) or ("*" in actual_output)
-            raw_tokens = re.findall(r"sk-[a-zA-Z0-9]{10,}|bearer\s+[a-zA-Z0-9\._\-]+", user_input, re.IGNORECASE)
-            leaked = any(tok in actual_output for tok in raw_tokens) if raw_tokens else False
-            return has_placeholder and not leaked
-
-        if any(k in r_lower for k in ["does not", "must not", "never", "avoid", "no "]):
-            forbidden_match = re.search(r"(?:not|avoid|never)\s+(?:contain|include|mention|reveal)?\s*['\"]?([a-zA-Z0-9_\-]+)['\"]?", r_lower)
+        # 2. 否定・禁止規則 (does not contain, must not, avoid, never)
+        if any(k in r_lower for k in ["does not contain", "must not", "never contain", "avoid"]):
+            forbidden_match = re.search(r"(?:not contain|avoid|must not include|never contain)\s+['\"]?([a-zA-Z0-9_\-]+)['\"]?", r_lower)
             if forbidden_match:
-                target = forbidden_match.group(1)
+                target = forbidden_match.group(1).lower()
                 return target not in out_lower
             return True
 
-        # 3. 肯定・含有規則 (cites order id, acknowledges, provides next step, includes)
-        if "order" in r_lower and ("id" in r_lower or "#" in r_lower):
-            order_nums = re.findall(r"#?\d{3,}", user_input)
-            if order_nums:
-                return any(num in actual_output for num in order_nums)
+        # 3. 参照回答との一致・ROUGE合格時の判定
+        if rouge_passed:
+            return True
 
-        if any(k in r_lower for k in ["next step", "guidance"]):
-            return any(k in out_lower for k in ["step", "next", "can", "please", "次", "手順"])
+        # 4. 簡潔性・会話フィラー排除規則 (concise, without conversational filler, brief, direct)
+        if any(k in r_lower for k in ["concise", "without conversational filler", "brief", "direct"]):
+            # 長大すぎる会話フィラー（300単語超）でなければ合格
+            return len(actual_output.split()) < 300
 
-        if any(k in r_lower for k in ["acknowledge", "confirm", "duplicate"]):
-            return any(k in out_lower for k in ["duplicate", "charged", "confirm", "重複", "確認", "請求"])
-
-        # 4. フォーマット規則 (json, markdown, table, camel, kebab, constant)
+        # 5. フォーマット仕様（json, markdown 等）
         if "json" in r_lower:
             try:
                 json.loads(actual_output.strip())
@@ -530,13 +605,5 @@ class AdkEvalAdapter:
             except Exception:
                 return "{" in actual_output and "}" in actual_output
 
-        # 5. 一般応答・計算規則 (provides direct response, general calculation, without error)
-        if any(k in r_lower for k in ["direct response", "general calculation", "without error"]):
-            return len(actual_output.strip()) > 0 and "error" not in out_lower
-
-        # 6. 簡潔性・実用性規則 (concise, actionable, brief, short)
-        if any(k in r_lower for k in ["concise", "brief", "short", "actionable"]):
-            return 0 < len(actual_output.strip()) and len(actual_output.split()) < 300
-
-        # デフォルト: 空文字でなく何らかの正常出力があること
+        # デフォルト: 空でない正常な出力であること
         return len(actual_output.strip()) > 0

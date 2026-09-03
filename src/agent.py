@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from google.adk import Agent
 from google.adk.code_executors import UnsafeLocalCodeExecutor
+from google.adk.workflow import RetryConfig
 from edd_agent_tools.adk import create_adk_skill_toolset
 
 # 1. 登録スキルと Tier 状態に基づき ADK 公式の SkillToolset を構築
@@ -30,13 +31,18 @@ Google ADK 2.0 および Anthropic 公式標準（Markdown-First & Progressive D
 3. **安全な実行環境**: 決定論的スクリプトはコンテキストを節約するためブラックボックス実行（run_skill_script）してください。
 """
 
+# ADK 2.0 Workflow Runtime 推奨の自動リトライ設定
+retry_config = RetryConfig(max_attempts=3)
+
 root_agent = Agent(
     model='gemini-2.5-flash',
     name='evaluation_driven_development_agent',
     description='Google ADK 2.0 と Anthropic スキル標準に完全準拠した自己進化型評価駆動開発エージェント',
     instruction=instruction_text,
+    retry_config=retry_config,
     tools=[
         skill_toolset
     ]
 )
+
 

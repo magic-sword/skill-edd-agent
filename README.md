@@ -70,7 +70,7 @@ flowchart TD
 3.  **Google ADK 2.0 純正ランタイム完全一致命名規約**
     *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。
 4.  **Google ADK 2.0 純正評価統合 & 車輪の再発明の完全排除**
-    *   ADK 2.0 の `TrajectoryEvaluator` および `ToolTrajectoryCriterion`、そして公式の **`RubricBasedFinalResponseQualityV1Evaluator`** を直接駆動。独自プロンプトによる LLM-as-a-Judge や手書き軌跡比較ループを全廃し、エージェント実行・テストケースのツール呼び出しは ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
+    *   ADK 2.0 の `TrajectoryEvaluator`（3大モード: EXACT / IN_ORDER / ANY_ORDER）および `ResponseEvaluator`（ROUGE-1 `response_match_score`）、そして公式の **`RubricBasedFinalResponseQualityV1Evaluator`** を直接駆動。アドホックな正規表現判定や独自プロンプトによる LLM-as-a-Judge、手書き軌跡比較ループを全廃し、エージェント実行・テストケースのツール呼び出しは ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
     *   Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。
 5.  **白書（May 2026）4大 Eval Coverage Checklist (`--coverage`)**
     *   白書 Section 4 の 4大必須評価条件（Trigger >= 90%, Execution/Trajectory 100%, Regression 0 drops, Token Budget/Co-loaded 5~15 skills）を一括判定・チェックリスト出力。
