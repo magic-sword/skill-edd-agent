@@ -45,7 +45,9 @@
   3. **Don't reinvent MCP as scripts (MCP再発明の禁止)**:
      - 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します。
   4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**:
-     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず `tests/{skill_name}_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の Google ADK 2.0 公式 `EvalSet`（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。ツール呼び出しは Google ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として記述します。
+     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず `tests/{skill_name}_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の Google ADK 2.0 公式 `EvalSet`（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。ツール呼び出しは Google ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として記述します。
+     - **Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）の標準配備**:
+       `adk eval` CLI および `AgentEvaluator` の自動探索に適合するため、テストディレクトリには `test_config.json` を配備します。Progressive Disclosure（`list_skills` ➔ `load_skill` ➔ `run_skill_script`）を採用するエージェントを公平に評価するため、`tool_trajectory_avg_score` には `match_type: "IN_ORDER"` を標準指定し、`rubric_based_final_response_quality_v1`（LLM-as-a-Judge 評価）にベースルーブリックと判定モデル（`gemini-2.5-flash`）を設定します。
      - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数の検証は `expected_tool_calls` / `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` は最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させます。
      - 独自スキーマによるデータ二重管理を排し、Google ADK 公式 CLI `adk eval` や `AgentEvaluator` とそのまま直結動作します。
   5. **白書 Appendix A minimal SKILL.md 6大必須セクション構造と ADK 公式仕様**:

@@ -42,6 +42,8 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
   `AdkEvalAdapter.evaluate_with_adk_agent()` を通じて、ADK 公式の `AgentEvaluator.evaluate()`（セッション追跡、実際のツール呼び出し軌跡取得、Rubrics 採点の一括実行）をシームレスに駆動。
 * **`rubric_based_final_response_quality_v1` & Position Swapping**:
   ADK 純正のクライテリアに基づき、参照回答と生成回答の順序を反転させて 2 回推論する Position Swapping により順序バイアスを中和。
+* **Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）標準配備**:
+  `adk eval` CLI および `AgentEvaluator` はテストファイルと同一ディレクトリの `test_config.json` を自動探索して評価基準（criteria）を決定します。Progressive Disclosure（`list_skills` ➔ `load_skill` ➔ `run_skill_script`）を採用するエージェント向けに `tool_trajectory_avg_score` に `match_type: "IN_ORDER"` を標準配備し、`rubric_based_final_response_quality_v1` にベースルーブリックと判定モデル（`gemini-2.5-flash`）を設定。
 * **決定論的高速評価とライブ推論の分離**:
   テストの Flakiness を根絶するため、CI や高速テスト実行時は ADK 純正の決定論的 Evaluator（`TrajectoryEvaluator` + `ResponseEvaluator`）でミリ秒単位で安定実行し、`--live` フラグ指定時のみ Gemini API 経由でリモート推論・LLM-as-a-Judge を実行。
 

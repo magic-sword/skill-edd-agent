@@ -397,6 +397,36 @@ Example usage pattern for {canonical_skill_name}.
             encoding="utf-8"
         )
 
+        # 5. Google ADK 2.0 公式 EvalConfig 設定ファイル (test_config.json) の配置
+        # adk eval CLI および AgentEvaluator が自動探索・ロードする標準評価構成
+        test_config = {
+            "criteria": {
+                "tool_trajectory_avg_score": {
+                    "threshold": 1.0,
+                    "match_type": "IN_ORDER"
+                },
+                "rubric_based_final_response_quality_v1": {
+                    "threshold": 0.8,
+                    "rubrics": [
+                        {
+                            "rubric_id": "general_quality",
+                            "rubric_content": {
+                                "text_property": "The final response accurately satisfies the user intent cleanly without conversational filler."
+                            }
+                        }
+                    ],
+                    "judge_model_options": {
+                        "judge_model": "gemini-2.5-flash",
+                        "num_samples": 3
+                    }
+                }
+            }
+        }
+        (target_dir / "tests" / "test_config.json").write_text(
+            json.dumps(test_config, indent=2, ensure_ascii=False),
+            encoding="utf-8"
+        )
+
         return target_dir
 
 

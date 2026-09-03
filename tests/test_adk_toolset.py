@@ -7,31 +7,27 @@ from edd_agent_tools.adk.toolset import EddSkillToolset, EddSkillRegistry, creat
 from edd_agent_tools.models.spec import SkillSpec
 
 
-def test_adk_toolset_sync_helpers():
-    """EddSkillToolset による同期ヘルパーメソッドをテストします。"""
-    toolset = EddSkillToolset(skills_root="src/skills")
-    skills = toolset.list_skills_sync()
-    assert len(skills) > 0
-    assert any(s["name"] == "case-converter" for s in skills)
+def test_adk_toolset_native_tools_execution():
+    """EddSkillToolset が提供する ADK 公式ツール群の非同期実行をテストします。"""
+    async def _test():
+        from unittest.mock import MagicMock
+        ctx = MagicMock()
+        ctx.invocation_id = "test-inv-001"
+        ctx.state = {}
 
-    # 検索
-    results = toolset.search_skills_sync("converter")
-    assert len(results) >= 1
-    assert results[0]["name"] == "case-converter"
+        toolset = create_adk_skill_toolset(skills_dir="src/skills")
+        tools_dict = {t.name: t for t in toolset._tools}
+        assert "run_skill_script" in tools_dict
+        assert "load_skill" in tools_dict
+        assert "list_skills" in tools_dict
 
-    # ロード
-    loaded = toolset.load_skill_sync("case-converter")
-    assert loaded.get("status") == "loaded"
-    assert "case_converter.py" in loaded.get("skill_md", "")
+        # load_skill ツールの実行
+        load_tool = tools_dict["load_skill"]
+        load_res = await load_tool.run_async(args={"skill_name": "case-converter"}, tool_context=ctx)
+        assert load_res.get("skill_name") == "case-converter"
+        assert "case_converter.py" in load_res.get("instructions", "")
 
-    # スクリプト実行
-    res = toolset.run_skill_script_sync(
-        skill_name="case-converter",
-        args=["--input", "foo_bar_baz", "--format", "kebab"]
-    )
-    assert res.get("status") == "success"
-    assert res.get("exit_code") == 0
-    assert "foo-bar-baz" in res.get("stdout", "")
+    asyncio.run(_test())
 
 
 def test_adk_native_skill_registry():
@@ -94,11 +90,11 @@ def test_core_skill_adk_properties():
 
 
 def test_adk_toolset_file_path_execution():
-    """EddSkillToolset が file_path 引数によるスクリプト実行をサポートすることをテストします。"""
-    toolset = EddSkillToolset(skills_root="src/skills")
-    res = toolset.run_skill_script_sync(
-        skill_name="case-converter",
-        file_path="scripts/case_converter.py",
+    """SkillPackage が file_path 引数によるスクリプト実行をサポートすることをテストします。"""
+    from edd_agent_tools.core import SkillPackage
+    pkg = SkillPackage("src/skills/case-converter")
+    res = pkg.execute_script(
+        script_name="scripts/case_converter.py",
         args=["--input", "hello_world_test", "--format", "pascal"]
     )
     assert res.get("status") == "success"

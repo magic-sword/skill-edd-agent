@@ -46,12 +46,12 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 - **共通ドメインエンティティ (`core`)**: `SkillPackage`（旧 `Skill` と完全互換、`load_resource`, `execute_script` 自己完結実行カプセル化）, `SkillTests`
 - **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析, `entry_points` 探索）
 - **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、白書命名規則、MCP再発明検知）
-- **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（ADK公式 EvalSet インバージョン生成）
-- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK純正 `TrajectoryEvaluator`: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (ADK純正 `ResponseEvaluator` [ROUGE-1] & Position Swapping & ADK純正 `RubricBasedFinalResponseQualityV1Evaluator` / `AgentEvaluator` / `TrajectoryEvaluator` / `ToolTrajectoryCriterion` 直接連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
-- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (ADK公式 `UnsafeLocalCodeExecutor` 標準注入、重複コード実行の完全排除), `EddSkillRegistry`, `create_mcp_server`
-- **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval` [--coverage, --live], `adk-eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
+- **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（ADK公式 EvalSet および test_config.json インバージョン自動生成）
+- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK純正 `TrajectoryEvaluator`: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (ADK純正 `ResponseEvaluator` [ROUGE-1] & Position Swapping & ADK純正 `RubricBasedFinalResponseQualityV1Evaluator` / `AgentEvaluator` / `TrajectoryEvaluator` / `ToolTrajectoryCriterion` / `EvalConfig` 直接連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
+- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (ADK公式 `UnsafeLocalCodeExecutor` 標準注入、重複コード実行の完全排除、デッドコード全廃), `EddSkillRegistry`, `create_mcp_server`
+- **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval` [--coverage, --live], `adk-eval` [--config, --cli], `tier-gate`, `diagnose`, `optimize`, `list`）
 
-※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチや車輪の再発明（アドホックな正規表現による独自Judgeや特定ドメインキーワードのハードコード、独自の軌跡比較ロジック等）は厳禁とし、ADK 公式コンポーネント（Code Executor, TrajectoryEvaluator, ResponseEvaluator [ROUGE-1], EvalSet, RubricBasedFinalResponseQualityV1Evaluator, AgentEvaluator）を直接使用します。Tool Trajectory 検証は ADK 純正の `run_skill_script` 形式を第1級標準（Primary Standard）として取り扱います。
+※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチや車輪の再発明（アドホックな正規表現による独自Judgeや特定ドメインキーワードのハードコード、不要な同期ラッパー `*_sync`、独自の軌跡比較ロジック等）は厳禁とし、ADK 公式コンポーネント（Code Executor, TrajectoryEvaluator, ResponseEvaluator [ROUGE-1], EvalSet, EvalConfig [test_config.json: IN_ORDER & Rubrics], RubricBasedFinalResponseQualityV1Evaluator, AgentEvaluator）を直接使用します。Tool Trajectory 検証は ADK 純正の `run_skill_script` 形式を第1級標準（Primary Standard）として取り扱います。
 
 
 ### B. 自己改善スキル資産層（`src/skills/`）の責務と依存関係ポリシー
@@ -68,6 +68,8 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
      - 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します。
   4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**:
      - 新規スキルの執筆時は、`SKILL.md` を書く前にまず `tests/{skill_name}_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の Google ADK 2.0 公式 `EvalSet`（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。
+     - **Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）の標準配備**:
+       `adk eval` CLI および `AgentEvaluator` の自動探索に適合するため、テストディレクトリには `test_config.json` を配備します。Progressive Disclosure（`list_skills` ➔ `load_skill` ➔ `run_skill_script`）を採用するエージェントを公平に評価するため、`tool_trajectory_avg_score` には `match_type: "IN_ORDER"` を標準指定し、`rubric_based_final_response_quality_v1`（LLM-as-a-Judge 評価）にベースルーブリックと判定モデル（`gemini-2.5-flash`）を設定します。
      - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数の検証は `expected_tool_calls` / `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` は最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させます。
      - 独自スキーマによるデータ二重管理を排し、Google ADK 公式 CLI `adk eval` や `AgentEvaluator` とそのまま直結動作します。
   5. **白書 Appendix A minimal SKILL.md 6大必須セクション構造**:

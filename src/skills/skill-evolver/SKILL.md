@@ -34,6 +34,9 @@ pattern: workflow
    edd eval <skill-name>
    # pass^k 持続的信頼性検証 (tau-bench 準拠)
    edd eval <skill-name> --type contract --pass-k 3
+   # Google ADK 2.0 純正 AgentEvaluator / adk eval 評価
+   edd adk-eval <skill-name>
+   edd adk-eval <skill-name> --cli
    ```
 2. Frontmatter トリガー説明文の自動チューニング (Description Tuning):
    - ルーティング失敗や境界値の曖昧さを検出した場合、Description を自動最適化する。

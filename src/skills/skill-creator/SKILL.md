@@ -38,10 +38,11 @@ pattern: workflow
 
 3. インバージョン開発 (EDD Inversion) による評価セット先行策定 (SSOT):
    - SKILL.md を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に Google ADK 2.0 公式 `EvalSet` 形式で **3つの正例 ＋ 3つの負例（計6ケース）** を確定する。
+   - `tests/test_config.json` にて ADK 公式 `EvalConfig`（`tool_trajectory_avg_score: match_type: IN_ORDER`, `rubric_based_final_response_quality_v1`）を定義し、Progressive Disclosure を行うエージェントを公平に評価できるようにする。
    - ツール呼び出し・引数検証は `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` は最終出力品質（会話フィラー排除・正確性・負例時の沈黙）に特化させる。
 
 4. スキル雛形の生成 (Scaffold):
-   - 統合 CLI `edd init` を呼び出してパッケージ雛形を初期化する。
+   - 統合 CLI `edd init` を呼び出してパッケージ雛形（`SKILL.md`, `scripts/`, `tests/*_edd.evalset.json`, `tests/test_config.json`）を一括初期化する。
      ```bash
      edd init <skill-name> --pattern workflow --path src/skills
      ```

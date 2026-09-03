@@ -334,13 +334,76 @@ class AdkEvalAdapter:
         adk_match = match_type_map.get(mode, getattr(ADK_MATCH_TYPE, "ANY_ORDER", 2))
         return ToolTrajectoryCriterion(threshold=threshold, match_type=adk_match)
 
+    @staticmethod
+    def build_eval_config(
+        criteria: Optional[Dict[str, Any]] = None,
+        config_path: Optional[Union[str, Path]] = None,
+        default_trajectory_mode: str = "in_order"
+    ) -> Any:
+        """Google ADK 2.0 純正の EvalConfig を構築またはロードします。"""
+        if EvalConfig is None:
+            return None
+
+        if config_path and Path(config_path).exists():
+            from google.adk.evaluation.eval_config import get_evaluation_criteria_or_default
+            return get_evaluation_criteria_or_default(str(config_path))
+
+        base_criteria: Dict[str, Any] = {}
+        if criteria:
+            from google.adk.evaluation.eval_metrics import BaseCriterion
+            for k, v in criteria.items():
+                if isinstance(v, (int, float)):
+                    base_criteria[k] = BaseCriterion(threshold=float(v))
+                elif isinstance(v, dict):
+                    base_criteria[k] = BaseCriterion(**v)
+                else:
+                    base_criteria[k] = v
+        else:
+            from google.adk.evaluation.eval_metrics import BaseCriterion
+            match_type_str = default_trajectory_mode.upper()
+            base_criteria["tool_trajectory_avg_score"] = BaseCriterion(
+                threshold=1.0,
+                match_type=match_type_str
+            )
+            base_criteria["response_match_score"] = BaseCriterion(threshold=0.8)
+
+        return EvalConfig(criteria=base_criteria)
+
+    async def evaluate_eval_set(
+        self,
+        agent_module: str,
+        eval_set: Any,
+        eval_config: Optional[Any] = None,
+        num_runs: int = 1,
+        agent_name: Optional[str] = None,
+        print_detailed_results: bool = True
+    ) -> Any:
+        """Google ADK 2.0 純正の AgentEvaluator.evaluate_eval_set() を直接実行します。"""
+        if AgentEvaluator is None:
+            raise RuntimeError("google.adk.evaluation.agent_evaluator.AgentEvaluator is not available.")
+
+        if eval_config is None:
+            eval_config = self.build_eval_config()
+
+        return await AgentEvaluator.evaluate_eval_set(
+            agent_module=agent_module,
+            eval_set=eval_set,
+            eval_config=eval_config,
+            num_runs=num_runs,
+            agent_name=agent_name,
+            print_detailed_results=print_detailed_results
+        )
+
     async def evaluate_with_adk_agent(
         self,
         agent_module: str,
         eval_dataset_file_path_or_dir: Union[str, Path],
-        criteria: Optional[Dict[str, Any]] = None
+        config_file_path: Optional[Union[str, Path]] = None,
+        criteria: Optional[Dict[str, Any]] = None,
+        num_runs: int = 1,
+        print_detailed_results: bool = True
     ) -> Any:
-        """Google ADK 2.0 純正の AgentEvaluator.evaluate() を直接実行します。
+        """Google ADK 2.0 純正の AgentEvaluator を直接実行します。
         
         Live 環境においてエージェントとスキルツールセットを完全連動させ、
         実際の Tool Trajectory と回答品質を評価します。
@@ -348,10 +411,33 @@ class AdkEvalAdapter:
         if AgentEvaluator is None:
             raise RuntimeError("google.adk.evaluation.agent_evaluator.AgentEvaluator is not available.")
 
-        eval_path = str(eval_dataset_file_path_or_dir)
+        eval_path = Path(eval_dataset_file_path_or_dir).resolve()
+
+        # test_config.json の自動探索
+        resolved_config = config_file_path
+        if not resolved_config and eval_path.is_file():
+            cand_config = eval_path.parent / "test_config.json"
+            if cand_config.exists():
+                resolved_config = str(cand_config)
+
+        if resolved_config or criteria:
+            from google.adk.evaluation.local_eval_sets_manager import load_eval_set_from_file
+            eval_set_id = eval_path.stem.replace(".evalset", "")
+            eval_set = load_eval_set_from_file(str(eval_path), eval_set_id)
+            eval_cfg = self.build_eval_config(criteria=criteria, config_path=resolved_config)
+            return await self.evaluate_eval_set(
+                agent_module=agent_module,
+                eval_set=eval_set,
+                eval_config=eval_cfg,
+                num_runs=num_runs,
+                print_detailed_results=print_detailed_results
+            )
+
         return await AgentEvaluator.evaluate(
             agent_module=agent_module,
-            eval_dataset_file_path_or_dir=eval_path
+            eval_dataset_file_path_or_dir=str(eval_path),
+            num_runs=num_runs,
+            print_detailed_results=print_detailed_results
         )
 
     def evaluate_rubric(

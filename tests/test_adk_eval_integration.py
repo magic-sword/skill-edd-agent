@@ -293,4 +293,50 @@ def test_adk_response_evaluator_native_execution():
     assert "ADK ResponseEvaluator" in msg or "ROUGE-1" in msg
 
 
+def test_adk_build_eval_config_and_test_config_json():
+    """AdkEvalAdapter.build_eval_config が test_config.json から設定をロードすることを検証。"""
+    config_path = Path("src/skills/case-converter/tests/test_config.json")
+    assert config_path.exists()
+
+    eval_config = AdkEvalAdapter.build_eval_config(config_path=config_path)
+    assert eval_config is not None
+    assert "tool_trajectory_avg_score" in eval_config.criteria
+    traj_crit = eval_config.criteria["tool_trajectory_avg_score"]
+    assert getattr(traj_crit, "match_type", None) == "IN_ORDER"
+
+
+def test_adk_eval_case_with_test_config_criteria(test_state):
+    """AdkEvalAdapter が IN_ORDER match_type で Progressive Disclosure 軌跡を合格と判定することを検証。"""
+    adapter = AdkEvalAdapter()
+    
+    # 実際の呼び出し: load_skill -> run_skill_script
+    actual_calls = [
+        {"tool": "load_skill", "args": {"skill_name": "case-converter"}},
+        {"tool": "run_skill_script", "args": {"skill_name": "case-converter", "file_path": "scripts/case_converter.py", "args": {"to": "camel"}}}
+    ]
+    # 期待される呼び出し: run_skill_script のみ
+    expected_calls = [
+        {"tool": "run_skill_script", "args": {"skill_name": "case-converter", "file_path": "scripts/case_converter.py", "args": {"to": "camel"}}}
+    ]
+
+    # in_order モードでは合格する
+    passed_in_order, msg_in_order = adapter.evaluate_trajectory(
+        actual_tool_calls=actual_calls,
+        expected_tool_calls=expected_calls,
+        mode="in_order",
+        skill_name="case-converter"
+    )
+    assert passed_in_order is True
+    assert "in_order" in msg_in_order
+
+    # exact モードでは不合格になる（余分な load_skill があるため）
+    passed_exact, _ = adapter.evaluate_trajectory(
+        actual_tool_calls=actual_calls,
+        expected_tool_calls=expected_calls,
+        mode="exact",
+        skill_name="case-converter"
+    )
+    assert passed_exact is False
+
+
 

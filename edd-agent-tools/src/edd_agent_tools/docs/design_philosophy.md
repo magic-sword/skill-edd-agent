@@ -54,12 +54,14 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
      - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）。**Shift Intelligence Left** により、モデルの推論プロンプトから決定論的処理をコードへオフロード。
      - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド読み込み）
      - `assets/`: 出力用テンプレート・素材（成果物への流用・コピー用）
-### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `LocalCodeExecutor`, `TrajectoryEvaluator`, `ResponseEvaluator`)
+### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `LocalCodeExecutor`, `TrajectoryEvaluator`, `ResponseEvaluator`, `EvalConfig`)
 * Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を完全採用。
 * **モンキーパッチおよび車輪の再発明の完全排除**:
-  - ADK 内部メソッドの上書き（monkey patch）を全廃し、ADK 公式の `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入。
+  - ADK 内部メソッドの上書き（monkey patch）や不要な同期ラッパー（`*_sync`）を全廃し、ADK 公式の非同期ツールセットおよび `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入。決定論的スクリプト実行はドメイン層の `SkillPackage.execute_script` または ADK 純正 `run_skill_script` ツールに一本化。
   - 軌跡比較ロジックおよび独自Judge正規表現ルールの再発明を完全排除し、ADK 2.0 純正の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator`（`tool_trajectory_avg_score`）および `google.adk.evaluation.response_evaluator.ResponseEvaluator`（ROUGE-1 `response_match_score`）を直接駆動。
-  - **Tool Trajectory の第1級標準 (Primary Standard)**: テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
+  - **Tool Trajectory の第1級標準 (Primary Standard)**: テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用。
+  - **Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）の標準配備**:
+    各スキルの `tests/test_config.json` にて `tool_trajectory_avg_score` に `match_type: "IN_ORDER"` を標準指定。これにより、Progressive Disclosure（`list_skills` ➔ `load_skill` ➔ `run_skill_script`）を採用するエージェントが不当に Fail 判定されないよう保証。また、`rubric_based_final_response_quality_v1`（LLM-as-a-Judge 評価）を標準設定。
   - **Frontmatter 公式仕様の完全一致**: `allowed-tools` は ADK 2.0 および agentskills.io 公式仕様に基づきスペース区切り文字列（例: `"run_skill_script load_skill_resource"`）として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。
 * `AdkEvalAdapter` により、ADK 純正の `AgentEvaluator` および Rubrics-based Criteria（`rubric_based_final_response_quality_v1` 等）を透過接続。
 * 評価の順序バイアスを中和する **Position Swapping**（参照と実回答を入れ替えて2回推論し相加平均）を標準装備。
@@ -157,5 +159,6 @@ src/skills/{skill_name}/
     example_usage.py
   tests/         # Google ADK 2.0 公式 EvalSet 評価データセット（単一真実源: SSOT）
     {skill_name}_edd.evalset.json
+    test_config.json   # Google ADK 2.0 公式 EvalConfig（IN_ORDER & Rubrics 設定）
 ```
 

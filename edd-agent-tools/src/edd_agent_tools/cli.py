@@ -563,7 +563,7 @@ def cmd_export_eval(args: argparse.Namespace) -> int:
 
 
 def cmd_adk_eval(args: argparse.Namespace) -> int:
-    """Google ADK 2.0 公式 AgentEvaluator.evaluate() を直接実行してスキルを評価します。"""
+    """Google ADK 2.0 公式 AgentEvaluator / adk eval を実行してスキルを評価します。"""
     state = SkillsState()
     skill = state.get_skill(args.skill_name)
     if not skill:
@@ -595,9 +595,33 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
 
     agent_module = getattr(args, "agent_module", "src") or "src"
 
+    # config_path の解決 (明示指定 > tests/test_config.json)
+    config_path = getattr(args, "config", None)
+    if not config_path:
+        cand_config = tests_dir / "test_config.json"
+        if cand_config.exists():
+            config_path = str(cand_config)
+
+    # --cli が指定された場合、公式 adk eval CLI を直接サブプロセス実行
+    if getattr(args, "cli", False):
+        print(f"🚀 Running Google ADK 2.0 CLI `adk eval` on '{args.skill_name}'...")
+        cmd = ["adk", "eval", agent_module, str(eval_file)]
+        if config_path:
+            cmd.extend(["--config_file_path", str(config_path)])
+        if getattr(args, "detailed", True):
+            cmd.append("--print_detailed_results")
+        try:
+            res = subprocess.run(cmd)
+            return res.returncode
+        except Exception as e:
+            print(f"❌ Failed to run adk eval CLI: {e}", file=sys.stderr)
+            return 1
+
     print(f"🚀 Running Google ADK 2.0 AgentEvaluator on '{args.skill_name}'...")
     print(f"   Agent Module: {agent_module}")
     print(f"   Eval Dataset: {eval_file}")
+    if config_path:
+        print(f"   Config File:  {config_path}")
 
     from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
     import asyncio
@@ -605,7 +629,8 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
         adapter = AdkEvalAdapter(live=True)
         asyncio.run(adapter.evaluate_with_adk_agent(
             agent_module=agent_module,
-            eval_dataset_file_path_or_dir=eval_file
+            eval_dataset_file_path_or_dir=eval_file,
+            config_file_path=config_path
         ))
         print(f"✅ Google ADK 2.0 Native Evaluation Passed successfully!")
         return 0
@@ -715,10 +740,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_exp.add_argument("--out", "-o", help="Output file path (default: tests/<skill>_adk_native.evalset.json)")
 
     # 14. adk-eval (Direct Google ADK AgentEvaluator runner)
-    p_adk_eval = subparsers.add_parser("adk-eval", help="Directly run Google ADK AgentEvaluator on a skill")
+    p_adk_eval = subparsers.add_parser("adk-eval", help="Directly run Google ADK AgentEvaluator / adk eval on a skill")
     p_adk_eval.add_argument("skill_name", help="Target skill name")
     p_adk_eval.add_argument("--evalset", "-e", help="Path to custom evalset JSON")
     p_adk_eval.add_argument("--agent-module", "-m", default="src", help="Agent module path containing root_agent (default: src)")
+    p_adk_eval.add_argument("--config", "-c", help="Path to custom test_config.json / EvalConfig")
+    p_adk_eval.add_argument("--cli", action="store_true", help="Directly invoke the official `adk eval` CLI subprocess")
 
     # パース実行（run 用に未知の引数も許容）
     args, extra = parser.parse_known_args(argv)

@@ -161,9 +161,10 @@ def test_adk_eval_cli_command(monkeypatch):
     """CLI edd adk-eval should dispatch directly to AgentEvaluator."""
     called_args = {}
 
-    async def mock_evaluate(self, agent_module, eval_dataset_file_path_or_dir):
+    async def mock_evaluate(self, agent_module, eval_dataset_file_path_or_dir, config_file_path=None, **kwargs):
         called_args["agent_module"] = agent_module
         called_args["eval_dataset"] = str(eval_dataset_file_path_or_dir)
+        called_args["config_file_path"] = str(config_file_path) if config_file_path else None
         return True
 
     from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
@@ -173,4 +174,5 @@ def test_adk_eval_cli_command(monkeypatch):
     assert ret == 0
     assert called_args["agent_module"] == "src.main"
     assert "case-converter" in called_args["eval_dataset"]
+    assert "test_config.json" in called_args["config_file_path"]
 

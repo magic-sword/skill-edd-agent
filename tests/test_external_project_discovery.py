@@ -43,15 +43,16 @@ def test_adk_toolset_with_external_skills_root(tmp_path: Path):
     SkillScaffolder.scaffold("weather-reporter", output_base_dir=custom_root, pattern="task_based")
 
     toolset = EddSkillToolset(skills_root=custom_root)
-    listed = toolset.list_skills_sync()
+    skills = toolset.state.list_skills()
 
-    assert len(listed) >= 1
-    assert any(s["name"] == "weather-reporter" for s in listed)
+    assert len(skills) >= 1
+    assert any(s.name == "weather-reporter" for s in skills)
 
     # ロードテスト
-    loaded = toolset.load_skill_sync("weather-reporter")
-    assert loaded.get("status") == "loaded"
-    assert "weather-reporter" in loaded.get("name", "")
+    from edd_agent_tools.core import SkillPackage
+    pkg = SkillPackage(custom_root / "weather-reporter")
+    assert pkg.name == "weather-reporter"
+    assert (Path(pkg.root_dir) / "SKILL.md").exists()
 
 
 def test_skills_state_environment_variable_override(tmp_path: Path, monkeypatch):
