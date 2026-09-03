@@ -38,9 +38,9 @@
       ]
     },
     {
-      "description": "Run shell commands.",
-      "id": "evaluation_driven_development_agent-run_command",
-      "name": "run_command",
+      "description": "Execute secret-sanitizer skill (mask sensitive API keys and tokens)",
+      "id": "evaluation_driven_development_agent-secret_sanitizer",
+      "name": "secret_sanitizer",
       "tags": [
         "llm",
         "tools"
@@ -48,6 +48,6 @@
     }
   ],
   "supportsAuthenticatedExtendedCard": false,
-  "url": "https://us-central1-aiplatform.googleapis.com/v1/projects/arc-agi-498914/locations/us-central1/reasoningEngines/1915136500085817344",
+  "url": "http://localhost:8001",
   "version": "0.3.0"
 }

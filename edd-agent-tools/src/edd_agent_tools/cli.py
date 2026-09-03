@@ -527,44 +527,14 @@ def cmd_profile(args: argparse.Namespace) -> int:
 
 
 
-def cmd_export_eval(args: argparse.Namespace) -> int:
-    """Google ADK 2.0 公式 EvalSet JSON をエクスポート・検証します。"""
-    state = SkillsState()
-    skill = state.get_skill(args.skill_name)
-    if not skill:
-        print(f"❌ Error: Skill '{args.skill_name}' not found.", file=sys.stderr)
-        return 1
-
-    tests_dir = Path(skill.root_dir) / "tests"
-    edd_file = tests_dir / f"{args.skill_name}_edd.evalset.json"
-    if not edd_file.exists():
-        evalsets = list(tests_dir.glob("*.evalset.json"))
-        if evalsets:
-            edd_file = evalsets[0]
-        else:
-            print(f"❌ Error: No evalset found in '{tests_dir}'.", file=sys.stderr)
-            return 1
-
-    with open(edd_file, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    from edd_agent_tools.models.eval import EvalCaseSet
-    case_set = EvalCaseSet.model_validate(data)
-    adk_dict = case_set.export_adk_evalset_dict()
-
-    out_path = Path(args.out) if args.out else tests_dir / f"{args.skill_name}_adk_native.evalset.json"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(adk_dict, f, indent=2, ensure_ascii=False)
-
-    print(f"✅ Verified & Exported Google ADK 2.0 Native EvalSet to: {out_path}")
-    print(f"   Note: '{edd_file}' is already a valid ADK 2.0 EvalSet and can be run directly:")
-    print(f"   adk eval <AGENT_DIR> {edd_file}")
-    return 0
-
-
 def cmd_adk_eval(args: argparse.Namespace) -> int:
     """Google ADK 2.0 公式 AgentEvaluator / adk eval を実行してスキルを評価します。"""
+    # Google ADK 2.0 互換性保証: GEMINI_API_KEY と GOOGLE_API_KEY の相互同期
+    if os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
+        os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
+    elif os.environ.get("GOOGLE_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
+        os.environ["GEMINI_API_KEY"] = os.environ["GOOGLE_API_KEY"]
+
     state = SkillsState()
     skill = state.get_skill(args.skill_name)
     if not skill:
@@ -578,8 +548,8 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
     else:
         candidates = [
             tests_dir / f"{args.skill_name}_edd.evalset.json",
-            tests_dir / f"{args.skill_name}_adk_native.evalset.json",
             tests_dir / f"{args.skill_name}.evalset.json",
+            tests_dir / f"{args.skill_name}_adk_native.evalset.json",
         ]
         for c in candidates:
             if c.exists():
@@ -603,23 +573,37 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
         if cand_config.exists():
             config_path = str(cand_config)
 
+    # agent_module の親ディレクトリを sys.path に確実に追加
+    agent_path = Path(agent_module).resolve()
+    if agent_path.exists() and agent_path.is_dir():
+        parent_dir = str(agent_path.parent)
+        if parent_dir not in sys.path:
+            sys.path.insert(0, parent_dir)
+        resolved_agent_module = agent_path.name
+    else:
+        resolved_agent_module = agent_module
+        cwd_dir = os.getcwd()
+        if cwd_dir not in sys.path:
+            sys.path.insert(0, cwd_dir)
+
     # --cli が指定された場合、公式 adk eval CLI を直接サブプロセス実行
     if getattr(args, "cli", False):
         print(f"🚀 Running Google ADK 2.0 CLI `adk eval` on '{args.skill_name}'...")
-        cmd = ["adk", "eval", agent_module, str(eval_file)]
+        cmd = ["adk", "eval", resolved_agent_module, str(eval_file)]
         if config_path:
             cmd.extend(["--config_file_path", str(config_path)])
         if getattr(args, "detailed", True):
             cmd.append("--print_detailed_results")
         try:
-            res = subprocess.run(cmd)
+            env = os.environ.copy()
+            res = subprocess.run(cmd, env=env)
             return res.returncode
         except Exception as e:
             print(f"❌ Failed to run adk eval CLI: {e}", file=sys.stderr)
             return 1
 
     print(f"🚀 Running Google ADK 2.0 AgentEvaluator on '{args.skill_name}'...")
-    print(f"   Agent Module: {agent_module}")
+    print(f"   Agent Module: {resolved_agent_module}")
     print(f"   Eval Dataset: {eval_file}")
     if config_path:
         print(f"   Config File:  {config_path}")
@@ -629,7 +613,7 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
     try:
         adapter = AdkEvalAdapter(live=True)
         asyncio.run(adapter.evaluate_with_adk_agent(
-            agent_module=agent_module,
+            agent_module=resolved_agent_module,
             eval_dataset_file_path_or_dir=eval_file,
             config_file_path=config_path
         ))
@@ -640,6 +624,7 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
         return 1
 
 
+
 def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -647,7 +632,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 既知のトップレベルコマンド
     known_commands = {
         "run", "init", "validate", "package", "eval", "adk-eval", "tier-gate", "diagnose", "optimize", "list",
-        "export-eval", "tune-desc", "harvest-trace", "profile",
+        "tune-desc", "harvest-trace", "profile",
         "-h", "--help", "-v", "--version"
     }
 
@@ -735,12 +720,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_prof = subparsers.add_parser("profile", help="Manage and inspect Capability Profiles (role/tier bundling)")
     p_prof.add_argument("profile_name", nargs="?", help="Name of the capability profile to inspect")
 
-    # 13. export-eval (Export to Google ADK 2.0 Native EvalSet)
-    p_exp = subparsers.add_parser("export-eval", help="Export evaluation dataset to Google ADK 2.0 native EvalSet JSON format")
-    p_exp.add_argument("skill_name", help="Target skill name")
-    p_exp.add_argument("--out", "-o", help="Output file path (default: tests/<skill>_adk_native.evalset.json)")
-
-    # 14. adk-eval (Direct Google ADK AgentEvaluator runner)
+    # 13. adk-eval (Direct Google ADK AgentEvaluator runner)
     p_adk_eval = subparsers.add_parser("adk-eval", help="Directly run Google ADK AgentEvaluator / adk eval on a skill")
     p_adk_eval.add_argument("skill_name", help="Target skill name")
     p_adk_eval.add_argument("--evalset", "-e", help="Path to custom evalset JSON")
@@ -781,8 +761,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_harvest_trace(args)
     elif args.command == "profile":
         return cmd_profile(args)
-    elif args.command == "export-eval":
-        return cmd_export_eval(args)
+
 
 
     return 0

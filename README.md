@@ -135,7 +135,11 @@ edd eval my-new-skill --type trajectory --trajectory-mode in_order
 edd eval my-new-skill --pass-k 3
 edd eval my-new-skill --co-loaded
 
-# 7. Tier 昇格 & 失敗診断 & 一括最適化 (Human Sign-off 対応)
+# 7. Google ADK 2.0 公式 AgentEvaluator / adk eval 評価
+edd adk-eval my-new-skill
+edd adk-eval my-new-skill --cli
+
+# 8. Tier 昇格 & 失敗診断 & 一括最適化 (Human Sign-off 対応)
 edd tier-gate my-new-skill --tier 3 --yes
 edd diagnose my-new-skill
 edd optimize my-new-skill --tier 3 --yes

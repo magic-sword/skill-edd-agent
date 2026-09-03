@@ -187,6 +187,12 @@ class AdkEvalAdapter:
         live: bool = False,
         force_deterministic: Optional[bool] = None
     ):
+        # Google ADK 2.0 互換性保証: GEMINI_API_KEY と GOOGLE_API_KEY の相互同期
+        if os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
+            os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
+        elif os.environ.get("GOOGLE_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
+            os.environ["GEMINI_API_KEY"] = os.environ["GOOGLE_API_KEY"]
+
         self.judge_model = judge_model
         self.num_samples = num_samples
         self.use_position_swapping = use_position_swapping
@@ -428,39 +434,52 @@ class AdkEvalAdapter:
         """Google ADK 2.0 純正の AgentEvaluator を直接実行します。
         
         Live 環境においてエージェントとスキルツールセットを完全連動させ、
-        実際の Tool Trajectory と回答品質を評価します。
+        実際の Tool Trajectory と回答品質を公式パイプラインで評価します。
         """
         if AgentEvaluator is None:
             raise RuntimeError("google.adk.evaluation.agent_evaluator.AgentEvaluator is not available.")
 
+        # agent_module の親ディレクトリを sys.path に追加してモジュール探索を保証
+        module_path = Path(agent_module).resolve()
+        if module_path.exists() and module_path.is_dir():
+            parent_dir = str(module_path.parent)
+            if parent_dir not in sys.path:
+                sys.path.insert(0, parent_dir)
+            resolved_module_name = module_path.name
+        else:
+            resolved_module_name = agent_module
+            cwd_str = os.getcwd()
+            if cwd_str not in sys.path:
+                sys.path.insert(0, cwd_str)
+
         eval_path = Path(eval_dataset_file_path_or_dir).resolve()
 
-        # test_config.json の自動探索
-        resolved_config = config_file_path
-        if not resolved_config and eval_path.is_file():
-            cand_config = eval_path.parent / "test_config.json"
-            if cand_config.exists():
-                resolved_config = str(cand_config)
-
-        if resolved_config or criteria:
-            from google.adk.evaluation.local_eval_sets_manager import load_eval_set_from_file
-            eval_set_id = eval_path.stem.replace(".evalset", "")
-            eval_set = load_eval_set_from_file(str(eval_path), eval_set_id)
-            eval_cfg = self.build_eval_config(criteria=criteria, config_path=resolved_config)
+        # カスタム config や criteria が明示指定された場合のみ evaluate_eval_set を実行
+        if config_file_path or criteria:
+            resolved_config_path = str(Path(config_file_path).resolve()) if config_file_path else None
+            eval_cfg = self.build_eval_config(criteria=criteria, config_path=resolved_config_path)
+            
+            # ADK 公式の _load_eval_set_from_file で標準パース
+            eval_set = AgentEvaluator._load_eval_set_from_file(
+                str(eval_path), eval_cfg, initial_session={}
+            )
             return await self.evaluate_eval_set(
-                agent_module=agent_module,
+                agent_module=resolved_module_name,
                 eval_set=eval_set,
                 eval_config=eval_cfg,
                 num_runs=num_runs,
                 print_detailed_results=print_detailed_results
             )
 
+        # ADK 公式の標準評価パイプラインに委譲
+        # （同ディレクトリ内の test_config.json の自動探索および EvalSet パースが内部で自動実行される）
         return await AgentEvaluator.evaluate(
-            agent_module=agent_module,
+            agent_module=resolved_module_name,
             eval_dataset_file_path_or_dir=str(eval_path),
             num_runs=num_runs,
             print_detailed_results=print_detailed_results
         )
+
 
     def evaluate_rubric(
         self,

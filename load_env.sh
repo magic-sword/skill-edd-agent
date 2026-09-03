@@ -26,6 +26,13 @@ load_env() {
     fi
   done
 
+  # Google ADK 2.0 互換性保証: GEMINI_API_KEY と GOOGLE_API_KEY の相互同期
+  if [ -n "$GEMINI_API_KEY" ] && [ -z "$GOOGLE_API_KEY" ]; then
+    export GOOGLE_API_KEY="$GEMINI_API_KEY"
+  elif [ -n "$GOOGLE_API_KEY" ] && [ -z "$GEMINI_API_KEY" ]; then
+    export GEMINI_API_KEY="$GOOGLE_API_KEY"
+  fi
+
   if [ "$loaded_any" = true ]; then
     echo "Environment variables loaded successfully."
   else
@@ -34,3 +41,4 @@ load_env() {
 }
 
 load_env
+

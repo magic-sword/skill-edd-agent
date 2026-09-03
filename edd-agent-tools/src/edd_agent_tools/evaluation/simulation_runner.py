@@ -130,7 +130,7 @@ class SimulationEvalRunner:
                 traj_matched = True
                 traj_msg = ""
                 if actual_tools is None:
-                    # 期待されるツール呼び出しのスクリプト実在性・健全性検査
+                    # オフライン・静的契約テスト時: 期待されるスクリプトの実在性・健全性を検証
                     for t_item in exp_tools:
                         t_call = t_item if isinstance(t_item, dict) else (t_item.model_dump() if hasattr(t_item, "model_dump") else {"tool": str(t_item)})
                         t_name = t_call.get("tool") or t_call.get("name", "")
@@ -149,9 +149,9 @@ class SimulationEvalRunner:
                                 traj_msg = f"Referenced script '{t_name}' not found in skill '{skill.name}'"
                                 break
                     if traj_matched:
-                        actual_tools = exp_tools
-
-                if traj_matched and actual_tools is not None:
+                        traj_msg = "Static script integrity verified"
+                else:
+                    # 実際のツール呼び出し履歴が存在する場合: ADK 2.0 純正 TrajectoryEvaluator で客観的評価
                     traj_matched, traj_msg = self.adk_adapter.evaluate_trajectory(
                         actual_tool_calls=actual_tools,
                         expected_tool_calls=exp_tools,
@@ -202,28 +202,31 @@ class SimulationEvalRunner:
         return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
 
     def _run_trigger_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
-        """インテント分類用のトリガーテストケースを実行します。"""
+        """インテント分類用のトリガーテストケースを実行します（客観的マッチング）。"""
         passed = 0
         failed = 0
         total = len(cases)
         failed_cases: List[FailedCaseDetail] = []
 
         skill_name = (skill.name or "").lower()
+        desc_text = (getattr(skill, "description", None) or "").lower()
+
+        # スキル名および主要トークンの抽出
+        name_tokens = set(t for t in skill_name.replace("-", " ").replace("_", " ").split() if len(t) > 2)
+        desc_tokens = set(t for t in desc_text.replace("-", " ").replace("_", " ").split() if len(t) > 4)
 
         for case in cases:
             case_id = case.get("eval_case_id") or case.get("name") or f"case_{passed+failed+1}"
             user_input = case.get("user_input", "").lower()
             should_trigger = case.get("should_trigger", True)
 
-            name_tokens = [t for t in skill_name.replace("-", " ").replace("_", " ").split() if len(t) > 2]
-            matched = any(token in user_input for token in name_tokens) or (skill_name in user_input)
-            if not matched and should_trigger:
-                matched = True
-
-            actual_invoke = matched if should_trigger else matched and (skill_name in user_input)
+            # 客観的インテント判定: スキル名完全一致、トークン一致、説明文キーワード一致
+            name_matched = (skill_name in user_input) or any(token in user_input for token in name_tokens)
+            desc_matched = any(token in user_input for token in desc_tokens)
+            is_triggered = name_matched or desc_matched
 
             if should_trigger:
-                if matched or actual_invoke:
+                if is_triggered:
                     passed += 1
                 else:
                     failed += 1
@@ -237,7 +240,7 @@ class SimulationEvalRunner:
                         )
                     )
             else:
-                if not actual_invoke:
+                if not is_triggered:
                     passed += 1
                 else:
                     failed += 1
@@ -253,6 +256,7 @@ class SimulationEvalRunner:
 
         accuracy = passed / total if total > 0 else 1.0
         return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
+
 
     def _run_judge_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
         """ADK 2.0 連携およびルーブリック基準に基づく仕様・回答採点テストを実行します。"""

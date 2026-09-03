@@ -3,12 +3,21 @@ Google ADK 2.0 および Anthropic 標準に完全準拠した統合エージェ
 SkillToolset による Progressive Disclosure（段階的情報開示）アーキテクチャを実現。
 """
 
+import os
 import sys
 from pathlib import Path
+
+# Google ADK 2.0 互換性保証: GEMINI_API_KEY と GOOGLE_API_KEY の相互同期
+if os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
+    os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
+elif os.environ.get("GOOGLE_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
+    os.environ["GEMINI_API_KEY"] = os.environ["GOOGLE_API_KEY"]
+
 from google.adk import Agent
 from google.adk.code_executors import UnsafeLocalCodeExecutor
 from google.adk.workflow import RetryConfig
 from edd_agent_tools.adk import create_adk_skill_toolset
+
 
 # 1. 登録スキルと Tier 状態に基づき ADK 公式の SkillToolset を構築
 # Tier 1 以上のスキル（および必須システムスキル）を登録し、ADK 2.0 公式 Progressive Disclosure を実現

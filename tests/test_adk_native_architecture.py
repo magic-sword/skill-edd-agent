@@ -137,14 +137,12 @@ def test_cli_meta_commands_dispatch(tmp_path):
     assert (tmp_path / "trace-skill" / "SKILL.md").exists()
 
 
-def test_adk_export_eval_command(tmp_path):
-    """CLI should export Snippet 3 evalset to ADK 2.0 native evalset JSON."""
-    out_file = tmp_path / "exported_case_conv.evalset.json"
-    ret = cli_main(["export-eval", "case-converter", "--out", str(out_file)])
-    assert ret == 0
-    assert out_file.exists()
+def test_adk_evalset_native_structure():
+    """ADK 2.0 公式 EvalSet が 3正例+3負例および完全なconversation構造を持つことを直接検証。"""
+    evalset_path = Path("src/skills/case-converter/tests/case-converter_edd.evalset.json")
+    assert evalset_path.exists()
 
-    with open(out_file, "r", encoding="utf-8") as f:
+    with open(evalset_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     assert "eval_set_id" in data
@@ -155,6 +153,8 @@ def test_adk_export_eval_command(tmp_path):
     assert "conversation" in case0
     assert "user_content" in case0["conversation"][0]
     assert "intermediate_data" in case0["conversation"][0]
+    assert "tool_uses" in case0["conversation"][0]["intermediate_data"]
+
 
 
 def test_adk_eval_cli_command(monkeypatch):

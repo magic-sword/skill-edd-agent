@@ -79,3 +79,16 @@ def test_unified_cli_optimize(capfd):
     assert exit_code == 0
     captured = capfd.readouterr()
     assert "Success" in captured.out or "promoted" in captured.out
+
+
+def test_unified_cli_adk_eval(capfd):
+    """edd adk-eval による Google ADK 公式評価実行コマンドの健全性をテストします。"""
+    with pytest.raises(SystemExit) as excinfo:
+        cli_main(["adk-eval", "--help"])
+    assert excinfo.value.code == 0
+    captured = capfd.readouterr()
+    assert "adk-eval" in captured.out
+    assert "Directly invoke the official `adk eval` CLI subprocess" in captured.out
+
+
+

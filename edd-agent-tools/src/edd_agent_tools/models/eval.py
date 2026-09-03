@@ -361,63 +361,10 @@ class EvalCaseSet(AdkEvalSet):
         except Exception:
             return self
 
-    def export_adk_evalset_dict(self) -> Dict[str, Any]:
-        """ADK 2.0 CLI `adk eval` に直接渡せるネイティブ JSON 辞書形式を出力します。"""
-        raw_cases = []
-        for c in self.eval_cases:
-            user_text = c.input or (c.inputs.get("query") if isinstance(c.inputs, dict) else "") or ""
-            final_text = c.expected_output_format or (str(c.expected) if c.expected else "")
-            
-            tool_uses = []
-            resolved_skill = c.expected_skill or self.skill_name
-            for tc in c.expected_tool_calls:
-                if isinstance(tc, EDDToolCall):
-                    tool_uses.append(tc.to_adk_native(skill_name=resolved_skill))
-                elif isinstance(tc, dict):
-                    t_name = tc.get("tool") or tc.get("name", "")
-                    t_args = dict(tc.get("args", {}))
-                    if t_name == "run_skill_script" and resolved_skill and "skill_name" not in t_args:
-                        t_args["skill_name"] = resolved_skill
-                    tool_uses.append({"name": t_name, "args": t_args})
-                elif isinstance(tc, str):
-                    tool_uses.append({"name": tc, "args": {}})
-
-            raw_cases.append({
-                "eval_id": c.case_id or c.eval_case_id or "case_0",
-                "conversation": [
-                    {
-                        "invocation_id": f"inv_{c.case_id or '0'}",
-                        "user_content": {
-                            "role": "user",
-                            "parts": [{"text": str(user_text)}]
-                        },
-                        "final_response": {
-                            "role": "model",
-                            "parts": [{"text": final_text}]
-                        } if final_text else None,
-                        "intermediate_data": {
-                            "tool_uses": tool_uses,
-                            "intermediate_responses": []
-                        }
-                    }
-                ],
-                "session_input": {
-                    "app_name": self.skill_name or "default_skill",
-                    "user_id": "test_user",
-                    "state": {}
-                }
-            })
-
-        return {
-            "eval_set_id": self.eval_set_id,
-            "name": self.name or self.eval_set_id,
-            "description": self.description or f"EvalSet for {self.skill_name}",
-            "eval_cases": raw_cases
-        }
-
 
 # Google ADK 2.0 純正 google.adk.evaluation.eval_set.EvalSet / EvalCase との完全互換エイリアス
 EvalSet = EvalCaseSet
+
 EDDTestCase = EvalCase
 
 
