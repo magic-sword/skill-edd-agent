@@ -66,12 +66,12 @@ flowchart TD
         - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ
         - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
         - `examples/`: エージェントが真似できる具象コード例・パターン集
-        - `tests/`: 白書 Snippet 3 形式評価データセット（`<skill-name>_edd.evalset.json`: 単一真実源: SSOT）
+        - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（`<skill-name>_edd.evalset.json`: 単一真実源: SSOT）
 3.  **Google ADK 2.0 純正ランタイム完全一致命名規約**
     *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。
 4.  **Google ADK 2.0 純正評価統合 & 車輪の再発明の完全排除**
-    *   ADK 2.0 の `TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。独自の手書き軌跡ループを全廃し、エージェント実行・テストケースのツール呼び出しは ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
-    *   Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。Position Swapping により順序バイアスを中和。
+    *   ADK 2.0 の `TrajectoryEvaluator` および `ToolTrajectoryCriterion`、そして公式の **`RubricBasedFinalResponseQualityV1Evaluator`** を直接駆動。独自プロンプトによる LLM-as-a-Judge や手書き軌跡比較ループを全廃し、エージェント実行・テストケースのツール呼び出しは ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
+    *   Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。
 5.  **白書（May 2026）4大 Eval Coverage Checklist (`--coverage`)**
     *   白書 Section 4 の 4大必須評価条件（Trigger >= 90%, Execution/Trajectory 100%, Regression 0 drops, Token Budget/Co-loaded 5~15 skills）を一括判定・チェックリスト出力。
 6.  **$pass^k$ (Sustained Reliability) & 3大 Tool Trajectory 評価モード**
@@ -79,13 +79,13 @@ flowchart TD
 7.  **Human Sign-off ゲート (Tier 3: Action-Allowed)**
     *   不可逆操作が許可される Tier 3 昇格時には、人間の明示的承認を必須化。
 8.  **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**
-    *   `SKILL.md` を執筆する前に、まず `tests/<skill-name>_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
-    *   **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `expected_tool_calls`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化。
+    *   `SKILL.md` を執筆する前に、まず `tests/<skill-name>_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の Google ADK 2.0 公式 `EvalSet`（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
+    *   **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化。
 9.  **白書 Appendix A minimal SKILL.md 6大必須セクション標準**
     *   すべてのスキルは、白書 Appendix A が定める 6 つの必須セクション（`When to use`, `When NOT to use`, `Workflow`, `Examples`, `Output format`, `Anti-patterns to avoid`）を標準実装。
-10. **Google ADK 2.0 純正 LocalCodeExecutor 統合 & 公式 EvalSet エクスポート**
+10. **Google ADK 2.0 純正 LocalCodeExecutor 統合 & AgentEvaluator 直結**
     *   ADK 公式の `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入し、モンキーパッチに頼らず正規の手順で安全にコードを実行。
-    *   `edd export-eval <skill-name>` により、白書 Snippet 3 評価セットを Google ADK 2.0 公式ネイティブの `adk eval` 用 JSON へ即座にエクスポート可能。
+    *   `edd adk-eval <skill-name>` により、Google ADK 2.0 公式 `AgentEvaluator.evaluate()` を直接ワンストップ実行可能。
 11. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**
     *   外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明しない。スキルは Know-how（決定論的手順と処理）に集中。
 

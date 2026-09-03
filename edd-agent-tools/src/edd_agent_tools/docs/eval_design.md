@@ -84,37 +84,83 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
 
 ---
 
-## 7. 白書標準 EDD (Evaluation-Driven Development) Snippet 3 形式 (SSOT)
+## 7. Google ADK 2.0 公式 EvalSet 標準 (単一真実源: SSOT)
 
-白書 Section 4 に完全準拠し、すべてのスキルは `SKILL.md` を執筆する前に、まず `tests/{skill_name}_edd.evalset.json` を単一真実源（SSOT）として先行定義します：
+Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキルは `SKILL.md` を執筆する前に、まず `tests/{skill_name}_edd.evalset.json` を単一真実源（SSOT）として先行定義します：
 
 ```json
 {
   "eval_set_id": "example_skill_edd_eval",
+  "name": "example_skill_edd_eval",
+  "description": "Google ADK 2.0 Native EvalSet for example-skill",
   "skill_name": "example-skill",
-  "cases": [
+  "eval_cases": [
     {
-      "case_id": "example_001",
-      "input": "Execute example processing on sample input",
+      "eval_id": "example_001",
       "expected_skill": "example-skill",
-      "expected_tool_calls": [
-        {"tool": "scripts/example_script.py", "args": {"input": "sample"}}
+      "conversation": [
+        {
+          "invocation_id": "inv_example_001",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Execute example processing on sample input"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "processed_result"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "example-skill",
+                  "file_path": "scripts/example_script.py",
+                  "args": {"input": "sample"}
+                }
+              }
+            ]
+          }
+        }
       ],
-      "expected_output_format": "processed_result",
-      "rubric": [
-        "invokes scripts/example_script.py CLI tool",
-        "preserves data integrity"
+      "rubrics": [
+        {
+          "rubric_id": "r_example_001_1",
+          "rubric_content": {"text_property": "invokes run_skill_script with example_script.py"},
+          "type": "TOOL_USE_QUALITY"
+        },
+        {
+          "rubric_id": "r_example_001_2",
+          "rubric_content": {"text_property": "preserves data integrity"},
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
       ]
     },
     {
-      "case_id": "example_neg_001",
-      "input": "Summarize the architectural benefits of Google ADK 2.0",
+      "eval_id": "example_neg_001",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "conceptual_summary",
-      "rubric": [
-        "does not trigger example-skill",
-        "answers user query directly without tool calls"
+      "conversation": [
+        {
+          "invocation_id": "inv_example_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Summarize the architectural benefits of Google ADK 2.0"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "conceptual_summary"}]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_example_neg_001_1",
+          "rubric_content": {"text_property": "does not trigger example-skill"},
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
       ]
     }
   ]
@@ -122,10 +168,10 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
 ```
 
 * **4大評価の単一ファイル完結**:
-  - `expected_tool_calls` ➔ `ContractTestRunner` による決定論的 CLI 契約テスト（`args` を自動フラグ化）
+  - `intermediate_data.tool_uses` ➔ `ContractTestRunner` による決定論的 CLI 契約テスト（引数を自動フラグ化）
   - `expected_skill` ➔ `SimulationEvalRunner` によるトリガー判定（正例・負例）
-  - `expected_tool_calls` のシーケンス ➔ ADK 3大 Trajectory 判定（`EXACT` / `IN_ORDER` / `ANY_ORDER`）
-  - `rubric` ➔ ADK 2.0 `AgentEvaluator` による Position Swapping ルーブリック採点
+  - `tool_uses` のシーケンス ➔ ADK 3大 Trajectory 判定（`TrajectoryEvaluator`: `EXACT` / `IN_ORDER` / `ANY_ORDER`）
+  - `rubrics` ➔ ADK 2.0 公式 `RubricBasedFinalResponseQualityV1Evaluator` および `AgentEvaluator` によるルーブリック採点
 
 ---
 

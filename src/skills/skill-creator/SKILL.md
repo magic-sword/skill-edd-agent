@@ -37,8 +37,8 @@ pattern: workflow
    - `assets/`: 成果物生成用のテンプレート、ボイラープレート、画像等の静的ファイル（コンテキストに読ませない）
 
 3. インバージョン開発 (EDD Inversion) による評価セット先行策定 (SSOT):
-   - SKILL.md を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に白書 Snippet 3 形式で **3つの正例 ＋ 3つの負例（計6ケース）** を確定する。
-   - ツール呼び出し・引数検証は `expected_tool_calls`（Trajectory レイヤー）に集約し、`rubric` は最終出力品質（会話フィラー排除・正確性・負例時の沈黙）に特化させる。
+   - SKILL.md を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に Google ADK 2.0 公式 `EvalSet` 形式で **3つの正例 ＋ 3つの負例（計6ケース）** を確定する。
+   - ツール呼び出し・引数検証は `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` は最終出力品質（会話フィラー排除・正確性・負例時の沈黙）に特化させる。
 
 4. スキル雛形の生成 (Scaffold):
    - 統合 CLI `edd init` を呼び出してパッケージ雛形を初期化する。
@@ -74,7 +74,7 @@ pattern: workflow
 - インベントリ（既存スキル）を確認せずに重複スキルを新規作成しないこと。
 - スクリプト内部で巨大な HTTP クライアントを再発明しないこと（外部連携は MCP に委譲する）。
 - 未使用の空ディレクトリ（空の assets/ や references/）を残置しないこと。
-- 白書 Snippet 3 形式の評価データセット（tests/）の作成を省略しないこと。
+- Google ADK 2.0 公式 `EvalSet` 形式の評価データセット（tests/）の作成を省略しないこと。
 - 「ALWAYS DO X」のような大文字命令を乱用して Context Debt を蓄積させないこと（理由を説明するか決定論的スクリプトに落とし込む）。
 - 6大必須セクション（When to use, When NOT to use, Workflow, Examples, Output format, Anti-patterns to avoid）を省略しないこと。
 

@@ -20,10 +20,10 @@ graph TD
     Result -->|7. Gating & Promotion| Gate["skill-evolver (edd tier-gate / edd optimize)"]
 ```
 
-1.  **テスト設計・配置フェーズ (EDD Inversion & Snippet 3 SSOT)**:
-    仕様定義（`SKILL.md` や `scripts/`）を先行決定する前に、白書 Snippet 3 形式（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）の評価ケース（正例3件＋負例3件の計6件、白書 Page 22 必須要件）を策定し、`tests/<skill_name>_edd.evalset.json` に**単一真実源（SSOT）アセットとして保存**します。契約テスト・トリガー判定・ツール軌跡・ルーブリック採点の全データがこの単一ファイルに統合されます。
-2.  **評価実行フェーズ (`edd eval`)**:
-    保存された Snippet 3 評価セットをロードし、隔離されたサンドボックス環境（`LocalWorkspaceEnv`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。結果は `latest_report.json` に構造化ログとして永続化されます。
+1.  **テスト設計・配置フェーズ (EDD Inversion & ADK 2.0 EvalSet SSOT)**:
+    仕様定義（`SKILL.md` や `scripts/`）を先行決定する前に、Google ADK 2.0 公式 `EvalSet` スキーマ（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）の評価ケース（正例3件＋負例3件の計6件、白書 Section 4 Page 22 必須要件）を策定し、`tests/<skill_name>_edd.evalset.json` に**単一真実源（SSOT）アセットとして保存**します。契約テスト・トリガー判定・ツール軌跡・ルーブリック採点の全データがこの単一ファイルに統合されます。
+2.  **評価実行フェーズ (`edd eval` / `edd adk-eval`)**:
+    保存された ADK 公式 `EvalSet` をロードし、隔離されたサンドボックス環境（`LocalWorkspaceEnv`）上でテストを実行・評価します。ADK 公式の `AgentEvaluator` や `RubricBasedFinalResponseQualityV1Evaluator` とそのまま直結動作します。結果は `latest_report.json` に構造化ログとして永続化されます。
 3.  **失敗診断・自己修復フェーズ (`edd diagnose`)**:
     テスト失敗時に構造化されたコンテキスト（SKILL.md、関連スクリプト、スタックトレース）を抽出し、エージェントが自律的にプロンプトやスクリプトを自己修復します。
 4.  **Tier 昇格ゲートキーパーフェーズ (`edd tier-gate` / `edd optimize`)**:

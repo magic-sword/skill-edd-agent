@@ -46,12 +46,12 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 - **共通ドメインエンティティ (`core`)**: `SkillPackage`（旧 `Skill` と完全互換、`load_resource`, `execute_script` 自己完結実行カプセル化）, `SkillTests`
 - **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析, `entry_points` 探索）
 - **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、白書命名規則、MCP再発明検知）
-- **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（Snippet 3 インバージョン生成）
-- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK純正 `TrajectoryEvaluator`: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & ADK純正 `AgentEvaluator` / `TrajectoryEvaluator` / `ToolTrajectoryCriterion` 直接連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
+- **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（ADK公式 EvalSet インバージョン生成）
+- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK純正 `TrajectoryEvaluator`: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & ADK純正 `RubricBasedFinalResponseQualityV1Evaluator` / `AgentEvaluator` / `TrajectoryEvaluator` / `ToolTrajectoryCriterion` 直接連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
 - **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (ADK公式 `UnsafeLocalCodeExecutor` 標準注入、重複コード実行の完全排除), `EddSkillRegistry`, `create_mcp_server`
-- **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval` [--coverage], `tier-gate`, `diagnose`, `optimize`, `list`）
+- **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval` [--coverage], `adk-eval`, `tier-gate`, `diagnose`, `optimize`, `list`）
 
-※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチや車輪の再発明（独自の軌跡比較ロジック等）は厳禁とし、ADK 公式コンポーネント（Code Executor, TrajectoryEvaluator, EvalSet, AgentEvaluator）を直接使用します。Tool Trajectory 検証は ADK 純正の `run_skill_script` 形式を第1級標準（Primary Standard）として取り扱います。
+※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチや車輪の再発明（独自のプロンプトによるLLM Judgeや独自の軌跡比較ロジック等）は厳禁とし、ADK 公式コンポーネント（Code Executor, TrajectoryEvaluator, EvalSet, RubricBasedFinalResponseQualityV1Evaluator, AgentEvaluator）を直接使用します。Tool Trajectory 検証は ADK 純正の `run_skill_script` 形式を第1級標準（Primary Standard）として取り扱います。
 
 
 ### B. 自己改善スキル資産層（`src/skills/`）の責務と依存関係ポリシー
@@ -67,9 +67,9 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
   3. **Don't reinvent MCP as scripts (MCP再発明の禁止)**:
      - 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します。
   4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**:
-     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず `tests/{skill_name}_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。
-     - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数の検証は `expected_tool_calls`（Trajectory）に集約し、`rubric` は最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させます。
-     - 乱立する複数のテストファイルを排し、この単一ファイルから契約テスト・トリガー判定・Trajectory・ルーブリック評価を一元的に実施します。
+     - 新規スキルの執筆時は、`SKILL.md` を書く前にまず `tests/{skill_name}_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の Google ADK 2.0 公式 `EvalSet`（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を確定し、ツールの呼び出し軌跡と採点基準を先行定義します。
+     - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数の検証は `expected_tool_calls` / `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` は最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させます。
+     - 独自スキーマによるデータ二重管理を排し、Google ADK 公式 CLI `adk eval` や `AgentEvaluator` とそのまま直結動作します。
   5. **白書 Appendix A minimal SKILL.md 6大必須セクション構造**:
      - すべての `SKILL.md` は、`## When to use`, `## When NOT to use`, `## Workflow`, `## Examples`, `## Output format`, `## Anti-patterns to avoid` の 6 つの必須セクションで構成します。
   6. **Python import 境界の厳守**:
@@ -88,7 +88,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
   - `references/` (ドメイン知識、スキーマ仕様)
   - `assets/` (出力用テンプレート・素材)
   - `examples/` (具象コード例・パターン集)
-  - `tests/` (白書 Snippet 3 形式評価データセット `*_edd.evalset.json`)
+  - `tests/` (Google ADK 2.0 公式 EvalSet 評価データセット `*_edd.evalset.json`)
 * **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
   - `edd_agent_tools.*` (パッケージ内部のコード)
   - テスト評価ランナー・静的検証エンジン・Tier 昇格判定エンジン
@@ -103,7 +103,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
   - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）
   - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
   - `examples/`: 具象コード例・パターン集（エージェントが真似できる実装例）
-  - `tests/`: 白書 Snippet 3 形式評価データセット（単一真実源: SSOT）
+  - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（単一真実源: SSOT）
 
 * **実践的ワークフロー規約**:
   - **Reconnaissance-then-Action**: 変更前にデータ構造・セレクタをサンプリング調査する。

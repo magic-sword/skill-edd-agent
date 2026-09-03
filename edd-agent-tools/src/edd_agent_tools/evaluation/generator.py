@@ -49,37 +49,56 @@ class EvalSetGenerator:
         _, script_names = _load_skill_context(skill_name)
         main_script = f"scripts/{script_names[0]}" if script_names else f"scripts/{skill_name.replace('-', '_')}.py"
 
-        cases = []
-        # 正例ケース (3件)
-        pos_inputs = list(trigger_examples) if trigger_examples else []
-        default_pos = [
-            f"Please execute {skill_name} workflow with --help parameter",
-            f"Run {skill_name} task for target sample data",
-            f"Process batch operations using {skill_name}"
-        ]
-        while len(pos_inputs) < 3:
-            pos_inputs.append(default_pos[len(pos_inputs)])
-
+        eval_cases = []
         for idx, inp in enumerate(pos_inputs[:3], 1):
-            cases.append({
-                "case_id": f"{skill_name.replace('-', '_')}_edd_{idx:03d}",
-                "input": inp,
+            cid = f"{skill_name.replace('-', '_')}_edd_{idx:03d}"
+            args_payload = ["--help"] if idx == 1 else {"input": "sample"}
+            eval_cases.append({
+                "eval_id": cid,
+                "case_id": cid,
                 "expected_skill": skill_name,
-                "expected_tool_calls": [
+                "conversation": [
                     {
-                        "tool": "run_skill_script",
-                        "args": {
-                            "skill_name": skill_name,
-                            "file_path": main_script,
-                            "args": ["--help"] if idx == 1 else {"input": "sample"}
+                        "invocation_id": f"inv_{cid}",
+                        "user_content": {
+                            "role": "user",
+                            "parts": [{"text": inp}]
+                        },
+                        "final_response": {
+                            "role": "model",
+                            "parts": [{"text": f"processed_{skill_name}_output"}]
+                        },
+                        "intermediate_data": {
+                            "tool_uses": [
+                                {
+                                    "name": "run_skill_script",
+                                    "args": {
+                                        "skill_name": skill_name,
+                                        "file_path": main_script,
+                                        "args": args_payload
+                                    }
+                                }
+                            ]
                         }
                     }
                 ],
-                "expected_output_format": f"processed_{skill_name}_output",
-                "rubric": [
-                    f"invokes run_skill_script with {main_script} deterministically",
-                    "preserves input structure and provides clean output"
-                ]
+                "rubrics": [
+                    {
+                        "rubric_id": f"r_{cid}_1",
+                        "rubric_content": {"text_property": f"invokes run_skill_script with {main_script} deterministically"},
+                        "type": "TOOL_USE_QUALITY"
+                    },
+                    {
+                        "rubric_id": f"r_{cid}_2",
+                        "rubric_content": {"text_property": "preserves input structure and provides clean output"},
+                        "type": "FINAL_RESPONSE_QUALITY"
+                    }
+                ],
+                "session_input": {
+                    "app_name": skill_name,
+                    "user_id": "test_user",
+                    "state": {}
+                }
             })
 
         # 負例ケース (3件: 白書 Section 4 Page 22 必須要件 - 90% トリガー精度保証)
@@ -93,22 +112,48 @@ class EvalSetGenerator:
             neg_inputs.append(default_negs[len(neg_inputs)])
 
         for idx, n_inp in enumerate(neg_inputs[:3], 1):
-            cases.append({
-                "case_id": f"{skill_name.replace('-', '_')}_edd_neg_{idx:03d}",
-                "input": n_inp,
+            cid = f"{skill_name.replace('-', '_')}_edd_neg_{idx:03d}"
+            eval_cases.append({
+                "eval_id": cid,
+                "case_id": cid,
                 "expected_skill": None,
-                "expected_tool_calls": [],
-                "expected_output_format": "direct_answer",
-                "rubric": [
-                    f"does not trigger {skill_name}",
-                    "answers user query directly without error"
-                ]
+                "conversation": [
+                    {
+                        "invocation_id": f"inv_{cid}",
+                        "user_content": {
+                            "role": "user",
+                            "parts": [{"text": n_inp}]
+                        },
+                        "final_response": {
+                            "role": "model",
+                            "parts": [{"text": "direct_answer"}]
+                        },
+                        "intermediate_data": {
+                            "tool_uses": []
+                        }
+                    }
+                ],
+                "rubrics": [
+                    {
+                        "rubric_id": f"r_{cid}_1",
+                        "rubric_content": {"text_property": f"does not trigger {skill_name}"},
+                        "type": "FINAL_RESPONSE_QUALITY"
+                    }
+                ],
+                "session_input": {
+                    "app_name": skill_name,
+                    "user_id": "test_user",
+                    "state": {}
+                }
             })
 
         data = {
             "eval_set_id": f"{skill_name}_edd_eval",
+            "name": f"{skill_name}_edd_eval",
+            "description": f"Official Google ADK 2.0 EvalSet for {skill_name}",
             "skill_name": skill_name,
-            "cases": cases
+            "eval_cases": eval_cases,
+            "cases": eval_cases
         }
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as f:

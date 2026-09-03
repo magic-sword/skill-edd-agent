@@ -80,9 +80,9 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
   3. **Regression Coverage**: 既存スキル群に対する連鎖回帰の劣化ゼロ
   4. **Token Budget Coverage**: 5〜15 スキルが同時マウントされた高トークン負荷環境下での Context Rot 防止（`CoLoadedEvalRunner`）
 
-### ⑦ 白書標準 EDD (Evaluation-Driven Development) インバージョン開発
-* `SKILL.md` を書き始める前に、まず 3つの JSON 評価ケース（白書 Snippet 3 標準フォーマット: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を策定する「インバージョン開発」を徹底。
-* 期待されるツール呼び出し軌跡（Tool Trajectory）と評価ルーブリックを先に定義することで、スキルの機能仕様と境界が明確化され、ハルシネーションや誤発火を未然に防止。
+### ⑦ 白書標準 EDD (Evaluation-Driven Development) インバージョン開発と ADK 2.0 公式 EvalSet
+* `SKILL.md` を書き始める前に、まず Google ADK 2.0 公式 `EvalSet` スキーマ（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）による 3つの正例 ＋ 3つの負例（計6ケース、白書 Section 4 Page 22 必須要件）を策定する「インバージョン開発」を徹底。
+* 期待されるツール呼び出し軌跡（`run_skill_script` を標準とする Tool Trajectory）と公式ルーブリック（`rubrics`）を先に定義することで、スキルの機能仕様と境界が明確化され、ハルシネーションや誤発火を未然に防止。独自スキーマによるデータ二重管理を排し、Google ADK 公式 CLI `adk eval` や `AgentEvaluator` とそのまま直結動作します。
 
 ### ⑧ 4段階品質保証パイプライン (The Read / Draft / Act Ladder)
 * **Tier 1 (`READ_ONLY`)**: 静的検証（`edd validate` 警告/エラー0）+ CLI契約テスト（100%合格）+ トリガー精度（90%以上）
@@ -128,8 +128,8 @@ Google ADK 2.0 公式ランタイム制約および白書標準（Appendix A & S
 * **Script Name**: **`snake_case`（例: `case_converter.py`）** - Python のモジュール・スクリプト標準。
 * **動名詞の推奨 (Prefer gerund form)**: 名詞（`pdf-processor`）より動名詞（`processing-pdfs`）を推奨。
 * **ベンダープレフィックスおよび汎用名の排除**: `gemini-*`, `claude-*` や `utils`, `tools` などの曖昧な命名を禁止。
-* **評価データセット単一真実源 (SSOT) と責務分離**: 乱立する複数のテストファイルを廃止し、白書 Snippet 3 形式（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）の **`{skill_name}_edd.evalset.json`（正例 3 件＋負例 3 件の計6件、白書 Section 4 Page 22 必須要件）に一元化**。
-  - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `expected_tool_calls`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させる。
+* **評価データセット単一真実源 (SSOT) と責務分離**: 乱立する複数のテストファイルを廃止し、Google ADK 2.0 公式 `EvalSet` スキーマ（`eval_set_id`, `eval_cases`, `conversation`, `intermediate_data.tool_uses`, `rubrics`）の **`{skill_name}_edd.evalset.json`（正例 3 件＋負例 3 件の計6件、白書 Section 4 Page 22 必須要件）に一元化**。
+  - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `expected_tool_calls` / `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させる。
 
 ---
 
@@ -155,7 +155,7 @@ src/skills/{skill_name}/
     sample.txt
   examples/      # 具象コード例・パターン集（エージェントが真似できる実装例）
     example_usage.py
-  tests/         # 白書 Snippet 3 形式評価データセット（単一真実源: SSOT）
+  tests/         # Google ADK 2.0 公式 EvalSet 評価データセット（単一真実源: SSOT）
     {skill_name}_edd.evalset.json
 ```
 

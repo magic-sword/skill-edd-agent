@@ -1,99 +1,350 @@
 {
   "eval_set_id": "case-converter_edd_eval",
+  "name": "case-converter_edd_eval",
+  "description": "Google ADK 2.0 Native EvalSet for case-converter",
   "skill_name": "case-converter",
-  "cases": [
+  "eval_cases": [
     {
+      "eval_id": "case_conv_edd_001",
       "case_id": "case_conv_edd_001",
-      "input": "Convert 'hello_world_example' to camelCase",
       "expected_skill": "case-converter",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "run_skill_script",
-          "args": {
-            "skill_name": "case-converter",
-            "file_path": "scripts/case_converter.py",
-            "args": {"input": "hello_world_example", "to": "camel"}
+          "invocation_id": "inv_case_conv_edd_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'hello_world_example' to camelCase"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "helloWorldExample"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": {
+                    "input": "hello_world_example",
+                    "to": "camel"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
           }
         }
       ],
-      "expected_output_format": "helloWorldExample",
-      "rubric": [
-        "correctly converts snake_case to camelCase",
-        "output matches helloWorldExample without conversational filler"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_001_1",
+          "rubric_content": {
+            "text_property": "correctly converts snake_case to camelCase"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_001_2",
+          "rubric_content": {
+            "text_property": "output matches helloWorldExample without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "case_conv_edd_002",
       "case_id": "case_conv_edd_002",
-      "input": "Convert 'UserProfileData' to kebab-case",
       "expected_skill": "case-converter",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "run_skill_script",
-          "args": {
-            "skill_name": "case-converter",
-            "file_path": "scripts/case_converter.py",
-            "args": {"input": "UserProfileData", "to": "kebab"}
+          "invocation_id": "inv_case_conv_edd_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'UserProfileData' to kebab-case"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "user-profile-data"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": {
+                    "input": "UserProfileData",
+                    "to": "kebab"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
           }
         }
       ],
-      "expected_output_format": "user-profile-data",
-      "rubric": [
-        "correctly converts PascalCase to kebab-case",
-        "output matches user-profile-data without conversational filler"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_002_1",
+          "rubric_content": {
+            "text_property": "correctly converts PascalCase to kebab-case"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_002_2",
+          "rubric_content": {
+            "text_property": "output matches user-profile-data without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "case_conv_edd_003",
       "case_id": "case_conv_edd_003",
-      "input": "Convert 'api_response_status' to CONSTANT_CASE",
       "expected_skill": "case-converter",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "run_skill_script",
-          "args": {
-            "skill_name": "case-converter",
-            "file_path": "scripts/case_converter.py",
-            "args": {"input": "api_response_status", "to": "constant"}
+          "invocation_id": "inv_case_conv_edd_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'api_response_status' to CONSTANT_CASE"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "API_RESPONSE_STATUS"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": {
+                    "input": "api_response_status",
+                    "to": "constant"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
           }
         }
       ],
-      "expected_output_format": "API_RESPONSE_STATUS",
-      "rubric": [
-        "correctly converts snake_case to CONSTANT_CASE",
-        "output matches API_RESPONSE_STATUS without conversational filler"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_003_1",
+          "rubric_content": {
+            "text_property": "correctly converts snake_case to CONSTANT_CASE"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_003_2",
+          "rubric_content": {
+            "text_property": "output matches API_RESPONSE_STATUS without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "case_conv_edd_neg_001",
       "case_id": "case_conv_edd_neg_001",
-      "input": "Summarize the architectural benefits of Google ADK 2.0",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "Google ADK 2.0 provides native toolset integration, modular code execution sandbox, and evaluation-driven development capabilities.",
-      "rubric": [
-        "does not trigger case-converter",
-        "provides direct response for general architecture summary without error"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Summarize the architectural benefits of Google ADK 2.0"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Google ADK 2.0 provides native toolset integration, modular code execution sandbox, and evaluation-driven development capabilities."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_neg_001_1",
+          "rubric_content": {
+            "text_property": "does not trigger case-converter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_neg_001_2",
+          "rubric_content": {
+            "text_property": "provides direct response for general architecture summary without error"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "case_conv_edd_neg_002",
       "case_id": "case_conv_edd_neg_002",
-      "input": "Calculate 15% tip on a restaurant bill of 85 dollars",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "12.75",
-      "rubric": [
-        "does not trigger case-converter",
-        "computes math calculation directly without invoking case conversion tools"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Calculate 15% tip on a restaurant bill of 85 dollars"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "12.75"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_neg_002_1",
+          "rubric_content": {
+            "text_property": "does not trigger case-converter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_neg_002_2",
+          "rubric_content": {
+            "text_property": "computes math calculation directly without invoking case conversion tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "case_conv_edd_neg_003",
       "case_id": "case_conv_edd_neg_003",
-      "input": "Write a SQL query to select all active users created after 2026-01-01",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "SELECT * FROM users WHERE status = 'active' AND created_at > '2026-01-01';",
-      "rubric": [
-        "does not trigger case-converter",
-        "provides valid SQL query without invoking case conversion tools"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Write a SQL query to select all active users created after 2026-01-01"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "SELECT * FROM users WHERE status = 'active' AND created_at > '2026-01-01';"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_neg_003_1",
+          "rubric_content": {
+            "text_property": "does not trigger case-converter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_neg_003_2",
+          "rubric_content": {
+            "text_property": "provides valid SQL query without invoking case conversion tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
     }
   ]
 }

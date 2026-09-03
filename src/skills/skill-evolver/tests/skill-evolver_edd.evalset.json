@@ -1,89 +1,344 @@
 {
   "eval_set_id": "skill-evolver_edd_eval",
+  "name": "skill-evolver_edd_eval",
+  "description": "Google ADK 2.0 Native EvalSet for skill-evolver",
   "skill_name": "skill-evolver",
-  "cases": [
+  "eval_cases": [
     {
+      "eval_id": "evolver_edd_001",
       "case_id": "evolver_edd_001",
-      "input": "Evaluate case-converter skill across all multi-layered test suites",
       "expected_skill": "skill-evolver",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "edd eval",
-          "args": {"skill_name": "case-converter", "type": "all"}
+          "invocation_id": "inv_evolver_edd_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Evaluate case-converter skill across all multi-layered test suites"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "evaluation_summary_report"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "edd eval",
+                "args": {
+                  "skill_name": "case-converter",
+                  "type": "all"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
         }
       ],
-      "expected_output_format": "evaluation_summary_report",
-      "rubric": [
-        "triggers skill evaluation suite via edd eval",
-        "evaluates triggers, tool trajectories, and rubrics",
-        "generates structured evaluation report"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_evolver_001_1",
+          "rubric_content": {
+            "text_property": "triggers skill evaluation suite via edd eval"
+          },
+          "type": "TOOL_USE_QUALITY"
+        },
+        {
+          "rubric_id": "r_evolver_001_2",
+          "rubric_content": {
+            "text_property": "evaluates triggers, tool trajectories, and rubrics"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_evolver_001_3",
+          "rubric_content": {
+            "text_property": "generates structured evaluation report"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-evolver",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "evolver_edd_002",
       "case_id": "evolver_edd_002",
-      "input": "Diagnose failed evaluation cases for secret-sanitizer skill",
       "expected_skill": "skill-evolver",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "edd diagnose",
-          "args": {"skill_name": "secret-sanitizer"}
+          "invocation_id": "inv_evolver_edd_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Diagnose failed evaluation cases for secret-sanitizer skill"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "failure_diagnosis_markdown"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "edd diagnose",
+                "args": {
+                  "skill_name": "secret-sanitizer"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
         }
       ],
-      "expected_output_format": "failure_diagnosis_markdown",
-      "rubric": [
-        "analyzes latest evaluation failure report",
-        "identifies root causes in SKILL.md or scripts"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_evolver_002_1",
+          "rubric_content": {
+            "text_property": "analyzes latest evaluation failure report"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_evolver_002_2",
+          "rubric_content": {
+            "text_property": "identifies root causes in SKILL.md or scripts"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-evolver",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "evolver_edd_003",
       "case_id": "evolver_edd_003",
-      "input": "Promote case-converter to Tier 1 Read-Only after verified eval pass",
       "expected_skill": "skill-evolver",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "edd tier-gate",
-          "args": {"skill_name": "case-converter", "tier": 1}
+          "invocation_id": "inv_evolver_edd_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Promote case-converter to Tier 1 Read-Only after verified eval pass"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "tier_promotion_status"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "edd tier-gate",
+                "args": {
+                  "skill_name": "case-converter",
+                  "tier": 1
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
         }
       ],
-      "expected_output_format": "tier_promotion_status",
-      "rubric": [
-        "verifies Tier 1 entry gates (90% trigger accuracy & contract tests)",
-        "updates skills_state.json registration securely"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_evolver_003_1",
+          "rubric_content": {
+            "text_property": "verifies Tier 1 entry gates (90% trigger accuracy & contract tests)"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_evolver_003_2",
+          "rubric_content": {
+            "text_property": "updates skills_state.json registration securely"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-evolver",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "evolver_edd_neg_001",
       "case_id": "evolver_edd_neg_001",
-      "input": "Create a completely new skill for processing markdown docs",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "handoff_or_redirection",
-      "rubric": [
-        "does not trigger skill-evolver for new skill creation",
-        "delegates to skill-creator"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_evolver_edd_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Create a completely new skill for processing markdown docs"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "handoff_or_redirection"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_evolver_neg_001_1",
+          "rubric_content": {
+            "text_property": "does not trigger skill-evolver for new skill creation"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_evolver_neg_001_2",
+          "rubric_content": {
+            "text_property": "delegates to skill-creator"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-evolver",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "evolver_edd_neg_002",
       "case_id": "evolver_edd_neg_002",
-      "input": "What is the boiling point of water at standard atmospheric pressure?",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "100 degrees Celsius",
-      "rubric": [
-        "does not trigger skill-evolver",
-        "answers direct factual query without invoking evaluation or optimization tools"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_evolver_edd_neg_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What is the boiling point of water at standard atmospheric pressure?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "100 degrees Celsius"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_evolver_neg_002_1",
+          "rubric_content": {
+            "text_property": "does not trigger skill-evolver"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_evolver_neg_002_2",
+          "rubric_content": {
+            "text_property": "answers direct factual query without invoking evaluation or optimization tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-evolver",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "evolver_edd_neg_003",
       "case_id": "evolver_edd_neg_003",
-      "input": "Scaffold a new skill boilerplate using edd init",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "scaffolding_redirection",
-      "rubric": [
-        "does not trigger skill-evolver",
-        "uses skill-creator for initial scaffolding tasks"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_evolver_edd_neg_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Scaffold a new skill boilerplate using edd init"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "scaffolding_redirection"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_evolver_neg_003_1",
+          "rubric_content": {
+            "text_property": "does not trigger skill-evolver"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_evolver_neg_003_2",
+          "rubric_content": {
+            "text_property": "uses skill-creator for initial scaffolding tasks"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-evolver",
+        "user_id": "test_user",
+        "state": {}
+      }
     }
   ]
 }
-

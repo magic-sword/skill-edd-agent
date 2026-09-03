@@ -167,37 +167,37 @@ class SkillValidator:
         if not evalsets:
             res.add_warning(
                 "evalset",
-                "No '*.evalset.json' found in 'tests/'. Whitepaper EDD standard requires upfront JSON evaluation cases (Snippet 3 format: case_id, input, expected_skill, expected_tool_calls, rubric)."
+                "No '*.evalset.json' found in 'tests/'. Google ADK 2.0 & Whitepaper EDD standard requires upfront JSON evaluation cases (ADK native EvalSet: eval_cases with conversation, or Snippet 3 format)."
             )
             return
 
-        # Snippet 3 形式のケース検査および 3正例 + 3負例 の網羅性検証
+        # ADK 2.0 公式 EvalSet / Snippet 3 形式のケース検査および 3正例 + 3負例 の網羅性検証
         positive_count = 0
         negative_count = 0
-        has_snippet3_case = False
+        has_eval_case = False
 
         for es_path in evalsets:
             try:
                 data = json.loads(es_path.read_text(encoding="utf-8"))
-                cases = data.get("cases") or data.get("eval_cases") or []
+                cases = data.get("eval_cases") or data.get("cases") or []
                 for c in cases:
-                    if "case_id" in c and "input" in c:
-                        has_snippet3_case = True
+                    if ("case_id" in c or "eval_id" in c) and ("input" in c or "conversation" in c):
+                        has_eval_case = True
                         exp_s = c.get("expected_skill")
                         if exp_s is None or exp_s == "":
                             negative_count += 1
                         else:
                             positive_count += 1
 
-                        if "expected_tool_calls" not in c and "expected_skill" not in c:
-                            res.add_warning("evalset", f"Eval case '{c.get('case_id')}' in '{es_path.name}' is missing 'expected_tool_calls' or 'expected_skill'.")
+                        if "expected_tool_calls" not in c and "expected_skill" not in c and "conversation" not in c:
+                            res.add_warning("evalset", f"Eval case '{c.get('case_id') or c.get('eval_id')}' in '{es_path.name}' is missing 'conversation', 'expected_tool_calls', or 'expected_skill'.")
             except Exception as e:
                 res.add_error("evalset", f"Failed to parse JSON in '{es_path.name}': {e}")
 
-        if not has_snippet3_case:
+        if not has_eval_case:
             res.add_warning(
                 "evalset",
-                f"No standard Snippet 3 evaluation cases found in '{tests_dir}'."
+                f"No standard Google ADK 2.0 EvalSet cases found in '{tests_dir}'."
             )
         else:
             # 白書 Page 22 要件チェック

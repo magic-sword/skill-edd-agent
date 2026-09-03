@@ -24,13 +24,16 @@ except ImportError:
     genai_types = None
 
 try:
-    from google.adk.evaluation.eval_metrics import ToolTrajectoryCriterion, EvalMetric
+    from google.adk.evaluation.eval_metrics import ToolTrajectoryCriterion, EvalMetric, RubricsBasedCriterion
     from google.adk.evaluation.trajectory_evaluator import TrajectoryEvaluator
+    from google.adk.evaluation.rubric_based_final_response_quality_v1 import RubricBasedFinalResponseQualityV1Evaluator
     ADK_MATCH_TYPE = ToolTrajectoryCriterion.MatchType
 except ImportError:
     ToolTrajectoryCriterion = None
     EvalMetric = None
+    RubricsBasedCriterion = None
     TrajectoryEvaluator = None
+    RubricBasedFinalResponseQualityV1Evaluator = None
     ADK_MATCH_TYPE = None
 
 try:
@@ -38,11 +41,13 @@ try:
     from google.adk.evaluation.eval_rubrics import Rubric as NativeAdkRubric
     from google.adk.evaluation.eval_set import EvalSet as NativeAdkEvalSet
     from google.adk.evaluation.agent_evaluator import AgentEvaluator
+    from google.adk.evaluation.eval_config import EvalConfig
 except ImportError:
     NativeAdkEvalCase = None
     NativeAdkRubric = None
     NativeAdkEvalSet = None
     AgentEvaluator = None
+    EvalConfig = None
     Invocation = None
     IntermediateData = None
 
@@ -337,104 +342,75 @@ class AdkEvalAdapter:
         reference_output: Optional[str] = None,
         api_key: Optional[str] = None
     ) -> Tuple[float, Dict[str, Any]]:
-        """Google GenAI / ADK Criteria を用いたネイティブ LLM-as-a-Judge 実行。"""
-        score_1, details_1 = self._call_llm_judge(
+        """Google ADK 2.0 純正 RubricBasedFinalResponseQualityV1Evaluator による判定実行（車輪の再発明を排除）。"""
+        if RubricBasedFinalResponseQualityV1Evaluator is not None and RubricsBasedCriterion is not None and Invocation is not None and genai_types is not None:
+            try:
+                adk_rubrics = []
+                for i, r in enumerate(rubrics, 1):
+                    if isinstance(r, str):
+                        adk_rubrics.append(NativeAdkRubric(rubric_id=f"r_{i}", rubric_content={"text_property": r}, type="FINAL_RESPONSE_QUALITY"))
+                    elif isinstance(r, dict):
+                        text_prop = r.get("text_property") or r.get("rubric_content", {}).get("text_property") or r.get("description", str(r))
+                        adk_rubrics.append(NativeAdkRubric(rubric_id=r.get("rubric_id", f"r_{i}"), rubric_content={"text_property": text_prop}, type="FINAL_RESPONSE_QUALITY"))
+                    elif hasattr(r, "rubric_content"):
+                        adk_rubrics.append(r)
+
+                criterion = RubricsBasedCriterion(rubrics=adk_rubrics, threshold=1.0)
+                eval_metric = EvalMetric(metric_name="rubric_based_final_response_quality_v1", criterion=criterion)
+                evaluator = RubricBasedFinalResponseQualityV1Evaluator(eval_metric=eval_metric)
+
+                actual_inv = Invocation(
+                    invocation_id="eval_act",
+                    user_content=genai_types.Content(parts=[genai_types.Part.from_text(text=user_input)], role="user"),
+                    final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=actual_output)], role="model"),
+                    rubrics=adk_rubrics
+                )
+                expected_inv = Invocation(
+                    invocation_id="eval_exp",
+                    user_content=genai_types.Content(parts=[genai_types.Part.from_text(text=user_input)], role="user"),
+                    final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=reference_output or "")], role="model") if reference_output else None,
+                    rubrics=adk_rubrics
+                )
+
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                eval_coro = evaluator.evaluate_invocations(
+                    actual_invocations=[actual_inv],
+                    expected_invocations=[expected_inv]
+                )
+
+                if loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as pool:
+                        eval_result = pool.submit(asyncio.run, eval_coro).result()
+                else:
+                    eval_result = loop.run_until_complete(eval_coro)
+
+                score = float(eval_result.overall_score)
+                return score, {
+                    "mode": "adk_native_rubric_evaluator",
+                    "overall_score": score,
+                    "overall_status": str(eval_result.overall_eval_status),
+                    "rubrics_count": len(adk_rubrics),
+                    "passed_rubrics": round(score * len(adk_rubrics)),
+                    "evaluator": "RubricBasedFinalResponseQualityV1Evaluator"
+                }
+            except Exception as e:
+                print(f"[AdkEvalAdapter] ADK RubricBasedFinalResponseQualityV1Evaluator execution failed: {e}", file=sys.stderr)
+
+        # ADK 純正評価が例外となった場合は決定論的フォールバックへ
+        return self._run_deterministic_rubric_judge(
+            skill=skill,
             user_input=user_input,
-            candidate_a=actual_output,
-            candidate_b=reference_output,
+            actual_output=actual_output,
             rubrics=rubrics,
-            eval_target="Candidate A",
-            api_key=api_key
+            reference_output=reference_output
         )
-
-        if self.use_position_swapping and reference_output:
-            score_2, details_2 = self._call_llm_judge(
-                user_input=user_input,
-                candidate_a=reference_output,
-                candidate_b=actual_output,
-                rubrics=rubrics,
-                eval_target="Candidate B",
-                api_key=api_key
-            )
-            final_score = (score_1 + score_2) / 2.0
-            swap_applied = True
-        else:
-            final_score = score_1
-            swap_applied = False
-
-        return final_score, {
-            "mode": "adk_native_llm_judge",
-            "judge_model": self.judge_model,
-            "rubrics_count": len(rubrics),
-            "passed_rubrics": round(final_score * len(rubrics)),
-            "position_swapping_applied": swap_applied,
-            "raw_score": final_score,
-            "details": details_1
-        }
-
-    def _call_llm_judge(
-        self,
-        user_input: str,
-        candidate_a: str,
-        candidate_b: Optional[str],
-        rubrics: List[Union[str, Dict[str, Any]]],
-        eval_target: str,
-        api_key: Optional[str]
-    ) -> Tuple[float, Dict[str, Any]]:
-        """LLM-as-a-Judge プロンプトを構築して採点を実行します。"""
-        from google import genai
-        client = genai.Client(api_key=api_key)
-
-        rubric_texts = []
-        for idx, r in enumerate(rubrics, 1):
-            if isinstance(r, str):
-                text = r
-            else:
-                text = r.get("text_property") or r.get("rubric_content", {}).get("text_property") or r.get("description", str(r))
-            rubric_texts.append(f"{idx}. {text}")
-
-        prompt = f"""You are an objective AI evaluation judge assessing whether an agent response satisfies specific rubrics.
-
-[User Prompt]
-{user_input}
-
-[Candidate A]
-{candidate_a}
-
-[Candidate B]
-{candidate_b or 'N/A'}
-
-[Evaluation Target]
-Evaluate whether '{eval_target}' satisfies each of the following rubrics.
-
-[Rubrics]
-{chr(10).join(rubric_texts)}
-
-Respond ONLY with a JSON object in this exact format:
-{{
-  "rubrics_results": [
-    {{"rubric_index": 1, "passed": true, "reason": "brief reason"}},
-    ...
-  ],
-  "score": 1.0
-}}
-"""
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(
-                client.models.generate_content,
-                model=self.judge_model,
-                contents=prompt,
-                config={"response_mime_type": "application/json"}
-            )
-            response = future.result(timeout=10.0)
-
-        try:
-            res_data = json.loads(response.text)
-            score = float(res_data.get("score", 0.0))
-            return score, res_data
-        except Exception:
-            return (1.0 if "true" in response.text.lower() else 0.0), {"raw": response.text}
 
     def _run_deterministic_rubric_judge(
         self,

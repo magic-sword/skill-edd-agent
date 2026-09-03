@@ -301,7 +301,7 @@ class SkillPackage:
         if not target_script or not os.path.exists(target_script):
             raise FileNotFoundError(f"Could not resolve execution script in '{self.scripts_dir}'.")
 
-        # ADK 公式 CodeExecutor の標準解決（引数で未指定の場合は UnsafeLocalCodeExecutor を自動適用）
+        # ADK 公式 SkillToolset の run_skill_script ツールを用いたパブリック実行
         active_executor = code_executor
         if active_executor is None:
             try:
@@ -310,41 +310,45 @@ class SkillPackage:
             except Exception:
                 active_executor = None
 
-        if active_executor is not None:
+        if active_executor is not None and hasattr(self, "adk_skill"):
             try:
-                from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
-                executor = _SkillScriptCodeExecutor(active_executor, timeout)
-                file_rel = os.path.relpath(target_script, self.root_dir)
+                from google.adk.tools.skill_toolset import SkillToolset
+                from google.adk.tools.tool_context import ToolContext
+                toolset = SkillToolset(skills=[self.adk_skill], code_executor=active_executor, script_timeout=timeout)
+                run_tool = next((t for t in toolset._tools if t.name == "run_skill_script"), None)
 
-                # 引数の形式正規化 (リストまたは辞書)
-                script_args = args if isinstance(args, (list, dict)) else ([] if args is None else [str(args)])
+                if run_tool is not None:
+                    file_rel = os.path.relpath(target_script, self.root_dir)
+                    script_args = args if isinstance(args, (list, dict)) else ([] if args is None else [str(args)])
+                    tool_ctx = ToolContext(invocation_id="exec_script")
 
-                import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
+                    import asyncio
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
 
-                if loop.is_running():
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor() as pool:
-                        res = pool.submit(
-                            asyncio.run,
-                            executor.execute_script_async(None, self.adk_skill, file_rel, script_args)
-                        ).result()
-                else:
-                    res = loop.run_until_complete(
-                        executor.execute_script_async(None, self.adk_skill, file_rel, script_args)
+                    exec_coro = run_tool.run_async(
+                        args={"skill_name": self.name, "file_path": file_rel, "args": script_args},
+                        tool_context=tool_ctx
                     )
 
-                return {
-                    "status": res.get("status", "success"),
-                    "exit_code": 0 if res.get("status") in ("success", "warning") else 1,
-                    "stdout": res.get("stdout", ""),
-                    "stderr": res.get("stderr", ""),
-                    "script_path": target_script
-                }
+                    if loop.is_running():
+                        import concurrent.futures
+                        with concurrent.futures.ThreadPoolExecutor() as pool:
+                            res = pool.submit(asyncio.run, exec_coro).result()
+                    else:
+                        res = loop.run_until_complete(exec_coro)
+
+                    is_err = "error" in res or res.get("status") == "error"
+                    return {
+                        "status": "error" if is_err else res.get("status", "success"),
+                        "exit_code": 1 if is_err else 0,
+                        "stdout": res.get("stdout", ""),
+                        "stderr": res.get("stderr", res.get("error", "")),
+                        "script_path": target_script
+                    }
             except Exception:
                 # ADK ランタイム未準備時のフォールバック
                 pass

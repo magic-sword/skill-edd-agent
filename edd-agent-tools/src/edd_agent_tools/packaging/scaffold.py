@@ -207,107 +207,190 @@ Example usage pattern for {canonical_skill_name}.
             encoding="utf-8"
         )
 
-        # 4. 白書標準 EDD (Evaluation-Driven Development) Snippet 3 評価データセット（単一真実源: SSOT）の配置
+        # 4. Google ADK 2.0 公式 EvalSet 評価データセット（単一真実源: SSOT）の配置
         # 白書 Section 4 (Page 22): 90% 精度保証のため 3つの正例と 3つの負例（境界ケース）の計6件を先行定義
+        pos_cases = [
+            {
+                "eval_id": f"{canonical_dir_name}_001",
+                "case_id": f"{canonical_dir_name}_001",
+                "expected_skill": canonical_skill_name,
+                "conversation": [
+                    {
+                        "invocation_id": f"inv_{canonical_dir_name}_001",
+                        "user_content": {"role": "user", "parts": [{"text": f"Please execute {skill_name_spaced} workflow with --help parameter"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "usage_help"}]},
+                        "intermediate_data": {
+                            "tool_uses": [
+                                {
+                                    "name": "run_skill_script",
+                                    "args": {
+                                        "skill_name": canonical_skill_name,
+                                        "file_path": f"scripts/{primary_script}.py",
+                                        "args": ["--help"]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "rubrics": [
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_001_1",
+                        "rubric_content": {"text_property": f"correctly invokes run_skill_script with {primary_script}.py"},
+                        "type": "TOOL_USE_QUALITY"
+                    },
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_001_2",
+                        "rubric_content": {"text_property": "verifies execution output without cluttering context window"},
+                        "type": "FINAL_RESPONSE_QUALITY"
+                    }
+                ]
+            },
+            {
+                "eval_id": f"{canonical_dir_name}_002",
+                "case_id": f"{canonical_dir_name}_002",
+                "expected_skill": canonical_skill_name,
+                "conversation": [
+                    {
+                        "invocation_id": f"inv_{canonical_dir_name}_002",
+                        "user_content": {"role": "user", "parts": [{"text": f"Run {canonical_skill_name} task for target data"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "execution_confirmation"}]},
+                        "intermediate_data": {
+                            "tool_uses": [
+                                {
+                                    "name": "run_skill_script",
+                                    "args": {
+                                        "skill_name": canonical_skill_name,
+                                        "file_path": f"scripts/{primary_script}.py",
+                                        "args": {"input": "sample_value"}
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "rubrics": [
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_002_1",
+                        "rubric_content": {"text_property": f"runs run_skill_script with {primary_script}.py inputs"},
+                        "type": "TOOL_USE_QUALITY"
+                    },
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_002_2",
+                        "rubric_content": {"text_property": "preserves data structure"},
+                        "type": "FINAL_RESPONSE_QUALITY"
+                    }
+                ]
+            },
+            {
+                "eval_id": f"{canonical_dir_name}_003",
+                "case_id": f"{canonical_dir_name}_003",
+                "expected_skill": canonical_skill_name,
+                "conversation": [
+                    {
+                        "invocation_id": f"inv_{canonical_dir_name}_003",
+                        "user_content": {"role": "user", "parts": [{"text": f"Process batch operations using {canonical_skill_name}"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "batch_result"}]},
+                        "intermediate_data": {
+                            "tool_uses": [
+                                {
+                                    "name": "run_skill_script",
+                                    "args": {
+                                        "skill_name": canonical_skill_name,
+                                        "file_path": f"scripts/{primary_script}.py",
+                                        "args": {"input": "batch_item_1"}
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "rubrics": [
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_003_1",
+                        "rubric_content": {"text_property": f"executes {canonical_skill_name} deterministically"},
+                        "type": "TOOL_USE_QUALITY"
+                    },
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_003_2",
+                        "rubric_content": {"text_property": "handles input without hallucinating extra tools"},
+                        "type": "FINAL_RESPONSE_QUALITY"
+                    }
+                ]
+            }
+        ]
+
+        neg_cases = [
+            {
+                "eval_id": f"{canonical_dir_name}_neg_001",
+                "case_id": f"{canonical_dir_name}_neg_001",
+                "expected_skill": None,
+                "conversation": [
+                    {
+                        "invocation_id": f"inv_{canonical_dir_name}_neg_001",
+                        "user_content": {"role": "user", "parts": [{"text": "What is the capital of France?"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "Paris"}]},
+                        "intermediate_data": {"tool_uses": []}
+                    }
+                ],
+                "rubrics": [
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_neg_001_1",
+                        "rubric_content": {"text_property": f"does not trigger {canonical_skill_name}"},
+                        "type": "FINAL_RESPONSE_QUALITY"
+                    }
+                ]
+            },
+            {
+                "eval_id": f"{canonical_dir_name}_neg_002",
+                "case_id": f"{canonical_dir_name}_neg_002",
+                "expected_skill": None,
+                "conversation": [
+                    {
+                        "invocation_id": f"inv_{canonical_dir_name}_neg_002",
+                        "user_content": {"role": "user", "parts": [{"text": "Summarize the architectural differences between monolithic and microservice systems"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "architectural_summary"}]},
+                        "intermediate_data": {"tool_uses": []}
+                    }
+                ],
+                "rubrics": [
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_neg_002_1",
+                        "rubric_content": {"text_property": f"does not trigger {canonical_skill_name}"},
+                        "type": "FINAL_RESPONSE_QUALITY"
+                    }
+                ]
+            },
+            {
+                "eval_id": f"{canonical_dir_name}_neg_003",
+                "case_id": f"{canonical_dir_name}_neg_003",
+                "expected_skill": None,
+                "conversation": [
+                    {
+                        "invocation_id": f"inv_{canonical_dir_name}_neg_003",
+                        "user_content": {"role": "user", "parts": [{"text": f"Explain the theory behind {skill_name_spaced} without running any tools or scripts"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "theoretical_explanation"}]},
+                        "intermediate_data": {"tool_uses": []}
+                    }
+                ],
+                "rubrics": [
+                    {
+                        "rubric_id": f"r_{canonical_dir_name}_neg_003_1",
+                        "rubric_content": {"text_property": f"does not invoke run_skill_script for {canonical_skill_name}"},
+                        "type": "FINAL_RESPONSE_QUALITY"
+                    }
+                ]
+            }
+        ]
+
+        all_cases = pos_cases + neg_cases
         initial_edd_set = {
             "eval_set_id": f"{canonical_skill_name}_edd",
+            "name": f"{canonical_skill_name}_edd",
+            "description": f"Google ADK 2.0 Native EvalSet for {canonical_skill_name}",
             "skill_name": canonical_skill_name,
-            "cases": [
-                {
-                    "case_id": f"{canonical_dir_name}_001",
-                    "input": f"Please execute {skill_name_spaced} workflow with --help parameter",
-                    "expected_skill": canonical_skill_name,
-                    "expected_tool_calls": [
-                        {
-                            "tool": "run_skill_script",
-                            "args": {
-                                "skill_name": canonical_skill_name,
-                                "file_path": f"scripts/{primary_script}.py",
-                                "args": ["--help"]
-                            }
-                        }
-                    ],
-                    "expected_output_format": "usage_help",
-                    "rubric": [
-                        f"correctly invokes run_skill_script with {primary_script}.py",
-                        "verifies execution output",
-                        "does not clutter context window"
-                    ]
-                },
-                {
-                    "case_id": f"{canonical_dir_name}_002",
-                    "input": f"Run {canonical_skill_name} task for target data",
-                    "expected_skill": canonical_skill_name,
-                    "expected_tool_calls": [
-                        {
-                            "tool": "run_skill_script",
-                            "args": {
-                                "skill_name": canonical_skill_name,
-                                "file_path": f"scripts/{primary_script}.py",
-                                "args": {"input": "sample_value"}
-                            }
-                        }
-                    ],
-                    "expected_output_format": "execution_confirmation",
-                    "rubric": [
-                        f"runs run_skill_script with {primary_script}.py inputs",
-                        "preserves data structure"
-                    ]
-                },
-                {
-                    "case_id": f"{canonical_dir_name}_003",
-                    "input": f"Process batch operations using {canonical_skill_name}",
-                    "expected_skill": canonical_skill_name,
-                    "expected_tool_calls": [
-                        {
-                            "tool": "run_skill_script",
-                            "args": {
-                                "skill_name": canonical_skill_name,
-                                "file_path": f"scripts/{primary_script}.py",
-                                "args": {"input": "batch_item_1"}
-                            }
-                        }
-                    ],
-                    "expected_output_format": "batch_result",
-                    "rubric": [
-                        f"executes {canonical_skill_name} deterministically",
-                        "handles input without hallucinating extra tools"
-                    ]
-                },
-                {
-                    "case_id": f"{canonical_dir_name}_neg_001",
-                    "input": "What is the capital of France?",
-                    "expected_skill": None,
-                    "expected_tool_calls": [],
-                    "expected_output_format": "Paris",
-                    "rubric": [
-                        f"does not trigger {canonical_skill_name}",
-                        "answers directly without invoking tools"
-                    ]
-                },
-                {
-                    "case_id": f"{canonical_dir_name}_neg_002",
-                    "input": "Summarize the architectural differences between monolithic and microservice systems",
-                    "expected_skill": None,
-                    "expected_tool_calls": [],
-                    "expected_output_format": "architectural_summary",
-                    "rubric": [
-                        f"does not trigger {canonical_skill_name}",
-                        "provides conceptual technical overview without invoking specialized scripts"
-                    ]
-                },
-                {
-                    "case_id": f"{canonical_dir_name}_neg_003",
-                    "input": f"Explain the theory behind {skill_name_spaced} without running any tools or scripts",
-                    "expected_skill": None,
-                    "expected_tool_calls": [],
-                    "expected_output_format": "theoretical_explanation",
-                    "rubric": [
-                        f"does not invoke run_skill_script for {canonical_skill_name}",
-                        "honors negative constraint and explains concept in plain text"
-                    ]
-                }
-            ]
+            "eval_cases": all_cases,
+            "cases": all_cases
         }
         (target_dir / "tests" / f"{canonical_skill_name}_edd.evalset.json").write_text(
             json.dumps(initial_edd_set, indent=2, ensure_ascii=False),

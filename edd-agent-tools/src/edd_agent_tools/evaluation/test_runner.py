@@ -104,21 +104,60 @@ class ContractTestRunner:
         else:
             raise TypeError("test_cases_data must be a dict or EvalCaseSet")
 
+        active_cases = [c for c in eval_cases if not getattr(c, "is_negative", False)]
+        if not active_cases:
+            active_cases = eval_cases
+
         passed = 0
         failed = 0
-        total = len(eval_cases) * max(1, pass_k)
+        total = len(active_cases) * max(1, pass_k)
         failed_cases: list[FailedCaseDetail] = []
-
 
         for k_idx in range(max(1, pass_k)):
             if pass_k > 1:
                 print(f"\n[TestRunner] --- pass^k iteration {k_idx + 1}/{pass_k} ---")
-            for case in eval_cases:
+            for case in active_cases:
                 case_id = f"{case.eval_case_id}_run{k_idx+1}" if pass_k > 1 else case.eval_case_id
-                cli_args = case.cli_args or []
+                cli_args = list(case.cli_args or [])
+                script_rel = case.script_name
+
+                # ADK 公式 conversation / expected_tool_calls からの自動引数・スクリプト解決
+                if not cli_args and hasattr(case, "expected_tool_calls") and case.expected_tool_calls:
+                    for tc in case.expected_tool_calls:
+                        if isinstance(tc, dict):
+                            t_name = tc.get("name") or tc.get("tool", "")
+                            t_args = tc.get("args") or {}
+                        elif hasattr(tc, "name") and hasattr(tc, "args"):
+                            t_name = tc.name
+                            t_args = tc.args or {}
+                        else:
+                            t_name = str(tc)
+                            t_args = {}
+
+                        if t_name == "run_skill_script" and isinstance(t_args, dict):
+                            if not script_rel:
+                                script_rel = t_args.get("file_path")
+                            inner_args = t_args.get("args")
+                            if inner_args is None:
+                                inner_args = {k: v for k, v in t_args.items() if k not in ("skill_name", "file_path")}
+                            t_args = inner_args
+
+                        if isinstance(t_args, dict):
+                            for k, v in t_args.items():
+                                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+                                if v is True:
+                                    cli_args.append(flag)
+                                elif v is not False and v is not None:
+                                    cli_args.extend([flag, str(v)])
+                        elif isinstance(t_args, list):
+                            cli_args.extend([str(a) for a in t_args])
+                        elif t_args:
+                            cli_args.append(str(t_args))
+
+                if not script_rel:
+                    script_rel = skill.list_scripts()[0] if skill.list_scripts() else None
 
                 print(f"\n[TestRunner] Running CLI case '{case_id}' with args: {cli_args}")
-                script_rel = case.script_name or (skill.list_scripts()[0] if skill.list_scripts() else None)
 
                 if not script_rel and not hasattr(case, "command"):
                     err_msg = f"No script found in skill '{skill.name}' to execute CLI test."

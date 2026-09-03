@@ -65,28 +65,60 @@ class TraceHarvester:
             
             spec_path.write_text(content, encoding="utf-8")
 
-        # トレースから白書 Snippet 3 形式の初期評価データセットを生成
+        # トレースから Google ADK 2.0 公式 EvalSet 形式の初期評価データセットを生成
         tests_dir = skill_dir / "tests"
         if tests_dir.exists():
             edd_file = tests_dir / f"{suggested_skill_name}_edd.evalset.json"
+            cid = f"{suggested_skill_name.replace('-', '_')}_harvested_001"
+            main_script = f"scripts/{suggested_skill_name.replace('-', '_')}.py"
+            inp_text = user_intent or f"Execute {suggested_skill_name} workflow"
+
+            eval_cases = [
+                {
+                    "eval_id": cid,
+                    "case_id": cid,
+                    "expected_skill": suggested_skill_name,
+                    "conversation": [
+                        {
+                            "invocation_id": f"inv_{cid}",
+                            "user_content": {"role": "user", "parts": [{"text": inp_text}]},
+                            "final_response": {"role": "model", "parts": [{"text": "status_confirmation"}]},
+                            "intermediate_data": {
+                                "tool_uses": [
+                                    {
+                                        "name": "run_skill_script",
+                                        "args": {
+                                            "skill_name": suggested_skill_name,
+                                            "file_path": main_script,
+                                            "args": ["--help"]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "rubrics": [
+                        {
+                            "rubric_id": f"r_{cid}_1",
+                            "rubric_content": {"text_property": f"correctly invokes run_skill_script with {main_script}"},
+                            "type": "TOOL_USE_QUALITY"
+                        },
+                        {
+                            "rubric_id": f"r_{cid}_2",
+                            "rubric_content": {"text_property": "completes harvested workflow"},
+                            "type": "FINAL_RESPONSE_QUALITY"
+                        }
+                    ]
+                }
+            ]
+
             eval_case_data = {
                 "eval_set_id": f"{suggested_skill_name}_edd",
+                "name": f"{suggested_skill_name}_edd",
+                "description": f"Harvested Google ADK 2.0 EvalSet for {suggested_skill_name}",
                 "skill_name": suggested_skill_name,
-                "cases": [
-                    {
-                        "case_id": f"{suggested_skill_name.replace('-', '_')}_harvested_001",
-                        "input": user_intent or f"Execute {suggested_skill_name} workflow",
-                        "expected_skill": suggested_skill_name,
-                        "expected_tool_calls": [
-                            {"tool": f"scripts/{suggested_skill_name.replace('-', '_')}.py", "args": ["--help"]}
-                        ],
-                        "expected_output_format": "status_confirmation",
-                        "rubric": [
-                            f"correctly invokes {suggested_skill_name.replace('-', '_')}.py",
-                            "completes harvested workflow"
-                        ]
-                    }
-                ]
+                "eval_cases": eval_cases,
+                "cases": eval_cases
             }
             with open(edd_file, "w", encoding="utf-8") as f:
                 json.dump(eval_case_data, f, ensure_ascii=False, indent=2)

@@ -155,3 +155,22 @@ def test_adk_export_eval_command(tmp_path):
     assert "conversation" in case0
     assert "user_content" in case0["conversation"][0]
     assert "intermediate_data" in case0["conversation"][0]
+
+
+def test_adk_eval_cli_command(monkeypatch):
+    """CLI edd adk-eval should dispatch directly to AgentEvaluator."""
+    called_args = {}
+
+    async def mock_evaluate(self, agent_module, eval_dataset_file_path_or_dir):
+        called_args["agent_module"] = agent_module
+        called_args["eval_dataset"] = str(eval_dataset_file_path_or_dir)
+        return True
+
+    from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
+    monkeypatch.setattr(AdkEvalAdapter, "evaluate_with_adk_agent", mock_evaluate)
+
+    ret = cli_main(["adk-eval", "case-converter", "--agent-module", "src.main"])
+    assert ret == 0
+    assert called_args["agent_module"] == "src.main"
+    assert "case-converter" in called_args["eval_dataset"]
+

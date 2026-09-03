@@ -1,89 +1,344 @@
 {
   "eval_set_id": "skill-creator_edd_eval",
+  "name": "skill-creator_edd_eval",
+  "description": "Google ADK 2.0 Native EvalSet for skill-creator",
   "skill_name": "skill-creator",
-  "cases": [
+  "eval_cases": [
     {
+      "eval_id": "creator_edd_001",
       "case_id": "creator_edd_001",
-      "input": "Create a new agent skill for converting csv data",
       "expected_skill": "skill-creator",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "edd init",
-          "args": {"skill_name": "csv-converter", "pattern": "workflow"}
+          "invocation_id": "inv_creator_edd_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Create a new agent skill for converting csv data"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "scaffolded_skill_path"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "edd init",
+                "args": {
+                  "skill_name": "csv-converter",
+                  "pattern": "workflow"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
         }
       ],
-      "expected_output_format": "scaffolded_skill_path",
-      "rubric": [
-        "identifies skill-creator intent",
-        "proposes appropriate pattern and progressive disclosure structure",
-        "invokes edd init to scaffold initial skill directory"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_creator_001_1",
+          "rubric_content": {
+            "text_property": "identifies skill-creator intent"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_creator_001_2",
+          "rubric_content": {
+            "text_property": "proposes appropriate pattern and progressive disclosure structure"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_creator_001_3",
+          "rubric_content": {
+            "text_property": "invokes edd init to scaffold initial skill directory"
+          },
+          "type": "TOOL_USE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-creator",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "creator_edd_002",
       "case_id": "creator_edd_002",
-      "input": "Validate the newly created skill structure at src/skills/csv-converter",
       "expected_skill": "skill-creator",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "edd validate",
-          "args": {"path": "src/skills/csv-converter"}
+          "invocation_id": "inv_creator_edd_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Validate the newly created skill structure at src/skills/csv-converter"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "validation_report"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "edd validate",
+                "args": {
+                  "path": "src/skills/csv-converter"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
         }
       ],
-      "expected_output_format": "validation_report",
-      "rubric": [
-        "runs static validation via edd validate",
-        "checks frontmatter, naming, and 3-level resource boundaries"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_creator_002_1",
+          "rubric_content": {
+            "text_property": "runs static validation via edd validate"
+          },
+          "type": "TOOL_USE_QUALITY"
+        },
+        {
+          "rubric_id": "r_creator_002_2",
+          "rubric_content": {
+            "text_property": "checks frontmatter, naming, and 3-level resource boundaries"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-creator",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "creator_edd_003",
       "case_id": "creator_edd_003",
-      "input": "Export distribution ZIP package for skill at src/skills/csv-converter",
       "expected_skill": "skill-creator",
-      "expected_tool_calls": [
+      "conversation": [
         {
-          "tool": "edd package",
-          "args": {"path": "src/skills/csv-converter", "out": "dist"}
+          "invocation_id": "inv_creator_edd_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Export distribution ZIP package for skill at src/skills/csv-converter"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "zip_package_path"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "edd package",
+                "args": {
+                  "path": "src/skills/csv-converter",
+                  "out": "dist"
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
         }
       ],
-      "expected_output_format": "zip_package_path",
-      "rubric": [
-        "packages validated skill into portable ZIP archive",
-        "verifies package integrity before distribution"
-      ]
+      "rubrics": [
+        {
+          "rubric_id": "r_creator_003_1",
+          "rubric_content": {
+            "text_property": "packages validated skill into portable ZIP archive"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_creator_003_2",
+          "rubric_content": {
+            "text_property": "verifies package integrity before distribution"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-creator",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "creator_edd_neg_001",
       "case_id": "creator_edd_neg_001",
-      "input": "Diagnose evaluation failures and optimize prompt for existing skill",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "handoff_or_diagnosis",
-      "rubric": [
-        "does not use skill-creator for repair/evaluation workflow",
-        "delegates to skill-evolver"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_creator_edd_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Diagnose evaluation failures and optimize prompt for existing skill"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "handoff_or_diagnosis"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_creator_neg_001_1",
+          "rubric_content": {
+            "text_property": "does not use skill-creator for repair/evaluation workflow"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_creator_neg_001_2",
+          "rubric_content": {
+            "text_property": "delegates to skill-evolver"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-creator",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "creator_edd_neg_002",
       "case_id": "creator_edd_neg_002",
-      "input": "Write a quick shell script to find large files over 100MB",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "find . -type f -size +100M",
-      "rubric": [
-        "does not trigger skill-creator",
-        "provides direct one-liner shell command without scaffolding a skill package"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_creator_edd_neg_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Write a quick shell script to find large files over 100MB"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "find . -type f -size +100M"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_creator_neg_002_1",
+          "rubric_content": {
+            "text_property": "does not trigger skill-creator"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_creator_neg_002_2",
+          "rubric_content": {
+            "text_property": "provides direct one-liner shell command without scaffolding a skill package"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-creator",
+        "user_id": "test_user",
+        "state": {}
+      }
     },
     {
+      "eval_id": "creator_edd_neg_003",
       "case_id": "creator_edd_neg_003",
-      "input": "Run automated regression tests and check Tier 2 promotion gates",
       "expected_skill": null,
-      "expected_tool_calls": [],
-      "expected_output_format": "tier_gate_evaluation",
-      "rubric": [
-        "does not trigger skill-creator",
-        "handles evaluation and promotion via skill-evolver"
-      ]
+      "conversation": [
+        {
+          "invocation_id": "inv_creator_edd_neg_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Run automated regression tests and check Tier 2 promotion gates"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "tier_gate_evaluation"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_creator_neg_003_1",
+          "rubric_content": {
+            "text_property": "does not trigger skill-creator"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_creator_neg_003_2",
+          "rubric_content": {
+            "text_property": "handles evaluation and promotion via skill-evolver"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-creator",
+        "user_id": "test_user",
+        "state": {}
+      }
     }
   ]
 }
-
