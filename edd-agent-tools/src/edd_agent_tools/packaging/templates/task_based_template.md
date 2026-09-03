@@ -5,6 +5,7 @@ description: |
   Use when the user asks to perform operations on {skill_name}, execute conversion or processing tasks.
   Do NOT use for one-line shell commands or global environment configuration.
 license: MIT
+allowed-tools: run_skill_script load_skill_resource
 pattern: task_based
 ---
 

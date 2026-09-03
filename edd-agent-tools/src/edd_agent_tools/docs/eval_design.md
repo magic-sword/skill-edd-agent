@@ -34,10 +34,10 @@
 
 Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）とシームレスに統合し、手書きロジックによる車輪の再発明を完全に排除しています：
 
-* **`TrajectoryEvaluator` 直接駆動**:
-  Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接呼び出して軌跡一致を評価。
-* **ツール呼び出し正規化 (Normalization)**:
-  エージェント実行時の ADK 純正ツール呼び出し（`tool: "run_skill_script"`, `args: {"skill_name": "...", "file_path": "..."}`）と、白書 Snippet 3 形式のスクリプト直接表記（`scripts/xxx.py`）を透過に相互変換して厳密に検証。
+* **`TrajectoryEvaluator` 直接駆動 & 第1級標準**:
+  Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。テストケースおよびエージェント実行におけるツール呼び出しは、ADK 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用し、従来のスクリプト直接表記（`scripts/xxx.py`）も透過的に正規化。
+* **Google ADK 2.0 純正 `AgentEvaluator` 連携**:
+  `AdkEvalAdapter.evaluate_with_adk_agent()` を通じて、ADK 公式の `AgentEvaluator.evaluate()`（セッション追跡、実際のツール呼び出し軌跡取得、Rubrics 採点の一括実行）をシームレスに駆動。
 * **`rubric_based_final_response_quality_v1` & Position Swapping**:
   ADK 純正のクライテリアに基づき、参照回答と生成回答の順序を反転させて 2 回推論する Position Swapping により順序バイアスを中和。
 * **決定論的高速評価とライブ推論の分離**:

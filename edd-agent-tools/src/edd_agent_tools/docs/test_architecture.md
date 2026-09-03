@@ -50,7 +50,7 @@ flowchart LR
 
 ### ② Google ADK 2.0 純正 TrajectoryEvaluator 直接駆動 (`AdkEvalAdapter`)
 - 手書き軌跡比較ループ（車輪の再発明）を完全撤廃し、ADK 2.0 純正の `TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。
-- スキル内スクリプト呼び出し（`run_skill_script`）の正規化アダプタにより、白書 Snippet 3 形式と透過に相互変換。
+- テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
 - 3大モード：`EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）。
 
 ### ③ Google ADK 2.0 純正 LLM-as-a-Judge (`AdkEvalAdapter`)

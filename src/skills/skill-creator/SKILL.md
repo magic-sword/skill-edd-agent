@@ -5,6 +5,7 @@ description: |
   Use when the user asks to author a skill, scaffold a skill package, extract skills from execution traces, or export distributable skill ZIP packages.
   Do NOT use for skill evaluation, regression diagnosis, self-healing loops, or tier promotion (use skill-evolver).
 license: MIT
+allowed-tools: run_skill_script load_skill_resource
 pattern: workflow
 ---
 

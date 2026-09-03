@@ -305,6 +305,24 @@ class SkillValidator:
             if "do not" not in desc_lower and "not use" not in desc_lower and "not for" not in desc_lower:
                 res.add_warning("frontmatter", "Description should include a 'Do NOT use for...' clause to prevent over-triggering and boundary confusion.")
 
+        # 2.1 オプションフィールド (allowed-tools, metadata) の検査 (Google ADK 2.0 & 白書 Appendix A 準拠)
+        allowed_tools = fm.get("allowed-tools") or fm.get("allowed_tools")
+        if allowed_tools is not None:
+            if not isinstance(allowed_tools, (str, list)):
+                res.add_error("frontmatter", "'allowed-tools' must be a space-delimited string (e.g. 'Read Bash Write') or a list of tool names.")
+            elif isinstance(allowed_tools, str) and ("<" in allowed_tools or ">" in allowed_tools):
+                res.add_error("frontmatter", "'allowed-tools' must not contain angle brackets ('<' or '>')")
+
+        metadata_dict = fm.get("metadata")
+        if metadata_dict is not None:
+            if not isinstance(metadata_dict, dict):
+                res.add_error("frontmatter", "'metadata' must be a YAML mapping/dictionary.")
+            elif "adk_additional_tools" in metadata_dict:
+                adk_tools = metadata_dict["adk_additional_tools"]
+                if not isinstance(adk_tools, list) or not all(isinstance(t, str) for t in adk_tools):
+                    res.add_error("frontmatter", "'metadata.adk_additional_tools' must be a list of tool name strings.")
+
+
         # 3. Context Rot (コンテキスト腐敗) 対策: SKILL.md 本文のサイズ検査
         word_count = len(body_str.split())
         if word_count > 5000:

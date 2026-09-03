@@ -5,7 +5,8 @@ Skills use a three-level loading system to optimize context window efficiency fo
 
 1. **Level 1: Metadata (YAML Frontmatter)**
    - Always in context (~100 words).
-   - Contains `name` (lowercase hyphen-case) and `description` (third-person trigger explanation).
+   - Contains `name` (lowercase hyphen-case matching directory), `description` (third-person routing algorithm), and `allowed-tools` (space-delimited allowed tools, e.g. `run_skill_script load_skill_resource`).
+
 
 2. **Level 2: SKILL.md Body (Whitepaper Appendix A Minimal SKILL.md Standard)**
    - Loaded into context only when the skill triggers (<5k words).

@@ -8,7 +8,7 @@ import yaml
 from enum import StrEnum
 from pathlib import Path
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class SkillPattern(StrEnum):
@@ -39,10 +39,32 @@ class SkillFrontmatter(AdkFrontmatter):
     description: str = Field(..., max_length=1024, description="トリガー条件を明記した第三者視点の説明 (1文動詞起点 + Use when + Do NOT use)")
     license: Optional[str] = Field("Complete terms in LICENSE.txt", description="ライセンス情報")
     compatibility: Optional[str] = Field(None, description="環境・プラットフォーム互換性要件")
-    allowed_tools: Optional[Union[str, List[str]]] = Field(default=None, alias="allowed-tools", description="許可されたツール一覧")
+    allowed_tools: Optional[Union[str, List[str]]] = Field(default=None, alias="allowed-tools", description="許可されたツール一覧 (スペース区切り文字列またはリスト)")
     pattern: Optional[SkillPattern] = Field(None, description="スキルパターン（任意）")
     dependencies: List[str] = Field(default_factory=list, description="依存するスキル一覧")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="追加のメタデータ辞書")
+
+    @field_validator("allowed_tools", mode="before")
+    @classmethod
+    def _normalize_allowed_tools(cls, v: Any) -> Any:
+        if v is None:
+            return None
+        if isinstance(v, list):
+            return [str(item).strip() for item in v if item]
+        if isinstance(v, str):
+            return v.strip()
+        return v
+
+
+    @field_validator("metadata")
+    @classmethod
+    def _validate_metadata_adk_tools(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        if "adk_additional_tools" in v:
+            tools = v["adk_additional_tools"]
+            if not isinstance(tools, list) or not all(isinstance(t, str) for t in tools):
+                raise ValueError("adk_additional_tools must be a list of strings")
+        return v
+
 
 
 class SkillSpec(BaseModel):
@@ -240,7 +262,7 @@ class SkillSpec(BaseModel):
         allowed_tools_val = None
         if self.frontmatter.allowed_tools is not None:
             if isinstance(self.frontmatter.allowed_tools, list):
-                allowed_tools_val = ", ".join(self.frontmatter.allowed_tools)
+                allowed_tools_val = " ".join(self.frontmatter.allowed_tools)
             else:
                 allowed_tools_val = str(self.frontmatter.allowed_tools)
 

@@ -5,6 +5,7 @@ description: |
   Use when the user asks to convert naming conventions, format code identifiers, or transform variable cases.
   Do NOT use for trivial single-word uppercase/lowercase or complex AST-based code refactoring.
 license: MIT
+allowed-tools: run_skill_script load_skill_resource
 pattern: task_based
 ---
 

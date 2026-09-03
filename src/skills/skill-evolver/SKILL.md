@@ -5,6 +5,7 @@ description: |
   Use when the user or agent needs to run multi-layer evaluations, tune trigger descriptions, diagnose errors, self-heal skills, or promote tiers.
   Do NOT use for creating brand-new skill boilerplates or managing Python package releases.
 license: MIT
+allowed-tools: run_skill_script load_skill_resource
 pattern: workflow
 ---
 

@@ -5,6 +5,7 @@ description: |
   Use when the user asks to execute {skill_name}, process relevant inputs, or orchestrate this domain task.
   Do NOT use for simple one-off commands or unrelated administrative tasks.
 license: MIT
+allowed-tools: run_skill_script load_skill_resource
 pattern: workflow
 ---
 

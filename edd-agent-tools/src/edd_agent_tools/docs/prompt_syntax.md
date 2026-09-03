@@ -18,7 +18,7 @@ All instructions in `SKILL.md` and agent prompts must use **imperative/infinitiv
 
 ### `name` Field
 - Lowercase hyphen-case only (`^[a-z0-9]+(-[a-z0-9]+)*$`).
-- Must match the directory name.
+- Must match the directory name (Google ADK 2.0 runtime strict enforcement: `skill_dir.name == frontmatter.name`).
 - Example: `pdf-tools`, `git-conflict-resolver`.
 
 ### `description` Field (Routing Algorithm)
@@ -29,3 +29,30 @@ All instructions in `SKILL.md` and agent prompts must use **imperative/infinitiv
   3. **Anti-trigger / Bounds**: Explicitly state when NOT to trigger (e.g., "Do NOT use for...").
 - Avoid vague phrases (e.g., "A helpful skill for", "Helps with").
 - Avoid angle brackets (`<` or `>`).
+
+### `allowed-tools` Field (Google ADK 2.0 & agentskills.io Native)
+- Space-delimited string of allowed tools (e.g., `allowed-tools: run_skill_script load_skill_resource`).
+- For skills executing bundled Python scripts, declare `run_skill_script`.
+
+### `metadata` Field
+- Supports `metadata.adk_additional_tools`: a list of additional tool names exposed to the agent.
+- Example:
+  ```yaml
+  allowed-tools: run_skill_script load_skill_resource
+  metadata:
+    adk_additional_tools:
+      - lookup_orders
+      - weather_api
+  ```
+
+---
+
+## 3. Whitepaper Appendix A Minimal SKILL.md 6 Mandatory Sections
+Every `SKILL.md` must strictly contain the following 6 sections:
+1. `## When to use`: Specific user scenarios and keywords triggering this skill.
+2. `## When NOT to use`: Granularity limits, lifecycle bounds, and out-of-scope tasks.
+3. `## Workflow`: Imperative step-by-step procedures directing deterministic tools.
+4. `## Examples`: Concrete prompt-response pairs for agent emulation.
+5. `## Output format`: Expected structure, schema, or file paths of deliverables.
+6. `## Anti-patterns to avoid`: Common failure modes, context clutter, or destructive actions.
+

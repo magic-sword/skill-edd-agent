@@ -70,7 +70,8 @@ flowchart TD
 3.  **Google ADK 2.0 純正ランタイム完全一致命名規約**
     *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。
 4.  **Google ADK 2.0 純正評価統合 & 車輪の再発明の完全排除**
-    *   ADK 2.0 の `TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。独自の手書き軌跡ループを全廃し、スクリプト実行（`run_skill_script`）の正規化アダプタを配備。Position Swapping により順序バイアスを中和。
+    *   ADK 2.0 の `TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。独自の手書き軌跡ループを全廃し、エージェント実行・テストケースのツール呼び出しは ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
+    *   Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。Position Swapping により順序バイアスを中和。
 5.  **白書（May 2026）4大 Eval Coverage Checklist (`--coverage`)**
     *   白書 Section 4 の 4大必須評価条件（Trigger >= 90%, Execution/Trajectory 100%, Regression 0 drops, Token Budget/Co-loaded 5~15 skills）を一括判定・チェックリスト出力。
 6.  **$pass^k$ (Sustained Reliability) & 3大 Tool Trajectory 評価モード**

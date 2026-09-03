@@ -59,10 +59,12 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
 * **モンキーパッチおよび車輪の再発明の完全排除**:
   - ADK 内部メソッドの上書き（monkey patch）を全廃し、ADK 公式の `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入。
   - 軌跡比較ロジックの再発明を排除し、ADK 2.0 純正の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。
-  - スキル内スクリプト呼び出しは ADK 純正の `run_skill_script`（args: `skill_name`, `file_path`, ...）へ自動正規化。
+  - **Tool Trajectory の第1級標準 (Primary Standard)**: テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
+  - **Frontmatter 公式仕様の完全一致**: `allowed-tools` は ADK 2.0 および agentskills.io 公式仕様に基づきスペース区切り文字列（例: `"run_skill_script load_skill_resource"`）として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。
 * `AdkEvalAdapter` により、ADK 純正の `AgentEvaluator` および Rubrics-based Criteria（`rubric_based_final_response_quality_v1` 等）を透過接続。
 * 評価の順序バイアスを中和する **Position Swapping**（参照と実回答を入れ替えて2回推論し相加平均）を標準装備。
 * **Don't reinvent MCP as scripts (MCP再発明の禁止)**: 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはならない。スキルは Know-how（決定論的手順と処理）に集中する。
+
 
 ### ⑤ 3大 Tool Trajectory 評価モード (Google ADK 2.0 TrajectoryEvaluator 準拠)
 * 出力結果だけでなく、ツールの呼び出し順序（Tool Trajectory）を ADK 2.0 純正の `TrajectoryEvaluator` で検証：

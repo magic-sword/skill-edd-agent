@@ -5,6 +5,7 @@ description: |
   Use when the user asks to execute multi-mode workflows or complex operations with {skill_name}.
   Do NOT use for simple one-off commands or isolated script runs.
 license: MIT
+allowed-tools: run_skill_script load_skill_resource
 pattern: capabilities
 ---
 

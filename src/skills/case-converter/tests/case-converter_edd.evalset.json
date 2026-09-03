@@ -8,8 +8,12 @@
       "expected_skill": "case-converter",
       "expected_tool_calls": [
         {
-          "tool": "scripts/case_converter.py",
-          "args": {"input": "hello_world_example", "to": "camel"}
+          "tool": "run_skill_script",
+          "args": {
+            "skill_name": "case-converter",
+            "file_path": "scripts/case_converter.py",
+            "args": {"input": "hello_world_example", "to": "camel"}
+          }
         }
       ],
       "expected_output_format": "helloWorldExample",
@@ -24,8 +28,12 @@
       "expected_skill": "case-converter",
       "expected_tool_calls": [
         {
-          "tool": "scripts/case_converter.py",
-          "args": {"input": "UserProfileData", "to": "kebab"}
+          "tool": "run_skill_script",
+          "args": {
+            "skill_name": "case-converter",
+            "file_path": "scripts/case_converter.py",
+            "args": {"input": "UserProfileData", "to": "kebab"}
+          }
         }
       ],
       "expected_output_format": "user-profile-data",
@@ -40,8 +48,12 @@
       "expected_skill": "case-converter",
       "expected_tool_calls": [
         {
-          "tool": "scripts/case_converter.py",
-          "args": {"input": "api_response_status", "to": "constant"}
+          "tool": "run_skill_script",
+          "args": {
+            "skill_name": "case-converter",
+            "file_path": "scripts/case_converter.py",
+            "args": {"input": "api_response_status", "to": "constant"}
+          }
         }
       ],
       "expected_output_format": "API_RESPONSE_STATUS",

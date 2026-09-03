@@ -47,11 +47,12 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 - **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析, `entry_points` 探索）
 - **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、白書命名規則、MCP再発明検知）
 - **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（Snippet 3 インバージョン生成）
-- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK純正 `TrajectoryEvaluator`: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & ADK純正 `TrajectoryEvaluator` / `ToolTrajectoryCriterion` 直接連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
+- **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK純正 `TrajectoryEvaluator`: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & ADK純正 `AgentEvaluator` / `TrajectoryEvaluator` / `ToolTrajectoryCriterion` 直接連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
 - **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (ADK公式 `UnsafeLocalCodeExecutor` 標準注入、重複コード実行の完全排除), `EddSkillRegistry`, `create_mcp_server`
 - **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval` [--coverage], `tier-gate`, `diagnose`, `optimize`, `list`）
 
-※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチや車輪の再発明（独自の軌跡比較ロジック等）は厳禁とし、ADK 公式コンポーネント（Code Executor, TrajectoryEvaluator, EvalSet）を直接使用します。
+※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。モンキーパッチや車輪の再発明（独自の軌跡比較ロジック等）は厳禁とし、ADK 公式コンポーネント（Code Executor, TrajectoryEvaluator, EvalSet, AgentEvaluator）を直接使用します。Tool Trajectory 検証は ADK 純正の `run_skill_script` 形式を第1級標準（Primary Standard）として取り扱います。
+
 
 ### B. 自己改善スキル資産層（`src/skills/`）の責務と依存関係ポリシー
 - **個別ロジックのカプセル化**:

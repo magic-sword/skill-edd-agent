@@ -5,6 +5,7 @@ description: |
   Use when the user asks for specifications, design rules, or best practices for {skill_name}.
   Do NOT use for automated code execution or active script modification.
 license: MIT
+allowed-tools: load_skill_resource
 pattern: reference
 ---
 

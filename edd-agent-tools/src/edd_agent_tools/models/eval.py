@@ -32,9 +32,33 @@ except ImportError:
 
 
 class EDDToolCall(BaseModel):
-    """白書 Snippet 3 準拠の期待されるツール呼び出し定義"""
-    tool: str = Field(..., description="呼び出されるべきツール名またはスクリプトパス")
+    """白書 Snippet 3 & Google ADK 2.0 純正準拠の期待されるツール呼び出し定義"""
+    tool: str = Field(..., description="呼び出されるべきツール名（ADK 2.0 純正 run_skill_script、またはドメインツール名/スクリプトパス）")
     args: Dict[str, Any] = Field(default_factory=dict, description="期待される引数パラメータ")
+
+    def to_adk_native(self, skill_name: Optional[str] = None) -> Dict[str, Any]:
+        """ADK 2.0 純正の {"tool": "run_skill_script", "args": {"skill_name": ..., "file_path": ..., "args": ...}} 形式に正規化します。"""
+        if self.tool == "run_skill_script":
+            native_args = dict(self.args)
+            if skill_name and "skill_name" not in native_args:
+                native_args["skill_name"] = skill_name
+            return {"tool": "run_skill_script", "args": native_args}
+
+        if self.tool.startswith("scripts/") or self.tool.endswith(".py"):
+            resolved_skill = skill_name or self.args.get("skill_name", "")
+            file_path = self.tool if self.tool.startswith("scripts/") else f"scripts/{self.tool}"
+            inner_args = {k: v for k, v in self.args.items() if k != "skill_name"}
+            return {
+                "tool": "run_skill_script",
+                "args": {
+                    "skill_name": resolved_skill,
+                    "file_path": file_path,
+                    "args": inner_args
+                }
+            }
+
+        return {"tool": self.tool, "args": self.args}
+
 
 
 class EDDTestCase(BaseModel):

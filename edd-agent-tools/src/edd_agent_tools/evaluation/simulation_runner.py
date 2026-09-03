@@ -121,13 +121,39 @@ class SimulationEvalRunner:
                 traj_matched = True
                 traj_msg = "No tool calls expected"
             else:
-                actual_tools = case.get("actual_tool_uses") or exp_tools
-                traj_matched, traj_msg = self.adk_adapter.evaluate_trajectory(
-                    actual_tool_calls=actual_tools,
-                    expected_tool_calls=exp_tools,
-                    mode=mode,
-                    skill_name=skill.name
-                )
+                actual_tools = case.get("actual_tool_uses")
+                traj_matched = True
+                traj_msg = ""
+                if actual_tools is None:
+                    # 期待されるツール呼び出しのスクリプト実在性・健全性検査
+                    for t_item in exp_tools:
+                        t_call = t_item if isinstance(t_item, dict) else {"tool": str(t_item)}
+                        t_name = t_call.get("tool", "")
+                        t_args = t_call.get("args", {}) if isinstance(t_call.get("args"), dict) else {}
+                        if t_name == "run_skill_script":
+                            f_path = t_args.get("file_path", "")
+                            script_base = Path(f_path).name
+                            if script_base and available_scripts and script_base not in available_scripts:
+                                traj_matched = False
+                                traj_msg = f"Referenced script '{f_path}' not found in skill '{skill.name}'"
+                                break
+                        elif t_name.startswith("scripts/") or t_name.endswith(".py"):
+                            script_base = Path(t_name).name
+                            if script_base and available_scripts and script_base not in available_scripts:
+                                traj_matched = False
+                                traj_msg = f"Referenced script '{t_name}' not found in skill '{skill.name}'"
+                                break
+                    if traj_matched:
+                        actual_tools = exp_tools
+
+                if traj_matched and actual_tools is not None:
+                    traj_matched, traj_msg = self.adk_adapter.evaluate_trajectory(
+                        actual_tool_calls=actual_tools,
+                        expected_tool_calls=exp_tools,
+                        mode=mode,
+                        skill_name=skill.name
+                    )
+
 
             # 3. Rubric 判定
             rubric_score = 1.0

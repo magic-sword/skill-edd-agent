@@ -37,10 +37,12 @@ try:
     from google.adk.evaluation.eval_case import EvalCase as NativeAdkEvalCase, Invocation, IntermediateData, SessionInput
     from google.adk.evaluation.eval_rubrics import Rubric as NativeAdkRubric
     from google.adk.evaluation.eval_set import EvalSet as NativeAdkEvalSet
+    from google.adk.evaluation.agent_evaluator import AgentEvaluator
 except ImportError:
     NativeAdkEvalCase = None
     NativeAdkRubric = None
     NativeAdkEvalSet = None
+    AgentEvaluator = None
     Invocation = None
     IntermediateData = None
 
@@ -74,6 +76,13 @@ def normalize_to_function_call(
         tool_name = str(tool_call)
         args = {}
 
+    # ADK 2.0 純正 run_skill_script 呼び出しの正規化
+    if tool_name == "run_skill_script":
+        normalized_args = dict(args) if isinstance(args, dict) else {}
+        if skill_name and "skill_name" not in normalized_args:
+            normalized_args["skill_name"] = skill_name
+        return genai_types.FunctionCall(name="run_skill_script", args=normalized_args)
+
     # スクリプト直接表記を ADK 純正 run_skill_script に正規化
     if tool_name.startswith("scripts/") or tool_name.endswith(".py"):
         resolved_skill = skill_name or (args.get("skill_name") if isinstance(args, dict) else "")
@@ -83,11 +92,14 @@ def normalize_to_function_call(
             "file_path": tool_name if tool_name.startswith("scripts/") else f"scripts/{tool_name}"
         }
         if isinstance(args, dict) and args:
-            # 既存の input 等の引数を args に統合
-            normalized_args["args"] = args
+            # 既存の引数辞書があればそのまま設定
+            clean_args = {k: v for k, v in args.items() if k != "skill_name"}
+            if clean_args:
+                normalized_args["args"] = clean_args
         return genai_types.FunctionCall(name=normalized_name, args=normalized_args)
 
     return genai_types.FunctionCall(name=tool_name, args=args if isinstance(args, dict) else {})
+
 
 
 def convert_edd_to_adk_eval_case(edd_case: Dict[str, Any], skill_name: Optional[str] = None) -> Any:
@@ -258,6 +270,27 @@ class AdkEvalAdapter:
         }
         adk_match = match_type_map.get(mode, getattr(ADK_MATCH_TYPE, "ANY_ORDER", 2))
         return ToolTrajectoryCriterion(threshold=threshold, match_type=adk_match)
+
+    async def evaluate_with_adk_agent(
+        self,
+        agent_module: str,
+        eval_dataset_file_path_or_dir: Union[str, Path],
+        criteria: Optional[Dict[str, Any]] = None
+    ) -> Any:
+        """Google ADK 2.0 純正の AgentEvaluator.evaluate() を直接実行します。
+        
+        Live 環境においてエージェントとスキルツールセットを完全連動させ、
+        実際の Tool Trajectory と回答品質を評価します。
+        """
+        if AgentEvaluator is None:
+            raise RuntimeError("google.adk.evaluation.agent_evaluator.AgentEvaluator is not available.")
+
+        eval_path = str(eval_dataset_file_path_or_dir)
+        return await AgentEvaluator.evaluate(
+            agent_module=agent_module,
+            eval_dataset_file_path_or_dir=eval_path
+        )
+
 
     def evaluate_rubric(
         self,

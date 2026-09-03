@@ -22,6 +22,7 @@ description: |
   Use when the user asks to execute {skill_name_spaced}, process relevant inputs, or automate this domain workflow.
   Do NOT use for simple one-off commands or unrelated administrative tasks.
 license: MIT
+allowed-tools: run_skill_script load_skill_resource
 pattern: {pattern}
 ---
 
@@ -217,11 +218,18 @@ Example usage pattern for {canonical_skill_name}.
                     "input": f"Please execute {skill_name_spaced} workflow with --help parameter",
                     "expected_skill": canonical_skill_name,
                     "expected_tool_calls": [
-                        {"tool": f"scripts/{primary_script}.py", "args": ["--help"]}
+                        {
+                            "tool": "run_skill_script",
+                            "args": {
+                                "skill_name": canonical_skill_name,
+                                "file_path": f"scripts/{primary_script}.py",
+                                "args": ["--help"]
+                            }
+                        }
                     ],
                     "expected_output_format": "usage_help",
                     "rubric": [
-                        f"correctly invokes {primary_script}.py",
+                        f"correctly invokes run_skill_script with {primary_script}.py",
                         "verifies execution output",
                         "does not clutter context window"
                     ]
@@ -231,11 +239,18 @@ Example usage pattern for {canonical_skill_name}.
                     "input": f"Run {canonical_skill_name} task for target data",
                     "expected_skill": canonical_skill_name,
                     "expected_tool_calls": [
-                        {"tool": f"scripts/{primary_script}.py", "args": ["--input", "sample_value"]}
+                        {
+                            "tool": "run_skill_script",
+                            "args": {
+                                "skill_name": canonical_skill_name,
+                                "file_path": f"scripts/{primary_script}.py",
+                                "args": {"input": "sample_value"}
+                            }
+                        }
                     ],
                     "expected_output_format": "execution_confirmation",
                     "rubric": [
-                        f"runs {primary_script}.py with inputs",
+                        f"runs run_skill_script with {primary_script}.py inputs",
                         "preserves data structure"
                     ]
                 },
