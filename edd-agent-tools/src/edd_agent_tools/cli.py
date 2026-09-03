@@ -528,7 +528,7 @@ def cmd_profile(args: argparse.Namespace) -> int:
 
 
 def cmd_export_eval(args: argparse.Namespace) -> int:
-    """白書 Snippet 3 形式の evalset から Google ADK 2.0 公式 adk eval 用の JSON をエクスポートします。"""
+    """Google ADK 2.0 公式 EvalSet JSON をエクスポート・検証します。"""
     state = SkillsState()
     skill = state.get_skill(args.skill_name)
     if not skill:
@@ -557,8 +557,9 @@ def cmd_export_eval(args: argparse.Namespace) -> int:
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(adk_dict, f, indent=2, ensure_ascii=False)
 
-    print(f"✅ Exported Google ADK 2.0 Native EvalSet to: {out_path}")
-    print(f"   You can now run: adk eval <AGENT_DIR> {out_path}")
+    print(f"✅ Verified & Exported Google ADK 2.0 Native EvalSet to: {out_path}")
+    print(f"   Note: '{edd_file}' is already a valid ADK 2.0 EvalSet and can be run directly:")
+    print(f"   adk eval <AGENT_DIR> {edd_file}")
     return 0
 
 

@@ -29,9 +29,9 @@
   - 状態管理・探索・DAG解析（`state`: `SkillsState`）
   - 共通ドメインエンティティ（`core`: `SkillPackage`, `SkillTests`）
   - 静的検証リンター（`validation`: `SkillValidator` - AST解析、Prerequisites照合、白書命名規則検査、MCP再発明検知）
-  - パッケージ組み込み標準テンプレート & ZIP化（`packaging`: `SkillScaffolder`, `SkillPackager` - Snippet 3 インバージョン生成）
-  - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter` [ADK純正 TrajectoryEvaluator, ResponseEvaluator ROUGE-1, RubricBasedFinalResponseQualityV1Evaluator, Position Swapping], `CascadeTestRunner`, `LocalWorkspaceEnv`）
-  - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `EddSkillToolset` [UnsafeLocalCodeExecutor標準注入・重複コード実行排除], `EddSkillRegistry` / `mcp`: `create_mcp_server`）
+  - パッケージ組み込み標準テンプレート & ZIP化（`packaging`: `SkillScaffolder`, `SkillPackager` - Google ADK 2.0 公式 EvalSet インバージョン生成）
+  - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter` [ADK純正 TrajectoryEvaluator, ResponseEvaluator ROUGE-1, RubricBasedFinalResponseQualityV1Evaluator, Position Swapping, 型安全専用 Criterion], `CascadeTestRunner`, `LocalWorkspaceEnv`）
+  - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `EddSkillToolset` [コアスキルプリロード & EddSkillRegistry 動的オンデマンド解決による真の Progressive Disclosure, UnsafeLocalCodeExecutor標準注入・裏口ハック全廃], `EddSkillRegistry` / `mcp`: `create_mcp_server`）
   - 統合 CLI（`cli`: `edd run/init/validate/package/eval/tier-gate/diagnose/optimize`）
   ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。公式 Code Executor を使用します。
 
@@ -69,7 +69,7 @@
   - `references/` (ドメイン知識、スキーマ仕様)
   - `assets/` (出力用テンプレート・素材)
   - `examples/` (具象コード例・パターン集)
-  - `tests/` (白書 Snippet 3 形式評価データセット `*_edd.evalset.json`)
+  - `tests/` (Google ADK 2.0 公式 EvalSet 評価データセット `*_edd.evalset.json`)
 
 * **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
   - `edd-agent-tools` パッケージ内部のコード

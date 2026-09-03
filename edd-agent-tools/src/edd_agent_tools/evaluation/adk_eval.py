@@ -321,18 +321,30 @@ class AdkEvalAdapter:
         is_passed = (score >= threshold)
         return is_passed, score, f"Deterministic ROUGE-1: score={score:.2f}"
 
-    def to_adk_criterion(self, mode: TrajectoryMode = "any_order", threshold: float = 1.0) -> Any:
+    @staticmethod
+    def create_trajectory_criterion(
+        mode: TrajectoryMode = "any_order",
+        threshold: float = 1.0,
+        match_type: Optional[Any] = None
+    ) -> Any:
         """Google ADK 2.0 純正の ToolTrajectoryCriterion インスタンスを生成して返します。"""
         if ToolTrajectoryCriterion is None or ADK_MATCH_TYPE is None:
             return None
+
+        resolved_mode = match_type if match_type is not None else mode
+        if isinstance(resolved_mode, str):
+            resolved_mode = resolved_mode.lower()
 
         match_type_map = {
             "exact": getattr(ADK_MATCH_TYPE, "EXACT", 0),
             "in_order": getattr(ADK_MATCH_TYPE, "IN_ORDER", 1),
             "any_order": getattr(ADK_MATCH_TYPE, "ANY_ORDER", 2)
         }
-        adk_match = match_type_map.get(mode, getattr(ADK_MATCH_TYPE, "ANY_ORDER", 2))
+        adk_match = match_type_map.get(resolved_mode, getattr(ADK_MATCH_TYPE, "ANY_ORDER", 2))
         return ToolTrajectoryCriterion(threshold=threshold, match_type=adk_match)
+
+    # 互換用エイリアス
+    to_adk_criterion = create_trajectory_criterion
 
     @staticmethod
     def build_eval_config(
@@ -350,22 +362,32 @@ class AdkEvalAdapter:
 
         base_criteria: Dict[str, Any] = {}
         if criteria:
-            from google.adk.evaluation.eval_metrics import BaseCriterion
+            from google.adk.evaluation.eval_metrics import BaseCriterion, ToolTrajectoryCriterion, RubricsBasedCriterion
             for k, v in criteria.items():
-                if isinstance(v, (int, float)):
+                if k == "tool_trajectory_avg_score":
+                    if isinstance(v, dict):
+                        base_criteria[k] = ToolTrajectoryCriterion.model_validate(v)
+                    elif isinstance(v, (int, float)):
+                        base_criteria[k] = ToolTrajectoryCriterion(threshold=float(v), match_type=ToolTrajectoryCriterion.MatchType.IN_ORDER)
+                    else:
+                        base_criteria[k] = v
+                elif k == "rubric_based_final_response_quality_v1":
+                    if isinstance(v, dict):
+                        base_criteria[k] = RubricsBasedCriterion.model_validate(v)
+                    else:
+                        base_criteria[k] = v
+                elif isinstance(v, (int, float)):
                     base_criteria[k] = BaseCriterion(threshold=float(v))
                 elif isinstance(v, dict):
                     base_criteria[k] = BaseCriterion(**v)
                 else:
                     base_criteria[k] = v
         else:
-            from google.adk.evaluation.eval_metrics import BaseCriterion
-            match_type_str = default_trajectory_mode.upper()
-            base_criteria["tool_trajectory_avg_score"] = BaseCriterion(
+            base_criteria["tool_trajectory_avg_score"] = AdkEvalAdapter.create_trajectory_criterion(
                 threshold=1.0,
-                match_type=match_type_str
+                match_type=default_trajectory_mode
             )
-            base_criteria["response_match_score"] = BaseCriterion(threshold=0.8)
+            base_criteria["response_match_score"] = 0.8
 
         return EvalConfig(criteria=base_criteria)
 
@@ -651,45 +673,33 @@ class AdkEvalAdapter:
         reference_output: Optional[str],
         rouge_passed: bool = False
     ) -> bool:
-        """単一ルーブリックのセマンティック規則を決定論的に検証します（汎用・公式準拠）。
+        """単一ルーブリックの規則をオフライン決定論的環境で客観的に検証します。
         
-        特定スキル・特定ドメイン（order, duplicate, secret 等）へのアドホックな依存を完全に排除。
+        Google ADK 2.0 の責務分離原則に基づき：
+        1. ツール呼び出し・発火制御の検証は TrajectoryEvaluator (tool_trajectory_avg_score) が担当。
+        2. 参照回答との語彙一致は ResponseEvaluator (ROUGE-1) が担当。
+        3. オフライン環境での本メソッドは、出力の基本健全性（非空、致命的例外・トレースバックの非発生）および
+           参照回答がある場合の語彙一致（rouge_passed）を確認します。
+        4. 主観的・意味論的ルーブリック評価は、Live モード時に ADK 純正の
+           RubricBasedFinalResponseQualityV1Evaluator (LLM-as-a-Judge) によって厳密に判定されます。
         """
-        r_lower = rubric_text.lower()
         out_lower = actual_output.lower()
 
-        # 出力が空、または致命的例外・トレースバックが出ている場合は不合格
+        # 1. 出力が空、または致命的例外・未捕捉トレースバックが出ている場合は即座に不合格
         if not actual_output.strip() or "traceback (most recent call last)" in out_lower:
             return False
 
-        # 1. 非発火・トリガー否定規則 (does not trigger, without calling, no tool)
-        if any(k in r_lower for k in ["does not trigger", "not trigger", "without calling", "does not call", "without using", "without invoking"]):
+        # 2. 参照回答が存在し ROUGE-1 評価に合格している場合は合格
+        if rouge_passed:
             return True
 
-        # 2. 否定・禁止規則 (does not contain, must not, avoid, never)
+        # 3. 明確な禁止単語・情報漏洩指定（must not include X / does not contain X）の反証検証
+        r_lower = rubric_text.lower()
         if any(k in r_lower for k in ["does not contain", "must not", "never contain", "avoid"]):
             forbidden_match = re.search(r"(?:not contain|avoid|must not include|never contain)\s+['\"]?([a-zA-Z0-9_\-]+)['\"]?", r_lower)
             if forbidden_match:
                 target = forbidden_match.group(1).lower()
                 return target not in out_lower
-            return True
 
-        # 3. 参照回答との一致・ROUGE合格時の判定
-        if rouge_passed:
-            return True
-
-        # 4. 簡潔性・会話フィラー排除規則 (concise, without conversational filler, brief, direct)
-        if any(k in r_lower for k in ["concise", "without conversational filler", "brief", "direct"]):
-            # 長大すぎる会話フィラー（300単語超）でなければ合格
-            return len(actual_output.split()) < 300
-
-        # 5. フォーマット仕様（json, markdown 等）
-        if "json" in r_lower:
-            try:
-                json.loads(actual_output.strip())
-                return True
-            except Exception:
-                return "{" in actual_output and "}" in actual_output
-
-        # デフォルト: 空でない正常な出力であること
+        # 4. オフライン基本健全性（正常な出力が得られていること）
         return len(actual_output.strip()) > 0

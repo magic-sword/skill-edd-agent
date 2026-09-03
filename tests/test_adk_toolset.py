@@ -139,3 +139,64 @@ Sample overview text.
     assert roundtrip.frontmatter.metadata.get("category") == "utility"
 
 
+def test_adk_progressive_disclosure_registry_resolution():
+    """Progressive Disclosure: search_skills による動的探索と load_skill による動的ロードをテストします。"""
+    async def _test():
+        from unittest.mock import MagicMock
+        ctx = MagicMock()
+        ctx.invocation_id = "test-inv-prog-001"
+        ctx.state = {}
+
+        # preload_all=False (デフォルト) で作成
+        toolset = create_adk_skill_toolset(skills_dir="src/skills", preload_all=False)
+        tools_dict = {t.name: t for t in toolset._tools}
+
+        # 1. プリロードスキルにはシステムスキルのみが含まれ、一般スキル（case-converter）は self._skills に含まれない
+        assert "case-converter" not in toolset._skills
+
+        # 2. search_skills ツールにより、レジストリ内の一般スキルが正常にヒットする
+        search_tool = tools_dict["search_skills"]
+        search_res = await search_tool.run_async(args={"query": "converter"}, tool_context=ctx)
+        assert any(r.get("name") == "case-converter" for r in search_res)
+
+        # 3. load_skill ツールにより、レジストリ経由でオンデマンドにロードされる
+        load_tool = tools_dict["load_skill"]
+        load_res = await load_tool.run_async(args={"skill_name": "case-converter"}, tool_context=ctx)
+        assert load_res.get("skill_name") == "case-converter"
+        assert "case_converter.py" in load_res.get("instructions", "")
+
+    asyncio.run(_test())
+
+
+def test_adk_criteria_type_safety():
+    """AdkEvalAdapter.build_eval_config が型安全な専用 Criterion クラスを生成することをテストします。"""
+    from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
+    from google.adk.evaluation.eval_metrics import ToolTrajectoryCriterion, RubricsBasedCriterion
+
+    # デフォルト設定での構築
+    config = AdkEvalAdapter.build_eval_config(default_trajectory_mode="in_order")
+    assert "tool_trajectory_avg_score" in config.criteria
+    traj_crit = config.criteria["tool_trajectory_avg_score"]
+    assert isinstance(traj_crit, ToolTrajectoryCriterion)
+    assert traj_crit.match_type == ToolTrajectoryCriterion.MatchType.IN_ORDER
+
+    # ルーブリック基準を含む明示的指定での構築
+    explicit_criteria = {
+        "tool_trajectory_avg_score": {
+            "threshold": 1.0,
+            "match_type": "EXACT"
+        },
+        "rubric_based_final_response_quality_v1": {
+            "threshold": 0.8,
+            "rubrics": [
+                {"rubric_id": "r1", "rubric_content": {"text_property": "Accurate output"}}
+            ]
+        }
+    }
+    config2 = AdkEvalAdapter.build_eval_config(criteria=explicit_criteria)
+    assert isinstance(config2.criteria["tool_trajectory_avg_score"], ToolTrajectoryCriterion)
+    assert config2.criteria["tool_trajectory_avg_score"].match_type == ToolTrajectoryCriterion.MatchType.EXACT
+    assert isinstance(config2.criteria["rubric_based_final_response_quality_v1"], RubricsBasedCriterion)
+
+
+

@@ -37,19 +37,19 @@ class EDDToolCall(BaseModel):
     args: Dict[str, Any] = Field(default_factory=dict, description="期待される引数パラメータ")
 
     def to_adk_native(self, skill_name: Optional[str] = None) -> Dict[str, Any]:
-        """ADK 2.0 純正の {"tool": "run_skill_script", "args": {"skill_name": ..., "file_path": ..., "args": ...}} 形式に正規化します。"""
+        """ADK 2.0 純正の {"name": "run_skill_script", "args": {"skill_name": ..., "file_path": ..., "args": ...}} 形式に正規化します。"""
         if self.tool == "run_skill_script":
             native_args = dict(self.args)
             if skill_name and "skill_name" not in native_args:
                 native_args["skill_name"] = skill_name
-            return {"tool": "run_skill_script", "args": native_args}
+            return {"name": "run_skill_script", "args": native_args}
 
         if self.tool.startswith("scripts/") or self.tool.endswith(".py"):
             resolved_skill = skill_name or self.args.get("skill_name", "")
             file_path = self.tool if self.tool.startswith("scripts/") else f"scripts/{self.tool}"
             inner_args = {k: v for k, v in self.args.items() if k != "skill_name"}
             return {
-                "tool": "run_skill_script",
+                "name": "run_skill_script",
                 "args": {
                     "skill_name": resolved_skill,
                     "file_path": file_path,
@@ -57,8 +57,7 @@ class EDDToolCall(BaseModel):
                 }
             }
 
-        return {"tool": self.tool, "args": self.args}
-
+        return {"name": self.tool, "args": self.args}
 
 
 class EDDTestCase(BaseModel):
@@ -426,6 +425,10 @@ class EvalCaseSet(AdkEvalSet):
             "description": self.description or f"EvalSet for {self.skill_name}",
             "eval_cases": raw_cases
         }
+
+
+# Google ADK 2.0 純正 google.adk.evaluation.eval_set.EvalSet との完全互換エイリアス
+EvalSet = EvalCaseSet
 
 
 class FailedCaseDetail(BaseModel):

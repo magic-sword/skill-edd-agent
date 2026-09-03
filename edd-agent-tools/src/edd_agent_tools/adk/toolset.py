@@ -92,6 +92,7 @@ class EddSkillToolset(SkillToolset):
         state: Optional[SkillsState] = None,
         min_tier: int = 1,
         include_system_skills: Optional[Set[str]] = None,
+        preload_all: bool = False,
         additional_tools: Optional[List[Any]] = None,
         tool_name_prefix: Optional[str] = None,
         code_executor: Optional[Any] = None
@@ -100,12 +101,14 @@ class EddSkillToolset(SkillToolset):
         self.registry = EddSkillRegistry(state=self.state, min_tier=min_tier)
         self.min_tier = min_tier
         self.system_skills = include_system_skills or {"skill-creator", "skill-evolver"}
+        self.preload_all = preload_all
 
-        # 事前ロード対象スキルの選定
+        # 事前ロード対象スキルの選定（ADK 2.0 Progressive Disclosure: コアスキルのみプリロード、一般スキルはレジストリ解決）
         preloaded_skills = load_adk_skills_from_state(
             state=self.state,
             min_tier=min_tier,
-            include_system_skills=self.system_skills
+            include_system_skills=self.system_skills,
+            preload_all=preload_all
         )
 
         # コードエグゼキュータのデフォルト解決（ADK公式のUnsafeLocalCodeExecutorを利用）
@@ -134,10 +137,12 @@ def load_adk_skills_from_state(
     skills_dir: Optional[Union[str, Path]] = None,
     state: Optional[SkillsState] = None,
     min_tier: int = 1,
-    include_system_skills: Optional[Set[str]] = None
+    include_system_skills: Optional[Set[str]] = None,
+    preload_all: bool = False
 ) -> List[Skill]:
     """
     Google ADK 2.0 の load_skill_from_dir を用い、SkillsState でフィルタリングされた Skill モデルのリストを生成します。
+    ADK 2.0 の Progressive Disclosure に従い、デフォルトでは常時必要なシステムスキルのみをプリロードします。
     """
     resolved_state = state or (SkillsState(skills_roots=[Path(skills_dir)]) if skills_dir else SkillsState())
     system_skills = include_system_skills or {"skill-creator", "skill-evolver"}
@@ -145,8 +150,14 @@ def load_adk_skills_from_state(
     loaded_skills = []
     for skill_meta in resolved_state.list_skills():
         tier_val = skill_meta.tier.value if hasattr(skill_meta.tier, "value") else int(skill_meta.tier or 0)
-        if tier_val < min_tier and skill_meta.name not in system_skills:
-            continue
+        
+        # プリロード対象の判定: preload_all が True の場合は全スキル、それ以外はシステムスキルのみ
+        if not preload_all:
+            if skill_meta.name not in system_skills:
+                continue
+        else:
+            if tier_val < min_tier and skill_meta.name not in system_skills:
+                continue
 
         skill_path = Path(skill_meta.root_dir) if skill_meta.root_dir and Path(skill_meta.root_dir).exists() else None
         if skill_path and (skill_path / "SKILL.md").exists():
@@ -164,6 +175,7 @@ def create_adk_skill_toolset(
     state: Optional[SkillsState] = None,
     min_tier: int = 1,
     include_system_skills: Optional[Set[str]] = None,
+    preload_all: bool = False,
     additional_tools: Optional[List[Any]] = None,
     tool_name_prefix: Optional[str] = None,
     code_executor: Optional[Any] = None
@@ -176,6 +188,7 @@ def create_adk_skill_toolset(
         state=state,
         min_tier=min_tier,
         include_system_skills=include_system_skills,
+        preload_all=preload_all,
         additional_tools=additional_tools,
         tool_name_prefix=tool_name_prefix,
         code_executor=code_executor
