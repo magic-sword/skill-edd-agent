@@ -10,47 +10,42 @@ pattern: capabilities
 
 # {Skill Title}
 
-## Overview
+## When to use
+- Perform {capability_1} using {skill_name}
+- Execute {capability_2} on target data
 
-{Brief overview of the integrated capabilities and operational domain.}
+## When NOT to use
+- Simple one-off shell operations (use native terminal tools)
+- Skill testing, diagnosis, and evolution (use `skill-evolver`)
+- New skill creation or packaging (use `skill-creator`)
 
-## Core Capabilities
+## Workflow
+1. Identify Target Mode: Determine which capability mode (e.g. mode1 or mode2) applies to the user request.
+2. Execute Core Script: Run the multi-capability CLI script with appropriate flags:
+   ```bash
+   python scripts/{primary_script}.py --mode mode1 <arguments>
+   ```
+3. Inspect and Confirm: Validate that the operation completed successfully without errors.
 
-### 1. Capability One *(Module: `scripts/{primary_script}.py`)*
+## Examples
+- Input: "Execute mode1 on sample data with {skill_name}" → Output: "Capability mode1 completed successfully"
 
-To execute the first capability:
-```bash
-python scripts/{primary_script}.py --mode mode1 <arguments>
-```
+## Output format
+- Return structured status confirmation and output artifacts.
 
-### 2. Capability Two *(Module: `scripts/{primary_script}.py`)*
+## Anti-patterns to avoid
+- Do not run unknown modes without verifying arguments via `--help`.
+- Do not mix independent operations into an unverified monolithic execution.
 
-To execute the second capability:
-```bash
-python scripts/{primary_script}.py --mode mode2 <arguments>
-```
-
-## Usage Scenarios & Trigger Examples
-
-This skill is triggered when handling requests such as:
-- "Perform {capability_1} using {skill_name}."
-- "Execute {capability_2} on target data."
-
-## When NOT to Use This Skill
-- **Simple one-off shell operations**: Use native commands directly.
+## Requirements & Prerequisites
+- Python: >= 3.10
 
 ## Bundled Resources
-
 ### `scripts/` (Executable Tools - Zero-dependency)
-- **`scripts/{primary_script}.py`**: Multi-mode execution script.
+- `scripts/{primary_script}.py`: Multi-mode execution script.
 
 ### `references/` (On-Demand Knowledge)
-- **`references/guide.md`**: Specifications and module documentation.
+- `references/guide.md`: Specifications and module documentation.
 
 ### `examples/` (Usage Patterns)
-- **`examples/example_usage.py`**: Example configurations and mode invocation patterns.
-
-## Guidelines & Best Practices
-- **Black-box Execution**: Always inspect options with `python scripts/{primary_script}.py --help` first.
-- **Reconnaissance First**: Inspect arguments and operational context before triggering changes.
-- Select the appropriate mode/module based on task requirements.
+- `examples/example_usage.py`: Example configurations and mode invocation patterns.

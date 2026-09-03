@@ -64,7 +64,7 @@ export GOOGLE_API_KEY="your-google-api-key"
 ## 5. テストスイートの実行
 
 ```bash
-# 全テストの実行 (52件すべて Green)
+# 全テストの実行 (53件すべて Green)
 pytest tests/ -v
 
 

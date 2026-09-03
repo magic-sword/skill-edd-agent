@@ -127,9 +127,9 @@ class SkillValidator:
         if not imported_external_pkgs:
             return
 
-        # SKILL.md 本文の Requirements & Prerequisites セクションを抽出
-        req_match = re.search(r"##\s+(?:Requirements\s+&\s+Prerequisites|Prerequisites|Requirements)(.*?)(?=##|\Z)", skill_md_content, re.DOTALL | re.IGNORECASE)
-        req_text = req_match.group(1).lower() if req_match else ""
+        # SKILL.md 本文の Requirements & Prerequisites セクションを抽出 (複数セクション結合)
+        req_matches = re.findall(r"##\s+(?:Requirements\s+&\s+Prerequisites|Prerequisites|Requirements)(.*?)(?=##|\Z)", skill_md_content, re.DOTALL | re.IGNORECASE)
+        req_text = " ".join(req_matches).lower() if req_matches else ""
 
         for pkg, script_name in imported_external_pkgs:
             # 白書 Don't: Reinvent MCP as scripts の検知
@@ -354,5 +354,20 @@ class SkillValidator:
         uppercase_imperatives = re.findall(r"\b(ALWAYS|NEVER|MUST NOT)\b", instruction_body)
         if len(uppercase_imperatives) >= 5:
             res.add_warning("context_debt", f"Detected frequent uppercase imperatives ({len(uppercase_imperatives)} occurrences: {set(uppercase_imperatives)}). 'Give the reason, not just the rule' to avoid context debt and improve generalization.")
+
+        # 7. 白書 Appendix A minimal SKILL.md 構造検査
+        has_when_to = bool(re.search(r"^##\s+(When to [uU]se|Usage Scenarios)", body_str, re.MULTILINE))
+        has_when_not = bool(re.search(r"^##\s+When NOT to [uU]se", body_str, re.MULTILINE))
+        has_wf = bool(re.search(r"^##\s+(Workflow|Available Tasks|Quick Start|Core Capabilities|Guidelines)", body_str, re.MULTILINE))
+        has_ex = bool(re.search(r"^##\s+Examples?", body_str, re.MULTILINE))
+
+        if not has_when_to:
+            res.add_warning("structure", "Missing '## When to use' or '## Usage Scenarios' section (Whitepaper Appendix A minimal SKILL.md specification).")
+        if not has_when_not:
+            res.add_warning("structure", "Missing '## When NOT to use' section (Whitepaper Appendix A minimal SKILL.md specification to prevent over-triggering).")
+        if not has_wf:
+            res.add_warning("structure", "Missing '## Workflow' or task execution section (Whitepaper Appendix A minimal SKILL.md specification).")
+        if not has_ex:
+            res.add_warning("structure", "Missing '## Examples' section (Whitepaper Appendix A minimal SKILL.md specification for few-shot guidance).")
 
         return res

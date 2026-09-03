@@ -246,3 +246,35 @@ def test_simulation_runner_edd_composite_eval(tmp_workspace):
     assert result.failed == 0
     assert result.accuracy == 1.0
 
+
+def test_ssot_all_production_skills_contract_and_eval():
+    """本番スキル（case-converter, secret-sanitizer）の *_edd.evalset.json（SSOT）から直接契約テスト・EDD評価が100%パスすることを検証"""
+    import json
+    from edd_agent_tools.evaluation import ContractTestRunner, SimulationEvalRunner, LocalWorkspaceEnv
+
+    skills_root = Path("/workspace/src/skills")
+    target_skills = ["case-converter", "secret-sanitizer"]
+
+    contract_runner = ContractTestRunner()
+    sim_runner = SimulationEvalRunner()
+    env = LocalWorkspaceEnv(workspace_dir="/workspace")
+
+    for s_name in target_skills:
+        s_dir = skills_root / s_name
+        skill = Skill(root_dir=str(s_dir), tier=1)
+
+        evalset_file = s_dir / "tests" / f"{s_name}_edd.evalset.json"
+        assert evalset_file.exists(), f"SSOT evalset not found at: {evalset_file}"
+
+        data = json.loads(evalset_file.read_text(encoding="utf-8"))
+
+        # 1. Contract Test (CLI Black-box 実行)
+        res_contract = contract_runner.run_tests(skill=skill, test_cases_data=data, env=env)
+        assert res_contract.failed == 0, f"Contract tests failed for {s_name}: {res_contract.failed_cases}"
+        assert res_contract.passed > 0, f"No contract cases executed for {s_name}"
+
+        # 2. EDD Composite Test (Trigger, Trajectory, Rubric)
+        res_sim = sim_runner.run_tests(skill=skill, eval_set_data=data, env=env)
+        assert res_sim.failed == 0, f"EDD composite eval failed for {s_name}: {res_sim.failed_cases}"
+        assert res_sim.accuracy == 1.0, f"EDD accuracy < 1.0 for {s_name}: {res_sim.accuracy}"
+

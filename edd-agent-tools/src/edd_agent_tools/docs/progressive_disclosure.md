@@ -7,13 +7,13 @@ Skills use a three-level loading system to optimize context window efficiency fo
    - Always in context (~100 words).
    - Contains `name` (lowercase hyphen-case) and `description` (third-person trigger explanation).
 
-2. **Level 2: SKILL.md Body**
+2. **Level 2: SKILL.md Body (Whitepaper Appendix A Minimal SKILL.md Standard)**
    - Loaded into context only when the skill triggers (<5k words).
-   - Contains Overview, Workflow Decision Tree / Available Tasks, Step-by-Step Instructions, Usage Scenarios, `When NOT to Use This Skill` (Negative Space Guidance), and Guidelines.
+   - Structured into the 6 essential sections: `## When to use`, `## When NOT to use`, `## Workflow`, `## Examples`, `## Output format`, and `## Anti-patterns to avoid`.
 
 3. **Level 3: Bundled Resources**
    - Loaded or executed on demand (Unlimited capacity).
-   - Separated into specialized directories: `scripts/`, `references/`, `assets/`, `examples/`, and `tests/`.
+   - Separated into specialized directories: `scripts/`, `references/`, `assets/`, `examples/`, and `tests/` (`{skill_name}_edd.evalset.json` as Single Source of Truth).
 
 ---
 

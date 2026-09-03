@@ -83,3 +83,15 @@ Anthropic 公式標準（Markdown-First & Progressive Disclosure）および Goo
 ## 9. スキル配布用パッケージングとマルチプラットフォーム対応 (Packaging & Portability)
 * 完成したスキルは `edd validate <skill-path>` で静的バリデーションを実行し、`edd package <skill-path>` を用いて配布用 ZIP アーカイブとして出力する。
 * 各スキルは Google ADK 2.0（`google.adk.skills.load_skill_from_dir`）、Claude Code、Antigravity、Cursor 等のあらゆる主要エージェント基盤へドロップイン可能であり、`Skill.adk_skill` プロパティを通じて ADK 純正の `Skill` / `SkillToolset` へシームレスにマウント可能。
+
+---
+
+## 10. 白書 Appendix A minimal SKILL.md 6大必須セクション標準
+白書 Appendix A に準拠し、すべての `SKILL.md` は以下の 6 つの必須セクションを備える：
+1. **`## When to use`**: 具体的なトリガー条件、発話キーワード、適用シナリオ。
+2. **`## When NOT to use`**: 粒度境界・技術的限界・ライフサイクル分離・インベントリ照合に基づく明確な除外条件。
+3. **`## Workflow`**: 決定論的ステップ手順と CLI 実行コマンド。
+4. **`## Examples`**: 入力発話と期待出力の具体例（Few-shot ガイダンス）。
+5. **`## Output format`**: 成果物仕様、ファイル配置、回答形式。
+6. **`## Anti-patterns to avoid`**: コンテキスト浪費や破壊的変更を防ぐための注意事項。
+

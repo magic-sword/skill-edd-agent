@@ -134,6 +134,7 @@ class EvalRunResult(BaseModel):
     total: int = Field(..., description="テストの総件数")
     accuracy: float = Field(..., description="テストの合格精度（0.0〜1.0）")
     detail_file_path: Optional[str] = Field(None, description="詳細結果JSONファイルの絶対パス")
+    failed_cases: List[FailedCaseDetail] = Field(default_factory=list, description="不合格となったテストケース一覧")
 
 
 class EvalDetailReport(BaseModel):

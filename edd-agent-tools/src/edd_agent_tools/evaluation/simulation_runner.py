@@ -106,10 +106,14 @@ class SimulationEvalRunner:
             exp_tools = case.get("expected_tool_calls", [])
             rubrics = case.get("rubric", [])
 
-            # 1. Trigger 判定
-            skill_matched = True
-            if exp_skill and exp_skill != skill.name:
-                skill_matched = False
+            # 1. Trigger 判定 (正例・負例)
+            if exp_skill is not None:
+                skill_matched = (exp_skill == skill.name)
+            else:
+                # 負例ケース: 当該スキルがトリガーされないことが期待値
+                tokens = [t for t in skill.name.split("-") if len(t) > 3]
+                has_keywords = any(t in user_input.lower() for t in tokens)
+                skill_matched = not has_keywords
 
             # 2. Trajectory 判定
             expected_tool_names = []
@@ -119,13 +123,17 @@ class SimulationEvalRunner:
                 else:
                     expected_tool_names.append(str(t))
 
-            actual_tool_names = case.get("actual_tool_uses") or [
-                t_name for t_name in expected_tool_names
-                if any(t_name in s or s in t_name for s in available_scripts)
-                or t_name == skill.name or t_name.startswith("scripts/")
-            ]
-
-            traj_matched = self._match_trajectory(expected=expected_tool_names, actual=actual_tool_names, mode=mode)
+            if not expected_tool_names:
+                # 負例等でツール呼び出しが不要なケース
+                traj_matched = True
+                actual_tool_names = []
+            else:
+                actual_tool_names = case.get("actual_tool_uses") or [
+                    t_name for t_name in expected_tool_names
+                    if any(t_name in s or s in t_name for s in available_scripts)
+                    or t_name == skill.name or t_name.startswith("scripts/")
+                ]
+                traj_matched = self._match_trajectory(expected=expected_tool_names, actual=actual_tool_names, mode=mode)
 
             # 3. Rubric 判定
             rubric_score = 1.0

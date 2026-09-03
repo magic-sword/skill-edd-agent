@@ -75,11 +75,17 @@
    - 外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します（`SkillValidator` が AST 解析で検知・警告）。
 6. **白書標準 EDD インバージョン開発と単一真実源 (SSOT)**:
    - `SKILL.md` の本文を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に白書 Snippet 3 標準フォーマットの 3〜4 つの評価ケース（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`、正例＋負例完備）を先行定義してください。
+   - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `expected_tool_calls`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させます。
    - 乱立する複数のテストファイルを排し、契約テスト・トリガー判定・Trajectory・ルーブリック評価をこの単一アセットから決定論的に実行します。
-
-6. **4次元ネガティブ・ハーネス (`When NOT to Use This Skill`)**:
-   - 粒度境界、技術的限界、ライフサイクル分離、インベントリ照合の4軸から客観的な除外条件を明記し、過剰適用を防ぎます。
-7. **客観的指示文体 (Imperative Form & Routing Algorithm)**:
+7. **白書 Appendix A minimal SKILL.md 6大必須セクション構造**:
+   - すべての `SKILL.md` は、以下の 6 つの必須セクションを標準レイアウトとして実装してください：
+     - `## When to use`: 具体的なトリガー条件、発話キーワード、適用シナリオ
+     - `## When NOT to use`: 粒度境界・技術的限界・ライフサイクル分離・インベントリ照合に基づく明確な除外条件
+     - `## Workflow`: 決定論的ステップ手順と CLI 実行コマンド
+     - `## Examples`: 入力発話と期待出力の具体例（Few-shot ガイダンス）
+     - `## Output format`: 成果物仕様、ファイル配置、回答形式
+     - `## Anti-patterns to avoid`: コンテキスト浪費や破壊的変更を防ぐための注意事項
+8. **客観的指示文体 (Imperative Form & Routing Algorithm)**:
    - 全体指示文は動詞起点（"To accomplish X, do Y" / "Xを実行するには、Yを行う" 形式）で記述し、会話調を排除してください。
    - Frontmatter の `description` はエージェントのルーティングアルゴリズムです。動詞起点（Verb-led sentence）で開始し、「Use when...（発動条件）」および「Do NOT use for...（除外条件）」を明記してください（50〜100 words, ≤1024 chars）。
    - Context Rot 対策として、`SKILL.md` 本文は 5,000 words 以内に抑え、詳細仕様は `references/` に分離してください。

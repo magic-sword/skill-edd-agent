@@ -119,11 +119,25 @@ Google ADK 2.0 公式ランタイム制約および白書標準（Appendix A & S
 * **Script Name**: **`snake_case`（例: `case_converter.py`）** - Python のモジュール・スクリプト標準。
 * **動名詞の推奨 (Prefer gerund form)**: 名詞（`pdf-processor`）より動名詞（`processing-pdfs`）を推奨。
 * **ベンダープレフィックスおよび汎用名の排除**: `gemini-*`, `claude-*` や `utils`, `tools` などの曖昧な命名を禁止。
-* **評価データセット単一真実源 (SSOT)**: 乱立する複数のテストファイルを廃止し、白書 Snippet 3 形式（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）の **`{skill_name}_edd.evalset.json`（正例 3 件＋負例 1 件）に一元化**。
+* **評価データセット単一真実源 (SSOT) と責務分離**: 乱立する複数のテストファイルを廃止し、白書 Snippet 3 形式（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）の **`{skill_name}_edd.evalset.json`（正例 3 件＋負例 1 件）に一元化**。
+  - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `expected_tool_calls`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させる。
+
+---
+
+## 5. 白書 Appendix A minimal SKILL.md 6大必須セクション仕様
+
+すべての `SKILL.md` は、白書 Appendix A が定める以下の 6 つの必須セクションを標準レイアウトとして実装します：
+
+1. **`## When to use`**: 具体的なトリガー条件、発話キーワード、適用シナリオ。
+2. **`## When NOT to use`**: 粒度境界・技術的限界・ライフサイクル分離・インベントリ照合に基づく明確な除外条件。
+3. **`## Workflow`**: 決定論的ステップ手順と CLI 実行コマンド。
+4. **`## Examples`**: 入力発話と期待出力の具体例（Few-shot ガイダンス）。
+5. **`## Output format`**: 成果物仕様、ファイル配置、回答形式。
+6. **`## Anti-patterns to avoid`**: コンテキスト浪費や破壊的変更を防ぐための注意事項。
 
 ```
 src/skills/{skill_name}/
-  SKILL.md       # YAML Frontmatter (動詞起点 + Use when + Do NOT use) + Markdown仕様書 (SSOT)
+  SKILL.md       # YAML Frontmatter (動詞起点 + Use when + Do NOT use) + 白書 6大必須セクション (SSOT)
   scripts/       # 決定論的スクリプト（Python標準 snake_case、CLI --help 対応、Zero-dependency、ドメイン処理がある場合のみ）
     {primary_script}.py
   references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）

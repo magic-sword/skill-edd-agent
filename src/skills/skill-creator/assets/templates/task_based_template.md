@@ -1,64 +1,52 @@
 ---
 name: {skill_name}
 description: |
-  Provides utility tasks and tools for {skill_title}.
-  Use when the user asks to convert, inspect, or process domain data using {skill_name}.
-  Do NOT use for trivial one-off operations or complex multi-stage workflows.
+  Provides specialized utilities and operations for {skill_title}.
+  Use when the user asks to perform operations on {skill_name}, execute conversion or processing tasks.
+  Do NOT use for one-line shell commands or global environment configuration.
 license: MIT
 pattern: task_based
 ---
 
 # {skill_title}
 
-## Overview
+## When to use
+- Perform {task} operations on input text or files
+- Convert, format, or process data using {skill_name} utilities
 
-{skill_title} に関するユーティリティタスク群を提供します。
+## When NOT to use
+- Trivial operations solvable with single-line shell commands
+- Global system administration or environment setup
+- Skill testing, diagnosis, and evolution (use `skill-evolver`)
+- New skill creation or packaging (use `skill-creator`)
 
-## Quick Start
+## Workflow
+1. Identify Input and Options: Determine target input text or files, options, and output destination.
+2. Execute Utility Script: Run the deterministic CLI script:
+   ```bash
+   python scripts/{primary_script}.py --input "data"
+   ```
+3. Verify Result: Check the output format and return the result.
 
-To execute standard operations using the provided CLI tool:
-```bash
-python scripts/{primary_script}.py --input "data"
-```
+## Examples
+- Input: "Process 'sample_input' with {skill_name}" → Output: "Processed output"
 
-## Available Tasks
+## Output format
+- Return direct operational output or processed file path.
 
-### Task 1: Inspection & Preparation
-To inspect inputs and determine conversion or operation parameters.
+## Anti-patterns to avoid
+- Do not read script source code into context; check CLI options with `--help`.
+- Do not make breaking edits to unrelated files.
 
-### Task 2: Operation Execution *(Tool: `scripts/{primary_script}.py`)*
-To perform the required operation:
-```bash
-python scripts/{primary_script}.py --input "data"
-```
-
-### Task 3: Output Verification
-To verify the results and return formatted output to the user.
-
-## Usage Scenarios & Trigger Examples
-
-This skill is triggered when handling requests such as:
-- "Please convert/process {input}."
-- "Run task {task_name} on {target}."
-
-## When NOT to Use This Skill
-
-Do NOT use this skill in the following scenarios:
-- **Trivial operations**: Simple one-word string conversions or native commands.
-- **Complex end-to-end workflows**: Use specialized workflow skills instead.
+## Requirements & Prerequisites
+- Python: >= 3.10
 
 ## Bundled Resources
-
 ### `scripts/` (Executable Tools - Zero-dependency)
-- **`scripts/{primary_script}.py`**: Deterministic CLI tool for tasks.
+- `scripts/{primary_script}.py`: Deterministic utility tool.
 
 ### `references/` (On-Demand Knowledge)
-- **`references/guide.md`**: Detailed options and schemas.
+- `references/guide.md`: Detailed tool guidelines and options.
 
 ### `examples/` (Usage Patterns)
-- **`examples/example_usage.py`**: Example command invocations and argument patterns.
-
-## Guidelines & Best Practices
-- **Black-box Execution**: Always execute `python scripts/{primary_script}.py --help` first to inspect parameters rather than reading script code into context.
-- **Reconnaissance First**: Validate input data formats and edge cases before running operations.
-- Ensure script flags and help messages (`--help`) are clear.
+- `examples/example_usage.py`: Example commands and recipes.

@@ -25,12 +25,18 @@ class ModuleType(StrEnum):
     AGENT = "agent"
 
 
-class SkillFrontmatter(BaseModel):
-    """SKILL.md の YAML Frontmatter メタデータ (Google ADK 2.0 & Anthropic 準拠)"""
-    model_config = {"populate_by_name": True, "extra": "allow"}
+try:
+    from google.adk.skills.models import Frontmatter as AdkFrontmatter
+except ImportError:
+    AdkFrontmatter = BaseModel
+
+
+class SkillFrontmatter(AdkFrontmatter):
+    """SKILL.md の YAML Frontmatter メタデータ (Google ADK 2.0 純正モデル完全継承 & 拡張)"""
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     name: str = Field(..., pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", description="スキル識別子 (ハイフンケース)")
-    description: str = Field(..., max_length=1024, description="トリガー条件を明記した第三者視点の説明")
+    description: str = Field(..., max_length=1024, description="トリガー条件を明記した第三者視点の説明 (1文動詞起点 + Use when + Do NOT use)")
     license: Optional[str] = Field("Complete terms in LICENSE.txt", description="ライセンス情報")
     compatibility: Optional[str] = Field(None, description="環境・プラットフォーム互換性要件")
     allowed_tools: Optional[Union[str, List[str]]] = Field(default=None, alias="allowed-tools", description="許可されたツール一覧")
@@ -40,13 +46,22 @@ class SkillFrontmatter(BaseModel):
 
 
 class SkillSpec(BaseModel):
-    """パースされた SKILL.md の完全な仕様表現モデル"""
+    """パースされた SKILL.md の完全な仕様表現モデル (白書 Appendix A & Google ADK 2.0 準拠)"""
     frontmatter: SkillFrontmatter
     title: str = Field(..., description="スキルのタイトル")
     overview: str = Field(..., description="スキルの概要")
     body: str = Field(..., description="Frontmatterを除くMarkdown本文全体")
     pattern: SkillPattern = Field(SkillPattern.WORKFLOW, description="スキル構造パターン")
-    when_not_to_use: List[str] = Field(default_factory=list, description="非適用条件のリスト")
+    when_to_use: List[str] = Field(default_factory=list, description="適用条件のリスト (When to use)")
+    when_not_to_use: List[str] = Field(default_factory=list, description="非適用条件のリスト (When NOT to use)")
+
+    # 白書 Appendix A 準拠セクションの有無
+    has_when_to_use: bool = Field(False, description="When to use セクションの有無")
+    has_when_not_to_use: bool = Field(False, description="When NOT to use セクションの有無")
+    has_workflow: bool = Field(False, description="Workflow / Available Tasks セクションの有無")
+    has_examples: bool = Field(False, description="Examples セクションの有無")
+    has_output_format: bool = Field(False, description="Output format セクションの有無")
+    has_anti_patterns: bool = Field(False, description="Anti-patterns to avoid セクションの有無")
 
     # 抽出されたリソース一覧（相対パス）
     scripts: List[str] = Field(default_factory=list, description="言及されている scripts/ 配下のファイル")
@@ -129,12 +144,28 @@ class SkillSpec(BaseModel):
         else:
             pattern = SkillPattern.WORKFLOW
 
+        # 白書 Appendix A 準拠セクションの検出
+        has_when_to = bool(re.search(r"^##\s+(When to [uU]se|Usage Scenarios)", body_str, re.MULTILINE))
+        has_when_not = bool(re.search(r"^##\s+When NOT to [uU]se", body_str, re.MULTILINE))
+        has_wf = bool(re.search(r"^##\s+(Workflow|Available Tasks|Quick Start|Core Capabilities|Guidelines)", body_str, re.MULTILINE))
+        has_ex = bool(re.search(r"^##\s+Examples?", body_str, re.MULTILINE))
+        has_out = bool(re.search(r"^##\s+Output [fF]ormat", body_str, re.MULTILINE))
+        has_anti = bool(re.search(r"^##\s+Anti-patterns", body_str, re.MULTILINE))
+
+        # When to use の抽出
+        when_to_use = []
+        when_to_match = re.search(r"##\s+(?:When to [uU]se|Usage Scenarios)[^\n]*\s*\n+(.*?)(?=\n##|\Z)", body_str, re.DOTALL | re.IGNORECASE)
+        if when_to_match:
+            for line in when_to_match.group(1).strip().splitlines():
+                line = line.strip()
+                if line.startswith(("-", "*")):
+                    when_to_use.append(line.lstrip("-* ").strip())
+
         # When NOT to use の抽出
-        when_not_match = re.search(r"##\s+When NOT to Use[^\n]*\s*\n+(.*?)(?=\n##|\Z)", body_str, re.DOTALL | re.IGNORECASE)
         when_not_to_use = []
+        when_not_match = re.search(r"##\s+When NOT to [uU]se[^\n]*\s*\n+(.*?)(?=\n##|\Z)", body_str, re.DOTALL | re.IGNORECASE)
         if when_not_match:
-            when_not_text = when_not_match.group(1).strip()
-            for line in when_not_text.splitlines():
+            for line in when_not_match.group(1).strip().splitlines():
                 line = line.strip()
                 if line.startswith(("-", "*")):
                     when_not_to_use.append(line.lstrip("-* ").strip())
@@ -151,7 +182,14 @@ class SkillSpec(BaseModel):
             overview=overview,
             body=body_str,
             pattern=pattern,
+            when_to_use=when_to_use,
             when_not_to_use=when_not_to_use,
+            has_when_to_use=has_when_to,
+            has_when_not_to_use=has_when_not,
+            has_workflow=has_wf,
+            has_examples=has_ex,
+            has_output_format=has_out,
+            has_anti_patterns=has_anti,
             scripts=scripts,
             references=references,
             assets=assets,
@@ -167,12 +205,33 @@ class SkillSpec(BaseModel):
         return cls.parse_markdown(path.read_text(encoding="utf-8"))
 
     def to_adk_skill(self, skill_dir: Optional[str | Path] = None) -> Any:
-        """google.adk.skills.models.Skill オブジェクトへ変換します。"""
+        """google.adk.skills.models.Skill オブジェクトへ変換します。
+        
+        指定されたディレクトリが存在する場合は、Google ADK 2.0 公式の
+        load_skill_from_dir を優先使用し、車輪の再発明を排除します。
+        """
         try:
+            from google.adk.skills import load_skill_from_dir
             from google.adk.skills import models as adk_models
         except ImportError:
             raise ImportError("google.adk is not installed.")
 
+        # ディレクトリが存在し、SKILL.md がある場合は ADK 公式ローダーを最優先
+        if skill_dir:
+            dir_path = Path(skill_dir).resolve()
+            if dir_path.is_dir() and (dir_path / "SKILL.md").exists():
+                try:
+                    # ディレクトリ名と Frontmatter 名が合致する場合は公式ローダーをそのまま利用
+                    loaded = load_skill_from_dir(dir_path)
+                    if self.pattern and "pattern" not in loaded.frontmatter.metadata:
+                        loaded.frontmatter.metadata["pattern"] = str(self.pattern.value if hasattr(self.pattern, "value") else self.pattern)
+                    if self.frontmatter.dependencies and "dependencies" not in loaded.frontmatter.metadata:
+                        loaded.frontmatter.metadata["dependencies"] = self.frontmatter.dependencies
+                    return loaded
+                except Exception:
+                    pass
+
+        # メモリ上からの安全な合成フォールバック
         meta = dict(self.frontmatter.metadata or {})
         meta["pattern"] = str(self.pattern.value if hasattr(self.pattern, "value") else self.pattern)
         if self.frontmatter.dependencies:
@@ -210,7 +269,6 @@ class SkillSpec(BaseModel):
                         except Exception:
                             references[rel] = ""
 
-            # examples/ も ADK references（オンデマンドドキュメント）として統合
             ex_dir = dir_path / "examples"
             if ex_dir.exists():
                 for f in ex_dir.rglob("*"):

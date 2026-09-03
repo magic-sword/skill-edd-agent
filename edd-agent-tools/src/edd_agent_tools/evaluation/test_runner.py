@@ -72,11 +72,18 @@ class ContractTestRunner:
                             cli_args = [str(a) for a in t_args]
                         else:
                             cli_args = [str(t_args)] if t_args else []
+                        exp_out = c.get("expected_output_format")
+                        # 具象出力文字列の場合は stdout アサーションに登録
+                        kw_list = []
+                        if exp_out and isinstance(exp_out, str) and not exp_out.endswith(("_format", "_summary", "_calculation", "_id")):
+                            kw_list = [exp_out]
+
                         eval_cases.append(EvalCase(
                             eval_case_id=c.get("case_id", f"case_{idx}"),
                             script_name=t_name,
                             cli_args=cli_args,
-                            expected_exit_code=0
+                            expected_exit_code=0,
+                            expected_stdout_contains=kw_list if kw_list else None
                         ))
             else:
                 test_case_set = EvalCaseSet.model_validate(test_cases_data)

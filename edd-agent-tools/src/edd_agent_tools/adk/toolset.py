@@ -211,7 +211,7 @@ class EddSkillToolset(SkillToolset):
         target = file_path or script_name
 
         try:
-            return pkg.execute_script(script_name=target, args=args)
+            return pkg.execute_script(script_name=target, args=args, code_executor=self._code_executor)
         except Exception as e:
             return {
                 "status": "error",

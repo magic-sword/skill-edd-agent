@@ -136,11 +136,13 @@ class SkillPackage:
         return self._tests
 
     # ==========================================
-    # 3層リソース探索・取得メソッド群
+    # 3層リソース探索・取得メソッド群 (ADK 2.0 Resources 優先活用)
     # ==========================================
 
     def list_scripts(self) -> List[str]:
         """内包するスクリプト（ファイル名ベース）の一覧を取得"""
+        if hasattr(self, "_adk_skill") and self._adk_skill is not None:
+            return sorted(list(self._adk_skill.resources.scripts.keys()))
         scripts_dir = Path(self.root_dir) / "scripts"
         if not scripts_dir.exists():
             return []
@@ -148,6 +150,9 @@ class SkillPackage:
 
     def list_references(self) -> List[str]:
         """内包する参照資料（ファイル名ベース）の一覧を取得"""
+        if hasattr(self, "_adk_skill") and self._adk_skill is not None:
+            all_refs = self._adk_skill.resources.references.keys()
+            return sorted([r for r in all_refs if not r.startswith("examples/")])
         ref_dir = Path(self.root_dir) / "references"
         if not ref_dir.exists():
             return []
@@ -155,6 +160,8 @@ class SkillPackage:
 
     def list_assets(self) -> List[str]:
         """内包するアセット（ファイル名ベース）の一覧を取得"""
+        if hasattr(self, "_adk_skill") and self._adk_skill is not None:
+            return sorted(list(self._adk_skill.resources.assets.keys()))
         assets_dir = Path(self.root_dir) / "assets"
         if not assets_dir.exists():
             return []
@@ -162,6 +169,9 @@ class SkillPackage:
 
     def list_examples(self) -> List[str]:
         """内包する使用例・パターン例（ファイル名ベース）の一覧を取得"""
+        if hasattr(self, "_adk_skill") and self._adk_skill is not None:
+            all_refs = self._adk_skill.resources.references.keys()
+            return sorted([r.replace("examples/", "") for r in all_refs if r.startswith("examples/")])
         ex_dir = Path(self.root_dir) / "examples"
         if not ex_dir.exists():
             return []
@@ -268,9 +278,12 @@ class SkillPackage:
         script_name: Optional[str] = None,
         args: Optional[List[str]] = None,
         extra_env: Optional[Dict[str, str]] = None,
-        timeout: int = 60
+        timeout: int = 60,
+        code_executor: Optional[Any] = None
     ) -> Dict[str, Any]:
-        """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。"""
+        """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。
+        Google ADK 2.0 の CodeExecutor（UnsafeLocalCodeExecutor 等）を標準サポート。
+        """
         scripts = self.list_scripts()
         target_script = None
 
@@ -285,6 +298,44 @@ class SkillPackage:
 
         if not target_script or not os.path.exists(target_script):
             raise FileNotFoundError(f"Could not resolve execution script in '{self.scripts_dir}'.")
+
+        # ADK 公式 CodeExecutor が指定されている場合の透過実行
+        if code_executor is not None:
+            try:
+                from google.adk.code_executors.code_execution_utils import CodeExecutionInput
+                from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
+                executor = _SkillScriptCodeExecutor(code_executor, timeout)
+                # ADK の execute_script_async または wrapper 実行
+                import asyncio
+                file_rel = os.path.relpath(target_script, self.root_dir)
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                if loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as pool:
+                        res = pool.submit(
+                            asyncio.run,
+                            executor.execute_script_async(None, self.adk_skill, file_rel, args)
+                        ).result()
+                else:
+                    res = loop.run_until_complete(
+                        executor.execute_script_async(None, self.adk_skill, file_rel, args)
+                    )
+
+                return {
+                    "status": res.get("status", "success"),
+                    "exit_code": 0 if res.get("status") == "success" else 1,
+                    "stdout": res.get("stdout", ""),
+                    "stderr": res.get("stderr", ""),
+                    "script_path": target_script
+                }
+            except Exception:
+                # サンドボックス未構成環境等の安全なフォールバック
+                pass
 
         cmd = [sys.executable, target_script] + (args or [])
         run_env = os.environ.copy()

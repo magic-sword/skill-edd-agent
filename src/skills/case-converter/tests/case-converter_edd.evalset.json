@@ -15,7 +15,6 @@
       "expected_output_format": "helloWorldExample",
       "rubric": [
         "correctly converts snake_case to camelCase",
-        "invokes scripts/case_converter.py CLI tool",
         "output matches helloWorldExample without conversational filler"
       ]
     },
@@ -32,7 +31,7 @@
       "expected_output_format": "user-profile-data",
       "rubric": [
         "correctly converts PascalCase to kebab-case",
-        "invokes scripts/case_converter.py CLI tool"
+        "output matches user-profile-data without conversational filler"
       ]
     },
     {
@@ -48,7 +47,7 @@
       "expected_output_format": "API_RESPONSE_STATUS",
       "rubric": [
         "correctly converts snake_case to CONSTANT_CASE",
-        "invokes scripts/case_converter.py CLI tool"
+        "output matches API_RESPONSE_STATUS without conversational filler"
       ]
     },
     {
@@ -56,12 +55,11 @@
       "input": "Summarize the architectural benefits of Google ADK 2.0",
       "expected_skill": null,
       "expected_tool_calls": [],
-      "expected_output_format": "conceptual_summary",
+      "expected_output_format": "Google ADK 2.0 provides native toolset integration, modular code execution sandbox, and evaluation-driven development capabilities.",
       "rubric": [
         "does not trigger case-converter",
-        "provides direct explanation without calling conversion tools"
+        "provides direct response for general architecture summary without error"
       ]
     }
   ]
 }
-

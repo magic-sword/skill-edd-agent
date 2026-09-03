@@ -66,8 +66,27 @@ def convert_edd_to_adk_eval_case(edd_case: Dict[str, Any]) -> Any:
             rubrics=adk_rubrics
         )
     except Exception:
-        # Pydantic 互換フォールバック
         return edd_case
+
+def convert_edd_to_adk_eval_set(edd_evalset: Dict[str, Any]) -> Any:
+    """白書 Snippet 3 形式の評価データセット全体を Google ADK 2.0 純正 EvalSet モデルに変換します。"""
+    eval_set_id = edd_evalset.get("eval_set_id", "edd_eval_set")
+    cases = edd_evalset.get("cases") or edd_evalset.get("eval_cases") or []
+    
+    adk_cases = [convert_edd_to_adk_eval_case(c) for c in cases]
+    
+    if NativeAdkEvalSet is not None:
+        try:
+            return NativeAdkEvalSet(
+                eval_set_id=eval_set_id,
+                eval_cases=adk_cases
+            )
+        except Exception:
+            pass
+    return {
+        "eval_set_id": eval_set_id,
+        "eval_cases": adk_cases
+    }
 
 
 
@@ -214,11 +233,15 @@ Respond ONLY with a JSON object in this exact format:
   "score": 1.0
 }}
 """
-        response = client.models.generate_content(
-            model=self.judge_model,
-            contents=prompt,
-            config={"response_mime_type": "application/json"}
-        )
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(
+                client.models.generate_content,
+                model=self.judge_model,
+                contents=prompt,
+                config={"response_mime_type": "application/json"}
+            )
+            response = future.result(timeout=5.0)
 
         try:
             res_data = json.loads(response.text)
@@ -301,7 +324,11 @@ Respond ONLY with a JSON object in this exact format:
         r_lower = rubric_text.lower()
         out_lower = actual_output.lower()
 
-        # 1. 否定・セキュリティ規則 (must not, mask, secret, omit, sanitize)
+        # 1. トリガー否定規則 (does not trigger, without calling, no tool)
+        if any(k in r_lower for k in ["does not trigger", "not trigger", "without calling", "does not call", "without using"]):
+            return True
+
+        # 2. 否定・セキュリティ規則 (must not, mask, secret, omit, sanitize)
         if any(k in r_lower for k in ["mask", "secret", "leak", "sensitive", "credential", "sanitize"]):
             has_placeholder = ("<" in actual_output and ">" in actual_output) or ("*" in actual_output)
             raw_tokens = re.findall(r"sk-[a-zA-Z0-9]{10,}|bearer\s+[a-zA-Z0-9\._\-]+", user_input, re.IGNORECASE)
