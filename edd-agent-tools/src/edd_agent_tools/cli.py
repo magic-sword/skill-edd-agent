@@ -203,13 +203,10 @@ def cmd_eval(args: argparse.Namespace) -> int:
     ran_any = False
     for t in types_to_run:
         cand_files = [
-            tests_dir / f"{args.skill_name}_{t}.test.json",
             tests_dir / f"{args.skill_name}.test.json",
+            tests_dir / f"{args.skill_name}_{t}.test.json",
+            tests_dir / f"{args.skill_name}-{t}.test.json",
             tests_dir / f"{t}.test.json",
-            tests_dir / f"{args.skill_name}_{t}.evalset.json",
-            tests_dir / f"{t}.evalset.json",
-            tests_dir / f"evalset_{t}.json",
-            tests_dir / f"{args.skill_name}.evalset.json",
         ]
         cand = next((p for p in cand_files if p.exists()), None)
         if not cand:
@@ -552,16 +549,14 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
         candidates = [
             tests_dir / f"{args.skill_name}.test.json",
             tests_dir / f"{args.skill_name}_edd.test.json",
-            tests_dir / f"{args.skill_name}_edd.evalset.json",
-            tests_dir / f"{args.skill_name}.evalset.json",
-            tests_dir / f"{args.skill_name}_adk_native.evalset.json",
+            tests_dir / f"{args.skill_name}-edd.test.json",
         ]
         for c in candidates:
             if c.exists():
                 eval_file = c
                 break
         if not eval_file:
-            all_evals = list(tests_dir.glob("*.test.json")) + list(tests_dir.glob("*.evalset.json"))
+            all_evals = list(tests_dir.glob("*.test.json"))
             if all_evals:
                 eval_file = all_evals[0]
 

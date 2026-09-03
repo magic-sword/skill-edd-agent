@@ -31,74 +31,29 @@ def test_e2e_evaluation_and_tier_gating(tmp_path):
     skill = Skill(root_dir=str(skill_dir), tier=0)
     assert skill.name == "json-schema-validator"
 
-    # 2. テストケースの準備 (contract, trigger, trajectory)
+    # 2. 自動スキャフォールドされた Google ADK 2.0 公式 EvalSet (SSOT) の検証
     tests_dir = skill_dir / "tests"
-    tests_dir.mkdir(parents=True, exist_ok=True)
+    ssot_test_file = tests_dir / "json-schema-validator.test.json"
+    assert ssot_test_file.exists()
+    assert (tests_dir / "test_config.json").exists()
 
-    contract_data = {
-        "eval_set_id": "json_schema_contract",
-        "eval_cases": [
-            {
-                "eval_case_id": "test_help",
-                "script_name": "scripts/json_schema_validator.py",
-                "cli_args": ["--help"],
-                "expected_exit_code": 0,
-                "expected_stdout_contains": ["--help"]
-            }
-        ]
-    }
-    (tests_dir / "json-schema-validator_contract.test.json").write_text(
-        json.dumps(contract_data, indent=2), encoding="utf-8"
-    )
+    with open(ssot_test_file, "r", encoding="utf-8") as f:
+        ssot_eval_data = json.load(f)
 
-    trigger_data = {
-        "eval_set_id": "json_schema_trigger",
-        "cases": [
-            {
-                "name": "pos_1",
-                "user_input": "Validate this JSON against schema",
-                "expected_tools": ["json-schema-validator"],
-                "should_trigger": True
-            }
-        ]
-    }
-    (tests_dir / "json-schema-validator_trigger.test.json").write_text(
-        json.dumps(trigger_data, indent=2), encoding="utf-8"
-    )
-
-    trajectory_data = {
-        "eval_set_id": "json_schema_trajectory",
-        "cases": [
-            {
-                "invocation_id": "inv_001",
-                "user_content": {"text": "Validate json"},
-                "intermediate_data": {
-                    "tool_uses": [
-                        {"name": "json_schema_validator.py", "args": {"input_val": "sample"}}
-                    ]
-                }
-            }
-        ]
-    }
-    (tests_dir / "json-schema-validator_trajectory.test.json").write_text(
-        json.dumps(trajectory_data, indent=2), encoding="utf-8"
-    )
-
-    # 3. ContractTestRunner の実行
-    env = LocalWorkspaceEnv()
+    # 3. ContractTestRunner の実行 (SSOT からの決定論的 Black-box CLI 実行)
+    env = LocalWorkspaceEnv(workspace_dir=str(tmp_path))
     c_runner = ContractTestRunner()
-    c_res = c_runner.run_tests(skill=skill, test_cases_data=contract_data, env=env)
-    assert c_res.passed == 1
+    c_res = c_runner.run_tests(skill=skill, test_cases_data=ssot_eval_data, env=env)
+    assert c_res.passed > 0
     assert c_res.failed == 0
     assert c_res.accuracy == 1.0
 
-    # 4. SimulationEvalRunner の多層評価実行
+    # 4. SimulationEvalRunner の多層評価実行 (Trigger, Trajectory, Rubric を一括検証)
     s_runner = SimulationEvalRunner()
-    t_res = s_runner.run_tests(skill=skill, eval_set_data=trigger_data, env=env)
-    assert t_res.accuracy >= 0.8
-
-    traj_res = s_runner.run_tests(skill=skill, eval_set_data=trajectory_data, env=env)
-    assert traj_res.accuracy == 1.0
+    sim_res = s_runner.run_tests(skill=skill, eval_set_data=ssot_eval_data, env=env)
+    assert sim_res.passed > 0
+    assert sim_res.failed == 0
+    assert sim_res.accuracy == 1.0
 
     # 5. Tier 1 昇格の検証
     state_file = tmp_path / "skills_state.json"

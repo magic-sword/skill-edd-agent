@@ -214,63 +214,47 @@ class AdkEvalAdapter:
         
         独自のマッチング処理を完全排除し、ADK 2.0 公式の MATCH_TYPE ロジックを 100% 活用します。
         """
-        if TrajectoryEvaluator is not None and ToolTrajectoryCriterion is not None and Invocation is not None and genai_types is not None:
-            try:
-                # ツール呼び出しを ADK 純正 FunctionCall に正規化
-                actual_calls = [normalize_to_function_call(c, skill_name=skill_name) for c in actual_tool_calls]
-                expected_calls = [normalize_to_function_call(c, skill_name=skill_name) for c in expected_tool_calls]
+        if TrajectoryEvaluator is None or ToolTrajectoryCriterion is None or Invocation is None or genai_types is None:
+            raise RuntimeError(
+                "Google ADK 2.0 evaluation components (TrajectoryEvaluator, ToolTrajectoryCriterion) are required. "
+                "Please ensure google-adk[eval] is installed."
+            )
 
-                match_type_map = {
-                    "exact": ToolTrajectoryCriterion.MatchType.EXACT,
-                    "in_order": ToolTrajectoryCriterion.MatchType.IN_ORDER,
-                    "any_order": ToolTrajectoryCriterion.MatchType.ANY_ORDER
-                }
-                adk_match = match_type_map.get(mode, ToolTrajectoryCriterion.MatchType.ANY_ORDER)
+        # ツール呼び出しを ADK 純正 FunctionCall に正規化
+        actual_calls = [normalize_to_function_call(c, skill_name=skill_name) for c in actual_tool_calls]
+        expected_calls = [normalize_to_function_call(c, skill_name=skill_name) for c in expected_tool_calls]
 
-                criterion = ToolTrajectoryCriterion(threshold=1.0, match_type=adk_match)
-                eval_metric = EvalMetric(metric_name="tool_trajectory_avg_score", criterion=criterion)
-                evaluator = TrajectoryEvaluator(eval_metric=eval_metric)
+        match_type_map = {
+            "exact": ToolTrajectoryCriterion.MatchType.EXACT,
+            "in_order": ToolTrajectoryCriterion.MatchType.IN_ORDER,
+            "any_order": ToolTrajectoryCriterion.MatchType.ANY_ORDER
+        }
+        adk_match = match_type_map.get(mode, ToolTrajectoryCriterion.MatchType.ANY_ORDER)
 
-                dummy_content = genai_types.Content(parts=[genai_types.Part.from_text(text="eval_turn")])
-                actual_inv = Invocation(
-                    invocation_id="eval_act",
-                    user_content=dummy_content,
-                    intermediate_data=IntermediateData(tool_uses=actual_calls)
-                )
-                expected_inv = Invocation(
-                    invocation_id="eval_exp",
-                    user_content=dummy_content,
-                    intermediate_data=IntermediateData(tool_uses=expected_calls)
-                )
+        criterion = ToolTrajectoryCriterion(threshold=1.0, match_type=adk_match)
+        eval_metric = EvalMetric(metric_name="tool_trajectory_avg_score", criterion=criterion)
+        evaluator = TrajectoryEvaluator(eval_metric=eval_metric)
 
-                result = evaluator.evaluate_invocations(
-                    actual_invocations=[actual_inv],
-                    expected_invocations=[expected_inv]
-                )
+        dummy_content = genai_types.Content(parts=[genai_types.Part.from_text(text="eval_turn")])
+        actual_inv = Invocation(
+            invocation_id="eval_act",
+            user_content=dummy_content,
+            intermediate_data=IntermediateData(tool_uses=actual_calls)
+        )
+        expected_inv = Invocation(
+            invocation_id="eval_exp",
+            user_content=dummy_content,
+            intermediate_data=IntermediateData(tool_uses=expected_calls)
+        )
 
-                is_passed = (result.overall_score >= 1.0)
-                msg = f"ADK Trajectory Evaluator ({mode}): score={result.overall_score:.2f}, status={result.overall_eval_status}"
-                return is_passed, msg
-            except Exception as e:
-                pass
+        result = evaluator.evaluate_invocations(
+            actual_invocations=[actual_inv],
+            expected_invocations=[expected_inv]
+        )
 
-        # ADK パッケージが利用できない場合のフォールバック（名前と引数の一致確認）
-        actual_names = [c.get("tool") or c.get("name", "") if isinstance(c, dict) else str(c) for c in actual_tool_calls]
-        expected_names = [c.get("tool") or c.get("name", "") if isinstance(c, dict) else str(c) for c in expected_tool_calls]
-
-        if mode == "exact":
-            match = (actual_names == expected_names)
-            return match, f"Fallback exact: actual={actual_names}, expected={expected_names}"
-        elif mode == "in_order":
-            exp_idx = 0
-            for act in actual_names:
-                if exp_idx < len(expected_names) and act == expected_names[exp_idx]:
-                    exp_idx += 1
-            match = (exp_idx == len(expected_names))
-            return match, f"Fallback in_order: actual={actual_names}, expected={expected_names}"
-        else:
-            missing = [e for e in expected_names if e not in actual_names]
-            return len(missing) == 0, f"Fallback any_order: missing={missing}"
+        is_passed = (result.overall_score >= 1.0)
+        msg = f"ADK Trajectory Evaluator ({mode}): score={result.overall_score:.2f}, status={result.overall_eval_status}"
+        return is_passed, msg
 
     def evaluate_response(
         self,
@@ -288,44 +272,35 @@ class AdkEvalAdapter:
         Returns:
             Tuple[bool, float, str]: (合否, ROUGE-1スコア, 詳細メッセージ)
         """
-        if ResponseEvaluator is not None and EvalMetric is not None and Invocation is not None and genai_types is not None:
-            try:
-                eval_metric = EvalMetric(metric_name="response_match_score", threshold=threshold)
-                evaluator = ResponseEvaluator(eval_metric=eval_metric)
+        if ResponseEvaluator is None or EvalMetric is None or Invocation is None or genai_types is None:
+            raise RuntimeError(
+                "Google ADK 2.0 evaluation components (ResponseEvaluator) are required. "
+                "Please ensure google-adk[eval] is installed."
+            )
 
-                actual_inv = Invocation(
-                    invocation_id="eval_resp_act",
-                    user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
-                    final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=actual_output)])
-                )
-                expected_inv = Invocation(
-                    invocation_id="eval_resp_exp",
-                    user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
-                    final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=expected_output)])
-                )
+        eval_metric = EvalMetric(metric_name="response_match_score", threshold=threshold)
+        evaluator = ResponseEvaluator(eval_metric=eval_metric)
 
-                result = evaluator.evaluate_invocations(
-                    actual_invocations=[actual_inv],
-                    expected_invocations=[expected_inv]
-                )
+        actual_inv = Invocation(
+            invocation_id="eval_resp_act",
+            user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
+            final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=actual_output)])
+        )
+        expected_inv = Invocation(
+            invocation_id="eval_resp_exp",
+            user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
+            final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=expected_output)])
+        )
 
-                score = float(result.overall_score)
-                is_passed = (score >= threshold)
-                msg = f"ADK ResponseEvaluator (ROUGE-1): score={score:.2f}, status={result.overall_eval_status}"
-                return is_passed, score, msg
-            except Exception as e:
-                pass
+        result = evaluator.evaluate_invocations(
+            actual_invocations=[actual_inv],
+            expected_invocations=[expected_inv]
+        )
 
-        # ADK 利用不可時の汎用決定論的 ROUGE-1 フォールバック
-        act_tokens = set(actual_output.strip().lower().split())
-        exp_tokens = set(expected_output.strip().lower().split())
-        if not exp_tokens:
-            score = 1.0 if not act_tokens else 0.5
-        else:
-            overlap = act_tokens.intersection(exp_tokens)
-            score = len(overlap) / len(exp_tokens)
+        score = float(result.overall_score)
         is_passed = (score >= threshold)
-        return is_passed, score, f"Deterministic ROUGE-1: score={score:.2f}"
+        msg = f"ADK ResponseEvaluator (ROUGE-1): score={score:.2f}, status={result.overall_eval_status}"
+        return is_passed, score, msg
 
     @staticmethod
     def create_trajectory_criterion(

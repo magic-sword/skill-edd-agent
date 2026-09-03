@@ -32,14 +32,12 @@ skill_toolset = create_adk_skill_toolset(
     code_executor=code_executor
 )
 
-# 2. エージェントの定義（ADK 2.0 純正 SkillToolset により Progressive Disclosure 命令は自動注入）
+# 2. エージェントの定義（ADK 2.0 純正 SkillToolset により Progressive Disclosure 手順命令は自動注入されます）
 instruction_text = """あなたは評価駆動開発（EDD: Evaluation-Driven Development）およびスキルの自己進化を自律遂行する統合エージェントです。
-Google ADK 2.0 および Anthropic 公式標準（Markdown-First & Progressive Disclosure）に従って動作します。
 
-## 主要責務と行動指針
-1. **スキルの活用と探索**: マウントされた SkillToolset を通じて、必要に応じてスキル（Level 2 手順書）やリソース（Level 3 スクリプト/リファレンス）をオンデマンドで活用してタスクを解決してください。
-2. **自己進化と品質保証**: 新規スキルの設計・作成は `skill-creator` を、スキルのテスト評価・失敗診断・自己修復・Tier昇格は `skill-evolver` を自律的に実行して達成してください。
-3. **安全な実行環境**: 決定論的スクリプトはコンテキストを節約するためブラックボックス実行（run_skill_script）してください。
+## 主要責務
+1. **自己進化と品質保証**: 新規スキルの設計・雛形作成には `skill-creator` を、スキルのテスト評価・失敗診断・自己修復・Tier昇格判定には `skill-evolver` を自律的に活用してタスクを達成してください。
+2. **評価駆動の徹底**: スキルを作成・進化させる際は、まず公式 EvalSet（*.test.json）によるテストケースを先行定義し、厳格な品質基準（Tool Trajectory & Rubrics）を遵守してください。
 """
 
 # ADK 2.0 Workflow Runtime 推奨の自動リトライ設定

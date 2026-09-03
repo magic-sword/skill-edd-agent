@@ -34,10 +34,12 @@
 
 Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）とシームレスに統合し、手書きロジックやアドホックな正規表現による車輪の再発明を完全に排除しています：
 
-* **`TrajectoryEvaluator` 直接駆動 & 第1級標準**:
-  Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。テストケースおよびエージェント実行におけるツール呼び出しは、ADK 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用し、従来のスクリプト直接表記（`scripts/xxx.py`）も透過的に正規化。
-* **`ResponseEvaluator` (ROUGE-1) による決定論的回答品質検証**:
-  ADK 公式の `google.adk.evaluation.response_evaluator.ResponseEvaluator` を直接駆動し、参照回答との ROUGE-1 類似度（`response_match_score`、デフォルト閾値 0.8）を客観的かつ高速に検証。特定ドメイン向けの正規表現キーワード判定を完全排除。
+* **`TrajectoryEvaluator` 完全一本化 & 第1級標準**:
+  Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` に 100% 一本化（独自フォールバック完全撤廃）。テストケースおよびエージェント実行におけるツール呼び出しは、ADK 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用し、従来のスクリプト直接表記も透過的に正規化。
+* **`ResponseEvaluator` (ROUGE-1) による決定論的回答品質検証の完全一本化**:
+  ADK 公式の `google.adk.evaluation.response_evaluator.ResponseEvaluator` に 100% 一本化（独自トークン集合フォールバック完全撤廃）。参照回答との ROUGE-1 類似度（`response_match_score`、デフォルト閾値 0.8）を客観的かつ高速に検証。
+* **Google ADK 2.0 純正 `BaseCodeExecutor` 委譲 (`SkillPackage.execute_script`)**:
+  スクリプト実行時に生 `subprocess.run` を直呼び出しする抽象化バイパスを解消し、ADK 純正の `UnsafeLocalCodeExecutor` や Docker/CloudCodeExecutor（`_SkillScriptCodeExecutor`）に実行パイプラインを委譲。
 * **Google ADK 2.0 純正 `AgentEvaluator` 連携**:
   `AdkEvalAdapter.evaluate_with_adk_agent()` を通じて、ADK 公式の `AgentEvaluator.evaluate()`（セッション追跡、実際のツール呼び出し軌跡取得、Rubrics 採点の一括実行）をシームレスに駆動。
 * **`rubric_based_final_response_quality_v1` & Position Swapping**:

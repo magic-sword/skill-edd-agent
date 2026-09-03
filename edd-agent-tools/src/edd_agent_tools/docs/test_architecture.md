@@ -48,25 +48,29 @@ flowchart LR
 - **Regression**: スキル追加・更新による既存機能の回帰劣化ゼロ（0 drops）。
 - **Token Budget**: 5〜15 スキルが同時展開された高トークン環境下での Context Rot 防止。
 
-### ② Google ADK 2.0 純正 TrajectoryEvaluator 直接駆動 (`AdkEvalAdapter`)
-- 手書き軌跡比較ループ（車輪の再発明）を完全撤廃し、ADK 2.0 純正の `TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。
-- テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`）を第1級の標準（Primary Standard）として採用。
+### ② Google ADK 2.0 純正 TrajectoryEvaluator 完全一本化 (`AdkEvalAdapter`)
+- 手書き軌跡比較ループ（車輪の再発明）および独自フォールバックを完全撤廃し、ADK 2.0 純正の `TrajectoryEvaluator` および `ToolTrajectoryCriterion` に 100% 一本化。
+- テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用。
 - 3大モード：`EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）。
 
-### ③ Google ADK 2.0 純正 ResponseEvaluator (ROUGE-1) & LLM-as-a-Judge (`AdkEvalAdapter`)
-- ADK 2.0 公式の `ResponseEvaluator`（ROUGE-1 `response_match_score`）により、アドホックな正規表現判定（車輪の再発明）を完全排除して高速かつ客観的なテキスト品質判定を実施。
+### ③ Google ADK 2.0 純正 ResponseEvaluator (ROUGE-1) 完全一本化 & LLM-as-a-Judge (`AdkEvalAdapter`)
+- 自前のトークン集合一致フォールバック（車輪の再発明）を完全排除し、ADK 2.0 公式の `ResponseEvaluator`（ROUGE-1 `response_match_score`）に 100% 一本化。
 - ライブ検証時は Google ADK 2.0 の `AgentEvaluator` および `RubricBasedFinalResponseQualityV1Evaluator`（`rubric_based_final_response_quality_v1`）を透過接続。
 - 参照回答とモデル回答の位置を反転させて 2 回推論する **Position Swapping** により順序バイアスを中和。
 - 通常テスト・CI は決定論的 Evaluator（`TrajectoryEvaluator` + `ResponseEvaluator`）でミリ秒単位で高速実行し、`--live` オプション時のみ Gemini API リモート推論を実行。
 
-### ④ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
+### ④ Google ADK 2.0 純正 BaseCodeExecutor 委譲 (`SkillPackage.execute_script`)
+- スクリプト実行時の生 `subprocess.run` 直呼び出しによる抽象化バイパスを解消。
+- `UnsafeLocalCodeExecutor` や Docker/Cloud 等の `BaseCodeExecutor`（`_SkillScriptCodeExecutor`）に実行パイプラインを委譲し、安全な実行コンテキストおよび環境変数設定（`EDD_SKILL_NAME`, `EDD_SKILL_ROOT`）を完全保証。
+
+### ⑤ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
 - **Black-box 実行**: Python 内部コードを直接インポートせず、CLI インターフェース（`cli_args`）経由でサブプロセス実行。
 - **$pass^k$ (Sustained Reliability)**: 1 回のラッキー合格を排除し、指定された $k$ 回連続実行（例: $k=3$）ですべて合格することを要求。
 
-### ⑤ Co-loaded 複数スキル共存ベンチマーク (`CoLoadedEvalRunner`)
+### ⑥ Co-loaded 複数スキル共存ベンチマーク (`CoLoadedEvalRunner`)
 - 5〜15 スキルが同時マウントされた高トークン負荷環境下で、スキルのルーティング精度および Context Rot の有無を検証。
 
-### ⑥ Human Sign-off ゲート (`SkillOptimizer` / `cli.py`)
+### ⑦ Human Sign-off ゲート (`SkillOptimizer` / `cli.py`)
 - 不可逆操作を伴う Tier 3 昇格時に、人間の明示的承認（`--yes` / `human_approved=True`）を必須とする安全ガバナンスプロトコル。
 
 ---

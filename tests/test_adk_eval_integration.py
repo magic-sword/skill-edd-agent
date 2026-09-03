@@ -339,4 +339,29 @@ def test_adk_eval_case_with_test_config_criteria(test_state):
     assert passed_exact is False
 
 
+def test_skill_package_execute_script_with_adk_code_executor(test_state):
+    """Google ADK 2.0 純正 UnsafeLocalCodeExecutor を注入した execute_script の検証。"""
+    from edd_agent_tools.core import SkillPackage
+    from google.adk.code_executors import UnsafeLocalCodeExecutor
+
+    meta = test_state.get_skill("case-converter")
+    assert meta is not None
+
+    pkg = SkillPackage(meta.root_dir, tier=meta.tier)
+    executor = UnsafeLocalCodeExecutor()
+
+    # UnsafeLocalCodeExecutor を注入してスクリプトを実行
+    exec_res = pkg.execute_script(
+        script_name="case_converter.py",
+        args=["--help"],
+        code_executor=executor
+    )
+
+    assert exec_res["status"] == "success"
+    assert exec_res["exit_code"] == 0
+    assert "usage" in exec_res["stdout"].lower()
+    assert exec_res.get("executor") == "UnsafeLocalCodeExecutor"
+
+
+
 

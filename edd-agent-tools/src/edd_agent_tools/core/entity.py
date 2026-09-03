@@ -304,6 +304,37 @@ class SkillPackage:
             raise FileNotFoundError(f"Could not resolve execution script in '{self.scripts_dir}'.")
 
         # ADK 2.0 公式 run_skill_script 規約に基づく CLI 引数の正規化
+        rel_path = f"scripts/{clean_name if script_name else os.path.basename(target_script)}"
+
+        # 1. BaseCodeExecutor (UnsafeLocalCodeExecutor 等) が指定された場合、ADK 公式の実行パイプラインに委譲
+        if code_executor is not None and hasattr(code_executor, "execute_code"):
+            try:
+                from google.adk.code_executors.code_execution_utils import CodeExecutionInput
+                from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
+                adk_skill = self.adk_skill
+                script_helper = _SkillScriptCodeExecutor(base_executor=code_executor, script_timeout=timeout)
+                wrapper_code = script_helper._build_wrapper_code(
+                    skill=adk_skill,
+                    file_path=rel_path,
+                    script_args=args,
+                    short_options=short_options,
+                    positional_args=positional_args
+                )
+                if wrapper_code is not None:
+                    exec_res = code_executor.execute_code(None, CodeExecutionInput(code=wrapper_code))
+                    status = "success" if not exec_res.stderr else "failed"
+                    return {
+                        "status": status,
+                        "exit_code": 0 if status == "success" else 1,
+                        "stdout": exec_res.stdout or "",
+                        "stderr": exec_res.stderr or "",
+                        "script_path": target_script,
+                        "executor": type(code_executor).__name__
+                    }
+            except Exception:
+                pass
+
+        # 2. 直接実行時 (Subprocess fallback)
         cmd_args: List[str] = []
         if isinstance(args, list):
             cmd_args.extend(str(a) for a in args)
@@ -375,68 +406,29 @@ class SkillTests:
         name_under = raw_name.replace('-', '_')
         name_hyphen = raw_name.replace('_', '-')
 
-        candidates = []
-        # Google ADK 2.0 公式ディレクトリ自動探索規約 (*.test.json) を最優先探索
-        for name in {raw_name, name_under, name_hyphen}:
-            candidates.extend([
-                f"{name}.test.json",
-                f"{name}_{test_type}.test.json",
-                f"{name}-{test_type}.test.json",
-                f"{name}_edd.test.json",
-                f"{name}-edd.test.json",
-                f"{name}_{test_type}.evalset.json",
-                f"{name}-{test_type}.evalset.json",
-                f"{name}_{test_type}_eval.evalset.json",
-                f"{name}-{test_type}_eval.evalset.json",
-            ])
-            if test_type == "contract":
-                candidates.extend([
-                    f"{name}_unit.test.json",
-                    f"{name}_contract.test.json",
-                    f"{name}_unit.evalset.json",
-                    f"{name}-unit.evalset.json",
-                    f"{name}_unit_eval.evalset.json",
-                ])
-            elif test_type == "unit":
-                candidates.extend([
-                    f"{name}_unit.test.json",
-                    f"{name}_contract.test.json",
-                    f"{name}_contract.evalset.json",
-                    f"{name}-contract.evalset.json",
-                ])
-            # 白書 Snippet 3 統一データセットへのフォールバック
-            candidates.extend([
-                f"{name}_edd.evalset.json",
-                f"{name}-edd.evalset.json",
-            ])
+        # 1. Google ADK 2.0 公式 EvalSet 単一真実源 (SSOT: {skill_name}.test.json) を最優先探索
+        for name in {raw_name, name_hyphen, name_under}:
+            ssot_path = os.path.join(self.tests_dir, f"{name}.test.json")
+            if os.path.isfile(ssot_path):
+                return os.path.abspath(ssot_path)
 
-        candidates.extend([
-            f"{test_type}.test.json",
-            "edd.test.json",
-            f"{test_type}.evalset.json",
-            f"{test_type}_eval.evalset.json",
-            "edd.evalset.json",
-        ])
-        if test_type == "contract":
-            candidates.extend(["unit.test.json", "contract.test.json", "unit.evalset.json", "contract.evalset.json"])
-        elif test_type == "unit":
-            candidates.extend(["unit.test.json", "contract.test.json", "contract.evalset.json"])
+        # 2. テスト種別指定がある場合のサブテストセット探索
+        if test_type:
+            for name in {raw_name, name_hyphen, name_under}:
+                for sep in ["_", "-"]:
+                    type_path = os.path.join(self.tests_dir, f"{name}{sep}{test_type}.test.json")
+                    if os.path.isfile(type_path):
+                        return os.path.abspath(type_path)
 
-        for candidate in candidates:
-            candidate_path = os.path.join(self.tests_dir, candidate)
-            if os.path.isfile(candidate_path):
-                return os.path.abspath(candidate_path)
+            for cand in [f"{test_type}.test.json", f"*{test_type}*.test.json"]:
+                matches = glob.glob(os.path.join(self.tests_dir, cand))
+                if matches:
+                    return os.path.abspath(matches[0])
 
-        for pat in [f"*{test_type}*.test.json", f"*{test_type}*.evalset.json"]:
-            pattern = os.path.join(self.tests_dir, pat)
-            matches = glob.glob(pattern)
-            if matches:
-                return os.path.abspath(matches[0])
-
-        for pat in ["*edd*.test.json", "*.test.json", "*edd*.evalset.json"]:
-            edd_matches = glob.glob(os.path.join(self.tests_dir, pat))
-            if edd_matches:
-                return os.path.abspath(edd_matches[0])
+        # 3. 任意の *.test.json の探索
+        any_matches = sorted(glob.glob(os.path.join(self.tests_dir, "*.test.json")))
+        if any_matches:
+            return os.path.abspath(any_matches[0])
 
         return None
 
@@ -506,15 +498,11 @@ class SkillTests:
         ]
 
     def list_evalsets(self) -> list[str]:
-        """tests/ 配下に存在する全 *.test.json および *.evalset.json ファイルの絶対パスリストを返します。"""
+        """tests/ 配下に存在する全 *.test.json ファイルの絶対パスリストを返します。"""
         import glob
         if not os.path.exists(self.tests_dir):
             return []
-        found = set()
-        for pat in ["*.test.json", "*.evalset.json"]:
-            for p in glob.glob(os.path.join(self.tests_dir, pat)):
-                found.add(os.path.abspath(p))
-        return sorted(found)
+        return sorted([os.path.abspath(p) for p in glob.glob(os.path.join(self.tests_dir, "*.test.json"))])
 
 
 # Google ADK 2.0 純正 google.adk.skills.models.Skill との同名衝突を解消したエイリアス定義

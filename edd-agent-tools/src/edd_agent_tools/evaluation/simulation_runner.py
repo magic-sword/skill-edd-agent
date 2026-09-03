@@ -57,8 +57,13 @@ class SimulationEvalRunner:
         if not cases:
             return EvalRunResult(passed=0, failed=0, total=0, accuracy=1.0)
 
-        # 0. EDD Composite Testing (白書 Snippet 3 標準フォーマット)
-        if "edd" in eval_set_id or any("expected_tool_calls" in c or "expected_skill" in c for c in cases):
+        # 0. Google ADK 2.0 公式 EvalSet および EDD 複合テストケース（最優先）
+        is_adk_or_edd = (
+            "edd" in eval_set_id
+            or "test" in eval_set_id
+            or any("conversation" in c or "expected_skill" in c or "expected_tool_calls" in c for c in cases if isinstance(c, dict))
+        )
+        if is_adk_or_edd:
             mode = trajectory_mode or self.default_trajectory_mode
             return self._run_edd_composite_tests(skill, cases, mode=mode)
 

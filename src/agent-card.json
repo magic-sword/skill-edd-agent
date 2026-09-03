@@ -12,8 +12,8 @@
   "skills": [
     {
       "description": "Execute skill-creator skill (scaffold authoring & packaging pipeline)",
-      "id": "evaluation_driven_development_agent-skill_creator",
-      "name": "skill_creator",
+      "id": "evaluation_driven_development_agent-skill-creator",
+      "name": "skill-creator",
       "tags": [
         "llm",
         "tools"
@@ -21,8 +21,8 @@
     },
     {
       "description": "Execute skill-evolver skill (multi-tier testing, diagnosis & self-healing loop)",
-      "id": "evaluation_driven_development_agent-skill_evolver",
-      "name": "skill_evolver",
+      "id": "evaluation_driven_development_agent-skill-evolver",
+      "name": "skill-evolver",
       "tags": [
         "llm",
         "tools"
@@ -30,8 +30,8 @@
     },
     {
       "description": "Execute case-converter skill (deterministic text case conversion)",
-      "id": "evaluation_driven_development_agent-case_converter",
-      "name": "case_converter",
+      "id": "evaluation_driven_development_agent-case-converter",
+      "name": "case-converter",
       "tags": [
         "llm",
         "tools"
@@ -39,8 +39,8 @@
     },
     {
       "description": "Execute secret-sanitizer skill (mask sensitive API keys and tokens)",
-      "id": "evaluation_driven_development_agent-secret_sanitizer",
-      "name": "secret_sanitizer",
+      "id": "evaluation_driven_development_agent-secret-sanitizer",
+      "name": "secret-sanitizer",
       "tags": [
         "llm",
         "tools"
