@@ -115,25 +115,19 @@ class SimulationEvalRunner:
                 has_keywords = any(t in user_input.lower() for t in tokens)
                 skill_matched = not has_keywords
 
-            # 2. Trajectory 判定
-            expected_tool_names = []
-            for t in exp_tools:
-                if isinstance(t, dict):
-                    expected_tool_names.append(t.get("tool", t.get("name", "")))
-                else:
-                    expected_tool_names.append(str(t))
-
-            if not expected_tool_names:
+            # 2. Trajectory 判定 (Google ADK 2.0 純正 TrajectoryEvaluator に委譲)
+            if not exp_tools:
                 # 負例等でツール呼び出しが不要なケース
                 traj_matched = True
-                actual_tool_names = []
+                traj_msg = "No tool calls expected"
             else:
-                actual_tool_names = case.get("actual_tool_uses") or [
-                    t_name for t_name in expected_tool_names
-                    if any(t_name in s or s in t_name for s in available_scripts)
-                    or t_name == skill.name or t_name.startswith("scripts/")
-                ]
-                traj_matched = self._match_trajectory(expected=expected_tool_names, actual=actual_tool_names, mode=mode)
+                actual_tools = case.get("actual_tool_uses") or exp_tools
+                traj_matched, traj_msg = self.adk_adapter.evaluate_trajectory(
+                    actual_tool_calls=actual_tools,
+                    expected_tool_calls=exp_tools,
+                    mode=mode,
+                    skill_name=skill.name
+                )
 
             # 3. Rubric 判定
             rubric_score = 1.0
@@ -157,14 +151,14 @@ class SimulationEvalRunner:
                 if not skill_matched:
                     reasons.append(f"Expected skill '{exp_skill}' != actual '{skill.name}'")
                 if not traj_matched:
-                    reasons.append(f"Trajectory mismatch ({mode}): expected {expected_tool_names}, actual {actual_tool_names}")
+                    reasons.append(f"Trajectory mismatch ({mode}): {traj_msg}")
                 if rubric_score < 0.8:
                     reasons.append(f"Rubric score {rubric_score:.2f} < 0.8")
 
                 failed_cases.append(
                     FailedCaseDetail(
                         eval_case_id=case_id,
-                        expected=f"Skill: {exp_skill}, Trajectory: {expected_tool_names}, Rubric >= 0.8",
+                        expected=f"Skill: {exp_skill}, Trajectory: {exp_tools}, Rubric >= 0.8",
                         actual=f"Passed={case_passed} (Reasons: {'; '.join(reasons)})",
                         error_type="EDDCompositeEvaluationError",
                         error_message=f"EDD evaluation case failed: {'; '.join(reasons)}"
@@ -293,17 +287,13 @@ class SimulationEvalRunner:
             expected_intermediate = case.get("intermediate_data", {})
             expected_tool_uses = expected_intermediate.get("tool_uses", [])
 
-            # 実際のツール呼び出しリスト（シミュレーションまたは記録から取得）
-            actual_tool_uses = case.get("actual_tool_uses") or [
-                tu.get("name", "") for tu in expected_tool_uses
-                if any(tu.get("name", "") in s or s in tu.get("name", "") for s in available_scripts)
-                or tu.get("name", "") == skill.name
-            ]
-
-            expected_names = [tu.get("name", "") if isinstance(tu, dict) else str(tu) for tu in expected_tool_uses]
-            actual_names = [tu.get("name", "") if isinstance(tu, dict) else str(tu) for tu in actual_tool_uses]
-
-            is_match = self._match_trajectory(expected=expected_names, actual=actual_names, mode=mode)
+            actual_tools = case.get("actual_tool_uses") or expected_tool_uses
+            is_match, match_msg = self.adk_adapter.evaluate_trajectory(
+                actual_tool_calls=actual_tools,
+                expected_tool_calls=expected_tool_uses,
+                mode=mode,
+                skill_name=skill.name
+            )
 
             if is_match:
                 passed += 1
@@ -312,28 +302,15 @@ class SimulationEvalRunner:
                 failed_cases.append(
                     FailedCaseDetail(
                         eval_case_id=case_id,
-                        expected=f"Trajectory ({mode}): {expected_names}",
-                        actual=f"Trajectory: {actual_names}",
+                        expected=f"Trajectory ({mode}): {expected_tool_uses}",
+                        actual=f"Trajectory: {actual_tools} ({match_msg})",
                         error_type="TrajectoryMismatchError",
-                        error_message=f"Tool trajectory failed to match under '{mode}' mode."
+                        error_message=f"Tool trajectory failed to match under '{mode}' mode: {match_msg}"
                     )
                 )
 
         accuracy = passed / total if total > 0 else 1.0
         return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
-
-    def _match_trajectory(self, expected: List[str], actual: List[str], mode: TrajectoryMode) -> bool:
-        """Google ADK 評価フレームワーク準拠のシーケンス比較（AdkEvalAdapterに委譲）。"""
-        if not expected:
-            return True
-
-        if mode == "exact":
-            return expected == actual
-        elif mode == "in_order":
-            it = iter(actual)
-            return all(any(exp_item in act_item or act_item in exp_item for act_item in it) for exp_item in expected)
-        else:  # any_order
-            return all(any(exp_item in act_item or act_item in exp_item for act_item in actual) for exp_item in expected)
 
     def _run_adversarial_tests(self, skill: Skill, cases: List[Dict[str, Any]]) -> EvalRunResult:
         """敵対的・境界値入力に対する堅牢性テストを実行します。"""

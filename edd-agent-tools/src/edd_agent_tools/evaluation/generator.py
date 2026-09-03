@@ -34,7 +34,65 @@ def _load_skill_context(skill_name: str) -> tuple[str, List[str]]:
 
 
 class EvalSetGenerator:
-    """決定論的多層評価テストセット（Trigger, Contract, Golden, Judge, Trajectory, Adversarial）ジェネレータ"""
+    """決定論的多層評価テストセット（EDD SSOT, Trigger, Contract, Golden, Judge, Trajectory, Adversarial）ジェネレータ"""
+
+    def generate_edd_tests(self, skill_name: str, output_path: str) -> bool:
+        """白書 Snippet 3 形式準拠の単一真実源 (SSOT) 評価ケース（正例＋負例完備）を生成する。"""
+        state = SkillsState()
+        skill = state.get_skill(skill_name)
+        trigger_examples = []
+        when_not_to_use = []
+        if skill and skill.spec:
+            trigger_examples = getattr(skill.spec, "when_to_use", None) or getattr(skill.spec, "concrete_trigger_examples", None) or []
+            when_not_to_use = getattr(skill.spec, "when_not_to_use", None) or []
+
+        _, script_names = _load_skill_context(skill_name)
+        main_script = f"scripts/{script_names[0]}" if script_names else f"scripts/{skill_name.replace('-', '_')}.py"
+
+        cases = []
+        # 正例ケース
+        pos_inputs = trigger_examples if trigger_examples else [f"Execute {skill_name} task on sample input"]
+        for idx, inp in enumerate(pos_inputs[:3], 1):
+            cases.append({
+                "case_id": f"{skill_name.replace('-', '_')}_edd_{idx:03d}",
+                "input": inp,
+                "expected_skill": skill_name,
+                "expected_tool_calls": [
+                    {
+                        "tool": main_script,
+                        "args": {"input": "sample"}
+                    }
+                ],
+                "expected_output_format": f"processed_{skill_name}_output",
+                "rubric": [
+                    f"executes {main_script} deterministically",
+                    "preserves input structure and provides clean output"
+                ]
+            })
+
+        # 負例ケース (誤発火防止・白書必須要件)
+        neg_input = when_not_to_use[0] if when_not_to_use else "Summarize the architectural benefits of Google ADK 2.0"
+        cases.append({
+            "case_id": f"{skill_name.replace('-', '_')}_edd_neg_001",
+            "input": neg_input,
+            "expected_skill": None,
+            "expected_tool_calls": [],
+            "expected_output_format": "direct_answer",
+            "rubric": [
+                f"does not trigger {skill_name}",
+                "answers user query directly without error"
+            ]
+        })
+
+        data = {
+            "eval_set_id": f"{skill_name}_edd_eval",
+            "skill_name": skill_name,
+            "cases": cases
+        }
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return True
 
     def generate_trigger_tests(self, skill_name: str, output_path: str) -> bool:
         """インテント分類用のトリガーテストケース（正例・負例発話）の雛形を生成する。"""
@@ -43,8 +101,8 @@ class EvalSetGenerator:
         trigger_examples = []
         when_not_to_use = []
         if skill and skill.spec:
-            trigger_examples = skill.spec.concrete_trigger_examples or []
-            when_not_to_use = skill.spec.when_not_to_use or []
+            trigger_examples = getattr(skill.spec, "when_to_use", None) or getattr(skill.spec, "concrete_trigger_examples", None) or []
+            when_not_to_use = getattr(skill.spec, "when_not_to_use", None) or []
 
         cases = []
         if trigger_examples:
@@ -215,12 +273,14 @@ class EvalSetGenerator:
         base_out.mkdir(parents=True, exist_ok=True)
 
         generated_files = []
-        types_to_run = ["trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if test_type == "all" else [test_type]
+        types_to_run = ["edd", "trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if test_type == "all" else [test_type]
 
         for t in types_to_run:
             out_path = base_out / f"{skill_name}_{t}.evalset.json"
             success = False
-            if t == "trigger":
+            if t == "edd":
+                success = self.generate_edd_tests(skill_name, str(out_path))
+            elif t == "trigger":
                 success = self.generate_trigger_tests(skill_name, str(out_path))
             elif t == "contract":
                 success = self.generate_contract_tests(skill_name, str(out_path))

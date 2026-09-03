@@ -64,9 +64,11 @@ export GOOGLE_API_KEY="your-google-api-key"
 ## 5. テストスイートの実行
 
 ```bash
-# 全テストの実行 (53件すべて Green)
+# 全テストの実行 (54件すべて Green)
 pytest tests/ -v
 
+# 白書 4大 Eval Coverage Checklist の検証
+edd eval case-converter --coverage
 
 # ADK 評価および Trajectory 統合テスト
 pytest tests/test_adk_eval_integration.py -v
@@ -74,3 +76,4 @@ pytest tests/test_adk_eval_integration.py -v
 # 自己進化 End-to-End デモの実行
 python demo_self_evolution.py
 ```
+

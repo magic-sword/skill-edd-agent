@@ -246,4 +246,33 @@ def test_edd_snippet3_to_adk_eval_case_conversion():
     assert adk_case is not None
     assert hasattr(adk_case, "eval_id")
     assert adk_case.eval_id == "refund_dup_charge_001"
+    assert len(adk_case.conversation) == 1
+    assert adk_case.conversation[0].intermediate_data is not None
+    assert len(adk_case.conversation[0].intermediate_data.tool_uses) == 2
+
+
+def test_adk_trajectory_evaluator_native_execution():
+    """AdkEvalAdapter が Google ADK 2.0 純正 TrajectoryEvaluator を直接呼び出して評価することを検証。"""
+    adapter = AdkEvalAdapter()
+
+    # 1. run_skill_script 形式の ADK 純正ツール呼び出し
+    act_calls = [
+        {"tool": "run_skill_script", "args": {"skill_name": "secret-sanitizer", "file_path": "scripts/secret_sanitizer.py", "args": {"input": "api_key"}}}
+    ]
+    # 2. スクリプト直接パス記述（Snippet 3）形式
+    exp_calls = [
+        {"tool": "scripts/secret_sanitizer.py", "args": {"input": "api_key"}}
+    ]
+
+    # exact モードで正規化を経て完全一致することを検証
+    passed, msg = adapter.evaluate_trajectory(
+        actual_tool_calls=act_calls,
+        expected_tool_calls=exp_calls,
+        mode="exact",
+        skill_name="secret-sanitizer"
+    )
+    assert passed is True
+    assert "ADK Trajectory Evaluator (exact)" in msg
+    assert "score=1.00" in msg
+
 

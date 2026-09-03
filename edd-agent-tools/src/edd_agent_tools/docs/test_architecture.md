@@ -36,29 +36,36 @@ graph TD
 
 ```mermaid
 flowchart LR
-    A["① CLI 契約テスト (ContractTestRunner: pass^k 連続全勝)"] --> B["② トリガー精度 & 3大 Trajectory (SimulationEvalRunner: EXACT/IN_ORDER/ANY_ORDER)"]
+    A["① 4大 Eval Coverage チェック (edd eval --coverage)"] --> B["② ADK 2.0 純正 Trajectory (TrajectoryEvaluator: EXACT/IN_ORDER/ANY_ORDER)"]
     B --> C["③ ADK 2.0 純正 LLM-as-a-Judge (AdkEvalAdapter: Position Swapping)"]
-    C --> D["④ Co-loaded 共存テスト (CoLoadedEvalRunner: Context Rot 防止)"]
+    C --> D["④ 持続的一貫性検証 (ContractTestRunner: pass^k 連続全勝)"]
     D --> E["⑤ 連鎖回帰テスト & Human Sign-off (CascadeTestRunner / Tier-Gate)"]
 ```
 
-### ① 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
-- **Black-box 実行**: Python 内部コードを直接インポートせず、CLI インターフェース（`cli_args`）経由でサブプロセス実行。
-- **$pass^k$ (Sustained Reliability)**: 1 回のラッキー合格を排除し、指定された $k$ 回連続実行（例: $k=3$）ですべて合格することを要求。
+### ① 白書（May 2026）4大 Eval Coverage Checklist (`edd eval --coverage`)
+- **Trigger**: 正例および負例テストケースで発火精度 90% 以上。
+- **Execution**: 決定論的契約テスト 100% 合格、および期待される出力とツール軌跡の完全一致。
+- **Regression**: スキル追加・更新による既存機能の回帰劣化ゼロ（0 drops）。
+- **Token Budget**: 5〜15 スキルが同時展開された高トークン環境下での Context Rot 防止。
 
-### ② 3大 Tool Trajectory 評価モード (`SimulationEvalRunner`)
-- **`EXACT`**: ツール呼び出し順序・要素数が完全一致（機密・金融操作向け）
-- **`IN_ORDER`**: 期待される順序を保った部分列（Tier 2〜3: Action-Allowed 向け）
-- **`ANY_ORDER`**: 順序不問のツール呼び出し包含（Tier 1: Read-Only 向け）
+### ② Google ADK 2.0 純正 TrajectoryEvaluator 直接駆動 (`AdkEvalAdapter`)
+- 手書き軌跡比較ループ（車輪の再発明）を完全撤廃し、ADK 2.0 純正の `TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。
+- スキル内スクリプト呼び出し（`run_skill_script`）の正規化アダプタにより、白書 Snippet 3 形式と透過に相互変換。
+- 3大モード：`EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）。
 
 ### ③ Google ADK 2.0 純正 LLM-as-a-Judge (`AdkEvalAdapter`)
 - Google ADK 2.0 の `AgentEvaluator` および `RubricsBasedCriterion`（`rubric_based_final_response_quality_v1` 等）を透過接続。
 - 参照回答とモデル回答の位置を反転させて 2 回推論する **Position Swapping** により順序バイアスを中和。
+- 通常テスト・CI は決定論的フォールバックでミリ秒単位で高速実行し、`--live` オプション時のみリモート推論を実行。
 
-### ④ Co-loaded 複数スキル共存ベンチマーク (`CoLoadedEvalRunner`)
+### ④ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
+- **Black-box 実行**: Python 内部コードを直接インポートせず、CLI インターフェース（`cli_args`）経由でサブプロセス実行。
+- **$pass^k$ (Sustained Reliability)**: 1 回のラッキー合格を排除し、指定された $k$ 回連続実行（例: $k=3$）ですべて合格することを要求。
+
+### ⑤ Co-loaded 複数スキル共存ベンチマーク (`CoLoadedEvalRunner`)
 - 5〜15 スキルが同時マウントされた高トークン負荷環境下で、スキルのルーティング精度および Context Rot の有無を検証。
 
-### ⑤ Human Sign-off ゲート (`SkillOptimizer` / `cli.py`)
+### ⑥ Human Sign-off ゲート (`SkillOptimizer` / `cli.py`)
 - 不可逆操作を伴う Tier 3 昇格時に、人間の明示的承認（`--yes` / `human_approved=True`）を必須とする安全ガバナンスプロトコル。
 
 ---

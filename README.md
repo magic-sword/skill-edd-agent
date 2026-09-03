@@ -69,12 +69,12 @@ flowchart TD
         - `tests/`: 白書 Snippet 3 形式評価データセット（`<skill-name>_edd.evalset.json`: 単一真実源: SSOT）
 3.  **Google ADK 2.0 純正ランタイム完全一致命名規約**
     *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。
-4.  **Google ADK 2.0 純正評価統合 & Position Swapping**
-    *   ADK 2.0 の `AgentEvaluator` / `RubricsBasedCriterion` を透過接続し、参照回答と生成回答を入れ替えて順序バイアスを中和する Position Swapping を標準装備。
-5.  **ADK 準拠の 3大 Tool Trajectory 評価モード**
-    *   `EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）による厳密なツール呼び出し軌跡検証。
-6.  **$pass^k$ (Sustained Reliability) & Co-loaded 共存テスト**
-    *   複数回連続実行での全勝を要求する $pass^k$ 評価と、5〜15 スキル同時展開下での Context Rot 防止ベンチマーク。
+4.  **Google ADK 2.0 純正評価統合 & 車輪の再発明の完全排除**
+    *   ADK 2.0 の `TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接駆動。独自の手書き軌跡ループを全廃し、スクリプト実行（`run_skill_script`）の正規化アダプタを配備。Position Swapping により順序バイアスを中和。
+5.  **白書（May 2026）4大 Eval Coverage Checklist (`--coverage`)**
+    *   白書 Section 4 の 4大必須評価条件（Trigger >= 90%, Execution/Trajectory 100%, Regression 0 drops, Token Budget/Co-loaded 5~15 skills）を一括判定・チェックリスト出力。
+6.  **$pass^k$ (Sustained Reliability) & 3大 Tool Trajectory 評価モード**
+    *   複数回連続実行での全勝を要求する $pass^k$ 評価と、`EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）による厳密なツール呼び出し軌跡検証。
 7.  **Human Sign-off ゲート (Tier 3: Action-Allowed)**
     *   不可逆操作が許可される Tier 3 昇格時には、人間の明示的承認を必須化。
 8.  **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**
@@ -97,7 +97,7 @@ flowchart TD
 | :--- | :--- | :---: | :--- |
 | **`skill-creator`** | スキル設計・雛形生成・配布パッケージャ | Tier 1 | Anthropic & Google ADK 準拠の対話的スキル作成ガイド、雛形生成、AST静的検証、配布用 ZIP パッケージャ、契約テスト完備。 |
 | **`skill-evolver`** | 統合評価・失敗診断・自己修復・Tier昇格 | Tier 1 | 契約テスト・シミュレーション評価の実行、失敗コンテキスト診断、自律的自己修復ループ、依存連鎖回帰テスト（Cascade Testing）、および Tier 1〜3 昇格判定を統合オーケストレーション。 |
-| **`case-converter`** | テキストケース変換 | Tier 1 | camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case 等の相互変換を行う Zero-dependency 実用スキル。 |
+| **`case-converter`** | テキストケース変換 | Tier 2 | camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case 等の相互変換を行う Zero-dependency 実用スキル。 |
 | **`secret-sanitizer`** | 機密情報マスキング・サニタイズ | **Tier 3** | APIキー、Bearerトークン、パスワード、JWT、IPアドレス、メールアドレスを検出・マスクする Zero-dependency ツール。全品質防壁を突破。 |
 
 ---
@@ -125,12 +125,15 @@ edd validate src/skills/my-new-skill
 # 4. 配布用 ZIP パッケージング
 edd package src/skills/my-new-skill --out dist
 
-# 5. EDD 多層評価 (Trajectory / pass^k / Co-loaded 対応)
+# 5. 白書 4大 Eval Coverage Checklist 検証
+edd eval my-new-skill --coverage
+
+# 6. EDD 多層評価 (Trajectory / pass^k / Co-loaded 対応)
 edd eval my-new-skill --type trajectory --trajectory-mode in_order
 edd eval my-new-skill --pass-k 3
 edd eval my-new-skill --co-loaded
 
-# 6. Tier 昇格 & 失敗診断 & 一括最適化 (Human Sign-off 対応)
+# 7. Tier 昇格 & 失敗診断 & 一括最適化 (Human Sign-off 対応)
 edd tier-gate my-new-skill --tier 3 --yes
 edd diagnose my-new-skill
 edd optimize my-new-skill --tier 3 --yes

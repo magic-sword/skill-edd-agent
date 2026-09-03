@@ -51,6 +51,7 @@ edd package src/skills/my-skill --out dist
 edd list
 
 # EDD 多層評価・Tier 昇格・失敗診断・一括最適化
+edd eval my-skill --coverage
 edd eval my-skill --type edd
 edd eval my-skill --type all
 edd tier-gate my-skill --tier 1

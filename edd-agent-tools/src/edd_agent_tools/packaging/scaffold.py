@@ -27,57 +27,46 @@ pattern: {pattern}
 
 # {skill_title}
 
-## Overview
+## When to use
+- Please execute {skill_name_spaced} on target data
+- Run the {skill_name} workflow
 
-Performs {skill_name_spaced} workflows with deterministic scripts and clear domain guidelines.
+## When NOT to use
+- Simple one-liner operations that do not require structured workflows
+- Tasks outside the defined domain boundaries
 
-## Workflow Decision Tree
+## Workflow
+1. Reconnaissance and Argument Inspection: To inspect incoming parameters and verify inputs before execution:
+   ```bash
+   python scripts/{primary_script}.py --help
+   ```
+2. Core Execution: To execute the task deterministically:
+   ```bash
+   python scripts/{primary_script}.py --input "<data>"
+   ```
+3. Result Verification: To verify the output matches requirements and return the formatted result.
 
-To determine the appropriate procedure:
-- **If** standard {skill_name_spaced} execution is requested ➔ **Then** run `scripts/{primary_script}.py`
-- **If** domain specifications or edge cases must be consulted ➔ **Then** read `references/guide.md`
+## Examples
+- Input: "Execute {skill_name} on sample" → Output: "Successfully processed sample"
 
-## Step-by-Step Instructions
+## Output format
+- Return direct operational summary and structured result files.
 
-### Step 1: Reconnaissance and Argument Inspection
-To inspect incoming parameters and verify inputs before execution:
-```bash
-python scripts/{primary_script}.py --help
-```
+## Anti-patterns to avoid
+- Do not read large scripts into LLM context window without running `--help` first.
+- Do not make invalid actions; use deterministic scripts in `scripts/` for heavy lifting.
 
-### Step 2: Execute Core Logic *(Tool: `scripts/{primary_script}.py`)*
-To execute the task deterministically:
-```bash
-python scripts/{primary_script}.py --input "<data>"
-```
-
-### Step 3: Result Verification
-To verify the output matches requirements and return the formatted result.
-
-## Usage Scenarios & Trigger Examples
-
-- "Please help me execute {skill_name} on target data."
-- "Run the {skill_name} workflow for my files."
-- "Process this {skill_name_spaced} task."
-
-## When NOT to Use This Skill
-
-- Simple one-off commands that do not require specialized workflow execution.
-- Unrelated tasks outside the domain scope of {skill_name}.
+## Requirements & Prerequisites
+- Python: >= 3.10
 
 ## Bundled Resources
-
 ### `scripts/` (Executable Tools - Zero-dependency)
-- **`scripts/{primary_script}.py`**: Core CLI tool for {skill_title}.
+- `scripts/{primary_script}.py`: Core CLI tool for {skill_title}.
 
 ### `references/` (On-Demand Knowledge)
-- **`references/guide.md`**: Detailed reference specifications and edge cases.
-
-## Guidelines & Best Practices
-
-- Run `python scripts/{primary_script}.py --help` first to inspect options without polluting context window.
-- Ensure all outputs are verified before returning to the user.
+- `references/guide.md`: Detailed reference specifications and edge cases.
 """
+
 
 
 class SkillScaffolder:

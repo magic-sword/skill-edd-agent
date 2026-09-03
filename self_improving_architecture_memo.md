@@ -10,9 +10,10 @@
 flowchart TD
     subgraph PlatformLayer ["不変プラットフォーム層 (pip: edd-agent-tools)"]
         Validator["SkillValidator (AST/構文静的リンター, examples/対応)"]
-        AdkEval["AdkEvalAdapter (Google ADK 2.0 純正 LLM Judge & Position Swapping)"]
+        AdkEval["AdkEvalAdapter (Google ADK 2.0 純正 TrajectoryEvaluator & LLM Judge)"]
         SimRunner["SimulationEvalRunner (3大 Trajectory: EXACT / IN_ORDER / ANY_ORDER)"]
         ContractRunner["ContractTestRunner (pass^k 連続一貫性検証 & サンドボックス)"]
+        CoverageChecker["EvalCoverageChecker (白書 4大 Eval Coverage Checklist)"]
         CoLoadRunner["CoLoadedEvalRunner (複数スキル同時展開時の Context Rot ベンチマーク)"]
         StateEngine["SkillsState & DAG Validator (状態・Tier 1~3 管理)"]
         Optimizer["SkillOptimizer (Human Sign-off ゲート & 一括最適化)"]

@@ -32,44 +32,59 @@
 
 ## 2. Google ADK 2.0 純正評価連携 (`AdkEvalAdapter`)
 
-Google ADK 2.0 の評価フレームワーク（`google.adk.evaluation`）とシームレスに統合し、以下のクライテリアをサポートします：
+Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）とシームレスに統合し、手書きロジックによる車輪の再発明を完全に排除しています：
 
-* **`rubric_based_final_response_quality_v1`**:
-  カスタムルーブリックに基づく LLM-as-a-Judge 評価。
-* **Position Swapping（順序バイアス中和）**:
-  参照回答と生成回答の順序を反転させて 2 回推論し、評価順序バイアスを排除。
-* **Graceful Fallback**:
-  オフライン時や API キー未設定時でも、決定論的ルールベース判定へ安全にフォールバック。
-
----
-
-## 3. ADK 準拠の 3大 Tool Trajectory 評価モード
-
-ツールの呼び出し順序（軌跡）を検証するため、3 つの比較モードを提供します：
-
-| モード | 説明 | 適用推奨 Tier |
-| :--- | :--- | :--- |
-| **`EXACT`** | ツール呼び出しシーケンスが順序・要素数ともに完全一致 | 機密・金融操作 |
-| **`IN_ORDER`** | 期待されるツール呼び出しの順序を保った部分列（Subsequence） | Tier 2〜3 (Action-Allowed) |
-| **`ANY_ORDER`** | 順序不問のツール呼び出し包含（Subset） | Tier 1 (Read-Only) |
+* **`TrajectoryEvaluator` 直接駆動**:
+  Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` を直接呼び出して軌跡一致を評価。
+* **ツール呼び出し正規化 (Normalization)**:
+  エージェント実行時の ADK 純正ツール呼び出し（`tool: "run_skill_script"`, `args: {"skill_name": "...", "file_path": "..."}`）と、白書 Snippet 3 形式のスクリプト直接表記（`scripts/xxx.py`）を透過に相互変換して厳密に検証。
+* **`rubric_based_final_response_quality_v1` & Position Swapping**:
+  ADK 純正のクライテリアに基づき、参照回答と生成回答の順序を反転させて 2 回推論する Position Swapping により順序バイアスを中和。
+* **決定論的高速評価とライブ推論の分離**:
+  テストの Flakiness を根絶するため、通常テスト・CI は決定論的フォールバック（ミリ秒単位）で安定実行し、`--live` フラグ指定時のみ Vertex AI / Gemini API 経由でリモート推論を実行。
 
 ---
 
-## 4. $pass^k$ (Sustained Reliability) 持続的一貫性指標
+## 3. ADK 2.0 純正 ToolTrajectoryCriterion による 3大軌跡評価モード
+
+ツールの呼び出し順序（軌跡）を検証するため、Google ADK 2.0 純正の `ToolTrajectoryCriterion`（EXACT, IN_ORDER, ANY_ORDER）に完全準拠した 3 つの比較モードを提供します：
+
+| モード | 説明 | 判定方式 | 適用推奨 Tier |
+| :--- | :--- | :--- | :--- |
+| **`EXACT`** | ツール呼び出しシーケンスが順序・要素数ともに完全一致 | ADK 純正 `ToolTrajectoryCriterion(mode="exact", threshold=1.0)` | 機密・金融操作 |
+| **`IN_ORDER`** | 期待されるツール呼び出しの順序を保った部分列（Subsequence） | ADK 純正 `ToolTrajectoryCriterion(mode="in_order", threshold=0.8)` | Tier 2〜3 (Action-Allowed) |
+| **`ANY_ORDER`** | 順序不問のツール呼び出し包含（Subset） | ADK 純正 `ToolTrajectoryCriterion(mode="any_order", threshold=0.5)` | Tier 1 (Read-Only) |
+
+---
+
+## 4. 白書（May 2026）4大 Eval Coverage Checklist (`edd eval --coverage`)
+
+白書 Section 4 に完全準拠し、`edd eval --coverage` は以下の 4 つの必須評価条件を一元判定・チェックリスト出力します：
+
+1. **Trigger Coverage**:
+   - 正例（Positive）および負例（Negative）テストケースで発火精度 90% 以上を要求（誤発火・発火漏れの防止）。
+2. **Execution Coverage**:
+   - 決定論的 CLI 契約テスト 100% 合格、および期待される出力形式・ツール軌跡（Tool Trajectory）の完全一致。
+3. **Regression Coverage**:
+   - スキルの新規追加や更新が、既存スキル群や上位依存スキルに回帰劣化（0 drops）を引き起こさないことを保証。
+4. **Token Budget Coverage**:
+   - 5〜15 個のスキルが同時マウントされた高トークン負荷環境下（`CoLoadedEvalRunner`）で、コンテキスト破綻（Context Rot）を発生させないことを実証。
+
+---
+
+## 5. $pass^k$ (Sustained Reliability) 持続的一貫性指標
 
 1 回のラッキー合格（$pass@1$）を排除し、指定された $k$ 回（Tier 3 昇格時はデフォルト $k=3$）連続で全テストが成功することを検証します。
 
 ---
 
-## 5. Co-loaded 複数スキル共存・干渉ベンチマーク (`CoLoadedEvalRunner`)
+## 6. Co-loaded 複数スキル共存・干渉ベンチマーク (`CoLoadedEvalRunner`)
 
 単体隔離環境だけでなく、5〜15 個のスキルが同時にマウントされた高トークン負荷環境下（Context Competition）で、対象スキルが正しくルーティングされ他スキルを邪魔しないかをシミュレーション検証します。
 
 ---
 
----
-
-## 6. 白書標準 EDD (Evaluation-Driven Development) Snippet 3 形式 (SSOT)
+## 7. 白書標準 EDD (Evaluation-Driven Development) Snippet 3 形式 (SSOT)
 
 白書 Section 4 に完全準拠し、すべてのスキルは `SKILL.md` を執筆する前に、まず `tests/{skill_name}_edd.evalset.json` を単一真実源（SSOT）として先行定義します：
 

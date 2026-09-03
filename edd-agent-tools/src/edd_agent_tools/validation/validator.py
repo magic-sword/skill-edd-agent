@@ -355,19 +355,25 @@ class SkillValidator:
         if len(uppercase_imperatives) >= 5:
             res.add_warning("context_debt", f"Detected frequent uppercase imperatives ({len(uppercase_imperatives)} occurrences: {set(uppercase_imperatives)}). 'Give the reason, not just the rule' to avoid context debt and improve generalization.")
 
-        # 7. 白書 Appendix A minimal SKILL.md 構造検査
+        # 7. 白書 Appendix A minimal SKILL.md 6大必須セクション構造検査
         has_when_to = bool(re.search(r"^##\s+(When to [uU]se|Usage Scenarios)", body_str, re.MULTILINE))
         has_when_not = bool(re.search(r"^##\s+When NOT to [uU]se", body_str, re.MULTILINE))
         has_wf = bool(re.search(r"^##\s+(Workflow|Available Tasks|Quick Start|Core Capabilities|Guidelines)", body_str, re.MULTILINE))
         has_ex = bool(re.search(r"^##\s+Examples?", body_str, re.MULTILINE))
+        has_out = bool(re.search(r"^##\s+(Output [fF]ormat|Output)", body_str, re.MULTILINE))
+        has_anti = bool(re.search(r"^##\s+(Anti-patterns to avoid|Anti-patterns|Common Pitfalls)", body_str, re.MULTILINE))
 
         if not has_when_to:
-            res.add_warning("structure", "Missing '## When to use' or '## Usage Scenarios' section (Whitepaper Appendix A minimal SKILL.md specification).")
+            res.add_warning("structure", "Missing '## When to use' section (Whitepaper Appendix A minimal SKILL.md specification).")
         if not has_when_not:
             res.add_warning("structure", "Missing '## When NOT to use' section (Whitepaper Appendix A minimal SKILL.md specification to prevent over-triggering).")
         if not has_wf:
-            res.add_warning("structure", "Missing '## Workflow' or task execution section (Whitepaper Appendix A minimal SKILL.md specification).")
+            res.add_warning("structure", "Missing '## Workflow' section (Whitepaper Appendix A minimal SKILL.md specification).")
         if not has_ex:
             res.add_warning("structure", "Missing '## Examples' section (Whitepaper Appendix A minimal SKILL.md specification for few-shot guidance).")
+        if not has_out:
+            res.add_warning("structure", "Missing '## Output format' section (Whitepaper Appendix A minimal SKILL.md specification for deterministic outputs).")
+        if not has_anti:
+            res.add_warning("structure", "Missing '## Anti-patterns to avoid' section (Whitepaper Appendix A minimal SKILL.md specification to prevent bad agent loops).")
 
         return res
