@@ -54,12 +54,34 @@
     {
       "case_id": "evolver_edd_neg_001",
       "input": "Create a completely new skill for processing markdown docs",
-      "expected_skill": "skill-creator",
+      "expected_skill": null,
       "expected_tool_calls": [],
       "expected_output_format": "handoff_or_redirection",
       "rubric": [
         "does not trigger skill-evolver for new skill creation",
         "delegates to skill-creator"
+      ]
+    },
+    {
+      "case_id": "evolver_edd_neg_002",
+      "input": "What is the boiling point of water at standard atmospheric pressure?",
+      "expected_skill": null,
+      "expected_tool_calls": [],
+      "expected_output_format": "100 degrees Celsius",
+      "rubric": [
+        "does not trigger skill-evolver",
+        "answers direct factual query without invoking evaluation or optimization tools"
+      ]
+    },
+    {
+      "case_id": "evolver_edd_neg_003",
+      "input": "Scaffold a new skill boilerplate using edd init",
+      "expected_skill": null,
+      "expected_tool_calls": [],
+      "expected_output_format": "scaffolding_redirection",
+      "rubric": [
+        "does not trigger skill-evolver",
+        "uses skill-creator for initial scaffolding tasks"
       ]
     }
   ]

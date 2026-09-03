@@ -276,13 +276,15 @@ class SkillPackage:
     def execute_script(
         self,
         script_name: Optional[str] = None,
-        args: Optional[List[str]] = None,
+        args: Optional[Union[List[str], Dict[str, Any]]] = None,
         extra_env: Optional[Dict[str, str]] = None,
         timeout: int = 60,
         code_executor: Optional[Any] = None
     ) -> Dict[str, Any]:
         """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。
-        Google ADK 2.0 の CodeExecutor（UnsafeLocalCodeExecutor 等）を標準サポート。
+        
+        Google ADK 2.0 純正の BaseCodeExecutor（UnsafeLocalCodeExecutor 等）を標準活用し、
+        車輪の再発明を排除した決定論的スクリプト実行を提供します。
         """
         scripts = self.list_scripts()
         target_script = None
@@ -299,15 +301,25 @@ class SkillPackage:
         if not target_script or not os.path.exists(target_script):
             raise FileNotFoundError(f"Could not resolve execution script in '{self.scripts_dir}'.")
 
-        # ADK 公式 CodeExecutor が指定されている場合の透過実行
-        if code_executor is not None:
+        # ADK 公式 CodeExecutor の標準解決（引数で未指定の場合は UnsafeLocalCodeExecutor を自動適用）
+        active_executor = code_executor
+        if active_executor is None:
             try:
-                from google.adk.code_executors.code_execution_utils import CodeExecutionInput
+                from google.adk.code_executors import UnsafeLocalCodeExecutor
+                active_executor = UnsafeLocalCodeExecutor()
+            except Exception:
+                active_executor = None
+
+        if active_executor is not None:
+            try:
                 from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
-                executor = _SkillScriptCodeExecutor(code_executor, timeout)
-                # ADK の execute_script_async または wrapper 実行
-                import asyncio
+                executor = _SkillScriptCodeExecutor(active_executor, timeout)
                 file_rel = os.path.relpath(target_script, self.root_dir)
+
+                # 引数の形式正規化 (リストまたは辞書)
+                script_args = args if isinstance(args, (list, dict)) else ([] if args is None else [str(args)])
+
+                import asyncio
                 try:
                     loop = asyncio.get_event_loop()
                 except RuntimeError:
@@ -319,25 +331,37 @@ class SkillPackage:
                     with concurrent.futures.ThreadPoolExecutor() as pool:
                         res = pool.submit(
                             asyncio.run,
-                            executor.execute_script_async(None, self.adk_skill, file_rel, args)
+                            executor.execute_script_async(None, self.adk_skill, file_rel, script_args)
                         ).result()
                 else:
                     res = loop.run_until_complete(
-                        executor.execute_script_async(None, self.adk_skill, file_rel, args)
+                        executor.execute_script_async(None, self.adk_skill, file_rel, script_args)
                     )
 
                 return {
                     "status": res.get("status", "success"),
-                    "exit_code": 0 if res.get("status") == "success" else 1,
+                    "exit_code": 0 if res.get("status") in ("success", "warning") else 1,
                     "stdout": res.get("stdout", ""),
                     "stderr": res.get("stderr", ""),
                     "script_path": target_script
                 }
             except Exception:
-                # サンドボックス未構成環境等の安全なフォールバック
+                # ADK ランタイム未準備時のフォールバック
                 pass
 
-        cmd = [sys.executable, target_script] + (args or [])
+        # フォールバック: 標準サブプロセス直接実行
+        cmd_args: List[str] = []
+        if isinstance(args, dict):
+            for k, v in args.items():
+                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+                if v is True:
+                    cmd_args.append(flag)
+                elif v is not False and v is not None:
+                    cmd_args.extend([flag, str(v)])
+        elif isinstance(args, list):
+            cmd_args = [str(a) for a in args]
+
+        cmd = [sys.executable, target_script] + cmd_args
         run_env = os.environ.copy()
         run_env["EDD_SKILL_NAME"] = self.name
         run_env["EDD_SKILL_ROOT"] = self.root_dir

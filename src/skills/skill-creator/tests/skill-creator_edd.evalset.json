@@ -54,12 +54,34 @@
     {
       "case_id": "creator_edd_neg_001",
       "input": "Diagnose evaluation failures and optimize prompt for existing skill",
-      "expected_skill": "skill-evolver",
+      "expected_skill": null,
       "expected_tool_calls": [],
       "expected_output_format": "handoff_or_diagnosis",
       "rubric": [
         "does not use skill-creator for repair/evaluation workflow",
         "delegates to skill-evolver"
+      ]
+    },
+    {
+      "case_id": "creator_edd_neg_002",
+      "input": "Write a quick shell script to find large files over 100MB",
+      "expected_skill": null,
+      "expected_tool_calls": [],
+      "expected_output_format": "find . -type f -size +100M",
+      "rubric": [
+        "does not trigger skill-creator",
+        "provides direct one-liner shell command without scaffolding a skill package"
+      ]
+    },
+    {
+      "case_id": "creator_edd_neg_003",
+      "input": "Run automated regression tests and check Tier 2 promotion gates",
+      "expected_skill": null,
+      "expected_tool_calls": [],
+      "expected_output_format": "tier_gate_evaluation",
+      "rubric": [
+        "does not trigger skill-creator",
+        "handles evaluation and promotion via skill-evolver"
       ]
     }
   ]

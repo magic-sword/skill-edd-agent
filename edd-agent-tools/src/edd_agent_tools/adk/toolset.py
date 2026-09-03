@@ -198,7 +198,7 @@ class EddSkillToolset(SkillToolset):
         self,
         skill_name: str,
         script_name: Optional[str] = None,
-        args: Optional[List[str]] = None,
+        args: Optional[Union[List[str], Dict[str, Any]]] = None,
         file_path: Optional[str] = None
     ) -> Dict[str, Any]:
         """スキルの決定論的スクリプトを同期実行します（SkillPackage.execute_script に一本化）。"""

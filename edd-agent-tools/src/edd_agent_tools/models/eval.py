@@ -116,6 +116,52 @@ class EvalCase(AdkEvalCase):
                 values["conversation"] = []
         return values
 
+    @property
+    def is_negative(self) -> bool:
+        """白書 Page 22 準拠の負例（スキルがトリガーされてはならない境界ケース）かを判定します。"""
+        return self.expected_skill is None or self.expected_skill == ""
+
+    def to_adk_invocation(self, skill_name: Optional[str] = None) -> Any:
+        """ADK 2.0 純正の Invocation オブジェクトを構築します。"""
+        try:
+            from google.genai import types as genai_types
+            from google.adk.evaluation.eval_case import Invocation, IntermediateData
+        except ImportError:
+            return None
+
+        user_text = self.input or (self.inputs.get("query") if isinstance(self.inputs, dict) else "") or ""
+        user_content = genai_types.Content(parts=[genai_types.Part.from_text(text=str(user_text))])
+        
+        final_text = self.expected_output_format or (str(self.expected) if self.expected else "")
+        final_resp = genai_types.Content(parts=[genai_types.Part.from_text(text=final_text)], role="model") if final_text else None
+
+        f_calls = []
+        resolved_skill = self.expected_skill or skill_name
+        for tc in self.expected_tool_calls:
+            if isinstance(tc, EDDToolCall):
+                d = tc.to_adk_native(skill_name=resolved_skill)
+                f_calls.append(genai_types.FunctionCall(name=d["tool"], args=d.get("args", {})))
+            elif isinstance(tc, dict):
+                t_name = tc.get("tool") or tc.get("name", "")
+                t_args = tc.get("args") or {}
+                if t_name == "run_skill_script":
+                    native_args = dict(t_args)
+                    if resolved_skill and "skill_name" not in native_args:
+                        native_args["skill_name"] = resolved_skill
+                    f_calls.append(genai_types.FunctionCall(name=t_name, args=native_args))
+                else:
+                    f_calls.append(genai_types.FunctionCall(name=t_name, args=t_args))
+            elif isinstance(tc, str):
+                f_calls.append(genai_types.FunctionCall(name=tc, args={}))
+
+        inter_data = IntermediateData(tool_uses=f_calls) if f_calls else IntermediateData(tool_uses=[])
+        return Invocation(
+            invocation_id=self.case_id or self.eval_case_id or "inv_0",
+            user_content=user_content,
+            final_response=final_resp,
+            intermediate_data=inter_data
+        )
+
 
 class EvalCaseSet(AdkEvalSet):
     """Google ADK 2.0 純正準拠のテストケースセット (EvalSet)"""
@@ -137,6 +183,87 @@ class EvalCaseSet(AdkEvalSet):
             if "name" not in values:
                 values["name"] = values.get("eval_set_id", "default_eval_set")
         return values
+
+    def to_adk_eval_set(self) -> Any:
+        """Google ADK 2.0 純正の EvalSet インスタンスを生成して返します。"""
+        if AdkEvalSet is BaseModel:
+            return self
+
+        adk_cases = []
+        for c in self.eval_cases:
+            inv = c.to_adk_invocation(skill_name=self.skill_name)
+            try:
+                adk_case = AdkEvalCase(
+                    eval_id=c.case_id or c.eval_case_id or "case_0",
+                    conversation=[inv] if inv else []
+                )
+                adk_cases.append(adk_case)
+            except Exception:
+                adk_cases.append(c)
+
+        try:
+            return AdkEvalSet(
+                eval_set_id=self.eval_set_id,
+                name=self.name or self.eval_set_id,
+                description=self.description or f"EvalSet for {self.skill_name}",
+                eval_cases=adk_cases
+            )
+        except Exception:
+            return self
+
+    def export_adk_evalset_dict(self) -> Dict[str, Any]:
+        """ADK 2.0 CLI `adk eval` に直接渡せるネイティブ JSON 辞書形式を出力します。"""
+        raw_cases = []
+        for c in self.eval_cases:
+            user_text = c.input or (c.inputs.get("query") if isinstance(c.inputs, dict) else "") or ""
+            final_text = c.expected_output_format or (str(c.expected) if c.expected else "")
+            
+            tool_uses = []
+            resolved_skill = c.expected_skill or self.skill_name
+            for tc in c.expected_tool_calls:
+                if isinstance(tc, EDDToolCall):
+                    tool_uses.append(tc.to_adk_native(skill_name=resolved_skill))
+                elif isinstance(tc, dict):
+                    t_name = tc.get("tool") or tc.get("name", "")
+                    t_args = dict(tc.get("args", {}))
+                    if t_name == "run_skill_script" and resolved_skill and "skill_name" not in t_args:
+                        t_args["skill_name"] = resolved_skill
+                    tool_uses.append({"name": t_name, "args": t_args})
+                elif isinstance(tc, str):
+                    tool_uses.append({"name": tc, "args": {}})
+
+            raw_cases.append({
+                "eval_id": c.case_id or c.eval_case_id or "case_0",
+                "conversation": [
+                    {
+                        "invocation_id": f"inv_{c.case_id or '0'}",
+                        "user_content": {
+                            "role": "user",
+                            "parts": [{"text": str(user_text)}]
+                        },
+                        "final_response": {
+                            "role": "model",
+                            "parts": [{"text": final_text}]
+                        } if final_text else None,
+                        "intermediate_data": {
+                            "tool_uses": tool_uses,
+                            "intermediate_responses": []
+                        }
+                    }
+                ],
+                "session_input": {
+                    "app_name": self.skill_name or "default_skill",
+                    "user_id": "test_user",
+                    "state": {}
+                }
+            })
+
+        return {
+            "eval_set_id": self.eval_set_id,
+            "name": self.name or self.eval_set_id,
+            "description": self.description or f"EvalSet for {self.skill_name}",
+            "eval_cases": raw_cases
+        }
 
 
 class FailedCaseDetail(BaseModel):

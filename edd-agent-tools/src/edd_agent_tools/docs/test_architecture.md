@@ -21,7 +21,7 @@ graph TD
 ```
 
 1.  **テスト設計・配置フェーズ (EDD Inversion & Snippet 3 SSOT)**:
-    仕様定義（`SKILL.md` や `scripts/`）を先行決定する前に、白書 Snippet 3 形式（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）の評価ケース（正例2〜3件、負例1件）を策定し、`tests/<skill_name>_edd.evalset.json` に**単一真実源（SSOT）アセットとして保存**します。契約テスト・トリガー判定・ツール軌跡・ルーブリック採点の全データがこの単一ファイルに統合されます。
+    仕様定義（`SKILL.md` や `scripts/`）を先行決定する前に、白書 Snippet 3 形式（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）の評価ケース（正例3件＋負例3件の計6件、白書 Page 22 必須要件）を策定し、`tests/<skill_name>_edd.evalset.json` に**単一真実源（SSOT）アセットとして保存**します。契約テスト・トリガー判定・ツール軌跡・ルーブリック採点の全データがこの単一ファイルに統合されます。
 2.  **評価実行フェーズ (`edd eval`)**:
     保存された Snippet 3 評価セットをロードし、隔離されたサンドボックス環境（`LocalWorkspaceEnv`）上でテストを実行・評価します。アセットを再利用するため、**実行フェーズは何度繰り返しても 100% 決定論的（再現可能）かつ高速・低コスト**で実行できます。結果は `latest_report.json` に構造化ログとして永続化されます。
 3.  **失敗診断・自己修復フェーズ (`edd diagnose`)**:

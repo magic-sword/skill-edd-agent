@@ -74,7 +74,7 @@
 5. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**:
    - 外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します（`SkillValidator` が AST 解析で検知・警告）。
 6. **白書標準 EDD インバージョン開発と単一真実源 (SSOT)**:
-   - `SKILL.md` の本文を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に白書 Snippet 3 標準フォーマットの 3〜4 つの評価ケース（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`、正例＋負例完備）を先行定義してください。
+   - `SKILL.md` の本文を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に白書 Snippet 3 標準フォーマットの **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の評価ケース（`case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を先行定義してください。
    - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `expected_tool_calls`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させます。
    - 乱立する複数のテストファイルを排し、契約テスト・トリガー判定・Trajectory・ルーブリック評価をこの単一アセットから決定論的に実行します。
 7. **白書 Appendix A minimal SKILL.md 6大必須セクション構造**:

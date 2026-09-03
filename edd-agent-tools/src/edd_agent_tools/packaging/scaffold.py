@@ -208,7 +208,7 @@ Example usage pattern for {canonical_skill_name}.
         )
 
         # 4. 白書標準 EDD (Evaluation-Driven Development) Snippet 3 評価データセット（単一真実源: SSOT）の配置
-        # 白書 Section 4: 執筆前に 3つの評価ケース（正例2件、負例1件）を先行定義
+        # 白書 Section 4 (Page 22): 90% 精度保証のため 3つの正例と 3つの負例（境界ケース）の計6件を先行定義
         initial_edd_set = {
             "eval_set_id": f"{canonical_skill_name}_edd",
             "skill_name": canonical_skill_name,
@@ -255,14 +255,56 @@ Example usage pattern for {canonical_skill_name}.
                     ]
                 },
                 {
+                    "case_id": f"{canonical_dir_name}_003",
+                    "input": f"Process batch operations using {canonical_skill_name}",
+                    "expected_skill": canonical_skill_name,
+                    "expected_tool_calls": [
+                        {
+                            "tool": "run_skill_script",
+                            "args": {
+                                "skill_name": canonical_skill_name,
+                                "file_path": f"scripts/{primary_script}.py",
+                                "args": {"input": "batch_item_1"}
+                            }
+                        }
+                    ],
+                    "expected_output_format": "batch_result",
+                    "rubric": [
+                        f"executes {canonical_skill_name} deterministically",
+                        "handles input without hallucinating extra tools"
+                    ]
+                },
+                {
                     "case_id": f"{canonical_dir_name}_neg_001",
                     "input": "What is the capital of France?",
                     "expected_skill": None,
                     "expected_tool_calls": [],
-                    "expected_output_format": "general_answer",
+                    "expected_output_format": "Paris",
                     "rubric": [
-                        "does not trigger the skill",
+                        f"does not trigger {canonical_skill_name}",
                         "answers directly without invoking tools"
+                    ]
+                },
+                {
+                    "case_id": f"{canonical_dir_name}_neg_002",
+                    "input": "Summarize the architectural differences between monolithic and microservice systems",
+                    "expected_skill": None,
+                    "expected_tool_calls": [],
+                    "expected_output_format": "architectural_summary",
+                    "rubric": [
+                        f"does not trigger {canonical_skill_name}",
+                        "provides conceptual technical overview without invoking specialized scripts"
+                    ]
+                },
+                {
+                    "case_id": f"{canonical_dir_name}_neg_003",
+                    "input": f"Explain the theory behind {skill_name_spaced} without running any tools or scripts",
+                    "expected_skill": None,
+                    "expected_tool_calls": [],
+                    "expected_output_format": "theoretical_explanation",
+                    "rubric": [
+                        f"does not invoke run_skill_script for {canonical_skill_name}",
+                        "honors negative constraint and explains concept in plain text"
                     ]
                 }
             ]

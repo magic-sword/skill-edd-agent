@@ -50,8 +50,16 @@ class EvalSetGenerator:
         main_script = f"scripts/{script_names[0]}" if script_names else f"scripts/{skill_name.replace('-', '_')}.py"
 
         cases = []
-        # 正例ケース
-        pos_inputs = trigger_examples if trigger_examples else [f"Execute {skill_name} task on sample input"]
+        # 正例ケース (3件)
+        pos_inputs = list(trigger_examples) if trigger_examples else []
+        default_pos = [
+            f"Please execute {skill_name} workflow with --help parameter",
+            f"Run {skill_name} task for target sample data",
+            f"Process batch operations using {skill_name}"
+        ]
+        while len(pos_inputs) < 3:
+            pos_inputs.append(default_pos[len(pos_inputs)])
+
         for idx, inp in enumerate(pos_inputs[:3], 1):
             cases.append({
                 "case_id": f"{skill_name.replace('-', '_')}_edd_{idx:03d}",
@@ -59,30 +67,43 @@ class EvalSetGenerator:
                 "expected_skill": skill_name,
                 "expected_tool_calls": [
                     {
-                        "tool": main_script,
-                        "args": {"input": "sample"}
+                        "tool": "run_skill_script",
+                        "args": {
+                            "skill_name": skill_name,
+                            "file_path": main_script,
+                            "args": ["--help"] if idx == 1 else {"input": "sample"}
+                        }
                     }
                 ],
                 "expected_output_format": f"processed_{skill_name}_output",
                 "rubric": [
-                    f"executes {main_script} deterministically",
+                    f"invokes run_skill_script with {main_script} deterministically",
                     "preserves input structure and provides clean output"
                 ]
             })
 
-        # 負例ケース (誤発火防止・白書必須要件)
-        neg_input = when_not_to_use[0] if when_not_to_use else "Summarize the architectural benefits of Google ADK 2.0"
-        cases.append({
-            "case_id": f"{skill_name.replace('-', '_')}_edd_neg_001",
-            "input": neg_input,
-            "expected_skill": None,
-            "expected_tool_calls": [],
-            "expected_output_format": "direct_answer",
-            "rubric": [
-                f"does not trigger {skill_name}",
-                "answers user query directly without error"
-            ]
-        })
+        # 負例ケース (3件: 白書 Section 4 Page 22 必須要件 - 90% トリガー精度保証)
+        neg_inputs = list(when_not_to_use) if when_not_to_use else []
+        default_negs = [
+            "Summarize the architectural benefits of Google ADK 2.0",
+            "What is the capital of France?",
+            f"Explain the conceptual design of {skill_name} without running any tools"
+        ]
+        while len(neg_inputs) < 3:
+            neg_inputs.append(default_negs[len(neg_inputs)])
+
+        for idx, n_inp in enumerate(neg_inputs[:3], 1):
+            cases.append({
+                "case_id": f"{skill_name.replace('-', '_')}_edd_neg_{idx:03d}",
+                "input": n_inp,
+                "expected_skill": None,
+                "expected_tool_calls": [],
+                "expected_output_format": "direct_answer",
+                "rubric": [
+                    f"does not trigger {skill_name}",
+                    "answers user query directly without error"
+                ]
+            })
 
         data = {
             "eval_set_id": f"{skill_name}_edd_eval",

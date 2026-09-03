@@ -527,6 +527,41 @@ def cmd_profile(args: argparse.Namespace) -> int:
 
 
 
+def cmd_export_eval(args: argparse.Namespace) -> int:
+    """白書 Snippet 3 形式の evalset から Google ADK 2.0 公式 adk eval 用の JSON をエクスポートします。"""
+    state = SkillsState()
+    skill = state.get_skill(args.skill_name)
+    if not skill:
+        print(f"❌ Error: Skill '{args.skill_name}' not found.", file=sys.stderr)
+        return 1
+
+    tests_dir = Path(skill.root_dir) / "tests"
+    edd_file = tests_dir / f"{args.skill_name}_edd.evalset.json"
+    if not edd_file.exists():
+        evalsets = list(tests_dir.glob("*.evalset.json"))
+        if evalsets:
+            edd_file = evalsets[0]
+        else:
+            print(f"❌ Error: No evalset found in '{tests_dir}'.", file=sys.stderr)
+            return 1
+
+    with open(edd_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    from edd_agent_tools.models.eval import EvalCaseSet
+    case_set = EvalCaseSet.model_validate(data)
+    adk_dict = case_set.export_adk_evalset_dict()
+
+    out_path = Path(args.out) if args.out else tests_dir / f"{args.skill_name}_adk_native.evalset.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(adk_dict, f, indent=2, ensure_ascii=False)
+
+    print(f"✅ Exported Google ADK 2.0 Native EvalSet to: {out_path}")
+    print(f"   You can now run: adk eval <AGENT_DIR> {out_path}")
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -534,6 +569,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 既知のトップレベルコマンド
     known_commands = {
         "run", "init", "validate", "package", "eval", "tier-gate", "diagnose", "optimize", "list",
+        "export-eval", "tune-desc", "harvest-trace", "profile",
         "-h", "--help", "-v", "--version"
     }
 
@@ -621,6 +657,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_prof = subparsers.add_parser("profile", help="Manage and inspect Capability Profiles (role/tier bundling)")
     p_prof.add_argument("profile_name", nargs="?", help="Name of the capability profile to inspect")
 
+    # 13. export-eval (Export to Google ADK 2.0 Native EvalSet)
+    p_exp = subparsers.add_parser("export-eval", help="Export Snippet 3 evalset to Google ADK 2.0 native evalset JSON for adk eval")
+    p_exp.add_argument("skill_name", help="Target skill name")
+    p_exp.add_argument("--out", "-o", help="Output file path (default: tests/<skill>_adk_native.evalset.json)")
+
     # パース実行（run 用に未知の引数も許容）
     args, extra = parser.parse_known_args(argv)
 
@@ -652,6 +693,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_harvest_trace(args)
     elif args.command == "profile":
         return cmd_profile(args)
+    elif args.command == "export-eval":
+        return cmd_export_eval(args)
 
 
     return 0

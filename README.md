@@ -79,12 +79,13 @@ flowchart TD
 7.  **Human Sign-off ゲート (Tier 3: Action-Allowed)**
     *   不可逆操作が許可される Tier 3 昇格時には、人間の明示的承認を必須化。
 8.  **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**
-    *   `SKILL.md` を執筆する前に、まず `tests/<skill-name>_edd.evalset.json`（単一真実源: SSOT）として 3〜4 つの JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`、正例＋負例完備）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
+    *   `SKILL.md` を執筆する前に、まず `tests/<skill-name>_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の JSON 評価ケース（白書 Snippet 3 形式: `case_id`, `input`, `expected_skill`, `expected_tool_calls`, `expected_output_format`, `rubric`）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
     *   **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `expected_tool_calls`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化。
 9.  **白書 Appendix A minimal SKILL.md 6大必須セクション標準**
     *   すべてのスキルは、白書 Appendix A が定める 6 つの必須セクション（`When to use`, `When NOT to use`, `Workflow`, `Examples`, `Output format`, `Anti-patterns to avoid`）を標準実装。
-10. **Google ADK 2.0 純正 LocalCodeExecutor 統合 (No Monkey Patching)**
+10. **Google ADK 2.0 純正 LocalCodeExecutor 統合 & 公式 EvalSet エクスポート**
     *   ADK 公式の `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入し、モンキーパッチに頼らず正規の手順で安全にコードを実行。
+    *   `edd export-eval <skill-name>` により、白書 Snippet 3 評価セットを Google ADK 2.0 公式ネイティブの `adk eval` 用 JSON へ即座にエクスポート可能。
 11. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**
     *   外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明しない。スキルは Know-how（決定論的手順と処理）に集中。
 

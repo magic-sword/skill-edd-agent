@@ -1,0 +1,241 @@
+{
+  "eval_set_id": "case-converter_edd_eval",
+  "name": "case-converter_edd_eval",
+  "description": "EvalSet for case-converter",
+  "eval_cases": [
+    {
+      "eval_id": "case_conv_edd_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'hello_world_example' to camelCase"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "helloWorldExample"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "tool": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": {
+                    "input": "hello_world_example",
+                    "to": "camel"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case_conv_edd_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'UserProfileData' to kebab-case"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "user-profile-data"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "tool": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": {
+                    "input": "UserProfileData",
+                    "to": "kebab"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case_conv_edd_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'api_response_status' to CONSTANT_CASE"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "API_RESPONSE_STATUS"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "tool": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": {
+                    "input": "api_response_status",
+                    "to": "constant"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case_conv_edd_neg_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Summarize the architectural benefits of Google ADK 2.0"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Google ADK 2.0 provides native toolset integration, modular code execution sandbox, and evaluation-driven development capabilities."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case_conv_edd_neg_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Calculate 15% tip on a restaurant bill of 85 dollars"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "12.75"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case_conv_edd_neg_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Write a SQL query to select all active users created after 2026-01-01"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "SELECT * FROM users WHERE status = 'active' AND created_at > '2026-01-01';"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}

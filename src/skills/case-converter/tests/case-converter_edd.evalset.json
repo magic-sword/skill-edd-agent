@@ -72,6 +72,28 @@
         "does not trigger case-converter",
         "provides direct response for general architecture summary without error"
       ]
+    },
+    {
+      "case_id": "case_conv_edd_neg_002",
+      "input": "Calculate 15% tip on a restaurant bill of 85 dollars",
+      "expected_skill": null,
+      "expected_tool_calls": [],
+      "expected_output_format": "12.75",
+      "rubric": [
+        "does not trigger case-converter",
+        "computes math calculation directly without invoking case conversion tools"
+      ]
+    },
+    {
+      "case_id": "case_conv_edd_neg_003",
+      "input": "Write a SQL query to select all active users created after 2026-01-01",
+      "expected_skill": null,
+      "expected_tool_calls": [],
+      "expected_output_format": "SELECT * FROM users WHERE status = 'active' AND created_at > '2026-01-01';",
+      "rubric": [
+        "does not trigger case-converter",
+        "provides valid SQL query without invoking case conversion tools"
+      ]
     }
   ]
 }
