@@ -10,8 +10,21 @@ import tempfile
 import subprocess
 from typing import Any, Dict, Tuple, List, Union, Optional, Literal
 from pydantic import BaseModel, Field, TypeAdapter
-import gymnasium as gym
-from gymnasium import spaces
+import os
+import shutil
+import tempfile
+import subprocess
+from typing import Any, Dict, Tuple, List, Union, Optional, Literal
+from pydantic import BaseModel, Field, TypeAdapter
+
+try:
+    import gymnasium as gym
+    from gymnasium import spaces
+    _BaseEnv = gym.Env
+except ImportError:
+    gym = None
+    spaces = None
+    _BaseEnv = object  # type: ignore
 
 from edd_agent_tools.core.protocols import WorkspaceEnvProtocol
 
@@ -56,7 +69,7 @@ class FileState(BaseModel):
 
 
 class WorkspaceObservation(BaseModel):
-    """Gymnasium 観測空間のモデル。"""
+    """ワークスペース観測空間のモデル。"""
     files: Dict[str, FileState] = Field(default_factory=dict)
     pytest_output: str = ""
     status: str = "idle"
@@ -200,7 +213,7 @@ class GitSandbox:
         return state
 
 
-class LocalWorkspaceEnv(gym.Env):
+class LocalWorkspaceEnv(_BaseEnv):
     """
     一時的なOSディレクトリ（サンドボックス）でファイルシステム操作およびpytestの検証を行う環境。
     低レイヤーのファイル操作とGitステート制御は内部の GitSandbox クラスに委譲します。
@@ -213,7 +226,8 @@ class LocalWorkspaceEnv(gym.Env):
         use_git: bool = True,
         use_host_venv: bool = True
     ):
-        super().__init__()
+        if _BaseEnv is not object:
+            super().__init__()
         self.workspace_dir = os.path.abspath(workspace_dir)
         self.pip_packages = pip_packages if pip_packages is not None else ["pytest"]
         self.use_host_venv = use_host_venv
@@ -221,17 +235,20 @@ class LocalWorkspaceEnv(gym.Env):
         # GitSandbox の初期化
         self.sandbox = GitSandbox(workspace_dir, target_files, use_git)
         
-        self.action_space = spaces.Dict({
-            "action": spaces.Text(max_length=50),
-            "path": spaces.Text(max_length=256),
-            "content": spaces.Text(max_length=100000)
-        })
-        
-        self.observation_space = spaces.Dict({
-            "files": spaces.Dict({}),
-            "pytest_output": spaces.Text(max_length=100000),
-            "status": spaces.Text(max_length=50)
-        })
+        if spaces is not None:
+            self.action_space = spaces.Dict({
+                "action": spaces.Text(max_length=50),
+                "path": spaces.Text(max_length=256),
+                "content": spaces.Text(max_length=100000)
+            })
+            self.observation_space = spaces.Dict({
+                "files": spaces.Dict({}),
+                "pytest_output": spaces.Text(max_length=100000),
+                "status": spaces.Text(max_length=50)
+            })
+        else:
+            self.action_space = None
+            self.observation_space = None
         
         self.step_count = 0
         self.max_steps = 15
@@ -248,7 +265,11 @@ class LocalWorkspaceEnv(gym.Env):
 
     def reset(self, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None) -> Tuple[WorkspaceObservation, Dict[str, Any]]:
         """環境をリセットし、新しいサンドボックス（一時フォルダ）を構築します。"""
-        super().reset(seed=seed)
+        if _BaseEnv is not object and hasattr(super(), "reset"):
+            try:
+                super().reset(seed=seed)
+            except Exception:
+                pass
         self.step_count = 0
         self.sandbox.create()
         

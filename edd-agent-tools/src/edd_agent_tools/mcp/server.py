@@ -68,7 +68,7 @@ def create_mcp_server() -> FastMCP:
 
     @mcp.resource("edd://docs/sandbox_design")
     def get_sandbox_design() -> str:
-        """Gymnasium互換サンドボックス仮想環境、ロールバック仕様、およびCLI実行環境ドキュメントを取得します。"""
+        """決定論的サンドボックス仮想環境、ロールバック仕様、およびCLI実行環境ドキュメントを取得します。"""
         try:
             ref = importlib.resources.files("edd_agent_tools.docs").joinpath("sandbox_design.md")
             return ref.read_text(encoding="utf-8")

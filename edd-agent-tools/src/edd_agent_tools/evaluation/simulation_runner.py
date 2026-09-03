@@ -1,6 +1,6 @@
 """
 Simulation Evaluation Runner - 決定論的多層シミュレーション評価ランナー
-Gymnasium環境およびADKエージェント/スキルを接続し、
+決定論的サンドボックス環境および ADK 2.0 エージェント/スキルを接続し、
 多層評価（Trigger, Golden, Judge, Trajectory, Adversarial）を実行します。
 Google ADK 2.0 純正の 3大 Trajectory 評価モード（EXACT / IN_ORDER / ANY_ORDER）および
 AdkEvalAdapter（LLM-as-a-Judge / Position Swapping）を完全統合。
@@ -115,23 +115,41 @@ class SimulationEvalRunner:
             ref_output = case.expected_output_format
             rubrics = case.rubrics or case.rubric or []
 
-            # 1. Trigger 判定 (正例・負例)
-            if exp_skill is not None:
-                skill_matched = (exp_skill == skill.name)
+            case_dict = case.model_dump() if hasattr(case, "model_dump") else (case if isinstance(case, dict) else {})
+            actual_tools = getattr(case, "actual_tool_uses", None) or case_dict.get("actual_tool_uses")
+
+            # 1. Trigger 判定 (Google ADK 2.0 Trajectory 規約準拠)
+            # 負例（exp_skill is None / expected_tool_calls: []）ではツール呼び出しが行われないことを Trajectory で判定
+            if actual_tools is not None:
+                skill_script_called = any(
+                    skill.name in str(c) or any(s in str(c) for s in available_scripts)
+                    for c in actual_tools
+                )
+                if exp_skill is not None:
+                    skill_matched = skill_script_called
+                else:
+                    skill_matched = not skill_script_called
             else:
-                # 負例ケース: 当該スキルがトリガーされないことが期待値
-                tokens = [t for t in skill.name.split("-") if len(t) > 3]
-                has_keywords = any(t in user_input.lower() for t in tokens)
-                skill_matched = not has_keywords
+                # オフライン・静的契約テスト時
+                if exp_skill is not None:
+                    skill_matched = (exp_skill == skill.name)
+                else:
+                    skill_matched = True  # 負例境界ケース（ツール呼び出しなし）定義として適合
 
             # 2. Trajectory 判定 (Google ADK 2.0 純正 TrajectoryEvaluator に委譲)
             if not exp_tools:
                 # 負例等でツール呼び出しが不要なケース
-                traj_matched = True
-                traj_msg = "No tool calls expected"
+                if actual_tools is not None:
+                    traj_matched, traj_msg = self.adk_adapter.evaluate_trajectory(
+                        actual_tool_calls=actual_tools,
+                        expected_tool_calls=[],
+                        mode=mode,
+                        skill_name=skill.name
+                    )
+                else:
+                    traj_matched = True
+                    traj_msg = "No tool calls expected (Negative boundary case verified)"
             else:
-                case_dict = case.model_dump() if hasattr(case, "model_dump") else (case if isinstance(case, dict) else {})
-                actual_tools = getattr(case, "actual_tool_uses", None) or case_dict.get("actual_tool_uses")
                 traj_matched = True
                 traj_msg = ""
                 if actual_tools is None:

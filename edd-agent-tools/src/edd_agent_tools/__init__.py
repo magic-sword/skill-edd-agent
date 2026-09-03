@@ -6,9 +6,11 @@ Evaluation-Driven Development (EDD) tools and helper libraries for AI Agent deve
 Anthropic Markdown-First & Google ADK 2.0 準拠の自己改善エージェント開発基盤パッケージ。
 """
 
+import sys
+import importlib
 from typing import Any
 
-# Models
+# Models (軽量・必須)
 from .models.spec import (
     SkillPattern,
     ModuleType,
@@ -32,7 +34,7 @@ from .models.eval import (
 )
 
 # Core Entities & Discovery
-from .core.entity import Skill, SkillTests
+from .core.entity import Skill, SkillPackage, SkillTests
 from .state import SkillsState
 
 # Validation & Packaging & Scaffolding
@@ -40,27 +42,43 @@ from .validation.validator import SkillValidator, ValidationResult, ValidationIs
 from .packaging.packager import SkillPackager
 from .packaging.scaffold import SkillScaffolder
 
-# Evaluation & Sandboxing
-from .evaluation.test_runner import ContractTestRunner
-from .evaluation.simulation_runner import SimulationEvalRunner
-from .evaluation.cascade_runner import CascadeTestRunner
-from .evaluation.diagnoser import SkillDiagnoser
-from .evaluation.optimizer import SkillOptimizer
-from .evaluation.environment import LocalWorkspaceEnv
-from .evaluation.adk_eval import AdkEvalAdapter
-from .evaluation.co_loaded_runner import CoLoadedEvalRunner
-from .core.protocols import WorkspaceEnvProtocol
-
-# Meta-Skills & Evolution (Section 6 & 7)
-from .meta.description_optimizer import DescriptionOptimizer
-from .meta.trace_harvester import TraceHarvester
-from .meta.capability_profile import CapabilityProfile, CapabilityProfileManager
-
-# ADK Integration
+# ADK 2.0 Integration (Core Toolset & Registry)
 from .adk.toolset import EddSkillToolset, create_adk_skill_toolset
 
 __version__ = "0.7.0"
 
+# 評価・メタモジュールの遅延ロード定義（起動速度最適化および循環・不要依存の連鎖回避）
+_LAZY_IMPORTS = {
+    "ContractTestRunner": ".evaluation.test_runner",
+    "SimulationEvalRunner": ".evaluation.simulation_runner",
+    "CascadeTestRunner": ".evaluation.cascade_runner",
+    "SkillDiagnoser": ".evaluation.diagnoser",
+    "SkillOptimizer": ".evaluation.optimizer",
+    "LocalWorkspaceEnv": ".evaluation.environment",
+    "AdkEvalAdapter": ".evaluation.adk_eval",
+    "CoLoadedEvalRunner": ".evaluation.co_loaded_runner",
+    "WorkspaceEnvProtocol": ".core.protocols",
+    "DescriptionOptimizer": ".meta.description_optimizer",
+    "TraceHarvester": ".meta.trace_harvester",
+    "CapabilityProfile": ".meta.capability_profile",
+    "CapabilityProfileManager": ".meta.capability_profile",
+}
+
+
+def __getattr__(name: str) -> Any:
+    """遅延インポートハンドラー"""
+    if name in _LAZY_IMPORTS:
+        module_path = _LAZY_IMPORTS[name]
+        mod = importlib.import_module(module_path, package=__name__)
+        val = getattr(mod, name)
+        globals()[name] = val
+        return val
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+
+def __dir__():
+    """dir() 呼び出し時に遅延ロード対象も含めて一覧表示"""
+    return sorted(list(globals().keys()) + list(_LAZY_IMPORTS.keys()))
 
 
 __all__ = [
@@ -82,6 +100,7 @@ __all__ = [
     "EvalDetailReport",
     # Core
     "Skill",
+    "SkillPackage",
     "SkillTests",
     "SkillsState",
     # Validation & Packaging
@@ -90,7 +109,10 @@ __all__ = [
     "ValidationIssue",
     "SkillPackager",
     "SkillScaffolder",
-    # Evaluation
+    # ADK
+    "EddSkillToolset",
+    "create_adk_skill_toolset",
+    # Evaluation (Lazy)
     "ContractTestRunner",
     "SimulationEvalRunner",
     "CascadeTestRunner",
@@ -100,14 +122,9 @@ __all__ = [
     "AdkEvalAdapter",
     "CoLoadedEvalRunner",
     "WorkspaceEnvProtocol",
-    # Meta-Skills & Evolution
+    # Meta-Skills (Lazy)
     "DescriptionOptimizer",
     "TraceHarvester",
     "CapabilityProfile",
     "CapabilityProfileManager",
-    # ADK
-    "EddSkillToolset",
-    "create_adk_skill_toolset",
 ]
-
-

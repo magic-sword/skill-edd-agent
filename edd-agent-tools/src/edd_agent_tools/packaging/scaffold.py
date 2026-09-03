@@ -389,8 +389,7 @@ Example usage pattern for {canonical_skill_name}.
             "name": f"{canonical_skill_name}_edd",
             "description": f"Google ADK 2.0 Native EvalSet for {canonical_skill_name}",
             "skill_name": canonical_skill_name,
-            "eval_cases": all_cases,
-            "cases": all_cases
+            "eval_cases": all_cases
         }
         json_content = json.dumps(initial_edd_set, indent=2, ensure_ascii=False)
         # Google ADK 2.0 公式ディレクトリ自動探索規約 (*.test.json)

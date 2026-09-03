@@ -12,7 +12,7 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
     `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）、`examples/`（使用例用）のリソース分離を安全にロード・管理するドメインクラスと DAG 依存関係グラフ検証を提供。他プロジェクトへの配布時にもパスに依存しない Zero-Hardcoding 設計。
 *   **4段階品質保証パイプライン & 決定論的検証 (`SkillValidator`, `SkillPackager`, `SkillScaffolder`)**
     パッケージ同梱の標準テンプレート展開、高速ディレクトリ雛形生成、および構文・実在整合性・Imperative文体を検査する AST 静的バリデータを提供。外部パスに依存しない完全自己完結設計。
-*   **Gymnasium 互換サンドボックス隔離環境 (`WorkspaceEnvProtocol`, `LocalWorkspaceEnv`)**
+*   **決定論的サンドボックス隔離環境 (`WorkspaceEnvProtocol`, `LocalWorkspaceEnv`)**
     コードやテスト実行による環境破壊を防ぐため、仮想環境と Git ロールバック機能を提供。
 *   **多層EDD評価フレームワーク & Tier昇格ゲートキーパー (`ContractTestRunner`, `SimulationEvalRunner`, `CascadeTestRunner`)**
     契約テスト、トリガー精度テスト、ゴールデン出力評価、および上位ワークフローへの連鎖回帰テストを一元管理する決定論的評価エンジンを提供。
