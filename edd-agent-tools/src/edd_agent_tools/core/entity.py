@@ -376,8 +376,14 @@ class SkillTests:
         name_hyphen = raw_name.replace('_', '-')
 
         candidates = []
+        # Google ADK 2.0 公式ディレクトリ自動探索規約 (*.test.json) を最優先探索
         for name in {raw_name, name_under, name_hyphen}:
             candidates.extend([
+                f"{name}.test.json",
+                f"{name}_{test_type}.test.json",
+                f"{name}-{test_type}.test.json",
+                f"{name}_edd.test.json",
+                f"{name}-edd.test.json",
                 f"{name}_{test_type}.evalset.json",
                 f"{name}-{test_type}.evalset.json",
                 f"{name}_{test_type}_eval.evalset.json",
@@ -385,12 +391,16 @@ class SkillTests:
             ])
             if test_type == "contract":
                 candidates.extend([
+                    f"{name}_unit.test.json",
+                    f"{name}_contract.test.json",
                     f"{name}_unit.evalset.json",
                     f"{name}-unit.evalset.json",
                     f"{name}_unit_eval.evalset.json",
                 ])
             elif test_type == "unit":
                 candidates.extend([
+                    f"{name}_unit.test.json",
+                    f"{name}_contract.test.json",
                     f"{name}_contract.evalset.json",
                     f"{name}-contract.evalset.json",
                 ])
@@ -401,28 +411,32 @@ class SkillTests:
             ])
 
         candidates.extend([
+            f"{test_type}.test.json",
+            "edd.test.json",
             f"{test_type}.evalset.json",
             f"{test_type}_eval.evalset.json",
             "edd.evalset.json",
         ])
         if test_type == "contract":
-            candidates.append("unit.evalset.json")
+            candidates.extend(["unit.test.json", "contract.test.json", "unit.evalset.json", "contract.evalset.json"])
         elif test_type == "unit":
-            candidates.append("contract.evalset.json")
+            candidates.extend(["unit.test.json", "contract.test.json", "contract.evalset.json"])
 
         for candidate in candidates:
             candidate_path = os.path.join(self.tests_dir, candidate)
             if os.path.isfile(candidate_path):
                 return os.path.abspath(candidate_path)
 
-        pattern = os.path.join(self.tests_dir, f"*{test_type}*.evalset.json")
-        matches = glob.glob(pattern)
-        if matches:
-            return os.path.abspath(matches[0])
+        for pat in [f"*{test_type}*.test.json", f"*{test_type}*.evalset.json"]:
+            pattern = os.path.join(self.tests_dir, pat)
+            matches = glob.glob(pattern)
+            if matches:
+                return os.path.abspath(matches[0])
 
-        edd_matches = glob.glob(os.path.join(self.tests_dir, "*edd*.evalset.json"))
-        if edd_matches:
-            return os.path.abspath(edd_matches[0])
+        for pat in ["*edd*.test.json", "*.test.json", "*edd*.evalset.json"]:
+            edd_matches = glob.glob(os.path.join(self.tests_dir, pat))
+            if edd_matches:
+                return os.path.abspath(edd_matches[0])
 
         return None
 
@@ -492,14 +506,15 @@ class SkillTests:
         ]
 
     def list_evalsets(self) -> list[str]:
-        """tests/ 配下に存在する全 *.evalset.json ファイルの絶対パスリストを返します。"""
+        """tests/ 配下に存在する全 *.test.json および *.evalset.json ファイルの絶対パスリストを返します。"""
         import glob
         if not os.path.exists(self.tests_dir):
             return []
-        return [
-            os.path.abspath(p)
-            for p in glob.glob(os.path.join(self.tests_dir, "*.evalset.json"))
-        ]
+        found = set()
+        for pat in ["*.test.json", "*.evalset.json"]:
+            for p in glob.glob(os.path.join(self.tests_dir, pat)):
+                found.add(os.path.abspath(p))
+        return sorted(found)
 
 
 # Google ADK 2.0 純正 google.adk.skills.models.Skill との同名衝突を解消したエイリアス定義

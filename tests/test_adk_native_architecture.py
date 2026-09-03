@@ -139,7 +139,7 @@ def test_cli_meta_commands_dispatch(tmp_path):
 
 def test_adk_evalset_native_structure():
     """ADK 2.0 公式 EvalSet が 3正例+3負例および完全なconversation構造を持つことを直接検証。"""
-    evalset_path = Path("src/skills/case-converter/tests/case-converter_edd.evalset.json")
+    evalset_path = Path("src/skills/case-converter/tests/case-converter.test.json")
     assert evalset_path.exists()
 
     with open(evalset_path, "r", encoding="utf-8") as f:
@@ -175,4 +175,54 @@ def test_adk_eval_cli_command(monkeypatch):
     assert called_args["agent_module"] == "src.main"
     assert "case-converter" in called_args["eval_dataset"]
     assert "test_config.json" in called_args["config_file_path"]
+
+
+def test_adk_directory_recursive_test_json_discovery():
+    """Google ADK 2.0 公式規約 *.test.json の自動探索と EvalSet / EvalConfig 統合を検証。"""
+    from google.adk.evaluation.eval_set import EvalSet
+    from google.adk.evaluation.agent_evaluator import AgentEvaluator
+
+    skills = ["case-converter", "secret-sanitizer", "skill-creator", "skill-evolver"]
+    for s_name in skills:
+        skill = Skill(root_dir=Path(f"src/skills/{s_name}"))
+        test_file_path = skill.tests.get_evalset_path("edd")
+        assert test_file_path is not None
+        assert test_file_path.endswith(".test.json")  # *.test.json が優先検出されること
+
+        # ADK 公式 EvalSet によるパース検証
+        with open(test_file_path, "r", encoding="utf-8") as f:
+            eval_set = EvalSet.model_validate_json(f.read())
+        assert len(eval_set.eval_cases) == 6
+
+        # ADK 公式 find_config_for_test_file で同一ディレクトリの test_config.json が紐付くこと
+        cfg = AgentEvaluator.find_config_for_test_file(test_file_path)
+        assert cfg is not None
+        assert "tool_trajectory_avg_score" in cfg.criteria
+
+
+def test_agent_evaluator_directory_traversal(monkeypatch):
+    """AgentEvaluator.evaluate() にディレクトリを渡した際、*.test.json が再帰探索されることを検証。"""
+    import asyncio
+    from google.adk.evaluation.agent_evaluator import AgentEvaluator
+
+    evaluated_files = []
+
+    async def mock_evaluate_eval_set(agent_module, eval_set, eval_config, **kwargs):
+        evaluated_files.append(eval_set.eval_set_id)
+        return True
+
+    monkeypatch.setattr(AgentEvaluator, "evaluate_eval_set", mock_evaluate_eval_set)
+
+    # tests ディレクトリを直接指定して evaluate() を呼び出す
+    asyncio.run(AgentEvaluator.evaluate(
+        agent_module="src",
+        eval_dataset_file_path_or_dir="src/skills/case-converter/tests",
+        num_runs=1
+    ))
+
+    # *.test.json が探索され evaluate_eval_set が呼び出されたことを確認
+    assert len(evaluated_files) >= 1
+    assert any("case-converter" in eid for eid in evaluated_files)
+
+
 

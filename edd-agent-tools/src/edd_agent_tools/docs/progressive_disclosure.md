@@ -14,7 +14,7 @@ Skills use a three-level loading system to optimize context window efficiency fo
 
 3. **Level 3: Bundled Resources**
    - Loaded or executed on demand (Unlimited capacity).
-   - Separated into specialized directories: `scripts/`, `references/`, `assets/`, `examples/`, and `tests/` (`{skill_name}_edd.evalset.json` as Single Source of Truth).
+   - Separated into specialized directories: `scripts/`, `references/`, `assets/`, `examples/`, and `tests/` (`{skill_name}.test.json` as Single Source of Truth).
 
 ---
 

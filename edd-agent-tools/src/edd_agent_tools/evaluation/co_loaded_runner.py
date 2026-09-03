@@ -37,7 +37,7 @@ class CoLoadedEvalRunner:
         Args:
             target_skill_name: 評価対象のスキル名。
             co_loaded_count: 同時にロードするスキルの目標数（デフォルト 5、最大 15）。
-            test_dataset_path: 評価データセットのパス（省略時はスキルの tests/*.evalset.json）。
+            test_dataset_path: 評価データセットのパス（省略時はスキルの tests/*.test.json）。
 
         Returns:
             Dict[str, Any]: {

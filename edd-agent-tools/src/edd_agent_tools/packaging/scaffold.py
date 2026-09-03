@@ -392,8 +392,10 @@ Example usage pattern for {canonical_skill_name}.
             "eval_cases": all_cases,
             "cases": all_cases
         }
-        (target_dir / "tests" / f"{canonical_skill_name}_edd.evalset.json").write_text(
-            json.dumps(initial_edd_set, indent=2, ensure_ascii=False),
+        json_content = json.dumps(initial_edd_set, indent=2, ensure_ascii=False)
+        # Google ADK 2.0 公式ディレクトリ自動探索規約 (*.test.json)
+        (target_dir / "tests" / f"{canonical_skill_name}.test.json").write_text(
+            json_content,
             encoding="utf-8"
         )
 

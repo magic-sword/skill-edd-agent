@@ -68,7 +68,7 @@ class TraceHarvester:
         # トレースから Google ADK 2.0 公式 EvalSet 形式の初期評価データセットを生成
         tests_dir = skill_dir / "tests"
         if tests_dir.exists():
-            edd_file = tests_dir / f"{suggested_skill_name}_edd.evalset.json"
+            edd_file = tests_dir / f"{suggested_skill_name}.test.json"
             cid = f"{suggested_skill_name.replace('-', '_')}_harvested_001"
             main_script = f"scripts/{suggested_skill_name.replace('-', '_')}.py"
             inp_text = user_intent or f"Execute {suggested_skill_name} workflow"

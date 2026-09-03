@@ -248,7 +248,7 @@ def test_simulation_runner_edd_composite_eval(tmp_workspace):
 
 
 def test_ssot_all_production_skills_contract_and_eval():
-    """本番スキル（case-converter, secret-sanitizer）の *_edd.evalset.json（SSOT）から直接契約テスト・EDD評価が100%パスすることを検証"""
+    """本番スキル（case-converter, secret-sanitizer）の *.test.json（SSOT）から直接契約テスト・EDD評価が100%パスすることを検証"""
     import json
     from edd_agent_tools.evaluation import ContractTestRunner, SimulationEvalRunner, LocalWorkspaceEnv
 
@@ -263,7 +263,7 @@ def test_ssot_all_production_skills_contract_and_eval():
         s_dir = skills_root / s_name
         skill = Skill(root_dir=str(s_dir), tier=1)
 
-        evalset_file = s_dir / "tests" / f"{s_name}_edd.evalset.json"
+        evalset_file = s_dir / "tests" / f"{s_name}.test.json"
         assert evalset_file.exists(), f"SSOT evalset not found at: {evalset_file}"
 
         data = json.loads(evalset_file.read_text(encoding="utf-8"))

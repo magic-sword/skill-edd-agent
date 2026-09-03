@@ -150,7 +150,7 @@ class SkillValidator:
 
     @classmethod
     def _validate_evalset_structure(cls, skill_dir: Path, res: ValidationResult) -> None:
-        """Google ADK 2.0 公式 EvalSet 評価データセット（tests/*.evalset.json）の整合性を検証します。
+        """Google ADK 2.0 公式 EvalSet 評価データセット（tests/*.test.json）の整合性を検証します。
         
         白書 Page 22 必須要件:
         'Testable specificity: You must write 3 positive and 3 negative triggers.'
@@ -163,11 +163,20 @@ class SkillValidator:
             )
             return
 
-        evalsets = list(tests_dir.glob("*.evalset.json"))
+        # Google ADK 2.0 公式 *.test.json および *.evalset.json を探索
+        raw_evalsets = list(tests_dir.glob("*.test.json")) + list(tests_dir.glob("*.evalset.json"))
+        seen_paths = set()
+        evalsets = []
+        for es in raw_evalsets:
+            resolved = es.resolve()
+            if resolved not in seen_paths:
+                seen_paths.add(resolved)
+                evalsets.append(es)
+
         if not evalsets:
             res.add_warning(
                 "evalset",
-                "No '*.evalset.json' found in 'tests/'. Google ADK 2.0 & Whitepaper EDD standard requires upfront JSON evaluation cases (ADK native EvalSet: eval_cases with conversation)."
+                "No '*.test.json' or '*.evalset.json' found in 'tests/'. Google ADK 2.0 & Whitepaper EDD standard requires upfront JSON evaluation cases (ADK native EvalSet: eval_cases with conversation)."
             )
             return
 

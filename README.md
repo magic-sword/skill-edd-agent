@@ -66,7 +66,7 @@ flowchart TD
         - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ
         - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
         - `examples/`: エージェントが真似できる具象コード例・パターン集
-        - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（`<skill-name>_edd.evalset.json`: 単一真実源: SSOT）
+        - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（`<skill-name>.test.json`: 単一真実源: SSOT、ADK ディレクトリ自動探索適合）
 3.  **Google ADK 2.0 純正ランタイム完全一致命名規約**
     *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。
 4.  **Google ADK 2.0 純正評価統合 & 車輪の再発明の完全排除**
@@ -79,7 +79,7 @@ flowchart TD
 7.  **Human Sign-off ゲート (Tier 3: Action-Allowed)**
     *   不可逆操作が許可される Tier 3 昇格時には、人間の明示的承認を必須化。
 8.  **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**
-    *   `SKILL.md` を執筆する前に、まず `tests/<skill-name>_edd.evalset.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の Google ADK 2.0 公式 `EvalSet`（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
+    *   `SKILL.md` を執筆する前に、まず `tests/<skill-name>.test.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の Google ADK 2.0 公式 `EvalSet`（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
     *   **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化。
 9.  **白書 Appendix A minimal SKILL.md 6大必須セクション標準**
     *   すべてのスキルは、白書 Appendix A が定める 6 つの必須セクション（`When to use`, `When NOT to use`, `Workflow`, `Examples`, `Output format`, `Anti-patterns to avoid`）を標準実装。

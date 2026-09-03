@@ -90,7 +90,7 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
 
 ## 7. Google ADK 2.0 公式 EvalSet 標準 (単一真実源: SSOT)
 
-Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキルは `SKILL.md` を執筆する前に、まず `tests/{skill_name}_edd.evalset.json` を単一真実源（SSOT）として先行定義します：
+Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキルは `SKILL.md` を執筆する前に、まず `tests/{skill_name}.test.json` を単一真実源（SSOT、ADK ディレクトリ自動探索適合）として先行定義します：
 
 ```json
 {

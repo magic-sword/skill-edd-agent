@@ -47,7 +47,7 @@ def test_e2e_evaluation_and_tier_gating(tmp_path):
             }
         ]
     }
-    (tests_dir / "json-schema-validator_contract.evalset.json").write_text(
+    (tests_dir / "json-schema-validator_contract.test.json").write_text(
         json.dumps(contract_data, indent=2), encoding="utf-8"
     )
 
@@ -62,7 +62,7 @@ def test_e2e_evaluation_and_tier_gating(tmp_path):
             }
         ]
     }
-    (tests_dir / "json-schema-validator_trigger.evalset.json").write_text(
+    (tests_dir / "json-schema-validator_trigger.test.json").write_text(
         json.dumps(trigger_data, indent=2), encoding="utf-8"
     )
 
@@ -80,7 +80,7 @@ def test_e2e_evaluation_and_tier_gating(tmp_path):
             }
         ]
     }
-    (tests_dir / "json-schema-validator_trajectory.evalset.json").write_text(
+    (tests_dir / "json-schema-validator_trajectory.test.json").write_text(
         json.dumps(trajectory_data, indent=2), encoding="utf-8"
     )
 

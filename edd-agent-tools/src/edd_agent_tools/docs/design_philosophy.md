@@ -135,7 +135,7 @@ Google ADK 2.0 公式ランタイム制約および白書標準（Appendix A & S
 * **Script Name**: **`snake_case`（例: `case_converter.py`）** - Python のモジュール・スクリプト標準。
 * **動名詞の推奨 (Prefer gerund form)**: 名詞（`pdf-processor`）より動名詞（`processing-pdfs`）を推奨。
 * **ベンダープレフィックスおよび汎用名の排除**: `gemini-*`, `claude-*` や `utils`, `tools` などの曖昧な命名を禁止。
-* **評価データセット単一真実源 (SSOT) と責務分離**: 乱立する複数のテストファイルを廃止し、Google ADK 2.0 公式 `EvalSet` スキーマ（`eval_set_id`, `eval_cases`, `conversation`, `intermediate_data.tool_uses`, `rubrics`）の **`{skill_name}_edd.evalset.json`（正例 3 件＋負例 3 件の計6件、白書 Section 4 Page 22 必須要件）に一元化**。
+* **評価データセット単一真実源 (SSOT) と責務分離**: 乱立する複数のテストファイルを廃止し、Google ADK 2.0 公式 `EvalSet` スキーマ（`eval_set_id`, `eval_cases`, `conversation`, `intermediate_data.tool_uses`, `rubrics`）の **`{skill_name}.test.json`（正例 3 件＋負例 3 件の計6件、白書 Section 4 Page 22 必須要件、Google ADK 2.0 公式ディレクトリ自動探索規約）に一元化**。
   - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `expected_tool_calls` / `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させる。
 
 ---
@@ -162,8 +162,8 @@ src/skills/{skill_name}/
     sample.txt
   examples/      # 具象コード例・パターン集（エージェントが真似できる実装例）
     example_usage.py
-  tests/         # Google ADK 2.0 公式 EvalSet 評価データセット（単一真実源: SSOT）
-    {skill_name}_edd.evalset.json
+  tests/         # Google ADK 2.0 公式 EvalSet 評価データセット（単一真実源: SSOT、ADK ディレクトリ探索適合）
+    {skill_name}.test.json
     test_config.json   # Google ADK 2.0 公式 EvalConfig（IN_ORDER & Rubrics 設定）
 ```
 

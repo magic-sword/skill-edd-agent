@@ -63,7 +63,7 @@
    - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド参照資料）
    - `assets/`: 出力用テンプレート・素材・ボイラープレート（空ディレクトリは残置しない）
    - `examples/`: エージェントが真似できる具象コード例・パターン集
-   - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（`<skill-name>_edd.evalset.json`: 単一真実源: SSOT）
+   - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（`<skill-name>.test.json`: 単一真実源: SSOT、ADK ディレクトリ自動探索適合）
 3. **命名規約 (ADK 2.0 ランタイム完全一致)**:
    - ディレクトリ名・スキル名は `kebab-case`（例: `case-converter`）で完全一致させます（ADK 2.0 `load_skill_from_dir` の必須要件）。
    - スクリプト名は Python 標準の `snake_case`（例: `case_converter.py`）とします。
@@ -74,7 +74,7 @@
 5. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**:
    - 外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します（`SkillValidator` が AST 解析で検知・警告）。
 6. **白書標準 EDD インバージョン開発と単一真実源 (SSOT)**:
-   - `SKILL.md` の本文を執筆する前に、まず `tests/<skill-name>_edd.evalset.json` に Google ADK 2.0 公式 `EvalSet` スキーマの **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の評価ケース（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を先行定義してください。
+   - `SKILL.md` の本文を執筆する前に、まず `tests/<skill-name>.test.json` に Google ADK 2.0 公式 `EvalSet` スキーマの **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の評価ケース（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を先行定義してください。
    - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させます。
    - 独自スキーマによるデータ二重管理を排し、Google ADK 公式 CLI `adk eval` や `AgentEvaluator` とそのまま直結動作します。
 7. **白書 Appendix A minimal SKILL.md 6大必須セクション構造**:

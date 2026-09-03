@@ -63,7 +63,7 @@ flowchart TD
     Route -->|script: 実装ロジックバグ| UpdateScript[scripts/*.py のコード修正]
     Route -->|reference: 知識・スキーマ不足| UpdateRef[references/*.md のドキュメント補強]
     Route -->|example: 使用例パターンの不備| UpdateEx[examples/*.py のパターン例補強]
-    Route -->|test_case: テスト期待値側の不備| UpdateTest[tests/*.evalset.json の期待値修正]
+    Route -->|test_case: テスト期待値側の不備| UpdateTest[tests/*.test.json の期待値修正]
     
     UpdateSpec --> Validator[SkillValidator / edd validate 静的リンター]
     UpdateScript --> Validator
@@ -95,4 +95,4 @@ flowchart TD
 - **`reference`**: `references/*.md` のドキュメント・スキーマ修正
 - **`asset`**: `assets/` のテンプレート修正
 - **`example`**: `examples/` のパターン例修正
-- **`test_case`**: `tests/*.evalset.json` の不備・期待値修正
+- **`test_case`**: `tests/*.test.json` の不備・期待値修正

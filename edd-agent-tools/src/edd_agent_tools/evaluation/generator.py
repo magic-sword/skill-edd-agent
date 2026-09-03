@@ -1,7 +1,7 @@
 """
 Evaluation Set Generator - 決定論的テストデータセット雛形生成エンジン
 SKILL.md および scripts/ の構造定義から、Contract, Trigger, Trajectory, Golden, Judge, Adversarial
-の各多層評価テストセット（.evalset.json）のスケルトンを完全決定論的に生成・保存します。
+の各多層評価テストセット（*.test.json）のスケルトンを完全決定論的に生成・保存します。
 """
 
 import os
@@ -342,7 +342,7 @@ class EvalSetGenerator:
         types_to_run = ["edd", "trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if test_type == "all" else [test_type]
 
         for t in types_to_run:
-            out_path = base_out / f"{skill_name}_{t}.evalset.json"
+            out_path = base_out / (f"{skill_name}.test.json" if t == "edd" else f"{skill_name}_{t}.test.json")
             success = False
             if t == "edd":
                 success = self.generate_edd_tests(skill_name, str(out_path))

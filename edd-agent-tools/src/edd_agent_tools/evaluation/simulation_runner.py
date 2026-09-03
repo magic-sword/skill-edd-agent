@@ -40,7 +40,7 @@ class SimulationEvalRunner:
         env: Any = None,
         trajectory_mode: Optional[TrajectoryMode] = None
     ) -> EvalRunResult:
-        """多層評価データセット（evalset.json）を読み込み、テスト種別に応じた検証を実行します。
+        """多層評価データセット（*.test.json）を読み込み、テスト種別に応じた検証を実行します。
 
         Args:
             skill: 対象の Skill オブジェクト。
