@@ -5,7 +5,7 @@ Google ADK 2.0 の評価 Criteria（ToolTrajectoryCriterion, TrajectoryEvaluator
 Agent Skills 白書（May 2026）に完全準拠した評価アダプター。
 車輪の再発明を排除し、ADK 2.0 公式の評価コンポーネントを直接駆動します。
 LLM-as-a-Judge によるルーブリック採点、Position Swapping（順序バイアス中和）、
-および白書 Snippet 3 形式の Trajectory 評価を提供します。
+および ADK 2.0 公式 EvalSet 形式の Trajectory 評価を提供します。
 """
 
 import os
@@ -61,11 +61,11 @@ def normalize_to_function_call(
     tool_call: Union[str, Dict[str, Any]],
     skill_name: Optional[str] = None
 ) -> Any:
-    """白書 Snippet 3 形式や ADK 純正ツール呼び出しを genai_types.FunctionCall に正規化します。
+    """ツール呼び出し辞書や文字列を Google ADK 2.0 純正の genai_types.FunctionCall に正規化します。
     
     対応形式:
-    1. ADK 2.0 純正: {"tool": "run_skill_script", "args": {"skill_name": "...", "file_path": "scripts/..."}}
-    2. 白書 Snippet 3 / スクリプト直接表記: {"tool": "scripts/secret_sanitizer.py", "args": {...}}
+    1. ADK 2.0 純正: {"name": "run_skill_script", "args": {"skill_name": "...", "file_path": "scripts/..."}}
+    2. スクリプト直接表記: {"tool": "scripts/secret_sanitizer.py", "args": {...}}
     3. ドメイン / MCP ツール呼び出し: {"tool": "lookup_order", "args": {"order_id": "4521"}}
     4. 単純文字列: "scripts/secret_sanitizer.py" または "lookup_order"
     """
@@ -111,13 +111,13 @@ def normalize_to_function_call(
 
 
 def convert_edd_to_adk_eval_case(edd_case: Dict[str, Any], skill_name: Optional[str] = None) -> Any:
-    """白書 Snippet 3 形式の EDD 評価ケースを Google ADK 2.0 純正 EvalCase モデルに変換します。"""
+    """評価ケース辞書を Google ADK 2.0 純正 EvalCase モデルに変換・正規化します。"""
     if NativeAdkEvalCase is None or genai_types is None or Invocation is None:
         return edd_case
 
-    case_id = edd_case.get("case_id") or edd_case.get("eval_case_id", "case_001")
+    case_id = edd_case.get("case_id") or edd_case.get("eval_case_id") or edd_case.get("eval_id", "case_001")
     user_input = edd_case.get("input") or edd_case.get("user_input", "")
-    rubric_list = edd_case.get("rubric") or []
+    rubric_list = edd_case.get("rubric") or edd_case.get("rubrics") or []
     expected_tools = edd_case.get("expected_tool_calls") or []
     resolved_skill = edd_case.get("expected_skill") or skill_name
 
@@ -151,7 +151,7 @@ def convert_edd_to_adk_eval_case(edd_case: Dict[str, Any], skill_name: Optional[
 
 
 def convert_edd_to_adk_eval_set(edd_evalset: Dict[str, Any]) -> Any:
-    """白書 Snippet 3 形式の評価データセット全体を Google ADK 2.0 純正 EvalSet モデルに変換します。"""
+    """評価データセット辞書を Google ADK 2.0 純正 EvalSet モデルに変換・正規化します。"""
     eval_set_id = edd_evalset.get("eval_set_id", "edd_eval_set")
     skill_name = edd_evalset.get("skill_name")
     cases = edd_evalset.get("cases") or edd_evalset.get("eval_cases") or []

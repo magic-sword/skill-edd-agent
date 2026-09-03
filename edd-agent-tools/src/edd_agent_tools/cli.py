@@ -736,7 +736,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_prof.add_argument("profile_name", nargs="?", help="Name of the capability profile to inspect")
 
     # 13. export-eval (Export to Google ADK 2.0 Native EvalSet)
-    p_exp = subparsers.add_parser("export-eval", help="Export Snippet 3 evalset to Google ADK 2.0 native evalset JSON for adk eval")
+    p_exp = subparsers.add_parser("export-eval", help="Export evaluation dataset to Google ADK 2.0 native EvalSet JSON format")
     p_exp.add_argument("skill_name", help="Target skill name")
     p_exp.add_argument("--out", "-o", help="Output file path (default: tests/<skill>_adk_native.evalset.json)")
 

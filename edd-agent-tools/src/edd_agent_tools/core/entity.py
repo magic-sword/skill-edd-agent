@@ -279,12 +279,14 @@ class SkillPackage:
         args: Optional[Union[List[str], Dict[str, Any]]] = None,
         extra_env: Optional[Dict[str, str]] = None,
         timeout: int = 60,
+        positional_args: Optional[List[str]] = None,
+        short_options: Optional[Dict[str, Any]] = None,
         code_executor: Optional[Any] = None
     ) -> Dict[str, Any]:
         """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。
         
-        Google ADK 2.0 純正の BaseCodeExecutor（UnsafeLocalCodeExecutor 等）を標準活用し、
-        車輪の再発明を排除した決定論的スクリプト実行を提供します。
+        Google ADK 2.0 純正の run_skill_script ツール引数仕様（args, positional_args, short_options）
+        および BaseCodeExecutor（UnsafeLocalCodeExecutor 等）と完全準拠しています。
         """
         scripts = self.list_scripts()
         target_script = None
@@ -301,17 +303,30 @@ class SkillPackage:
         if not target_script or not os.path.exists(target_script):
             raise FileNotFoundError(f"Could not resolve execution script in '{self.scripts_dir}'.")
 
-        # CLI 引数の正規化
+        # ADK 2.0 公式 run_skill_script 規約に基づく CLI 引数の正規化
         cmd_args: List[str] = []
-        if isinstance(args, dict):
-            for k, v in args.items():
-                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
-                if v is True:
-                    cmd_args.append(flag)
-                elif v is not False and v is not None:
-                    cmd_args.extend([flag, str(v)])
-        elif isinstance(args, list):
-            cmd_args = [str(a) for a in args]
+        if isinstance(args, list):
+            cmd_args.extend(str(a) for a in args)
+        else:
+            if isinstance(args, dict):
+                for k, v in args.items():
+                    flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+                    if v is True:
+                        cmd_args.append(flag)
+                    elif v is not False and v is not None:
+                        cmd_args.extend([flag, str(v)])
+
+            if short_options:
+                for k, v in short_options.items():
+                    flag = f"-{k}" if not k.startswith("-") else k
+                    if v is True:
+                        cmd_args.append(flag)
+                    elif v is not False and v is not None:
+                        cmd_args.extend([flag, str(v)])
+
+            if positional_args:
+                cmd_args.append("--")
+                cmd_args.extend(str(a) for a in positional_args)
 
         cmd = [sys.executable, target_script] + cmd_args
         run_env = os.environ.copy()

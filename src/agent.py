@@ -11,7 +11,8 @@ from google.adk.workflow import RetryConfig
 from edd_agent_tools.adk import create_adk_skill_toolset
 
 # 1. 登録スキルと Tier 状態に基づき ADK 公式の SkillToolset を構築
-# システムスキルのみプリロードし、一般ドメインスキルは EddSkillRegistry 経由でオンデマンド解決（真の Progressive Disclosure）
+# Tier 1 以上のスキル（および必須システムスキル）を登録し、ADK 2.0 公式 Progressive Disclosure を実現
+# （L1 Frontmatter は list_skills で提示され、L2 手順書や L3 スクリプトはオンデマンドで開示・実行）
 # ADK 公式の UnsafeLocalCodeExecutor を標準注入し、決定論的スクリプト実行を委譲
 skills_dir = Path(__file__).parent / "skills"
 code_executor = UnsafeLocalCodeExecutor()
@@ -19,7 +20,6 @@ skill_toolset = create_adk_skill_toolset(
     skills_dir=skills_dir,
     min_tier=1,
     include_system_skills={"skill-creator", "skill-evolver", "creating-skills", "evolving-skills"},
-    preload_all=False,
     code_executor=code_executor
 )
 

@@ -32,7 +32,7 @@ except ImportError:
 
 
 class EDDToolCall(BaseModel):
-    """白書 Snippet 3 & Google ADK 2.0 純正準拠の期待されるツール呼び出し定義"""
+    """Google ADK 2.0 純正 run_skill_script および白書ツール呼び出しの正規化モデル"""
     tool: str = Field(..., description="呼び出されるべきツール名（ADK 2.0 純正 run_skill_script、またはドメインツール名/スクリプトパス）")
     args: Dict[str, Any] = Field(default_factory=dict, description="期待される引数パラメータ")
 
@@ -42,7 +42,7 @@ class EDDToolCall(BaseModel):
             native_args = dict(self.args)
             if skill_name and "skill_name" not in native_args:
                 native_args["skill_name"] = skill_name
-            return {"name": "run_skill_script", "args": native_args}
+            return {"name": "run_skill_script", "tool": "run_skill_script", "args": native_args}
 
         if self.tool.startswith("scripts/") or self.tool.endswith(".py"):
             resolved_skill = skill_name or self.args.get("skill_name", "")
@@ -50,6 +50,7 @@ class EDDToolCall(BaseModel):
             inner_args = {k: v for k, v in self.args.items() if k != "skill_name"}
             return {
                 "name": "run_skill_script",
+                "tool": "run_skill_script",
                 "args": {
                     "skill_name": resolved_skill,
                     "file_path": file_path,
@@ -57,19 +58,7 @@ class EDDToolCall(BaseModel):
                 }
             }
 
-        return {"name": self.tool, "args": self.args}
-
-
-class EDDTestCase(BaseModel):
-    """白書 Snippet 3 準拠の EDD (Evaluation-Driven Development) テストケース"""
-    case_id: str = Field(..., description="評価ケースの一意識別子")
-    input: str = Field(..., description="エージェントへのユーザ入力プロンプト")
-    expected_skill: Optional[str] = Field(None, description="トリガーされるべき期待スキル名")
-    expected_tool_calls: List[Union[EDDToolCall, Dict[str, Any], str]] = Field(
-        default_factory=list, description="期待されるツール呼び出し軌跡"
-    )
-    expected_output_format: Optional[str] = Field(None, description="期待される出力フォーマット仕様")
-    rubric: List[str] = Field(default_factory=list, description="LLM-as-a-Judge 用の評価ルーブリック項目一覧")
+        return {"name": self.tool, "tool": self.tool, "args": self.args}
 
 
 class EvalCase(AdkEvalCase):
@@ -427,8 +416,9 @@ class EvalCaseSet(AdkEvalSet):
         }
 
 
-# Google ADK 2.0 純正 google.adk.evaluation.eval_set.EvalSet との完全互換エイリアス
+# Google ADK 2.0 純正 google.adk.evaluation.eval_set.EvalSet / EvalCase との完全互換エイリアス
 EvalSet = EvalCaseSet
+EDDTestCase = EvalCase
 
 
 class FailedCaseDetail(BaseModel):

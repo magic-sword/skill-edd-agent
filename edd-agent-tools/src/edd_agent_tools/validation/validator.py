@@ -76,7 +76,7 @@ class SkillValidator:
         # 外部依存ライブラリ (Requirements & Prerequisites) の照合検証
         cls._validate_prerequisites_and_imports(skill_path, content, base_res)
 
-        # 白書 Snippet 3 評価ケース (EDD Inversion) の整合性検証
+        # Google ADK 2.0 公式 EvalSet 評価ケース (EDD Inversion) の整合性検証
         cls._validate_evalset_structure(skill_path, base_res)
 
         return base_res
@@ -150,7 +150,7 @@ class SkillValidator:
 
     @classmethod
     def _validate_evalset_structure(cls, skill_dir: Path, res: ValidationResult) -> None:
-        """白書 Snippet 3 評価データセット（tests/*.evalset.json）の整合性を検証します。
+        """Google ADK 2.0 公式 EvalSet 評価データセット（tests/*.evalset.json）の整合性を検証します。
         
         白書 Page 22 必須要件:
         'Testable specificity: You must write 3 positive and 3 negative triggers.'
@@ -167,7 +167,7 @@ class SkillValidator:
         if not evalsets:
             res.add_warning(
                 "evalset",
-                "No '*.evalset.json' found in 'tests/'. Google ADK 2.0 & Whitepaper EDD standard requires upfront JSON evaluation cases (ADK native EvalSet: eval_cases with conversation, or Snippet 3 format)."
+                "No '*.evalset.json' found in 'tests/'. Google ADK 2.0 & Whitepaper EDD standard requires upfront JSON evaluation cases (ADK native EvalSet: eval_cases with conversation)."
             )
             return
 

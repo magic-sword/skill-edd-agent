@@ -140,27 +140,37 @@ Sample overview text.
 
 
 def test_adk_progressive_disclosure_registry_resolution():
-    """Progressive Disclosure: search_skills による動的探索と load_skill による動的ロードをテストします。"""
+    """ADK 2.0 公式 Progressive Disclosure: ローカルスキルの list_skills による開示と、未登録スキルの search_skills / load_skill 動的解決をテストします。"""
     async def _test():
         from unittest.mock import MagicMock
         ctx = MagicMock()
         ctx.invocation_id = "test-inv-prog-001"
         ctx.state = {}
 
-        # preload_all=False (デフォルト) で作成
-        toolset = create_adk_skill_toolset(skills_dir="src/skills", preload_all=False)
-        tools_dict = {t.name: t for t in toolset._tools}
+        # 1. min_tier=1 (標準構成): Tier 1 以上のスキルがローカル登録され、list_skills で一覧開示される
+        toolset_local = create_adk_skill_toolset(skills_dir="src/skills", min_tier=1)
+        assert "case-converter" in toolset_local._skills
+        assert "skill-creator" in toolset_local._skills
 
-        # 1. プリロードスキルにはシステムスキルのみが含まれ、一般スキル（case-converter）は self._skills に含まれない
-        assert "case-converter" not in toolset._skills
+        list_tool = next(t for t in toolset_local._tools if t.name == "list_skills")
+        list_res = await list_tool.run_async(args={}, tool_context=ctx)
+        assert "case-converter" in list_res
+        assert "skill-creator" in list_res
 
-        # 2. search_skills ツールにより、レジストリ内の一般スキルが正常にヒットする
-        search_tool = tools_dict["search_skills"]
+        # 2. 未登録スキル (min_tier=3等でローカル除外されたスキル): search_skills でレジストリから検索され、load_skill でオンデマンド解決される
+        toolset_dynamic = create_adk_skill_toolset(
+            skills_dir="src/skills",
+            min_tier=3,
+            include_system_skills={"skill-creator"}
+        )
+        assert "case-converter" not in toolset_dynamic._skills
+
+        search_tool = next(t for t in toolset_dynamic._tools if t.name == "search_skills")
         search_res = await search_tool.run_async(args={"query": "converter"}, tool_context=ctx)
         assert any(r.get("name") == "case-converter" for r in search_res)
 
-        # 3. load_skill ツールにより、レジストリ経由でオンデマンドにロードされる
-        load_tool = tools_dict["load_skill"]
+        # 3. load_skill ツールにより、レジストリ経由で未登録スキルの手順書（L2 Instructions）がオンデマンドにロードされる
+        load_tool = next(t for t in toolset_dynamic._tools if t.name == "load_skill")
         load_res = await load_tool.run_async(args={"skill_name": "case-converter"}, tool_context=ctx)
         assert load_res.get("skill_name") == "case-converter"
         assert "case_converter.py" in load_res.get("instructions", "")

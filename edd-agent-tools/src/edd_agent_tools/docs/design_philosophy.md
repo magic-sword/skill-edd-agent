@@ -57,7 +57,9 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
 ### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `LocalCodeExecutor`, `TrajectoryEvaluator`, `ResponseEvaluator`, `EvalConfig`)
 * Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を完全採用。
 * **Progressive Disclosure の動的解決アーキテクチャ**:
-  - `EddSkillToolset` は起動時にシステム必須のメタスキル（`skill-creator`, `skill-evolver`）のみをプリロードし、一般ドメインスキル（`case-converter`, `secret-sanitizer` 等）は `EddSkillRegistry` に登録。エージェントは `search_skills` ツールで動的にスキルを探索し、`load_skill` ツールでオンデマンドに instructions や resources をロードします。
+  - `EddSkillToolset` は Tier 基準（`min_tier`）を満たすローカルスキルをすべて登録し、L1 Frontmatter（名前と説明）が `list_skills` またはシステムプロンプトを通じてエージェントに開示されます。
+  - エージェントは `list_skills` ツールで利用可能スキルの全容を把握し、必要と判断したスキルのみ `load_skill` ツールで L2 instructions をオンデマンドにロード、`run_skill_script` や `load_skill_resource` で L3 resources を実行・開示します。
+  - さらに `EddSkillRegistry`（`search_skills`）を併用することで、ローカル未登録の追加スキルや下位Tierスキルの動的検索・オンデマンド解決も完全サポートします。
 * **モンキーパッチおよび車輪の再発明の完全排除**:
   - ADK 内部メソッドの上書き（monkey patch）や不要な同期ラッパー（`*_sync`）、一時的な Toolset 生成によるプライベート属性アクセス（`_tools`）の裏口ハックを全廃し、ADK 公式の非同期ツールセットおよび `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入。決定論的スクリプト実行はドメイン層の `SkillPackage.execute_script` または ADK 純正 `run_skill_script` ツールに一本化。
   - 軌跡比較ロジックおよび独自Judge正規表現ルールの再発明を完全排除し、ADK 2.0 純正の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator`（`tool_trajectory_avg_score`）および `google.adk.evaluation.response_evaluator.ResponseEvaluator`（ROUGE-1 `response_match_score`）を直接駆動。
