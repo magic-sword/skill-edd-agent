@@ -62,64 +62,31 @@ class EDDToolCall(BaseModel):
 
 
 class EvalCase(AdkEvalCase):
-    """Google ADK 2.0 純正準拠のテストケース定義（CLI契約テストおよび白書 EDD 複合ケース両対応）"""
-    # ADK 純正フィールド (eval_id, conversation, session_input 等) を継承
-    eval_case_id: Optional[str] = Field(None, description="テストケース識別ID")
-    case_id: Optional[str] = Field(None, description="白書 Snippet 3 準拠のテストケース識別ID")
-    expected_skill: Optional[str] = Field(None, description="期待スキル名")
-
-    # 従来の CLI 契約テスト用フィールド
-    script_name: Optional[str] = Field(None, description="対象スクリプト名（scripts/配下）またはコマンド")
-    cli_args: Optional[List[str]] = Field(default_factory=list, description="CLI実行時のコマンドライン引数")
-    expected_exit_code: Optional[int] = Field(0, description="期待されるCLI終了コード")
-    expected_stdout_contains: Optional[List[str]] = Field(None, description="標準出力に含まれるべき文字列リスト")
-    expected_stderr_contains: Optional[List[str]] = Field(None, description="標準エラー出力に含まれるべき文字列リスト")
-    inputs: Dict[str, Any] = Field(default_factory=dict, description="任意の入力パラメータ")
-    expected: Optional[Any] = Field(None, description="任意の期待結果")
-
-    # 内部バッキングフィールド
-    _raw_input: Optional[str] = None
-    _raw_expected_tool_calls: Optional[List[Any]] = None
-    _raw_expected_output_format: Optional[str] = None
-    _raw_rubric: Optional[List[str]] = None
+    """Google ADK 2.0 純正準拠のテストケース定義。
+    
+    AdkEvalCase (eval_id, conversation, session_input, rubrics) を第一級の単一真実源 (SSOT) とし、
+    余計なレガシーフィールドの二重管理を排除した純粋な設計を提供します。
+    """
+    # 下位互換用オプショナルフィールド（ADK 2.0 では eval_id および intermediate_data.tool_uses が SSOT）
+    case_id: Optional[str] = Field(None, description="[非推奨] テストケース識別ID (eval_id のエイリアス)")
+    expected_skill: Optional[str] = Field(None, description="[非推奨] 期待スキル名 (ADK 2.0 では tool_uses の有無で判定)")
 
     @model_validator(mode="before")
     @classmethod
     def normalize_case_and_adk_compatibility(cls, values: Any) -> Any:
         if isinstance(values, dict):
-            # case_id と eval_case_id / eval_id の相互同期
+            # eval_id と case_id の同期
             cid = values.get("eval_id") or values.get("case_id") or values.get("eval_case_id") or "case_0"
-            values["case_id"] = cid
-            values["eval_case_id"] = cid
             values["eval_id"] = cid
+            values["case_id"] = cid
 
-            # input, expected_tool_calls, rubric 等が辞書にある場合の待避
             raw_inp = values.get("input") or values.get("user_input")
             raw_tools = values.get("expected_tool_calls")
             raw_out = values.get("expected_output_format")
-            raw_rub = values.get("rubric")
+            raw_rub = values.get("rubric") or values.get("rubrics")
 
-            # conversation が渡されている場合はそちらを優先
             conv = values.get("conversation")
-            if conv and isinstance(conv, list) and len(conv) > 0:
-                first_turn = conv[0]
-                if isinstance(first_turn, dict):
-                    if not raw_inp:
-                        u_content = first_turn.get("user_content", {})
-                        parts = u_content.get("parts", []) if isinstance(u_content, dict) else []
-                        if parts and isinstance(parts[0], dict) and "text" in parts[0]:
-                            raw_inp = parts[0]["text"]
-                    if raw_tools is None:
-                        inter = first_turn.get("intermediate_data", {})
-                        if isinstance(inter, dict):
-                            raw_tools = inter.get("tool_uses", [])
-                    if not raw_out:
-                        f_resp = first_turn.get("final_response", {})
-                        parts = f_resp.get("parts", []) if isinstance(f_resp, dict) else []
-                        if parts and isinstance(parts[0], dict) and "text" in parts[0]:
-                            raw_out = parts[0]["text"]
-            elif raw_inp or raw_tools is not None:
-                # conversation がなく input や expected_tool_calls がある場合は ADK 純正 conversation を構築
+            if not conv and (raw_inp or raw_tools is not None):
                 try:
                     from google.genai import types as genai_types
                     from google.adk.evaluation.eval_case import Invocation, IntermediateData
@@ -136,11 +103,13 @@ class EvalCase(AdkEvalCase):
                             t_args = dict(tc.get("args", {}))
                             if t_name == "run_skill_script" and skill_target and "skill_name" not in t_args:
                                 t_args["skill_name"] = skill_target
-                            elif (t_name.startswith("scripts/") or t_name.endswith(".py")):
+                            elif t_name.startswith("scripts/") or t_name.endswith(".py"):
                                 rel_path = t_name if t_name.startswith("scripts/") else f"scripts/{t_name}"
                                 inner_args = {k: v for k, v in t_args.items() if k != "skill_name"}
                                 t_name = "run_skill_script"
-                                t_args = {"skill_name": skill_target or "", "file_path": rel_path, "args": inner_args}
+                                t_args = {"skill_name": skill_target or "", "file_path": rel_path}
+                                if inner_args:
+                                    t_args["args"] = inner_args
                             f_calls.append(genai_types.FunctionCall(name=t_name, args=t_args))
                         elif isinstance(tc, str):
                             f_calls.append(genai_types.FunctionCall(name=tc, args={}))
@@ -166,35 +135,28 @@ class EvalCase(AdkEvalCase):
                 except Exception:
                     values["conversation"] = []
 
-            # ADK ensure_conversation_xor_conversation_scenario を満足させるための互換処理
+            # ADK ensure_conversation_xor_conversation_scenario を満たす処理
             has_conv = "conversation" in values and values["conversation"] is not None
             has_scen = "conversation_scenario" in values and values["conversation_scenario"] is not None
             if not has_conv and not has_scen:
                 values["conversation"] = []
 
-            # 内部保存
-            values["_raw_input"] = raw_inp
-            values["_raw_expected_tool_calls"] = raw_tools
-            values["_raw_expected_output_format"] = raw_out
-            values["_raw_rubric"] = raw_rub
-
         return values
 
     @property
+    def eval_case_id(self) -> str:
+        """eval_id のエイリアス"""
+        return self.eval_id
+
+    @property
     def input(self) -> str:
-        """ユーザ入力プロンプト（conversation[0] または内部キャッシュから取得）"""
-        if self._raw_input:
-            return self._raw_input
+        """ユーザ入力プロンプト（conversation[0] から取得）"""
         if self.conversation and len(self.conversation) > 0:
             inv = self.conversation[0]
             if inv.user_content and inv.user_content.parts:
                 part = inv.user_content.parts[0]
                 return getattr(part, "text", "") or ""
-        return self.inputs.get("query", "") if isinstance(self.inputs, dict) else ""
-
-    @input.setter
-    def input(self, val: str) -> None:
-        self._raw_input = val
+        return ""
 
     @property
     def user_input(self) -> str:
@@ -203,40 +165,26 @@ class EvalCase(AdkEvalCase):
 
     @property
     def expected_tool_calls(self) -> List[Any]:
-        """期待されるツール呼び出し一覧（conversation[0].intermediate_data から取得）"""
-        if self._raw_expected_tool_calls is not None:
-            return self._raw_expected_tool_calls
+        """期待されるツール呼び出し一覧（conversation[0].intermediate_data.tool_uses から取得）"""
         if self.conversation and len(self.conversation) > 0:
             inv = self.conversation[0]
             if inv.intermediate_data and hasattr(inv.intermediate_data, "tool_uses"):
                 return inv.intermediate_data.tool_uses or []
         return []
 
-    @expected_tool_calls.setter
-    def expected_tool_calls(self, val: List[Any]) -> None:
-        self._raw_expected_tool_calls = val
-
     @property
     def expected_output_format(self) -> Optional[str]:
         """期待される出力フォーマット（final_response から取得）"""
-        if self._raw_expected_output_format:
-            return self._raw_expected_output_format
         if self.conversation and len(self.conversation) > 0:
             inv = self.conversation[0]
             if inv.final_response and inv.final_response.parts:
                 part = inv.final_response.parts[0]
                 return getattr(part, "text", "") or None
-        return str(self.expected) if self.expected else None
-
-    @expected_output_format.setter
-    def expected_output_format(self, val: Optional[str]) -> None:
-        self._raw_expected_output_format = val
+        return None
 
     @property
     def rubric(self) -> List[str]:
         """評価ルーブリック項目一覧（rubrics から文字列リストとして抽出）"""
-        if self._raw_rubric is not None:
-            return self._raw_rubric
         if self.rubrics:
             res = []
             for r in self.rubrics:
@@ -249,66 +197,87 @@ class EvalCase(AdkEvalCase):
             return res
         return []
 
-    @rubric.setter
-    def rubric(self, val: List[str]) -> None:
-        self._raw_rubric = val
+    @property
+    def script_name(self) -> Optional[str]:
+        """expected_tool_calls (ADK run_skill_script) から対象スクリプト名を導出"""
+        for tc in self.expected_tool_calls:
+            t_name = tc.get("name") or tc.get("tool", "") if isinstance(tc, dict) else getattr(tc, "name", str(tc))
+            t_args = tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})
+            if t_name == "run_skill_script" and isinstance(t_args, dict):
+                return t_args.get("file_path")
+            if t_name.startswith("scripts/") or t_name.endswith(".py"):
+                return t_name
+        return None
+
+    @property
+    def cli_args(self) -> List[str]:
+        """expected_tool_calls から CLI 引数リストを導出"""
+        for tc in self.expected_tool_calls:
+            t_name = tc.get("name") or tc.get("tool", "") if isinstance(tc, dict) else getattr(tc, "name", str(tc))
+            t_args = tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})
+            if t_name == "run_skill_script" and isinstance(t_args, dict):
+                inner_args = t_args.get("args")
+                if inner_args is None:
+                    inner_args = {k: v for k, v in t_args.items() if k not in ("skill_name", "file_path")}
+                t_args = inner_args
+
+            if isinstance(t_args, dict):
+                args_list = []
+                for k, v in t_args.items():
+                    flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+                    if v is True:
+                        args_list.append(flag)
+                    elif v is not False and v is not None:
+                        args_list.extend([flag, str(v)])
+                return args_list
+            elif isinstance(t_args, list):
+                return [str(a) for a in t_args]
+        return []
+
+    @property
+    def expected_exit_code(self) -> int:
+        """期待終了コード (0)"""
+        return 0
+
+    @property
+    def expected_stdout_contains(self) -> Optional[List[str]]:
+        """期待標準出力キーワードリスト（expected_output_format から導出）"""
+        fmt = self.expected_output_format
+        abstract_suffixes = (
+            "_format",
+            "_summary",
+            "_calculation",
+            "_id",
+            "_help",
+            "_confirmation",
+            "_path",
+            "_status",
+            "_report",
+            "_result",
+            "_output",
+            "_response",
+            "_data",
+            "_message"
+        )
+        if fmt and not fmt.endswith(abstract_suffixes):
+            return [fmt]
+        return None
 
     @property
     def is_negative(self) -> bool:
-        """白書 Page 22 準拠の負例（スキルがトリガーされてはならない境界ケース）かを判定します。"""
-        return self.expected_skill is None or self.expected_skill == ""
+        """白書 Page 22 準拠の負例（ツール呼び出しが不要な境界ケース）かを判定します。"""
+        return len(self.expected_tool_calls) == 0
 
     def to_adk_invocation(self, skill_name: Optional[str] = None) -> Any:
         """ADK 2.0 純正の Invocation オブジェクトを返します。"""
         if self.conversation and len(self.conversation) > 0:
             return self.conversation[0]
-
-        try:
-            from google.genai import types as genai_types
-            from google.adk.evaluation.eval_case import Invocation, IntermediateData
-        except ImportError:
-            return None
-
-        user_text = self.input or ""
-        user_content = genai_types.Content(parts=[genai_types.Part.from_text(text=str(user_text))], role="user")
-        final_text = self.expected_output_format or ""
-        final_resp = genai_types.Content(parts=[genai_types.Part.from_text(text=final_text)], role="model") if final_text else None
-
-        f_calls = []
-        resolved_skill = self.expected_skill or skill_name
-        for tc in self.expected_tool_calls:
-            if isinstance(tc, EDDToolCall):
-                d = tc.to_adk_native(skill_name=resolved_skill)
-                f_calls.append(genai_types.FunctionCall(name=d["tool"], args=d.get("args", {})))
-            elif isinstance(tc, dict):
-                t_name = tc.get("tool") or tc.get("name", "")
-                t_args = tc.get("args") or {}
-                if t_name == "run_skill_script":
-                    native_args = dict(t_args)
-                    if resolved_skill and "skill_name" not in native_args:
-                        native_args["skill_name"] = resolved_skill
-                    f_calls.append(genai_types.FunctionCall(name=t_name, args=native_args))
-                else:
-                    f_calls.append(genai_types.FunctionCall(name=t_name, args=t_args))
-            elif hasattr(tc, "name") and hasattr(tc, "args"):
-                f_calls.append(tc)
-            elif isinstance(tc, str):
-                f_calls.append(genai_types.FunctionCall(name=tc, args={}))
-
-        inter_data = IntermediateData(tool_uses=f_calls)
-        return Invocation(
-            invocation_id=self.case_id or self.eval_case_id or "inv_0",
-            user_content=user_content,
-            final_response=final_resp,
-            intermediate_data=inter_data
-        )
+        return None
 
 
 class EvalCaseSet(AdkEvalSet):
     """Google ADK 2.0 純正準拠のテストケースセット (EvalSet)"""
-    # ADK 純正フィールド (eval_set_id, name, description, eval_cases 等) を継承
     skill_name: Optional[str] = Field(None, description="対象スキル名")
-    test_type: Optional[str] = Field("contract", description="テスト種別 (contract, trigger, golden, judge, trajectory, adversarial)")
     eval_cases: List[EvalCase] = Field(default_factory=list, description="テストケース一覧")
 
     @property
@@ -336,30 +305,7 @@ class EvalCaseSet(AdkEvalSet):
 
     def to_adk_eval_set(self) -> Any:
         """Google ADK 2.0 純正の EvalSet インスタンスを生成して返します。"""
-        if AdkEvalSet is BaseModel:
-            return self
-
-        adk_cases = []
-        for c in self.eval_cases:
-            inv = c.to_adk_invocation(skill_name=self.skill_name)
-            try:
-                adk_case = AdkEvalCase(
-                    eval_id=c.case_id or c.eval_case_id or "case_0",
-                    conversation=[inv] if inv else []
-                )
-                adk_cases.append(adk_case)
-            except Exception:
-                adk_cases.append(c)
-
-        try:
-            return AdkEvalSet(
-                eval_set_id=self.eval_set_id,
-                name=self.name or self.eval_set_id,
-                description=self.description or f"EvalSet for {self.skill_name}",
-                eval_cases=adk_cases
-            )
-        except Exception:
-            return self
+        return self
 
 
 # Google ADK 2.0 純正 google.adk.evaluation.eval_set.EvalSet / EvalCase との完全互換エイリアス

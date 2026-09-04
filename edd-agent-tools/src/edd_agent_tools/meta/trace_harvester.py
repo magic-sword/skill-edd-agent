@@ -76,8 +76,6 @@ class TraceHarvester:
             eval_cases = [
                 {
                     "eval_id": cid,
-                    "case_id": cid,
-                    "expected_skill": suggested_skill_name,
                     "conversation": [
                         {
                             "invocation_id": f"inv_{cid}",

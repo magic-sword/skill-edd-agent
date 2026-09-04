@@ -212,8 +212,6 @@ Example usage pattern for {canonical_skill_name}.
         pos_cases = [
             {
                 "eval_id": f"{canonical_dir_name}_001",
-                "case_id": f"{canonical_dir_name}_001",
-                "expected_skill": canonical_skill_name,
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_001",
@@ -248,8 +246,6 @@ Example usage pattern for {canonical_skill_name}.
             },
             {
                 "eval_id": f"{canonical_dir_name}_002",
-                "case_id": f"{canonical_dir_name}_002",
-                "expected_skill": canonical_skill_name,
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_002",
@@ -284,13 +280,11 @@ Example usage pattern for {canonical_skill_name}.
             },
             {
                 "eval_id": f"{canonical_dir_name}_003",
-                "case_id": f"{canonical_dir_name}_003",
-                "expected_skill": canonical_skill_name,
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_003",
                         "user_content": {"role": "user", "parts": [{"text": f"Process batch operations using {canonical_skill_name}"}]},
-                        "final_response": {"role": "model", "parts": [{"text": "batch_result"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "batch_summary"}]},
                         "intermediate_data": {
                             "tool_uses": [
                                 {
@@ -323,8 +317,6 @@ Example usage pattern for {canonical_skill_name}.
         neg_cases = [
             {
                 "eval_id": f"{canonical_dir_name}_neg_001",
-                "case_id": f"{canonical_dir_name}_neg_001",
-                "expected_skill": None,
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_neg_001",
@@ -343,8 +335,6 @@ Example usage pattern for {canonical_skill_name}.
             },
             {
                 "eval_id": f"{canonical_dir_name}_neg_002",
-                "case_id": f"{canonical_dir_name}_neg_002",
-                "expected_skill": None,
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_neg_002",
@@ -363,8 +353,6 @@ Example usage pattern for {canonical_skill_name}.
             },
             {
                 "eval_id": f"{canonical_dir_name}_neg_003",
-                "case_id": f"{canonical_dir_name}_neg_003",
-                "expected_skill": None,
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_neg_003",

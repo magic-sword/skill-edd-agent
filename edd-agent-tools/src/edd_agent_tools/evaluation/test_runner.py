@@ -49,56 +49,8 @@ class ContractTestRunner:
         """
         eval_cases = []
         if isinstance(test_cases_data, dict):
-            if "eval_cases" in test_cases_data:
-                test_case_set = EvalCaseSet.model_validate(test_cases_data)
-                eval_cases = test_case_set.eval_cases
-            elif "cases" in test_cases_data:
-                # 白書 Snippet 3 形式からの動的マッピング
-                for idx, c in enumerate(test_cases_data["cases"]):
-                    tool_calls = c.get("expected_tool_calls") or []
-                    for tc in tool_calls:
-                        t_name = tc.get("tool", "")
-                        t_args = tc.get("args") or []
-
-                        # ADK 2.0 純正 run_skill_script 形式の解決
-                        if t_name == "run_skill_script" and isinstance(t_args, dict):
-                            actual_script = t_args.get("file_path") or t_name
-                            inner_args = t_args.get("args")
-                            if inner_args is None:
-                                inner_args = {k: v for k, v in t_args.items() if k not in ("skill_name", "file_path")}
-                            t_name = actual_script
-                            t_args = inner_args
-
-                        if isinstance(t_args, dict):
-                            cli_args = []
-                            for k, v in t_args.items():
-                                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
-                                if v is True:
-                                    cli_args.append(flag)
-                                elif v is not False and v is not None:
-                                    cli_args.extend([flag, str(v)])
-                        elif isinstance(t_args, list):
-                            cli_args = [str(a) for a in t_args]
-                        else:
-                            cli_args = [str(t_args)] if t_args else []
-                        exp_out = c.get("expected_output_format")
-                        # 具象出力文字列の場合は stdout アサーションに登録（抽象フォーマット名は除外）
-                        kw_list = []
-                        abstract_suffixes = ("_format", "_summary", "_calculation", "_id", "_help", "_confirmation", "_path", "_status", "_report")
-                        if exp_out and isinstance(exp_out, str) and not exp_out.endswith(abstract_suffixes):
-                            kw_list = [exp_out]
-
-
-                        eval_cases.append(EvalCase(
-                            eval_case_id=c.get("case_id", f"case_{idx}"),
-                            script_name=t_name,
-                            cli_args=cli_args,
-                            expected_exit_code=0,
-                            expected_stdout_contains=kw_list if kw_list else None
-                        ))
-            else:
-                test_case_set = EvalCaseSet.model_validate(test_cases_data)
-                eval_cases = test_case_set.eval_cases
+            raw_cases = test_cases_data.get("eval_cases") or test_cases_data.get("cases") or []
+            eval_cases = [c if isinstance(c, EvalCase) else EvalCase.model_validate(c) for c in raw_cases]
         elif isinstance(test_cases_data, EvalCaseSet):
             eval_cases = test_cases_data.eval_cases
         else:

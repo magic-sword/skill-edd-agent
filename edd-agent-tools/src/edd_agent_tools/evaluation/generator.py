@@ -55,8 +55,6 @@ class EvalSetGenerator:
             args_payload = ["--help"] if idx == 1 else {"input": "sample"}
             eval_cases.append({
                 "eval_id": cid,
-                "case_id": cid,
-                "expected_skill": skill_name,
                 "conversation": [
                     {
                         "invocation_id": f"inv_{cid}",
@@ -115,8 +113,6 @@ class EvalSetGenerator:
             cid = f"{skill_name.replace('-', '_')}_edd_neg_{idx:03d}"
             eval_cases.append({
                 "eval_id": cid,
-                "case_id": cid,
-                "expected_skill": None,
                 "conversation": [
                     {
                         "invocation_id": f"inv_{cid}",
@@ -326,7 +322,6 @@ class EvalSetGenerator:
             "eval_cases": [
                 {
                     "eval_id": f"{skill_name}_adv_empty_input",
-                    "expected_skill": skill_name,
                     "conversation": [
                         {
                             "invocation_id": f"inv_{skill_name}_adv_01",
@@ -362,7 +357,6 @@ class EvalSetGenerator:
                 },
                 {
                     "eval_id": f"{skill_name}_adv_invalid_flag",
-                    "expected_skill": skill_name,
                     "conversation": [
                         {
                             "invocation_id": f"inv_{skill_name}_adv_02",

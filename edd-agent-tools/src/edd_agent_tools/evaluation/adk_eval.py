@@ -26,18 +26,43 @@ except ImportError:
 try:
     from google.adk.evaluation.eval_metrics import ToolTrajectoryCriterion, EvalMetric, RubricsBasedCriterion
     from google.adk.evaluation.trajectory_evaluator import TrajectoryEvaluator
-    from google.adk.evaluation.response_evaluator import ResponseEvaluator, RougeEvaluator
-    from google.adk.evaluation.rubric_based_final_response_quality_v1 import RubricBasedFinalResponseQualityV1Evaluator
     ADK_MATCH_TYPE = ToolTrajectoryCriterion.MatchType
 except ImportError:
     ToolTrajectoryCriterion = None
     EvalMetric = None
     RubricsBasedCriterion = None
     TrajectoryEvaluator = None
-    ResponseEvaluator = None
-    RougeEvaluator = None
-    RubricBasedFinalResponseQualityV1Evaluator = None
     ADK_MATCH_TYPE = None
+
+# 重い依存関係 (nltk, scipy) を持つ評価器は遅延インポート化
+ResponseEvaluator = None
+RougeEvaluator = None
+RubricBasedFinalResponseQualityV1Evaluator = None
+
+
+def get_response_evaluator_classes():
+    """ResponseEvaluator および RougeEvaluator をオンデマンドで安全に遅延ロードします。"""
+    global ResponseEvaluator, RougeEvaluator
+    if ResponseEvaluator is None:
+        try:
+            from google.adk.evaluation.response_evaluator import ResponseEvaluator as _RE, RougeEvaluator as _Rouge
+            ResponseEvaluator = _RE
+            RougeEvaluator = _Rouge
+        except Exception:
+            pass
+    return ResponseEvaluator, RougeEvaluator
+
+
+def get_rubric_evaluator_class():
+    """RubricBasedFinalResponseQualityV1Evaluator をオンデマンドで安全に遅延ロードします。"""
+    global RubricBasedFinalResponseQualityV1Evaluator
+    if RubricBasedFinalResponseQualityV1Evaluator is None:
+        try:
+            from google.adk.evaluation.rubric_based_final_response_quality_v1 import RubricBasedFinalResponseQualityV1Evaluator as _RBE
+            RubricBasedFinalResponseQualityV1Evaluator = _RBE
+        except Exception:
+            pass
+    return RubricBasedFinalResponseQualityV1Evaluator
 
 try:
     from google.adk.evaluation.eval_case import EvalCase as NativeAdkEvalCase, Invocation, IntermediateData, SessionInput
@@ -272,14 +297,22 @@ class AdkEvalAdapter:
         Returns:
             Tuple[bool, float, str]: (合否, ROUGE-1スコア, 詳細メッセージ)
         """
-        if ResponseEvaluator is None or EvalMetric is None or Invocation is None or genai_types is None:
-            raise RuntimeError(
-                "Google ADK 2.0 evaluation components (ResponseEvaluator) are required. "
-                "Please ensure google-adk[eval] is installed."
-            )
+        resp_eval_cls, _ = get_response_evaluator_classes()
+        if resp_eval_cls is None or EvalMetric is None or Invocation is None or genai_types is None:
+            # フォールバック: 軽量な決定論的 unigram overlap (ROUGE-1) を計算
+            import re
+            act_tokens = re.findall(r"\w+", actual_output.lower())
+            exp_tokens = re.findall(r"\w+", expected_output.lower())
+            if not exp_tokens:
+                score = 1.0 if not act_tokens else 0.0
+            else:
+                overlap = sum(1 for t in exp_tokens if t in act_tokens)
+                score = overlap / len(exp_tokens)
+            is_passed = (score >= threshold)
+            return is_passed, score, f"Deterministic unigram overlap: score={score:.2f}"
 
         eval_metric = EvalMetric(metric_name="response_match_score", threshold=threshold)
-        evaluator = ResponseEvaluator(eval_metric=eval_metric)
+        evaluator = resp_eval_cls(eval_metric=eval_metric)
 
         actual_inv = Invocation(
             invocation_id="eval_resp_act",
@@ -502,7 +535,8 @@ class AdkEvalAdapter:
         api_key: Optional[str] = None
     ) -> Tuple[float, Dict[str, Any]]:
         """Google ADK 2.0 純正 RubricBasedFinalResponseQualityV1Evaluator による判定実行（車輪の再発明を排除）。"""
-        if RubricBasedFinalResponseQualityV1Evaluator is not None and RubricsBasedCriterion is not None and Invocation is not None and genai_types is not None:
+        rbe_cls = get_rubric_evaluator_class()
+        if rbe_cls is not None and RubricsBasedCriterion is not None and Invocation is not None and genai_types is not None:
             try:
                 adk_rubrics = []
                 for i, r in enumerate(rubrics, 1):
@@ -516,7 +550,7 @@ class AdkEvalAdapter:
 
                 criterion = RubricsBasedCriterion(rubrics=adk_rubrics, threshold=1.0)
                 eval_metric = EvalMetric(metric_name="rubric_based_final_response_quality_v1", criterion=criterion)
-                evaluator = RubricBasedFinalResponseQualityV1Evaluator(eval_metric=eval_metric)
+                evaluator = rbe_cls(eval_metric=eval_metric)
 
                 actual_inv = Invocation(
                     invocation_id="eval_act",

@@ -103,7 +103,6 @@ Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキ
   "eval_cases": [
     {
       "eval_id": "example_001",
-      "expected_skill": "example-skill",
       "conversation": [
         {
           "invocation_id": "inv_example_001",
@@ -144,7 +143,6 @@ Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキ
     },
     {
       "eval_id": "example_neg_001",
-      "expected_skill": null,
       "conversation": [
         {
           "invocation_id": "inv_example_neg_001",
@@ -175,7 +173,7 @@ Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキ
 
 * **4大評価の単一ファイル完結**:
   - `intermediate_data.tool_uses` ➔ `ContractTestRunner` による決定論的 CLI 契約テスト（引数を自動フラグ化）
-  - `expected_skill` ➔ `SimulationEvalRunner` によるトリガー判定（正例・負例）
+  - `intermediate_data.tool_uses` の有無 ➔ `SimulationEvalRunner` によるトリガー判定（正例: `run_skill_script` 発火, 負例: ツール非発火 `[]`）
   - `tool_uses` のシーケンス ➔ ADK 3大 Trajectory 判定（`TrajectoryEvaluator`: `EXACT` / `IN_ORDER` / `ANY_ORDER`）
   - `rubrics` ➔ ADK 2.0 公式 `RubricBasedFinalResponseQualityV1Evaluator` および `AgentEvaluator` によるルーブリック採点
 

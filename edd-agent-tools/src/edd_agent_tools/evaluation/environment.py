@@ -119,9 +119,13 @@ class GitSandbox:
             return
 
         if not self.target_files:
-            # target_filesが指定されていない場合はワークスペース全体をコピー
+            # target_filesが指定されていない場合はワークスペース全体をコピー（巨大な外部資料・キャッシュは除外）
+            ignored_top_items = {
+                ".git", ".venv", "__pycache__", "dist", "build", ".pytest_cache",
+                "awesome-claude-skills-master", "Agent Skills_Day_3.pdf"
+            }
             for item in os.listdir(self.workspace_dir):
-                if item in [".git", ".venv", "__pycache__", "dist", "build", ".pytest_cache"]:
+                if item in ignored_top_items or item.endswith(".pdf"):
                     continue
                 s = os.path.join(self.workspace_dir, item)
                 d = os.path.join(self.sandbox_dir, item)

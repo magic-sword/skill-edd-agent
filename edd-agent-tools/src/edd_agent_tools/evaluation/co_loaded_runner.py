@@ -68,39 +68,52 @@ class CoLoadedEvalRunner:
         # コンテキストトークン概算（各 Frontmatter ~80 tokens + 対象スキル本文 ~2000 tokens）
         estimated_tokens = (len(co_loaded_skills) * 80) + 2000
 
-        # トリガー評価データの取得
+        # 評価データセット（Google ADK 2.0 公式 EvalSet）の取得
         if test_dataset_path and os.path.exists(test_dataset_path):
             with open(test_dataset_path, "r", encoding="utf-8") as f:
                 eval_data = json.load(f)
         else:
-            trigger_path_str = target_skill.tests.get_evalset_path("trigger")
-            if trigger_path_str and os.path.exists(trigger_path_str):
-                with open(trigger_path_str, "r", encoding="utf-8") as f:
-                    raw_data = json.load(f)
-                cases_list = raw_data.get("eval_cases") or raw_data.get("cases") or []
-                if cases_list and "eval_set_id" in raw_data:
-                    t_cases = []
-                    for c in cases_list:
-                        u_in = c.get("input") or c.get("user_input", "")
-                        if not u_in and "conversation" in c:
-                            conv = c.get("conversation", [])
-                            if conv and isinstance(conv[0], dict):
-                                u_content = conv[0].get("user_content", {})
-                                parts = u_content.get("parts", []) if isinstance(u_content, dict) else []
-                                if parts and isinstance(parts[0], dict):
-                                    u_in = parts[0].get("text", "")
-                        exp_s = c.get("expected_skill")
-                        should_trig = bool(exp_s and (exp_s == target_skill_name or exp_s.replace("-", "_") == target_skill_name.replace("-", "_")))
-                        t_cases.append({"user_input": u_in, "should_trigger": should_trig})
-                    eval_data = {"eval_set_id": f"{target_skill_name}_coloaded_trigger", "eval_cases": t_cases}
-                else:
-                    eval_data = raw_data
+            # スキル標準のテスト定義（SSOT: tests/*.test.json）を取得
+            evalset_path = (
+                target_skill.tests.get_evalset_path("composite")
+                or target_skill.tests.get_evalset_path("trigger")
+                or target_skill.tests.get_evalset_path("golden")
+            )
+            if evalset_path and os.path.exists(evalset_path):
+                with open(evalset_path, "r", encoding="utf-8") as f:
+                    eval_data = json.load(f)
             else:
                 eval_data = {
-                    "eval_set_id": f"{target_skill_name}_coloaded_trigger",
+                    "eval_set_id": f"{target_skill_name}_coloaded_simulation",
                     "eval_cases": [
-                        {"user_input": f"Help me with {target_skill_name} task", "should_trigger": True},
-                        {"user_input": "What is the capital of France?", "should_trigger": False}
+                        {
+                            "eval_id": f"{target_skill_name}_coloaded_pos_1",
+                            "conversation": [
+                                {
+                                    "user_content": {
+                                        "parts": [{"text": f"Please run {target_skill_name} task."}]
+                                    }
+                                }
+                            ],
+                            "intermediate_data": {
+                                "tool_uses": [
+                                    {"name": target_skill_name, "args": {}}
+                                ]
+                            }
+                        },
+                        {
+                            "eval_id": f"{target_skill_name}_coloaded_neg_1",
+                            "conversation": [
+                                {
+                                    "user_content": {
+                                        "parts": [{"text": "What is the capital of France?"}]
+                                    }
+                                }
+                            ],
+                            "intermediate_data": {
+                                "tool_uses": []
+                            }
+                        }
                     ]
                 }
 

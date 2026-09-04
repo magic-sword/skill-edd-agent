@@ -163,7 +163,7 @@ class SkillValidator:
             )
             return
 
-        # Google ADK 2.0 公式 *.test.json および *.evalset.json を探索
+        # Google ADK 2.0 公式 *.test.json を探索（旧形式への互換探索含む）
         raw_evalsets = list(tests_dir.glob("*.test.json")) + list(tests_dir.glob("*.evalset.json"))
         seen_paths = set()
         evalsets = []
@@ -176,11 +176,11 @@ class SkillValidator:
         if not evalsets:
             res.add_warning(
                 "evalset",
-                "No '*.test.json' or '*.evalset.json' found in 'tests/'. Google ADK 2.0 & Whitepaper EDD standard requires upfront JSON evaluation cases (ADK native EvalSet: eval_cases with conversation)."
+                "No '*.test.json' found in 'tests/'. Google ADK 2.0 & Whitepaper EDD standard requires upfront JSON evaluation cases (ADK native EvalSet: eval_cases with conversation)."
             )
             return
 
-        # ADK 2.0 公式 EvalSet / Snippet 3 形式のケース検査および 3正例 + 3負例 の網羅性検証
+        # ADK 2.0 公式 EvalSet ケース検査および 3正例 + 3負例 の網羅性検証
         positive_count = 0
         negative_count = 0
         has_eval_case = False
@@ -190,16 +190,24 @@ class SkillValidator:
                 data = json.loads(es_path.read_text(encoding="utf-8"))
                 cases = data.get("eval_cases") or data.get("cases") or []
                 for c in cases:
-                    if ("case_id" in c or "eval_id" in c) and ("input" in c or "conversation" in c):
+                    if ("eval_id" in c or "case_id" in c) and ("conversation" in c or "input" in c):
                         has_eval_case = True
-                        exp_s = c.get("expected_skill")
-                        if exp_s is None or exp_s == "":
-                            negative_count += 1
-                        else:
-                            positive_count += 1
+                        # ADK 2.0 公式規格: ツール呼び出し（tool_uses）の有無に基づき正例/負例を客観判定
+                        has_tools = False
+                        conv = c.get("conversation", [])
+                        if conv and isinstance(conv, list) and len(conv) > 0:
+                            first_inv = conv[0]
+                            if isinstance(first_inv, dict):
+                                inter = first_inv.get("intermediate_data")
+                                if isinstance(inter, dict) and inter.get("tool_uses"):
+                                    has_tools = True
+                        elif c.get("expected_tool_calls"):
+                            has_tools = True
 
-                        if "expected_tool_calls" not in c and "expected_skill" not in c and "conversation" not in c:
-                            res.add_warning("evalset", f"Eval case '{c.get('case_id') or c.get('eval_id')}' in '{es_path.name}' is missing 'conversation', 'expected_tool_calls', or 'expected_skill'.")
+                        if has_tools:
+                            positive_count += 1
+                        else:
+                            negative_count += 1
             except Exception as e:
                 res.add_error("evalset", f"Failed to parse JSON in '{es_path.name}': {e}")
 

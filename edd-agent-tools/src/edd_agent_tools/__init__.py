@@ -25,13 +25,6 @@ from .models.state import (
     ProjectSkillInfo,
     SkillsStateJson
 )
-from .models.eval import (
-    EvalCase,
-    EvalCaseSet,
-    FailedCaseDetail,
-    EvalRunResult,
-    EvalDetailReport
-)
 
 # Core Entities & Discovery
 from .core.entity import Skill, SkillPackage, SkillTests
@@ -49,6 +42,11 @@ __version__ = "0.7.0"
 
 # 評価・メタモジュールの遅延ロード定義（起動速度最適化および循環・不要依存の連鎖回避）
 _LAZY_IMPORTS = {
+    "EvalCase": ".models.eval",
+    "EvalCaseSet": ".models.eval",
+    "FailedCaseDetail": ".models.eval",
+    "EvalRunResult": ".models.eval",
+    "EvalDetailReport": ".models.eval",
     "ContractTestRunner": ".evaluation.test_runner",
     "SimulationEvalRunner": ".evaluation.simulation_runner",
     "CascadeTestRunner": ".evaluation.cascade_runner",

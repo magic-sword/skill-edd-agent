@@ -2,12 +2,9 @@
   "eval_set_id": "skill-creator_edd_eval",
   "name": "skill-creator_edd_eval",
   "description": "Google ADK 2.0 Native EvalSet for skill-creator",
-  "skill_name": "skill-creator",
   "eval_cases": [
     {
       "eval_id": "creator_edd_001",
-      "case_id": "creator_edd_001",
-      "expected_skill": "skill-creator",
       "conversation": [
         {
           "invocation_id": "inv_creator_edd_001",
@@ -72,8 +69,6 @@
     },
     {
       "eval_id": "creator_edd_002",
-      "case_id": "creator_edd_002",
-      "expected_skill": "skill-creator",
       "conversation": [
         {
           "invocation_id": "inv_creator_edd_002",
@@ -130,8 +125,6 @@
     },
     {
       "eval_id": "creator_edd_003",
-      "case_id": "creator_edd_003",
-      "expected_skill": "skill-creator",
       "conversation": [
         {
           "invocation_id": "inv_creator_edd_003",
@@ -189,8 +182,6 @@
     },
     {
       "eval_id": "creator_edd_neg_001",
-      "case_id": "creator_edd_neg_001",
-      "expected_skill": null,
       "conversation": [
         {
           "invocation_id": "inv_creator_edd_neg_001",
@@ -240,8 +231,6 @@
     },
     {
       "eval_id": "creator_edd_neg_002",
-      "case_id": "creator_edd_neg_002",
-      "expected_skill": null,
       "conversation": [
         {
           "invocation_id": "inv_creator_edd_neg_002",
@@ -291,8 +280,6 @@
     },
     {
       "eval_id": "creator_edd_neg_003",
-      "case_id": "creator_edd_neg_003",
-      "expected_skill": null,
       "conversation": [
         {
           "invocation_id": "inv_creator_edd_neg_003",

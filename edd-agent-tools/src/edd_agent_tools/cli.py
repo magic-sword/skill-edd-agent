@@ -194,24 +194,34 @@ def cmd_eval(args: argparse.Namespace) -> int:
     }
 
     tests_dir = Path(skill.root_dir) / "tests"
-    types_to_run = ["edd", "trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if args.type == "all" else [args.type]
+    types_to_run = ["edd", "contract", "trigger", "golden", "judge", "trajectory", "adversarial"] if args.type == "all" else [args.type]
 
     # ライブ評価オプションの反映
     if getattr(args, "live", False):
         os.environ["EDD_LIVE_EVAL"] = "1"
 
     ran_any = False
+    executed_files = set()
     for t in types_to_run:
-        cand_files = [
-            tests_dir / f"{args.skill_name}.test.json",
-            tests_dir / f"{args.skill_name}_{t}.test.json",
-            tests_dir / f"{args.skill_name}-{t}.test.json",
-            tests_dir / f"{t}.test.json",
-        ]
-        cand = next((p for p in cand_files if p.exists()), None)
+        if t in ("edd", "all"):
+            cand_files = [
+                tests_dir / f"{args.skill_name}.test.json",
+                tests_dir / f"{args.skill_name}_edd.test.json",
+            ]
+        else:
+            cand_files = [
+                tests_dir / f"{args.skill_name}_{t}.test.json",
+                tests_dir / f"{args.skill_name}-{t}.test.json",
+                tests_dir / f"{t}.test.json",
+            ]
+            if args.type != "all":
+                cand_files.append(tests_dir / f"{args.skill_name}.test.json")
+
+        cand = next((p for p in cand_files if p.exists() and p not in executed_files), None)
         if not cand:
             continue
 
+        executed_files.add(cand)
         ran_any = True
         try:
             with open(cand, "r", encoding="utf-8") as f:
@@ -343,24 +353,43 @@ def cmd_tier_gate(args: argparse.Namespace) -> int:
     skill_tests_dir = Path(skill.root_dir) / "tests"
 
     def _find_evalset(test_type: str) -> Optional[Path]:
-        cand = skill_tests_dir / f"{args.skill_name}_{test_type}.evalset.json"
-        return cand if cand.exists() else None
+        # 1. Google ADK 2.0 公式規格 tests/{skill_name}.test.json を最優先探索
+        if test_type in ("edd", "all"):
+            cand = skill_tests_dir / f"{args.skill_name}.test.json"
+            if cand.exists():
+                return cand
+            cand_edd = skill_tests_dir / f"{args.skill_name}_edd.test.json"
+            if cand_edd.exists():
+                return cand_edd
+            cand_hyphen = skill_tests_dir / f"{args.skill_name}-edd.test.json"
+            if cand_hyphen.exists():
+                return cand_hyphen
+
+        type_test_cand = skill_tests_dir / f"{args.skill_name}_{test_type}.test.json"
+        if type_test_cand.exists():
+            return type_test_cand
+
+        # 2. レガシー *.evalset.json へのフォールバック
+        legacy_cand = skill_tests_dir / f"{args.skill_name}_{test_type}.evalset.json"
+        if legacy_cand.exists():
+            return legacy_cand
+        return None
 
     pass_k = getattr(args, "pass_k", 1)
 
-    # 1. SSOT (白書 Snippet 3 形式) が存在する場合の一元評価
+    # 1. SSOT (Google ADK 2.0 公式 EvalSet / 白書標準) が存在する場合の一元評価
     edd_file = _find_evalset("edd")
     if edd_file:
         with open(edd_file, "r", encoding="utf-8") as f:
             edd_data = json.load(f)
         
-        # 契約テスト (Black-box CLI)
+        # 契約テスト (Black-box CLI / CodeExecutor)
         c_res = ContractTestRunner().run_tests(skill=skill, test_cases_data=edd_data, env=env, pass_k=pass_k)
         if c_res.failed > 0:
             print(f"❌ Contract tests failed: {c_res.passed}/{c_res.total} passed.", file=sys.stderr)
             return 1
 
-        # EDD 複合テスト (Trigger, Trajectory, Rubric)
+        # EDD 複合テスト (ADK 2.0 Trajectory, Response, Rubric)
         sim_res = SimulationEvalRunner().run_tests(skill=skill, eval_set_data=edd_data, env=env)
         if sim_res.failed > 0 or sim_res.accuracy < (0.9 if args.tier >= 1 else 0.8):
             print(f"❌ EDD Composite tests failed (Accuracy: {sim_res.accuracy:.1%}).", file=sys.stderr)
@@ -497,8 +526,15 @@ def cmd_tune_desc(args: argparse.Namespace) -> int:
                     parts = first_turn.get("user_content", {}).get("parts", [])
                     if parts and isinstance(parts, list):
                         u_input = parts[0].get("text", "")
-            exp_skill = c.get("expected_skill")
-            should_trigger = bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
+            from edd_agent_tools.models.eval import EvalCase
+            try:
+                ec = EvalCase.model_validate(c)
+                should_trigger = not ec.is_negative
+                if ec.input:
+                    u_input = ec.input
+            except Exception:
+                exp_skill = c.get("expected_skill")
+                should_trigger = bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
             trigger_cases.append({
                 "user_input": u_input,
                 "should_trigger": should_trigger

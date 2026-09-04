@@ -18,13 +18,23 @@ from .state import (
     ProjectSkillInfo,
     SkillsStateJson
 )
-from .eval import (
-    EvalCase,
-    EvalCaseSet,
-    FailedCaseDetail,
-    EvalRunResult,
-    EvalDetailReport
-)
+
+# 評価系モデルの遅延ロードマップ (PEP 562)
+_EVAL_MODELS = {
+    "EvalCase",
+    "EvalCaseSet",
+    "FailedCaseDetail",
+    "EvalRunResult",
+    "EvalDetailReport"
+}
+
+
+def __getattr__(name: str):
+    if name in _EVAL_MODELS:
+        from . import eval as _eval_module
+        return getattr(_eval_module, name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
 
 __all__ = [
     "SkillPattern",

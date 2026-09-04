@@ -77,8 +77,13 @@ class DescriptionOptimizer:
         def _is_positive(c: Dict[str, Any]) -> bool:
             if "should_trigger" in c:
                 return bool(c.get("should_trigger"))
-            exp_skill = c.get("expected_skill")
-            return bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
+            try:
+                from edd_agent_tools.models.eval import EvalCase
+                eval_case = EvalCase.model_validate(c)
+                return not eval_case.is_negative
+            except Exception:
+                exp_skill = c.get("expected_skill")
+                return bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
 
         # 失敗したケースの分析
         pos_triggers = [_get_input(c) for c in cases if _is_positive(c)]
