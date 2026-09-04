@@ -1,9 +1,9 @@
 """
-Simulation Evaluation Runner - 決定論的多層シミュレーション評価ランナー
-決定論的サンドボックス環境および ADK 2.0 エージェント/スキルを接続し、
-多層評価（Trigger, Golden, Judge, Trajectory, Adversarial）を実行します。
-Google ADK 2.0 純正の 3大 Trajectory 評価モード（EXACT / IN_ORDER / ANY_ORDER）および
-AdkEvalAdapter（LLM-as-a-Judge / Position Swapping）を完全統合。
+Simulation Evaluation Runner - Google ADK 2.0 Native Adapter
+
+Google ADK 2.0 純正の AgentEvaluator / adk eval パイプラインを直接駆動し、
+スキルの公式 EvalSet (*.test.json) および EvalConfig (test_config.json) に基づく
+エージェント評価結果を EvalRunResult として一元集計します。
 """
 
 import os
@@ -12,22 +12,21 @@ import json
 import asyncio
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Literal
-from concurrent.futures import ThreadPoolExecutor
 
 from edd_agent_tools.core.entity import Skill
 from edd_agent_tools.models import EvalRunResult, FailedCaseDetail, EvalDetailReport
-from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
-
+from edd_agent_tools.models.eval import EvalCase
+from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter, is_valid_api_key
 
 TrajectoryMode = Literal["exact", "in_order", "any_order"]
 
 
 class SimulationEvalRunner:
-    """多層シミュレーション評価（Trigger, Golden, Judge, Trajectory, Adversarial）を実行するランナー。"""
+    """Google ADK 2.0 純正 AgentEvaluator と直結した評価ランナー。"""
 
     def __init__(
         self,
-        default_trajectory_mode: TrajectoryMode = "any_order",
+        default_trajectory_mode: TrajectoryMode = "in_order",
         adk_adapter: Optional[AdkEvalAdapter] = None
     ):
         self.default_trajectory_mode = default_trajectory_mode
@@ -38,209 +37,214 @@ class SimulationEvalRunner:
         skill: Skill,
         eval_set_data: Dict[str, Any],
         env: Any = None,
-        trajectory_mode: Optional[TrajectoryMode] = None
+        trajectory_mode: Optional[TrajectoryMode] = None,
+        agent_module: str = "src"
     ) -> EvalRunResult:
-        """多層評価データセット（*.test.json）を読み込み、テスト種別に応じた検証を実行します。
+        """Google ADK 2.0 純正評価を実行します。
 
         Args:
             skill: 対象の Skill オブジェクト。
             eval_set_data: テストケースデータ（辞書）。
-            env: 隔離環境（LocalWorkspaceEnv 等、任意）。
+            env: 隔離環境（任意）。
             trajectory_mode: 軌跡評価モード ('exact', 'in_order', 'any_order')。
+            agent_module: 評価対象のエージェントモジュールパス。
 
         Returns:
             EvalRunResult: 合格数、失敗数、精度を含む実行結果。
         """
         cases = eval_set_data.get("eval_cases") or eval_set_data.get("cases") or []
-        eval_set_id = eval_set_data.get("eval_set_id", "")
-
-        if not cases:
+        total = len(cases)
+        if total == 0:
             return EvalRunResult(passed=0, failed=0, total=0, accuracy=1.0)
 
-        # Google ADK 2.0 純正アーキテクチャ: すべての評価ケースを ADK 2.0 公式 EvalSet / Trajectory に一本化
+        # テストファイルパスの解決
+        tests_dir = Path(skill.root_dir) / "tests" if hasattr(skill, "root_dir") and skill.root_dir else Path("tests")
+        eval_file_candidates = [
+            tests_dir / f"{skill.name}.test.json",
+            tests_dir / f"{skill.name}_edd.test.json",
+        ]
+        eval_file = next((p for p in eval_file_candidates if p.exists()), None)
+        if not eval_file:
+            all_evals = list(tests_dir.glob("*.test.json"))
+            eval_file = all_evals[0] if all_evals else None
+
+        config_file = tests_dir / "test_config.json"
+        config_path = str(config_file) if config_file.exists() else None
+
+        # ライブ評価フラグ（明示的 live 指定かつ有効な API キーがある場合）
+        raw_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        has_valid_key = is_valid_api_key(raw_key)
+        is_live = getattr(self.adk_adapter, "live", False) and has_valid_key
+
+        has_simulated_tools = any(
+            isinstance(c, dict) and ("actual_tool_uses" in c or "actual_tool_calls" in c)
+            for c in cases
+        )
+
+        if is_live and eval_file and not has_simulated_tools:
+            return self._run_live_adk_eval(
+                agent_module=agent_module,
+                eval_file=eval_file,
+                config_path=config_path,
+                total_cases=total
+            )
+
+        # オフライン時またはシミュレーション結果検証: テストケースの静的整合性および軌跡・スクリプト健全性を検証
         mode = trajectory_mode or self.default_trajectory_mode
-        normalized_cases = self._normalize_cases_to_adk(skill, cases)
+        return self._run_offline_spec_verification(skill, cases, trajectory_mode=mode)
 
-        # ADK 2.0 公式 test_config.json (EvalConfig) の自動探索
-        eval_config = None
-        if hasattr(skill, "root_dir") and skill.root_dir:
-            cfg_cand = Path(skill.root_dir) / "tests" / "test_config.json"
-            if cfg_cand.exists():
-                eval_config = self.adk_adapter.build_eval_config(config_path=cfg_cand)
+    def _run_live_adk_eval(
+        self,
+        agent_module: str,
+        eval_file: Path,
+        config_path: Optional[str],
+        total_cases: int
+    ) -> EvalRunResult:
+        """Google ADK 2.0 純正 AgentEvaluator を非同期実行して結果を集計します。"""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
-        return self._run_edd_composite_tests(skill, normalized_cases, mode=mode, eval_config=eval_config)
+        try:
+            loop.run_until_complete(
+                self.adk_adapter.evaluate_with_adk_agent(
+                    agent_module=agent_module,
+                    eval_dataset_file_path_or_dir=eval_file,
+                    config_file_path=config_path,
+                    num_runs=1,
+                    print_detailed_results=True
+                )
+            )
+            return EvalRunResult(
+                passed=total_cases,
+                failed=0,
+                total=total_cases,
+                accuracy=1.0
+            )
+        except AssertionError as ae:
+            # ADK AgentEvaluator のアサーション失敗
+            error_str = str(ae)
+            failed_cases = [
+                FailedCaseDetail(
+                    eval_case_id="adk_eval_failure",
+                    expected="All ADK 2.0 criteria satisfied (trajectory, response, rubrics)",
+                    actual=error_str,
+                    error_type="ADKEvalAssertionError",
+                    error_message=error_str
+                )
+            ]
+            return EvalRunResult(
+                passed=0,
+                failed=total_cases,
+                total=total_cases,
+                accuracy=0.0,
+                failed_cases=failed_cases
+            )
+        except Exception as e:
+            failed_cases = [
+                FailedCaseDetail(
+                    eval_case_id="adk_eval_error",
+                    expected="Successful ADK evaluation pipeline run",
+                    actual=str(e),
+                    error_type=type(e).__name__,
+                    error_message=str(e)
+                )
+            ]
+            return EvalRunResult(
+                passed=0,
+                failed=total_cases,
+                total=total_cases,
+                accuracy=0.0,
+                failed_cases=failed_cases
+            )
 
-    def _run_edd_composite_tests(
+    def _run_offline_spec_verification(
         self,
         skill: Skill,
         cases: List[Dict[str, Any]],
-        mode: TrajectoryMode = "any_order",
-        eval_config: Optional[Any] = None
+        trajectory_mode: TrajectoryMode = "in_order"
     ) -> EvalRunResult:
-        """Google ADK 2.0 公式規格準拠の評価ケースを実行します。
-        
-        ADK 2.0 公式 EvalConfig の criteria（tool_trajectory_avg_score, response_match_score, rubric_based_final_response_quality_v1）
-        に基づいて、TrajectoryEvaluator および ResponseEvaluator / RubricEvaluator で客観的に評価します。
-        """
+        """テストケースの整合性、シミュレーション軌跡、およびスクリプト実在性を検証します。"""
         passed = 0
         failed = 0
         total = len(cases)
         failed_cases: List[FailedCaseDetail] = []
         available_scripts = skill.list_scripts()
 
-        # EvalConfig から閾値を解決 (デフォルト: ADK 2.0 公式推奨値)
-        rubric_threshold = 0.8
-        response_threshold = 0.8
-        if eval_config and hasattr(eval_config, "criteria") and eval_config.criteria:
-            r_crit = eval_config.criteria.get("rubric_based_final_response_quality_v1")
-            if r_crit and hasattr(r_crit, "threshold") and r_crit.threshold is not None:
-                rubric_threshold = float(r_crit.threshold)
-            resp_crit = eval_config.criteria.get("response_match_score")
-            if resp_crit is not None:
-                if hasattr(resp_crit, "threshold") and resp_crit.threshold is not None:
-                    response_threshold = float(resp_crit.threshold)
-                elif isinstance(resp_crit, (int, float)):
-                    response_threshold = float(resp_crit)
-
-        for raw_case in cases:
-            from edd_agent_tools.models.eval import EvalCase
+        for c_idx, raw_case in enumerate(cases, 1):
             case = raw_case if isinstance(raw_case, EvalCase) else EvalCase.model_validate(raw_case)
-            case_id = case.eval_id or f"edd_case_{passed+failed+1}"
+            case_id = case.eval_case_id or f"case_{c_idx}"
+            exp_tools = case.expected_tool_calls
 
-            user_input = case.input or ""
-            exp_tools = case.expected_tool_calls or []
-            ref_output = case.expected_output_format
-            rubrics = case.rubrics or []
+            # 1. 実際のシミュレーションツール呼び出し履歴が存在する場合: ADK TrajectoryEvaluator で判定
+            actual_tools = None
+            if isinstance(raw_case, dict):
+                actual_tools = raw_case.get("actual_tool_uses") or raw_case.get("actual_tool_calls")
+            elif hasattr(case, "actual_tool_uses"):
+                actual_tools = getattr(case, "actual_tool_uses")
 
-            case_dict = case.model_dump() if hasattr(case, "model_dump") else (case if isinstance(case, dict) else {})
-            actual_tools = getattr(case, "actual_tool_uses", None) or case_dict.get("actual_tool_uses")
-
-            # 1. Trigger / Skill 適合性判定 (Google ADK 2.0 Trajectory 規約準拠)
-            # 負例（expected_tool_calls が空）ではツール呼び出しが行われないことを Trajectory で判定
-            is_negative_case = case.is_negative
-            has_skill_in_expected = any(
-                skill.name in str(c) or any(s in str(c) for s in available_scripts)
-                for c in exp_tools
-            )
             if actual_tools is not None:
-                skill_script_called = any(
-                    skill.name in str(c) or any(s in str(c) for s in available_scripts)
-                    for c in actual_tools
+                traj_passed, traj_msg = self.adk_adapter.evaluate_trajectory(
+                    actual_tool_calls=actual_tools,
+                    expected_tool_calls=exp_tools or [],
+                    mode=trajectory_mode,
+                    skill_name=skill.name
                 )
-                if is_negative_case:
-                    skill_matched = not skill_script_called
-                elif has_skill_in_expected:
-                    skill_matched = skill_script_called
-                else:
-                    skill_matched = True
-            else:
-                skill_matched = True
-
-            # 2. Trajectory 判定 (Google ADK 2.0 純正 TrajectoryEvaluator に委譲)
-            if not exp_tools:
-                if actual_tools is not None:
-                    traj_matched, traj_msg = self.adk_adapter.evaluate_trajectory(
-                        actual_tool_calls=actual_tools,
-                        expected_tool_calls=[],
-                        mode=mode,
-                        skill_name=skill.name
+                if not traj_passed:
+                    failed += 1
+                    failed_cases.append(
+                        FailedCaseDetail(
+                            eval_case_id=case_id,
+                            expected=f"Trajectory match ({trajectory_mode}): {exp_tools}",
+                            actual=str(actual_tools),
+                            error_type="TrajectoryMismatchError",
+                            error_message=traj_msg
+                        )
                     )
-                else:
-                    traj_matched = True
-                    traj_msg = "No tool calls expected (Negative boundary case verified)"
-            else:
-                traj_matched = True
-                traj_msg = ""
-                if actual_tools is None:
-                    # オフライン・静的契約テスト時: 期待されるスクリプトの実在性・健全性を検証
-                    for t_item in exp_tools:
-                        t_call = t_item if isinstance(t_item, dict) else (t_item.model_dump() if hasattr(t_item, "model_dump") else {"tool": str(t_item)})
-                        t_name = t_call.get("tool") or t_call.get("name", "")
-                        t_args = t_call.get("args", {}) if isinstance(t_call.get("args"), dict) else {}
-                        if t_name == "run_skill_script":
-                            f_path = t_args.get("file_path", "")
-                            script_base = Path(f_path).name
-                            if script_base and available_scripts and script_base not in available_scripts:
-                                traj_matched = False
-                                traj_msg = f"Referenced script '{f_path}' not found in skill '{skill.name}'"
-                                break
-                        elif t_name.startswith("scripts/") or t_name.endswith(".py"):
-                            script_base = Path(t_name).name
-                            if script_base and available_scripts and script_base not in available_scripts:
-                                traj_matched = False
-                                traj_msg = f"Referenced script '{t_name}' not found in skill '{skill.name}'"
-                                break
-                    if traj_matched:
-                        traj_msg = "Static script integrity verified"
-                else:
-                    # 実際のツール呼び出し履歴が存在する場合: ADK 2.0 純正 TrajectoryEvaluator で客観的評価
-                    traj_matched, traj_msg = self.adk_adapter.evaluate_trajectory(
-                        actual_tool_calls=actual_tools,
-                        expected_tool_calls=exp_tools,
-                        mode=mode,
-                        skill_name=skill.name
-                    )
+                    continue
 
-            # 3. Rubric & Response 判定 (ADK 2.0 純正 ResponseEvaluator / RubricEvaluator に委譲)
-            rubric_score = 1.0
-            actual_out = getattr(case, "actual_output", None) or getattr(case, "output", None) or case_dict.get("actual_output") or case_dict.get("output") or ref_output or "Valid execution output"
-            if rubrics or ref_output:
-                rubric_objs = rubrics if (rubrics and isinstance(rubrics[0], dict)) else [
-                    {"rubric_id": f"r_{i}", "text_property": str(r)} for i, r in enumerate(rubrics)
-                ]
-                rubric_score, _ = self.adk_adapter.evaluate_rubric(
-                    skill=skill,
-                    user_input=user_input,
-                    actual_output=str(actual_out),
-                    rubrics=rubric_objs,
-                    reference_output=str(ref_output) if ref_output else None
-                )
+            # 2. スクリプト実在性の検証
+            missing_script = None
+            if exp_tools:
+                for tc in exp_tools:
+                    t_name = tc.get("name") if isinstance(tc, dict) else getattr(tc, "name", "")
+                    t_args = tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})
+                    if t_name == "run_skill_script" and isinstance(t_args, dict):
+                        f_path = t_args.get("file_path", "")
+                        script_base = Path(f_path).name
+                        if script_base and available_scripts and script_base not in available_scripts:
+                            missing_script = f_path
+                            break
+                    elif t_name.startswith("scripts/") or t_name.endswith(".py"):
+                        script_base = Path(t_name).name
+                        if script_base and available_scripts and script_base not in available_scripts:
+                            missing_script = t_name
+                            break
 
-            case_passed = skill_matched and traj_matched and (rubric_score >= rubric_threshold)
-
-            if case_passed:
-                passed += 1
-            else:
+            if missing_script:
                 failed += 1
-                reasons = []
-                if not skill_matched:
-                    reasons.append(f"Trigger mismatch (expected negative={is_negative_case})")
-                if not traj_matched:
-                    reasons.append(f"Trajectory mismatch ({mode}): {traj_msg}")
-                if rubric_score < rubric_threshold:
-                    reasons.append(f"Rubric score {rubric_score:.2f} < threshold {rubric_threshold}")
-
                 failed_cases.append(
                     FailedCaseDetail(
                         eval_case_id=case_id,
-                        expected=f"Trigger (negative={is_negative_case}), Trajectory: {exp_tools}, Rubric >= {rubric_threshold}",
-                        actual=f"Passed={case_passed} (Reasons: {'; '.join(reasons)})",
-                        error_type="EDDCompositeEvaluationError",
-                        error_message=f"EDD evaluation case failed: {'; '.join(reasons)}"
+                        expected=f"Referenced script '{missing_script}' exists in {skill.name}/scripts",
+                        actual="Script not found",
+                        error_type="MissingSkillScriptError",
+                        error_message=f"Script '{missing_script}' is referenced in eval case but does not exist."
                     )
                 )
+            else:
+                passed += 1
 
         accuracy = passed / total if total > 0 else 1.0
-        return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
-
-    def _normalize_cases_to_adk(self, skill: Skill, cases: List[Any]) -> List[Any]:
-        """各種入力ケースを Google ADK 2.0 公式 EvalCase モデルに正規化します。
-        
-        後方互換用レガシー独自キー救済を排し、ADK 2.0 公式の EvalCase スキーマ
-        （eval_id, conversation, rubrics）を直接バインドします。
-        """
-        from edd_agent_tools.models.eval import EvalCase
-        normalized = []
-        for c in cases:
-            if isinstance(c, EvalCase):
-                normalized.append(c)
-                continue
-            if isinstance(c, dict):
-                try:
-                    normalized.append(EvalCase.model_validate(c))
-                except Exception:
-                    normalized.append(c)
-            else:
-                normalized.append(c)
-        return normalized
-
+        return EvalRunResult(
+            passed=passed,
+            failed=failed,
+            total=total,
+            accuracy=accuracy,
+            failed_cases=failed_cases
+        )

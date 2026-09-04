@@ -275,49 +275,123 @@ class SkillPackage:
 
     def _build_script_runner_code(
         self,
-        script_path: str,
+        script_rel_path: str,
         args: Optional[Union[List[str], Dict[str, Any]]] = None,
         short_options: Optional[Dict[str, Any]] = None,
         positional_args: Optional[List[str]] = None
     ) -> str:
-        """BaseCodeExecutor (UnsafeLocalCodeExecutor 等) 向けの決定論的スクリプト実行コードを生成します。"""
-        argv_list = [script_path]
-        if isinstance(args, list):
-            argv_list.extend(str(v) for v in args)
-        elif isinstance(args, dict):
-            for k, v in args.items():
-                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
-                if v is True:
-                    argv_list.append(flag)
-                elif v is not False and v is not None:
-                    argv_list.extend([flag, str(v)])
+        """Google ADK 2.0 _SkillScriptCodeExecutor 準拠の自己展開型スクリプト実行ラッパーコードを生成します。"""
+        # ADK Skill から全リソース（references, assets, scripts）を収集
+        adk_s = self.adk_skill
+        files_dict = {}
+        for ref_name in adk_s.resources.list_references():
+            content = adk_s.resources.get_reference(ref_name)
+            if content is not None:
+                files_dict[f"references/{ref_name}"] = content
 
-        if short_options:
-            for k, v in short_options.items():
-                flag = f"-{k}" if not k.startswith("-") else k
-                if v is True:
-                    argv_list.append(flag)
-                elif v is not False and v is not None:
-                    argv_list.extend([flag, str(v)])
+        for asset_name in adk_s.resources.list_assets():
+            content = adk_s.resources.get_asset(asset_name)
+            if content is not None:
+                files_dict[f"assets/{asset_name}"] = content
 
-        if positional_args:
-            argv_list.append("--")
-            argv_list.extend(str(v) for v in positional_args)
+        for scr_name in adk_s.resources.list_scripts():
+            scr = adk_s.resources.get_script(scr_name)
+            if scr is not None and scr.src is not None:
+                files_dict[f"scripts/{scr_name}"] = scr.src
+
+        file_path = script_rel_path if script_rel_path.startswith("scripts/") else f"scripts/{script_rel_path}"
+        ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
 
         code_lines = [
             "import os",
+            "import tempfile",
             "import sys",
+            "import json as _json",
+            "import subprocess",
             "import runpy",
-            f"sys.argv = {argv_list!r}",
-            f"sys.path.insert(0, os.path.dirname(os.path.abspath({script_path!r})))",
-            f"os.environ['EDD_SKILL_NAME'] = {self.name!r}",
-            f"os.environ['EDD_SKILL_ROOT'] = {self.root_dir!r}",
-            "try:",
-            f"    runpy.run_path({script_path!r}, run_name='__main__')",
-            "except SystemExit as _e:",
-            "    if _e.code not in (0, None):",
-            "        raise _e",
+            f"_files = {files_dict!r}",
+            "def _materialize_and_run():",
+            "  _orig_cwd = os.getcwd()",
+            "  with tempfile.TemporaryDirectory() as td:",
+            "    for rel_path, content in _files.items():",
+            "      norm_rel = os.path.normpath(rel_path)",
+            "      if norm_rel.startswith('..') or os.path.isabs(norm_rel):",
+            "        raise PermissionError('Path traversal blocked in skill file: ' + rel_path)",
+            "      full_path = os.path.join(os.path.abspath(td), norm_rel)",
+            "      os.makedirs(os.path.dirname(full_path), exist_ok=True)",
+            "      mode = 'wb' if isinstance(content, bytes) else 'w'",
+            "      with open(full_path, mode, encoding='utf-8' if mode == 'w' else None) as f:",
+            "        f.write(content)",
+            "    os.chdir(td)",
+            f"    os.environ['EDD_SKILL_NAME'] = {self.name!r}",
+            f"    os.environ['EDD_SKILL_ROOT'] = {self.root_dir!r}",
+            "    try:",
         ]
+
+        if ext == "py":
+            argv_list = [file_path]
+            if isinstance(args, list):
+                argv_list.extend(str(v) for v in args)
+            else:
+                if isinstance(args, dict):
+                    for k, v in args.items():
+                        argv_list.extend([f"--{k.replace('_', '-')}" if not k.startswith("-") else k, str(v)] if v not in (True, False) else ([f"--{k.replace('_', '-')}" if not k.startswith("-") else k] if v else []))
+                if short_options:
+                    for k, v in short_options.items():
+                        argv_list.extend([f"-{k}" if not k.startswith("-") else k, str(v)] if v not in (True, False) else ([f"-{k}" if not k.startswith("-") else k] if v else []))
+                if positional_args:
+                    argv_list.append("--")
+                    argv_list.extend(str(v) for v in positional_args)
+
+            code_lines.extend([
+                f"      sys.argv = {argv_list!r}",
+                f"      sys.path.insert(0, os.path.dirname(os.path.abspath({file_path!r})))",
+                "      try:",
+                f"        runpy.run_path({file_path!r}, run_name='__main__')",
+                "      except SystemExit as e:",
+                "        if e.code not in (0, None):",
+                "          raise e",
+            ])
+        elif ext in ("sh", "bash"):
+            arr = ["bash", file_path]
+            if isinstance(args, list):
+                arr.extend(str(v) for v in args)
+            else:
+                if isinstance(args, dict):
+                    for k, v in args.items():
+                        arr.extend([f"--{k.replace('_', '-')}" if not k.startswith("-") else k, str(v)] if v not in (True, False) else ([f"--{k.replace('_', '-')}" if not k.startswith("-") else k] if v else []))
+                if short_options:
+                    for k, v in short_options.items():
+                        arr.extend([f"-{k}" if not k.startswith("-") else k, str(v)] if v not in (True, False) else ([f"-{k}" if not k.startswith("-") else k] if v else []))
+                if positional_args:
+                    arr.append("--")
+                    arr.extend(positional_args)
+
+            code_lines.extend([
+                "      try:",
+                f"        _r = subprocess.run({arr!r}, capture_output=True, text=True, cwd=td)",
+                "        print(_json.dumps({",
+                "            '__shell_result__': True,",
+                "            'stdout': _r.stdout,",
+                "            'stderr': _r.stderr,",
+                "            'returncode': _r.returncode,",
+                "        }))",
+                "      except Exception as _e:",
+                "        print(_json.dumps({",
+                "            '__shell_result__': True,",
+                "            'stdout': '',",
+                "            'stderr': str(_e),",
+                "            'returncode': -1,",
+                "        }))",
+            ])
+        else:
+            raise ValueError(f"Unsupported script extension: {ext}")
+
+        code_lines.extend([
+            "    finally:",
+            "      os.chdir(_orig_cwd)",
+            "_materialize_and_run()",
+        ])
         return "\n".join(code_lines)
 
     def execute_script(
@@ -332,8 +406,7 @@ class SkillPackage:
     ) -> Dict[str, Any]:
         """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。
         
-        Google ADK 2.0 純正の run_skill_script ツール引数仕様（args, positional_args, short_options）
-        および BaseCodeExecutor（UnsafeLocalCodeExecutor 等）と完全準拠しています。
+        Google ADK 2.0 純正 run_skill_script / _SkillScriptCodeExecutor と完全互換。
         """
         scripts = self.list_scripts()
         target_script = None
@@ -350,34 +423,58 @@ class SkillPackage:
         if not target_script or not os.path.exists(target_script):
             raise FileNotFoundError(f"Could not resolve execution script in '{self.scripts_dir}'.")
 
-        # ADK 2.0 公式 run_skill_script 規約に基づく CLI 引数の正規化
         rel_path = f"scripts/{clean_name if script_name else os.path.basename(target_script)}"
+        is_shell = target_script.endswith((".sh", ".bash"))
 
-        # 1. BaseCodeExecutor (UnsafeLocalCodeExecutor 等) が指定された場合、ADK 公式の実行パイプラインに委譲
+        # 1. BaseCodeExecutor (UnsafeLocalCodeExecutor 等) が指定された場合、ADK 公式パイプラインに委譲
         if code_executor is not None and hasattr(code_executor, "execute_code"):
             try:
                 from google.adk.code_executors.code_execution_utils import CodeExecutionInput
-                # ADK 公式 BaseCodeExecutor 公開 API（UnsafeLocalCodeExecutor 等）に基づき、
-                # execute_code 経由で決定論的スクリプト実行コードを実行
                 wrapper_code = self._build_script_runner_code(
-                    script_path=target_script,
+                    script_rel_path=rel_path,
                     args=args,
                     short_options=short_options,
                     positional_args=positional_args
                 )
                 exec_res = code_executor.execute_code(None, CodeExecutionInput(code=wrapper_code))
-                has_error = bool(exec_res.stderr and "traceback" in exec_res.stderr.lower())
-                status = "failed" if has_error else "success"
+
+                stdout = exec_res.stdout or ""
+                stderr = exec_res.stderr or ""
+                rc = 0
+
+                # Shell スクリプトの場合は JSON エンベロープをパース
+                if is_shell and stdout:
+                    try:
+                        parsed = json.loads(stdout)
+                        if isinstance(parsed, dict) and parsed.get("__shell_result__"):
+                            stdout = parsed.get("stdout", "")
+                            stderr = parsed.get("stderr", "")
+                            rc = parsed.get("returncode", 0)
+                    except Exception:
+                        pass
+
+                has_error = (rc != 0) or bool(stderr and "traceback" in stderr.lower())
                 return {
-                    "status": status,
-                    "exit_code": 1 if has_error else 0,
-                    "stdout": exec_res.stdout or "",
-                    "stderr": exec_res.stderr or "",
+                    "skill_name": self.name,
+                    "file_path": rel_path,
+                    "status": "failed" if has_error else "success",
+                    "exit_code": rc if rc != 0 else (1 if has_error else 0),
+                    "stdout": stdout,
+                    "stderr": stderr,
                     "script_path": target_script,
                     "executor": type(code_executor).__name__
                 }
-            except Exception:
-                pass
+            except Exception as e:
+                return {
+                    "skill_name": self.name,
+                    "file_path": rel_path,
+                    "status": "failed",
+                    "exit_code": 1,
+                    "stdout": "",
+                    "stderr": str(e),
+                    "script_path": target_script,
+                    "error": str(e)
+                }
 
         # 2. 直接実行時 (Subprocess fallback)
         cmd_args: List[str] = []
@@ -404,7 +501,8 @@ class SkillPackage:
                 cmd_args.append("--")
                 cmd_args.extend(str(a) for a in positional_args)
 
-        cmd = [sys.executable, target_script] + cmd_args
+        executable = "bash" if is_shell else sys.executable
+        cmd = [executable, target_script] + cmd_args
         run_env = os.environ.copy()
         run_env["EDD_SKILL_NAME"] = self.name
         run_env["EDD_SKILL_ROOT"] = self.root_dir
@@ -414,6 +512,8 @@ class SkillPackage:
         import subprocess
         proc = subprocess.run(cmd, env=run_env, capture_output=True, text=True, timeout=timeout)
         return {
+            "skill_name": self.name,
+            "file_path": rel_path,
             "status": "success" if proc.returncode == 0 else "failed",
             "exit_code": proc.returncode,
             "stdout": proc.stdout,

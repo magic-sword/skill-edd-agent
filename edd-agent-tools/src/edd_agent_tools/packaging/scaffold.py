@@ -394,6 +394,7 @@ Example usage pattern for {canonical_skill_name}.
                     "threshold": 1.0,
                     "match_type": "IN_ORDER"
                 },
+                "response_match_score": 0.8,
                 "rubric_based_final_response_quality_v1": {
                     "threshold": 0.8,
                     "rubrics": [

@@ -76,10 +76,15 @@ state = SkillsState()
 skill = state.get_skill("case-converter")
 
 # 評価データセット（tests/*.test.json）を用いた決定論的検証
+import json
+evalset_path = skill.tests.get_evalset_path("contract")
+with open(evalset_path, "r", encoding="utf-8") as f:
+    cases_data = json.load(f)
+
 runner = ContractTestRunner()
 result = runner.run_tests(
     skill=skill,
-    test_cases_data=skill.tests.load_latest_report() or {},
+    test_cases_data=cases_data,
     env=env_sandbox
 )
 

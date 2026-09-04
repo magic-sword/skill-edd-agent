@@ -70,7 +70,6 @@ class SkillValidator:
         cls._validate_directory_cleanliness(skill_path, base_res)
 
         # Python スクリプトの CLI / Black-box Tooling ハーネス検証 (AST静的解析)
-        # Python スクリプトの CLI / Black-box Tooling ハーネス検証 (AST静的解析)
         cls._validate_python_scripts_harness(skill_path, base_res)
 
         # 外部依存ライブラリ (Requirements & Prerequisites) の照合検証
@@ -188,9 +187,9 @@ class SkillValidator:
         for es_path in evalsets:
             try:
                 data = json.loads(es_path.read_text(encoding="utf-8"))
-                cases = data.get("eval_cases") or data.get("cases") or []
+                cases = data.get("eval_cases", [])
                 for c in cases:
-                    if ("eval_id" in c or "case_id" in c) and ("conversation" in c or "input" in c):
+                    if "eval_id" in c and "conversation" in c:
                         has_eval_case = True
                         # ADK 2.0 公式規格: ツール呼び出し（tool_uses）の有無に基づき正例/負例を客観判定
                         has_tools = False
@@ -201,8 +200,6 @@ class SkillValidator:
                                 inter = first_inv.get("intermediate_data")
                                 if isinstance(inter, dict) and inter.get("tool_uses"):
                                     has_tools = True
-                        elif c.get("expected_tool_calls"):
-                            has_tools = True
 
                         if has_tools:
                             positive_count += 1

@@ -10,6 +10,7 @@ Anthropic Agent Skills & Google ADK 2.0 準拠の統合 CLI ツール。
 import os
 import sys
 import json
+import asyncio
 import argparse
 import subprocess
 from pathlib import Path
@@ -179,15 +180,49 @@ def cmd_package(args: argparse.Namespace) -> int:
 
 
 def cmd_eval(args: argparse.Namespace) -> int:
-    """スキルの契約テストおよびシミュレーション評価を実行します。"""
-    # --cli フラグが指定された場合、直接 Google ADK 2.0 公式 adk eval CLI を実行
+    """スキルの Google ADK 2.0 公式評価および CLI 契約テストを実行します。"""
+    # --cli フラグが指定された場合、公式 adk eval CLI を直接サブプロセス実行
     if getattr(args, "cli", False):
-        return cmd_adk_eval(args)
+        from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
+        state = SkillsState()
+        skill = state.get_skill(args.skill_name)
+        if not skill:
+            print(f"❌ Error: Skill '{args.skill_name}' not found.", file=sys.stderr)
+            return 1
+        tests_dir = Path(skill.root_dir) / "tests"
+        eval_file = Path(getattr(args, "evalset", None) or tests_dir / f"{args.skill_name}.test.json")
+        return AdkEvalAdapter().run_adk_eval_cli(
+            agent_module=getattr(args, "agent_module", "src"),
+            eval_dataset_path=eval_file,
+            config_file_path=getattr(args, "config", None)
+        )
 
     state = SkillsState()
     skill = state.get_skill(args.skill_name)
     if not skill:
         print(f"❌ Error: Skill '{args.skill_name}' not found.", file=sys.stderr)
+        return 1
+
+    tests_dir = Path(skill.root_dir) / "tests"
+    eval_file = None
+    if getattr(args, "evalset", None):
+        eval_file = Path(args.evalset)
+    else:
+        candidates = [
+            tests_dir / f"{args.skill_name}.test.json",
+            tests_dir / f"{args.skill_name}_edd.test.json",
+        ]
+        for c in candidates:
+            if c.exists():
+                eval_file = c
+                break
+        if not eval_file:
+            all_evals = list(tests_dir.glob("*.test.json"))
+            if all_evals:
+                eval_file = all_evals[0]
+
+    if not eval_file or not eval_file.exists():
+        print(f"❌ Error: No evalset (*.test.json) found for skill '{args.skill_name}' at: {tests_dir}", file=sys.stderr)
         return 1
 
     env = LocalWorkspaceEnv()
@@ -197,108 +232,66 @@ def cmd_eval(args: argparse.Namespace) -> int:
         "summary": {"total_passed": 0, "total_failed": 0, "overall_accuracy": 1.0}
     }
 
-    tests_dir = Path(skill.root_dir) / "tests"
-    types_to_run = ["edd", "contract", "trigger", "golden", "judge", "trajectory", "adversarial"] if args.type == "all" else [args.type]
-
-    # ライブ評価オプションの反映
-    if getattr(args, "live", False):
-        os.environ["EDD_LIVE_EVAL"] = "1"
-
-    ran_any = False
-    executed_files = set()
-    for t in types_to_run:
-        if t in ("edd", "all"):
-            cand_files = [
-                tests_dir / f"{args.skill_name}.test.json",
-                tests_dir / f"{args.skill_name}_edd.test.json",
-            ]
-        else:
-            cand_files = [
-                tests_dir / f"{args.skill_name}_{t}.test.json",
-                tests_dir / f"{args.skill_name}-{t}.test.json",
-                tests_dir / f"{t}.test.json",
-            ]
-            if args.type != "all":
-                cand_files.append(tests_dir / f"{args.skill_name}.test.json")
-
-        cand = next((p for p in cand_files if p.exists() and p not in executed_files), None)
-        if not cand:
-            continue
-
-        executed_files.add(cand)
-        ran_any = True
+    # 1. 契約テスト (--type contract) の実行
+    eval_type = getattr(args, "type", "adk")
+    if eval_type == "contract":
+        print(f"🔬 Running Contract Tests (pass^{getattr(args, 'pass_k', 1)}) for '{args.skill_name}'...")
         try:
-            with open(cand, "r", encoding="utf-8") as f:
+            with open(eval_file, "r", encoding="utf-8") as f:
                 cases_data = json.load(f)
-
-            if getattr(args, "adk", False):
-                from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
-                adapter = AdkEvalAdapter(live=getattr(args, "live", False))
-                agent_mod = getattr(args, "agent_module", None) or "src"
-                cfg_path = getattr(args, "config", None)
-                import asyncio
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_closed():
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                except RuntimeError:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-
-                print(f"🚀 Running Google ADK 2.0 Native AgentEvaluator for '{args.skill_name}' on {cand}...")
-                loop.run_until_complete(
-                    adapter.evaluate_with_adk_agent(
-                        agent_module=agent_mod,
-                        eval_dataset_file_path_or_dir=cand,
-                        config_file_path=cfg_path,
-                        num_runs=getattr(args, "num_runs", 1),
-                        print_detailed_results=True
-                    )
-                )
-                print(f"✅ Google ADK 2.0 Native AgentEvaluator PASSED for '{args.skill_name}'.")
-                report["results"]["adk_eval"] = {
-                    "passed": 1,
-                    "failed": 0,
-                    "total": 1,
-                    "accuracy": 1.0,
-                    "status": "PASSED"
-                }
-                report["summary"]["total_passed"] += 1
-                break
-
-            if t == "contract":
-                c_runner = ContractTestRunner()
-                res = c_runner.run_tests(skill=skill, test_cases_data=cases_data, env=env, pass_k=getattr(args, "pass_k", 1))
-                report["results"]["contract"] = {
-                    "passed": res.passed,
-                    "failed": res.failed,
-                    "total": res.total,
-                    "accuracy": res.accuracy,
-                    "pass_k": getattr(args, "pass_k", 1),
-                    "detail_file_path": res.detail_file_path
-                }
-                report["summary"]["total_passed"] += res.passed
-                report["summary"]["total_failed"] += res.failed
-            else:
-                sim_runner = SimulationEvalRunner(default_trajectory_mode=getattr(args, "trajectory_mode", "any_order"))
-                res = sim_runner.run_tests(
-                    skill=skill,
-                    eval_set_data=cases_data,
-                    env=env,
-                    trajectory_mode=getattr(args, "trajectory_mode", "any_order")
-                )
-                report["results"][t] = {
-                    "passed": res.passed,
-                    "failed": res.failed,
-                    "total": res.total,
-                    "accuracy": res.accuracy,
-                    "details": []
-                }
-                report["summary"]["total_passed"] += res.passed
-                report["summary"]["total_failed"] += res.failed
+            c_runner = ContractTestRunner()
+            res = c_runner.run_tests(skill=skill, test_cases_data=cases_data, env=env, pass_k=getattr(args, "pass_k", 1))
+            report["results"]["contract"] = {
+                "passed": res.passed,
+                "failed": res.failed,
+                "total": res.total,
+                "accuracy": res.accuracy,
+                "pass_k": getattr(args, "pass_k", 1)
+            }
+            report["summary"]["total_passed"] += res.passed
+            report["summary"]["total_failed"] += res.failed
         except Exception as e:
-            report["results"][t] = {"error": str(e), "accuracy": 0.0}
+            print(f"❌ Contract tests failed with error: {e}", file=sys.stderr)
+            report["results"]["contract"] = {"error": str(e), "accuracy": 0.0}
+            report["summary"]["total_failed"] += 1
+    else:
+        # 2. デフォルト: Google ADK 2.0 公式 AgentEvaluator による総合評価
+        print(f"🚀 Running Google ADK 2.0 Native AgentEvaluator for '{args.skill_name}' on {eval_file.name}...")
+        agent_module = getattr(args, "agent_module", "src") or "src"
+        config_path = getattr(args, "config", None)
+        if not config_path:
+            cand_config = tests_dir / "test_config.json"
+            if cand_config.exists():
+                config_path = str(cand_config)
+
+        is_live_flag = getattr(args, "live", False)
+        adapter = AdkEvalAdapter(live=is_live_flag)
+        sim_runner = SimulationEvalRunner(
+            default_trajectory_mode=getattr(args, "trajectory_mode", "in_order"),
+            adk_adapter=adapter
+        )
+        try:
+            with open(eval_file, "r", encoding="utf-8") as f:
+                cases_data = json.load(f)
+            res = sim_runner.run_tests(
+                skill=skill,
+                eval_set_data=cases_data,
+                env=env,
+                trajectory_mode=getattr(args, "trajectory_mode", "in_order"),
+                agent_module=agent_module
+            )
+            report["results"]["adk_eval"] = {
+                "passed": res.passed,
+                "failed": res.failed,
+                "total": res.total,
+                "accuracy": res.accuracy,
+                "failed_cases": [fc.model_dump() for fc in res.failed_cases]
+            }
+            report["summary"]["total_passed"] += res.passed
+            report["summary"]["total_failed"] += res.failed
+        except Exception as e:
+            print(f"❌ ADK Evaluation failed with error: {e}", file=sys.stderr)
+            report["results"]["adk_eval"] = {"error": str(e), "accuracy": 0.0}
             report["summary"]["total_failed"] += 1
 
     # Co-loaded 評価が要求された場合、または --coverage 指定時
@@ -311,7 +304,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
     if total_tests > 0:
         report["summary"]["overall_accuracy"] = report["summary"]["total_passed"] / total_tests
 
-    out_p = Path(args.report) if args.report else tests_dir / "results" / "latest_report.json"
+    report_arg = getattr(args, "report", None)
+    out_p = Path(report_arg) if report_arg else tests_dir / "results" / "latest_report.json"
     out_p.parent.mkdir(parents=True, exist_ok=True)
     with open(out_p, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)
@@ -577,13 +571,8 @@ def cmd_profile(args: argparse.Namespace) -> int:
 
 
 def cmd_adk_eval(args: argparse.Namespace) -> int:
-    """Google ADK 2.0 公式 AgentEvaluator / adk eval を実行してスキルを評価します。"""
-    # Google ADK 2.0 互換性保証: GEMINI_API_KEY と GOOGLE_API_KEY の相互同期
-    if os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
-        os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
-    elif os.environ.get("GOOGLE_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
-        os.environ["GEMINI_API_KEY"] = os.environ["GOOGLE_API_KEY"]
-
+    """Google ADK 2.0 公式評価コマンド（AgentEvaluator / adk eval を直接実行）"""
+    from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
     state = SkillsState()
     skill = state.get_skill(args.skill_name)
     if not skill:
@@ -598,7 +587,6 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
         candidates = [
             tests_dir / f"{args.skill_name}.test.json",
             tests_dir / f"{args.skill_name}_edd.test.json",
-            tests_dir / f"{args.skill_name}-edd.test.json",
         ]
         for c in candidates:
             if c.exists():
@@ -610,66 +598,33 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
                 eval_file = all_evals[0]
 
     if not eval_file or not eval_file.exists():
-        print(f"❌ Error: No evalset found for skill '{args.skill_name}'.", file=sys.stderr)
+        print(f"❌ Error: No evalset (*.test.json) found for skill '{args.skill_name}' at: {tests_dir}", file=sys.stderr)
         return 1
 
-    agent_module = getattr(args, "agent_module", "src") or "src"
-
-    # config_path の解決 (明示指定 > tests/test_config.json)
     config_path = getattr(args, "config", None)
     if not config_path:
         cand_config = tests_dir / "test_config.json"
         if cand_config.exists():
             config_path = str(cand_config)
 
-    # agent_module の親ディレクトリを sys.path に確実に追加
-    agent_path = Path(agent_module).resolve()
-    if agent_path.exists() and agent_path.is_dir():
-        parent_dir = str(agent_path.parent)
-        if parent_dir not in sys.path:
-            sys.path.insert(0, parent_dir)
-        resolved_agent_module = agent_path.name
-    else:
-        resolved_agent_module = agent_module
-        cwd_dir = os.getcwd()
-        if cwd_dir not in sys.path:
-            sys.path.insert(0, cwd_dir)
+    adapter = AdkEvalAdapter(live=getattr(args, "live", True))
 
-    # --cli が指定された場合、公式 adk eval CLI を直接サブプロセス実行
     if getattr(args, "cli", False):
-        print(f"🚀 Running Google ADK 2.0 CLI `adk eval` on '{args.skill_name}'...")
-        cmd = ["adk", "eval", resolved_agent_module, str(eval_file)]
-        if config_path:
-            cmd.extend(["--config_file_path", str(config_path)])
-        if getattr(args, "detailed", True):
-            cmd.append("--print_detailed_results")
-        try:
-            env = os.environ.copy()
-            res = subprocess.run(cmd, env=env)
-            return res.returncode
-        except Exception as e:
-            print(f"❌ Failed to run adk eval CLI: {e}", file=sys.stderr)
-            return 1
+        return adapter.run_adk_eval_cli(
+            agent_module=getattr(args, "agent_module", "src"),
+            eval_dataset_path=eval_file,
+            config_file_path=config_path,
+        )
 
-    print(f"🚀 Running Google ADK 2.0 AgentEvaluator on '{args.skill_name}'...")
-    print(f"   Agent Module: {resolved_agent_module}")
-    print(f"   Eval Dataset: {eval_file}")
-    if config_path:
-        print(f"   Config File:  {config_path}")
-
-    from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
-    import asyncio
     try:
-        adapter = AdkEvalAdapter(live=True)
-        asyncio.run(adapter.evaluate_with_adk_agent(
-            agent_module=resolved_agent_module,
+        res = asyncio.run(adapter.evaluate_with_adk_agent(
+            agent_module=getattr(args, "agent_module", "src"),
             eval_dataset_file_path_or_dir=eval_file,
-            config_file_path=config_path
+            config_file_path=config_path,
         ))
-        print(f"✅ Google ADK 2.0 Native Evaluation Passed successfully!")
-        return 0
+        return 0 if res else 1
     except Exception as e:
-        print(f"❌ Google ADK 2.0 Evaluation Failed: {e}", file=sys.stderr)
+        print(f"❌ Google ADK Native AgentEvaluator failed: {e}", file=sys.stderr)
         return 1
 
 

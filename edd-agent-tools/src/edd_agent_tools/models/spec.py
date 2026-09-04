@@ -313,13 +313,14 @@ class SkillSpec(BaseModel):
 
             scripts_dir = dir_path / "scripts"
             if scripts_dir.exists():
-                for f in scripts_dir.rglob("*.py"):
-                    if f.is_file():
+                for f in scripts_dir.rglob("*"):
+                    if f.is_file() and "__pycache__" not in f.parts:
                         rel = str(f.relative_to(scripts_dir))
                         try:
                             scripts[rel] = adk_models.Script(src=f.read_text(encoding="utf-8"))
                         except Exception:
-                            scripts[rel] = adk_models.Script(src="")
+                            # バイナリ等の場合はスキップまたは空文字
+                            continue
 
         adk_resources = adk_models.Resources(
             references=references,

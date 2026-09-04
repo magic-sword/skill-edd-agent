@@ -179,19 +179,23 @@ Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキ
 
 ---
 
-## 8. Google ADK 2.0 純正 AgentEvaluator による総合評価 (`edd eval --adk`)
+## 8. Google ADK 2.0 純正 AgentEvaluator による総合評価 (`edd eval`)
 
-Google ADK 2.0 の最高峰評価パイプラインである `AgentEvaluator.evaluate()` と直結し、公式 `test_config.json` に基づく決定論的・推論的評価を一元実行します：
+Google ADK 2.0 の最高峰評価パイプラインである `AgentEvaluator.evaluate()` と完全一本化し、公式 `test_config.json` に基づく決定論的・推論的評価を一元実行します：
 
 * **設定自動探索**:
   `tests/` 直下の `test_config.json`（`EvalConfig`）を自動探索・適用。Progressive Disclosure（`list_skills` ➔ `load_skill` ➔ `run_skill_script`）に適合した `IN_ORDER` 軌跡マッチングや `rubric_based_final_response_quality_v1` を標準評価。
-* **CLI 直結 (`edd eval --adk`)**:
+* **CLI 完全一本化 (`edd eval`)**:
   ```bash
-  # Google ADK 2.0 純正 AgentEvaluator による公式評価
+  # Google ADK 2.0 純正 AgentEvaluator による公式評価（デフォルト直結）
+  edd eval case-converter
+
+  # 従来互換エイリアス (--adk / edd adk-eval)
   edd eval case-converter --adk
+  edd adk-eval case-converter
 
   # 独自エージェントモジュールおよびカスタム設定の指定
-  edd eval case-converter --adk --agent-module my_project.agent:agent --config tests/custom_config.json
+  edd eval case-converter --agent-module my_project.agent:agent --config tests/custom_config.json
   ```
 * **公式 `google.adk.skills.list_skills_in_dir` 統合**:
   スキル探索においても車輪の再発明を排除し、公式の `list_skills_in_dir` API（`load_adk_skills_from_dir`）を活用して Frontmatter の正当性検査（ディレクトリ名と Frontmatter 名の完全一致等）を自動執行。
@@ -204,8 +208,8 @@ Google ADK 2.0 の最高峰評価パイプラインである `AgentEvaluator.eva
 | :--- | :--- | :--- |
 | **契約テスト (Contract / CLI)** | スクリプトおよびCLIツールの決定論的I/O動作の正しさ。 | 入力引数（`cli_args`）に応じた終了コード（`0`）および標準出力キーワード完全一致。$pass^k$ 連続実行に対応。 |
 | **トリガー評価 (Trigger)** | LLMのインテント分類の意思決定（適切なスキルを起動できるか）。 | **正例**: 対象スキルが選択されれば合格。<br>**負例**: 対象スキルが選択されなければ合格（誤起動の抑止）。目標精度 90% 以上。 |
-| **推論軌跡 (Trajectory)** | 期待されるツール呼び出し順序の正しさ。 | `EXACT` / `IN_ORDER` / `ANY_ORDER` に従ったシーケンス判定。 |
-| **ルーブリック採点 (Judge)** | 回答の質・安全性・網羅度。 | ADK 純正 `AgentEvaluator` または決定論的フォールバックによる Position Swapping 採点。 |
+| **推論軌跡 (Trajectory)** | 期待されるツール呼び出し順序の正しさ。 | ADK 純正 `TrajectoryEvaluator` による `EXACT` / `IN_ORDER` / `ANY_ORDER` シーケンス判定。 |
+| **ルーブリック採点 (Judge)** | 回答の質・安全性・網羅度。 | ADK 純正 `AgentEvaluator` による Position Swapping 公式採点（`rubric_based_final_response_quality_v1`）。独自フォールバックや偽判定は完全撤廃。 |
 | **共存テスト (Co-loaded)** | 複数スキル共存下でのコンテキスト破綻（Context Rot）防止。 | 5〜15 スキル同時展開下でのトリガー精度 80% 以上を保証。 |
 
 
