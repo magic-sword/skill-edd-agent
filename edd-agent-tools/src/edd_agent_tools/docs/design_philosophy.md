@@ -54,17 +54,18 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
      - `scripts/`: 決定論的Python/Bashスクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）。**Shift Intelligence Left** により、モデルの推論プロンプトから決定論的処理をコードへオフロード。
      - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド読み込み）
      - `assets/`: 出力用テンプレート・素材（成果物への流用・コピー用）
-### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `LocalCodeExecutor`, `TrajectoryEvaluator`, `ResponseEvaluator`, `EvalConfig`)
+### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `LocalCodeExecutor`, `TrajectoryEvaluator`, `EvalConfig`)
 * Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を完全採用。
-* **Progressive Disclosure の動的解決アーキテクチャ**:
+* **Progressive Disclosure の動的解決アーキテクチャと検索ツール露出制御**:
   - `EddSkillToolset` は Tier 基準（`min_tier`）を満たすローカルスキルをすべて登録し、L1 Frontmatter（名前と説明）が `list_skills` またはシステムプロンプトを通じてエージェントに開示されます。
   - エージェントは `list_skills` ツールで利用可能スキルの全容を把握し、必要と判断したスキルのみ `load_skill` ツールで L2 instructions をオンデマンドにロード、`run_skill_script` や `load_skill_resource` で L3 resources を実行・開示します。
-  - さらに `EddSkillRegistry`（`search_skills`）を併用することで、ローカル未登録の追加スキルや下位Tierスキルの動的検索・オンデマンド解決も完全サポートします。
+  - **ローカル完結エージェントの最適化 (`enable_registry_search=False`)**: ローカルにスキル群が配備されている環境では、不要な `search_skills` 露出による負例（一般会話）での無駄なスキル検索や回答拒否（オーバーサーチ問題）を抑止するため、`enable_registry_search=False` をベストプラクティスとして推奨します。動的な外部スキル検索が必要な環境のみ `EddSkillRegistry` を併用します。
 * **モンキーパッチおよび車輪の再発明の完全排除**:
   - ADK 内部メソッドの上書き（monkey patch）や不要な同期ラッパー（`*_sync`）、一時的な Toolset 生成によるプライベート属性アクセス（`_tools`）の裏口ハックを全廃し、ADK 公式の非同期ツールセットおよび `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入。決定論的スクリプト実行はドメイン層の `SkillPackage.execute_script` または ADK 純正 `run_skill_script` ツールに一本化。
-  - 軌跡比較ロジックおよび独自Judge正規表現ルールの再発明を完全排除し、ADK 2.0 純正の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator`（`tool_trajectory_avg_score`）および `google.adk.evaluation.response_evaluator.ResponseEvaluator`（ROUGE-1 `response_match_score`）を直接駆動。
-  - **型安全な公式専用 Criterion の採用**: `ToolTrajectoryCriterion(threshold=..., match_type=...)` および `RubricsBasedCriterion(rubrics=..., threshold=...)` を直接インスタンス化し、汎用基底クラスへの押し込みを排除。
-  - **Tool Trajectory の第1級標準 (Primary Standard)**: テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用。
+  - 軌跡比較ロジックおよび独自Judge正規表現ルールの再発明を完全排除し、ADK 2.0 純正の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator`（`tool_trajectory_avg_score`）および型安全な `ToolTrajectoryCriterion` を直接駆動。
+  - **LLM-as-a-Judge 主軸化と責務分離**: 表現揺らぎに弱い ROUGE-1 表層文字列一致（`response_match_score`）への過度依存を排し、ADK 公式の LLM-as-a-Judge である `RubricBasedFinalResponseQualityV1Evaluator`（`rubric_based_final_response_quality_v1`）を最終回答品質評価の主軸として採用。ツールの正確な呼び出し・引数・順序は Trajectory レイヤーで厳密検証し、ルーブリック評価は会話フィラー排除や意図充足に特化させる責務分離を徹底。
+  - **Tool Trajectory の第1級標準 (Primary Standard) と positional_args 仕様**:
+    テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`, `positional_args`, `short_options`）を第1級の標準（Primary Standard）として採用。位置引数（`positional_args`）とオプションフラグ（`args`）を明確に分離して CLI 実行コマンドへ正確にディスパッチ。
   - **Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）の標準配備**:
     各スキルの `tests/test_config.json` にて `tool_trajectory_avg_score` に `match_type: "IN_ORDER"` を標準指定。これにより、Progressive Disclosure（`list_skills` ➔ `load_skill` ➔ `run_skill_script`）を採用するエージェントが不当に Fail 判定されないよう保証。また、`rubric_based_final_response_quality_v1`（LLM-as-a-Judge 評価）を標準設定。
   - **Frontmatter 公式仕様の完全一致**: `allowed-tools` は ADK 2.0 および agentskills.io 公式仕様に基づきスペース区切り文字列（例: `"run_skill_script load_skill_resource"`）として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。

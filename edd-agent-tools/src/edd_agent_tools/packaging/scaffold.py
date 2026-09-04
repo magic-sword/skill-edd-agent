@@ -171,10 +171,12 @@ def run(input_val: str | None = None) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="{skill_title} execution script.")
-    parser.add_argument("--input", "-i", type=str, help="Input argument or file path")
+    parser.add_argument("input_pos", nargs="?", default=None, help="Positional input argument")
+    parser.add_argument("--input", "-i", dest="input_opt", type=str, default=None, help="Input argument or file path")
     args = parser.parse_args()
 
-    run(args.input)
+    input_val = args.input_opt or args.input_pos
+    run(input_val)
     return 0
 
 
@@ -258,7 +260,8 @@ Example usage pattern for {canonical_skill_name}.
                                     "args": {
                                         "skill_name": canonical_skill_name,
                                         "file_path": f"scripts/{primary_script}.py",
-                                        "args": {"input": "sample_value"}
+                                        "positional_args": ["sample_value"],
+                                        "args": {}
                                     }
                                 }
                             ]
@@ -292,7 +295,8 @@ Example usage pattern for {canonical_skill_name}.
                                     "args": {
                                         "skill_name": canonical_skill_name,
                                         "file_path": f"scripts/{primary_script}.py",
-                                        "args": {"input": "batch_item_1"}
+                                        "positional_args": ["batch_item_1"],
+                                        "args": {}
                                     }
                                 }
                             ]
@@ -302,12 +306,12 @@ Example usage pattern for {canonical_skill_name}.
                 "rubrics": [
                     {
                         "rubric_id": f"r_{canonical_dir_name}_003_1",
-                        "rubric_content": {"text_property": f"executes {canonical_skill_name} deterministically"},
+                        "rubric_content": {"text_property": "handles multiple items properly"},
                         "type": "TOOL_USE_QUALITY"
                     },
                     {
                         "rubric_id": f"r_{canonical_dir_name}_003_2",
-                        "rubric_content": {"text_property": "handles input without hallucinating extra tools"},
+                        "rubric_content": {"text_property": "produces clear structured batch output"},
                         "type": "FINAL_RESPONSE_QUALITY"
                     }
                 ]
@@ -320,8 +324,8 @@ Example usage pattern for {canonical_skill_name}.
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_neg_001",
-                        "user_content": {"role": "user", "parts": [{"text": "What is the capital of France?"}]},
-                        "final_response": {"role": "model", "parts": [{"text": "Paris"}]},
+                        "user_content": {"role": "user", "parts": [{"text": "Summarize the architectural benefits of Google ADK 2.0"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "conceptual_summary"}]},
                         "intermediate_data": {"tool_uses": []}
                     }
                 ],
@@ -338,8 +342,8 @@ Example usage pattern for {canonical_skill_name}.
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_neg_002",
-                        "user_content": {"role": "user", "parts": [{"text": "Summarize the architectural differences between monolithic and microservice systems"}]},
-                        "final_response": {"role": "model", "parts": [{"text": "architectural_summary"}]},
+                        "user_content": {"role": "user", "parts": [{"text": "What is the capital of France?"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "factual_answer"}]},
                         "intermediate_data": {"tool_uses": []}
                     }
                 ],
@@ -356,15 +360,15 @@ Example usage pattern for {canonical_skill_name}.
                 "conversation": [
                     {
                         "invocation_id": f"inv_{canonical_dir_name}_neg_003",
-                        "user_content": {"role": "user", "parts": [{"text": f"Explain the theory behind {skill_name_spaced} without running any tools or scripts"}]},
-                        "final_response": {"role": "model", "parts": [{"text": "theoretical_explanation"}]},
+                        "user_content": {"role": "user", "parts": [{"text": f"Explain the internal implementation of {canonical_skill_name} without running tools"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "explanation_text"}]},
                         "intermediate_data": {"tool_uses": []}
                     }
                 ],
                 "rubrics": [
                     {
                         "rubric_id": f"r_{canonical_dir_name}_neg_003_1",
-                        "rubric_content": {"text_property": f"does not invoke run_skill_script for {canonical_skill_name}"},
+                        "rubric_content": {"text_property": f"does not trigger {canonical_skill_name}"},
                         "type": "FINAL_RESPONSE_QUALITY"
                     }
                 ]
@@ -394,7 +398,6 @@ Example usage pattern for {canonical_skill_name}.
                     "threshold": 1.0,
                     "match_type": "IN_ORDER"
                 },
-                "response_match_score": 0.8,
                 "rubric_based_final_response_quality_v1": {
                     "threshold": 0.8,
                     "rubrics": [

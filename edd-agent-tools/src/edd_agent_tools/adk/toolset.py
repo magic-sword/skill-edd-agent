@@ -101,12 +101,15 @@ class EddSkillToolset(SkillToolset):
         registry_min_tier: int = 0,
         additional_tools: Optional[List[Any]] = None,
         tool_name_prefix: Optional[str] = None,
-        code_executor: Optional[Any] = None
+        code_executor: Optional[Any] = None,
+        enable_registry_search: bool = True,
+        tool_filter: Optional[Any] = None
     ):
         self.state = state or (SkillsState(skills_roots=[Path(skills_root)]) if skills_root else SkillsState())
         self.registry = EddSkillRegistry(state=self.state, min_tier=registry_min_tier)
         self.min_tier = min_tier
         self.system_skills = include_system_skills or {"skill-creator", "skill-evolver"}
+        self.enable_registry_search = enable_registry_search
 
         # ADK 2.0 Progressive Disclosure: Tier基準を満たすローカルスキルを登録
         # （L1 Frontmatterがlist_skillsで開示され、L2/L3はload_skill/run_skill_scriptでオンデマンド開示）
@@ -124,12 +127,17 @@ class EddSkillToolset(SkillToolset):
             except Exception:
                 code_executor = None
 
+        # enable_registry_search が True の場合のみ registry を渡して SearchSkillsTool を公開
+        # （ローカルスキルのみを利用するエージェントでの不要なオーバーサーチや負例での誤検索を完全防止）
+        active_registry = self.registry if enable_registry_search else None
+
         super().__init__(
             skills=registered_skills,
-            registry=self.registry,
+            registry=active_registry,
             code_executor=code_executor,
             additional_tools=additional_tools,
-            tool_name_prefix=tool_name_prefix
+            tool_name_prefix=tool_name_prefix,
+            tool_filter=tool_filter
         )
 
     # EddSkillToolset inherits all official tools (ListSkillsTool, LoadSkillTool,
@@ -211,7 +219,9 @@ def create_adk_skill_toolset(
     registry_min_tier: int = 0,
     additional_tools: Optional[List[Any]] = None,
     tool_name_prefix: Optional[str] = None,
-    code_executor: Optional[Any] = None
+    code_executor: Optional[Any] = None,
+    enable_registry_search: bool = True,
+    tool_filter: Optional[Any] = None
 ) -> EddSkillToolset:
     """
     Google ADK 2.0 純正仕様に完全準拠した EddSkillToolset インスタンスを生成して返します。
@@ -224,6 +234,8 @@ def create_adk_skill_toolset(
         registry_min_tier=registry_min_tier,
         additional_tools=additional_tools,
         tool_name_prefix=tool_name_prefix,
-        code_executor=code_executor
+        code_executor=code_executor,
+        enable_registry_search=enable_registry_search,
+        tool_filter=tool_filter
     )
 

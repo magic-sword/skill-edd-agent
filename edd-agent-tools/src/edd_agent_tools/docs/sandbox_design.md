@@ -75,9 +75,9 @@ obs, info = env_sandbox.reset()
 state = SkillsState()
 skill = state.get_skill("case-converter")
 
-# 評価データセット（tests/*.test.json）を用いた決定論的検証
+# 評価データセット（tests/{skill_name}.test.json: 単一真実源 SSOT）を用いた決定論的検証
 import json
-evalset_path = skill.tests.get_evalset_path("contract")
+evalset_path = skill.tests.get_evalset_path("contract")  # SSOT ファイルを自動探索
 with open(evalset_path, "r", encoding="utf-8") as f:
     cases_data = json.load(f)
 

@@ -62,7 +62,16 @@ class EvalSetGenerator:
         eval_cases = []
         for idx, inp in enumerate(pos_inputs[:3], 1):
             cid = f"{skill_name.replace('-', '_')}_edd_{idx:03d}"
-            args_payload = ["--help"] if idx == 1 else {"input": "sample"}
+            tool_args = {
+                "skill_name": skill_name,
+                "file_path": main_script
+            }
+            if idx == 1:
+                tool_args["args"] = ["--help"]
+            else:
+                tool_args["positional_args"] = ["sample_input"]
+                tool_args["args"] = {"format": "standard"}
+
             eval_cases.append({
                 "eval_id": cid,
                 "conversation": [
@@ -80,11 +89,7 @@ class EvalSetGenerator:
                             "tool_uses": [
                                 {
                                     "name": "run_skill_script",
-                                    "args": {
-                                        "skill_name": skill_name,
-                                        "file_path": main_script,
-                                        "args": args_payload
-                                    }
+                                    "args": tool_args
                                 }
                             ]
                         }
@@ -226,7 +231,8 @@ class EvalSetGenerator:
                                         "args": {
                                             "skill_name": skill_name,
                                             "file_path": main_script,
-                                            "args": {"input": ""}
+                                            "positional_args": [""],
+                                            "args": {}
                                         }
                                     }
                                 ]

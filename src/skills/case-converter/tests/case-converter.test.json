@@ -31,8 +31,10 @@
                 "args": {
                   "skill_name": "case-converter",
                   "file_path": "scripts/case_converter.py",
+                  "positional_args": [
+                    "hello_world_example"
+                  ],
                   "args": {
-                    "input": "hello_world_example",
                     "to": "camel"
                   }
                 }
@@ -92,8 +94,10 @@
                 "args": {
                   "skill_name": "case-converter",
                   "file_path": "scripts/case_converter.py",
+                  "positional_args": [
+                    "UserProfileData"
+                  ],
                   "args": {
-                    "input": "UserProfileData",
                     "to": "kebab"
                   }
                 }
@@ -153,8 +157,10 @@
                 "args": {
                   "skill_name": "case-converter",
                   "file_path": "scripts/case_converter.py",
+                  "positional_args": [
+                    "api_response_status"
+                  ],
                   "args": {
-                    "input": "api_response_status",
                     "to": "constant"
                   }
                 }

@@ -27,6 +27,7 @@ from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner
 from edd_agent_tools.evaluation.environment import LocalWorkspaceEnv
 from edd_agent_tools.evaluation.diagnoser import SkillDiagnoser
 from edd_agent_tools.evaluation.optimizer import SkillOptimizer
+from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
 
 
 def resolve_skill_script(skill_dir: Path, script_name: Optional[str] = None) -> Optional[Path]:
@@ -183,7 +184,6 @@ def cmd_eval(args: argparse.Namespace) -> int:
     """スキルの Google ADK 2.0 公式評価および CLI 契約テストを実行します。"""
     # --cli フラグが指定された場合、公式 adk eval CLI を直接サブプロセス実行
     if getattr(args, "cli", False):
-        from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
         state = SkillsState()
         skill = state.get_skill(args.skill_name)
         if not skill:
@@ -572,7 +572,6 @@ def cmd_profile(args: argparse.Namespace) -> int:
 
 def cmd_adk_eval(args: argparse.Namespace) -> int:
     """Google ADK 2.0 公式評価コマンド（AgentEvaluator / adk eval を直接実行）"""
-    from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
     state = SkillsState()
     skill = state.get_skill(args.skill_name)
     if not skill:

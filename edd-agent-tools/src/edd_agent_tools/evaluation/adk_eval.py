@@ -548,9 +548,16 @@ class AdkEvalAdapter:
         agent_path = Path(agent_module).resolve()
         resolved_agent = agent_path.name if (agent_path.exists() and agent_path.is_dir()) else agent_module
 
+        # config_file_path が未指定の場合、同階層の test_config.json を自動探索して適用
+        resolved_config = config_file_path
+        if not resolved_config:
+            cand_cfg = eval_path.parent / "test_config.json"
+            if cand_cfg.exists():
+                resolved_config = cand_cfg
+
         cmd = ["adk", "eval", resolved_agent, str(eval_path)]
-        if config_file_path:
-            cmd.extend(["--config_file_path", str(Path(config_file_path).resolve())])
+        if resolved_config:
+            cmd.extend(["--config_file_path", str(Path(resolved_config).resolve())])
         if print_detailed_results:
             cmd.append("--print_detailed_results")
 

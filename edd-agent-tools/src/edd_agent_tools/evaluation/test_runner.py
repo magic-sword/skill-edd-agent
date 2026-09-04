@@ -89,9 +89,20 @@ class ContractTestRunner:
                         if t_name == "run_skill_script" and isinstance(t_args, dict):
                             if not script_rel:
                                 script_rel = t_args.get("file_path")
+                            pos_args = t_args.get("positional_args") or []
+                            if isinstance(pos_args, list):
+                                cli_args.extend([str(p) for p in pos_args])
+                            short_opts = t_args.get("short_options") or {}
+                            if isinstance(short_opts, dict):
+                                for sk, sv in short_opts.items():
+                                    s_flag = f"-{sk}" if not sk.startswith("-") else sk
+                                    if sv is True:
+                                        cli_args.append(s_flag)
+                                    elif sv is not False and sv is not None:
+                                        cli_args.extend([s_flag, str(sv)])
                             inner_args = t_args.get("args")
                             if inner_args is None:
-                                inner_args = {k: v for k, v in t_args.items() if k not in ("skill_name", "file_path")}
+                                inner_args = {k: v for k, v in t_args.items() if k not in ("skill_name", "file_path", "positional_args", "short_options")}
                             t_args = inner_args
 
                         if isinstance(t_args, dict):

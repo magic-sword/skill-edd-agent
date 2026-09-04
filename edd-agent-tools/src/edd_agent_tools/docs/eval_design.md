@@ -36,8 +36,8 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
 
 * **`TrajectoryEvaluator` 完全一本化 & 第1級標準**:
   Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` に 100% 一本化（独自フォールバック完全撤廃）。テストケースおよびエージェント実行におけるツール呼び出しは、ADK 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用し、従来のスクリプト直接表記も透過的に正規化。
-* **`ResponseEvaluator` (ROUGE-1) による決定論的回答品質検証の完全一本化**:
-  ADK 公式の `google.adk.evaluation.response_evaluator.ResponseEvaluator` に 100% 一本化（独自トークン集合フォールバック完全撤廃）。参照回答との ROUGE-1 類似度（`response_match_score`、デフォルト閾値 0.8）を客観的かつ高速に検証。
+* **LLM-as-a-Judge (`RubricBasedFinalResponseQualityV1Evaluator`) 主軸化と責務分離**:
+  従来の ROUGE-1 表層文字列一致（`ResponseEvaluator` / `response_match_score`）への過度依存を排し、自然言語表現の柔軟性と回答品質を正当に評価するため、Google ADK 純正の `RubricBasedFinalResponseQualityV1Evaluator`（`rubric_based_final_response_quality_v1`）を最終出力品質評価の主軸として採用。ツールの正確な呼び出し・引数・順序は `tool_trajectory_avg_score`（Trajectory レイヤー）で厳密検証し、ルーブリック評価は会話フィラー排除や意図充足（Response レイヤー）に特化させる責務分離を徹底。
 * **Google ADK 2.0 純正 `BaseCodeExecutor` 委譲 (`SkillPackage.execute_script`)**:
   スクリプト実行時に生 `subprocess.run` を直呼び出しする抽象化バイパスを解消し、ADK 純正の `UnsafeLocalCodeExecutor` や Docker/Cloud 等の `BaseCodeExecutor` 公開 API に実行パイプラインを委譲。
 * **Google ADK 2.0 純正 `AgentEvaluator` 連携**:
@@ -47,7 +47,7 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
 * **Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）標準配備**:
   `adk eval` CLI および `AgentEvaluator` はテストファイルと同一ディレクトリの `test_config.json` を自動探索して評価基準（criteria）を決定します。Progressive Disclosure（`list_skills` ➔ `load_skill` ➔ `run_skill_script`）を採用するエージェント向けに `tool_trajectory_avg_score` に `match_type: "IN_ORDER"` を標準配備し、`rubric_based_final_response_quality_v1` にベースルーブリックと判定モデル（`gemini-2.5-flash`）を設定。
 * **決定論的高速評価とライブ推論の分離**:
-  テストの Flakiness を根絶するため、CI や高速テスト実行時は ADK 純正の決定論的 Evaluator（`TrajectoryEvaluator` + `ResponseEvaluator`）でミリ秒単位で安定実行し、`--live` フラグ指定時のみ Gemini API 経由でリモート推論・LLM-as-a-Judge を実行。
+  テストの Flakiness を根絶するため、CI や高速テスト実行時は決定論的契約テスト（`ContractTestRunner`）および Trajectory Evaluator でミリ秒単位で安定実行し、`--live` フラグ指定時のみ Gemini API 経由でリモート推論・LLM-as-a-Judge を実行。
 
 ---
 
@@ -121,7 +121,8 @@ Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキ
                 "args": {
                   "skill_name": "example-skill",
                   "file_path": "scripts/example_script.py",
-                  "args": {"input": "sample"}
+                  "positional_args": ["sample"],
+                  "args": {}
                 }
               }
             ]

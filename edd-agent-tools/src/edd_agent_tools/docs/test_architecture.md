@@ -53,11 +53,11 @@ flowchart LR
 - テストケースおよびエージェント実行におけるツール呼び出しは、ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用。
 - 3大モード：`EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）。
 
-### ③ Google ADK 2.0 純正 ResponseEvaluator (ROUGE-1) 完全一本化 & LLM-as-a-Judge (`AdkEvalAdapter`)
-- 自前のトークン集合一致フォールバック（車輪の再発明）を完全排除し、ADK 2.0 公式の `ResponseEvaluator`（ROUGE-1 `response_match_score`）に 100% 一本化。
-- ライブ検証時は Google ADK 2.0 の `AgentEvaluator` および `RubricBasedFinalResponseQualityV1Evaluator`（`rubric_based_final_response_quality_v1`）を透過接続。
+### ③ Google ADK 2.0 純正 LLM-as-a-Judge 主軸化 & 責務分離 (`AdkEvalAdapter`)
+- 表現揺らぎに弱い ROUGE-1 表層文字列一致（`response_match_score`）への過度依存を排し、Google ADK 2.0 公式の `AgentEvaluator` および `RubricBasedFinalResponseQualityV1Evaluator`（`rubric_based_final_response_quality_v1`）を最終回答品質評価の主軸として採用。
+- ツール呼び出し・引数（`positional_args` / `args`）・順序の厳密検証は `tool_trajectory_avg_score`（Trajectory レイヤー）に集約し、`rubric` は会話フィラーの排除や意図充足（Response レイヤー）に特化させる責務分離を徹底。
 - 参照回答とモデル回答の位置を反転させて 2 回推論する **Position Swapping** により順序バイアスを中和。
-- 通常テスト・CI は決定論的 Evaluator（`TrajectoryEvaluator` + `ResponseEvaluator`）でミリ秒単位で高速実行し、`--live` オプション時のみ Gemini API リモート推論を実行。
+- 通常テスト・CI は決定論的契約テスト（`ContractTestRunner`）および Trajectory Evaluator でミリ秒単位で高速・安定実行し、ライブ検証時のみ Gemini API リモート推論を実行。
 
 ### ④ Google ADK 2.0 純正 BaseCodeExecutor 委譲 (`SkillPackage.execute_script`)
 - スクリプト実行時の生 `subprocess.run` 直呼び出しによる抽象化バイパスを解消。
