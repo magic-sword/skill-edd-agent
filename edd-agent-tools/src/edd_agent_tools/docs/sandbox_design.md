@@ -61,27 +61,34 @@ edd tier-gate case-converter
 ## 6. 利用コード例
 
 ```python
-from edd_agent_tools.evaluation import LocalWorkspaceEnv, RealWorkspaceEnv
-from edd_agent_tools.core.protocols import WorkspaceEnvProtocol
-from edd_agent_tools.evaluation.environment import WriteFileAction, RunPytestAction
+from edd_agent_tools.evaluation import LocalWorkspaceEnv, ContractTestRunner
+from edd_agent_tools.state import SkillsState
 
-# 1. 依存性注入 (DI) を用いた透過的な操作例
-def refactor_code(env: WorkspaceEnvProtocol, file_path: str):
-    # 環境の種類を意識せず、共通のプロトコルで操作可能
-    env.step(WriteFileAction(path=file_path, content="def improved_logic(): pass"))
-    obs, _, terminated, _, _ = env.step(RunPytestAction())
-    return terminated
-
-# 2. 隔離された一時環境での呼び出し例
-env_sandbox = LocalWorkspaceEnv(workspace_dir="/workspace")
+# 1. 隔離された一時環境（GitSandbox）の構築
+env_sandbox = LocalWorkspaceEnv(
+    workspace_dir="/workspace",
+    target_files=["src/skills/case-converter"]
+)
 obs, info = env_sandbox.reset()
 
-success = refactor_code(env_sandbox, "src/logic.py")
+# 2. サンドボックス内での契約テスト・多層評価の安全な実行
+state = SkillsState()
+skill = state.get_skill("case-converter")
 
-# 差分（成果物）の抽出
-if success:
+# 評価データセット（tests/*.test.json）を用いた決定論的検証
+runner = ContractTestRunner()
+result = runner.run_tests(
+    skill=skill,
+    test_cases_data=skill.tests.load_latest_report() or {},
+    env=env_sandbox
+)
+
+# 3. テスト合格時の変更差分（成果物）の抽出
+if result.failed == 0:
     artifacts = env_sandbox.export_artifacts()
     print("Modified files:", artifacts.modified_files)
+    print("Deleted files:", artifacts.deleted_files)
 
+# 4. サンドボックスの破棄（自動ロールバック・一時ファイル消去）
 env_sandbox.close()
 ```

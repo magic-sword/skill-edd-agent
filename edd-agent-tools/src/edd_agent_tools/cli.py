@@ -373,10 +373,6 @@ def cmd_tier_gate(args: argparse.Namespace) -> int:
         if type_test_cand.exists():
             return type_test_cand
 
-        # 2. レガシー *.evalset.json へのフォールバック
-        legacy_cand = skill_tests_dir / f"{args.skill_name}_{test_type}.evalset.json"
-        if legacy_cand.exists():
-            return legacy_cand
         return None
 
     pass_k = getattr(args, "pass_k", 1)
@@ -781,7 +777,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 13. adk-eval (Direct Google ADK AgentEvaluator runner)
     p_adk_eval = subparsers.add_parser("adk-eval", help="Directly run Google ADK AgentEvaluator / adk eval on a skill")
     p_adk_eval.add_argument("skill_name", help="Target skill name")
-    p_adk_eval.add_argument("--evalset", "-e", help="Path to custom evalset JSON")
+    p_adk_eval.add_argument("--evalset", "-e", help="Path to custom test set JSON (*.test.json)")
     p_adk_eval.add_argument("--agent-module", "-m", default="src", help="Agent module path containing root_agent (default: src)")
     p_adk_eval.add_argument("--config", "-c", help="Path to custom test_config.json / EvalConfig")
     p_adk_eval.add_argument("--cli", action="store_true", help="Directly invoke the official `adk eval` CLI subprocess")

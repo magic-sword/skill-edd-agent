@@ -167,18 +167,52 @@ def test_cli_contract_runner(tmp_workspace):
         eval_set_id="cli_test_set",
         eval_cases=[
             EvalCase(
-                eval_case_id="cli_normal",
-                script_name="scripts/cli_contract_skill.py",
-                cli_args=["--input", "hello_world"],
-                expected_exit_code=0,
-                expected_stdout_contains=["Executing cli-contract-skill", "hello_world"]
+                eval_id="cli_normal",
+                conversation=[
+                    {
+                        "user_content": {"role": "user", "parts": [{"text": "Run cli-contract-skill with input hello_world"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "Executing cli-contract-skill with input: hello_world"}]},
+                        "intermediate_data": {
+                            "tool_uses": [
+                                {
+                                    "name": "run_skill_script",
+                                    "args": {
+                                        "skill_name": "cli-contract-skill",
+                                        "file_path": "scripts/cli_contract_skill.py",
+                                        "args": {"input": "hello_world"}
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                rubrics=[
+                    {"rubric_id": "r1", "rubric_content": {"text_property": "executes successfully"}}
+                ]
             ),
             EvalCase(
-                eval_case_id="cli_help",
-                script_name="scripts/cli_contract_skill.py",
-                cli_args=["--help"],
-                expected_exit_code=0,
-                expected_stdout_contains=["--input"]
+                eval_id="cli_help",
+                conversation=[
+                    {
+                        "user_content": {"role": "user", "parts": [{"text": "Show help for cli-contract-skill"}]},
+                        "final_response": {"role": "model", "parts": [{"text": "--input"}]},
+                        "intermediate_data": {
+                            "tool_uses": [
+                                {
+                                    "name": "run_skill_script",
+                                    "args": {
+                                        "skill_name": "cli-contract-skill",
+                                        "file_path": "scripts/cli_contract_skill.py",
+                                        "args": ["--help"]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                rubrics=[
+                    {"rubric_id": "r2", "rubric_content": {"text_property": "shows CLI usage"}}
+                ]
             )
         ]
     )

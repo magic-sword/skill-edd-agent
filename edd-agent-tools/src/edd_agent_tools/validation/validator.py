@@ -163,8 +163,8 @@ class SkillValidator:
             )
             return
 
-        # Google ADK 2.0 公式 *.test.json を探索（旧形式への互換探索含む）
-        raw_evalsets = list(tests_dir.glob("*.test.json")) + list(tests_dir.glob("*.evalset.json"))
+        # Google ADK 2.0 公式 *.test.json の探索
+        raw_evalsets = list(tests_dir.glob("*.test.json"))
         seen_paths = set()
         evalsets = []
         for es in raw_evalsets:

@@ -43,7 +43,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 
 ### A. 不変プラットフォーム層（pip ライブラリ: `edd-agent-tools`）の責務
 全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム（汎用ランタイム＆テストハーネス）」に徹してください：
-- **共通ドメインエンティティ (`core`)**: `SkillPackage`（旧 `Skill` と完全互換、`load_resource`, `execute_script` 自己完結実行カプセル化）, `SkillTests`
+- **共通ドメインエンティティ (`core`)**: `SkillPackage`（`load_resource`, `execute_script` 自己完結実行カプセル化、エイリアス `Skill` 完備）, `SkillTests`
 - **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析, `entry_points` 探索）
 - **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、白書命名規則、MCP再発明検知）
 - **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（ADK公式 EvalSet および test_config.json インバージョン自動生成）
@@ -118,7 +118,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 ## 4. 型仕様とドメインモデルの厳密遵守
 スキル操作・構文解析・テスト実行を行う新規機能やスクリプトを開発する際は、必ずパッケージ内に定義されたドメインモデルおよび評価ランナーに適合させてください。
 
-* **スキル管理モデル**: `edd_agent_tools.SkillPackage` (旧 `Skill`), `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
+* **スキル管理モデル**: `edd_agent_tools.SkillPackage` (エイリアス `Skill`), `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
 * **品質保証・パッケージング**: `edd_agent_tools.SkillValidator`, `edd_agent_tools.SkillScaffolder`, `edd_agent_tools.SkillPackager`
 * **評価実行基盤**: `edd_agent_tools.ContractTestRunner`, `edd_agent_tools.SimulationEvalRunner`, `edd_agent_tools.CascadeTestRunner`, `edd_agent_tools.SkillDiagnoser`, `edd_agent_tools.SkillOptimizer`
 * **Google ADK 統合**: `edd_agent_tools.adk.create_adk_skill_toolset`, `edd_agent_tools.adk.EddSkillToolset`, `edd_agent_tools.adk.EddSkillRegistry`

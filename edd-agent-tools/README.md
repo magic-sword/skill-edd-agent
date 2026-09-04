@@ -29,8 +29,9 @@ EDD（評価駆動開発）による自律型 AI エージェントおよび Ant
 *   **[prompt_syntax.md](src/edd_agent_tools/docs/prompt_syntax.md)**: Imperative文体規約とFrontmatter仕様。
 *   **[skill_patterns.md](src/edd_agent_tools/docs/skill_patterns.md)**: 4大スキルパターンの設計ガイド。
 *   **[design_philosophy.md](src/edd_agent_tools/docs/design_philosophy.md)**: 全体設計思想・フォルダ構成規約。
-*   **[test_architecture.md](src/edd_agent_tools/docs/test_architecture.md)**: テストの Generator-Executor ペアリングパターンの標準 Protocol 仕様。
+*   **[test_architecture.md](src/edd_agent_tools/docs/test_architecture.md)**: Google ADK 2.0 公式 EvalSet SSOT および次世代多層テスト評価アーキテクチャ仕様。
 *   **[eval_design.md](src/edd_agent_tools/docs/eval_design.md)**: 仮想環境サンドボックスとシミュレーション評価の設計思想。
+*   **[sandbox_design.md](src/edd_agent_tools/docs/sandbox_design.md)**: 決定論的サンドボックス仮想環境、Git高速ロールバック、および成果物差分抽出の設計仕様。
 
 ---
 
