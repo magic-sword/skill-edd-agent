@@ -117,8 +117,7 @@ class TraceHarvester:
                 "name": f"{suggested_skill_name}_edd",
                 "description": f"Harvested Google ADK 2.0 EvalSet for {suggested_skill_name}",
                 "skill_name": suggested_skill_name,
-                "eval_cases": eval_cases,
-                "cases": eval_cases
+                "eval_cases": eval_cases
             }
             with open(edd_file, "w", encoding="utf-8") as f:
                 json.dump(eval_case_data, f, ensure_ascii=False, indent=2)

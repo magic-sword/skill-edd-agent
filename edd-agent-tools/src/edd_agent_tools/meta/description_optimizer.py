@@ -41,7 +41,7 @@ class DescriptionOptimizer:
         Returns:
             Dict[str, Any]: 最適化結果とイテレーション履歴。
         """
-        cases = trigger_dataset.get("cases") or trigger_dataset.get("eval_cases") or []
+        cases = trigger_dataset.get("eval_cases") or trigger_dataset.get("cases") or []
         if not cases:
             return {"status": "skipped", "message": "No trigger cases provided."}
 
@@ -63,9 +63,26 @@ class DescriptionOptimizer:
         best_desc = current_desc
         best_acc = initial_res.accuracy
 
+        def _get_input(c: Dict[str, Any]) -> str:
+            u_input = c.get("user_input") or c.get("input") or ""
+            if not u_input and "conversation" in c:
+                conv = c.get("conversation", [])
+                if conv and isinstance(conv, list):
+                    first_turn = conv[0]
+                    parts = first_turn.get("user_content", {}).get("parts", [])
+                    if parts and isinstance(parts, list):
+                        u_input = parts[0].get("text", "")
+            return u_input
+
+        def _is_positive(c: Dict[str, Any]) -> bool:
+            if "should_trigger" in c:
+                return bool(c.get("should_trigger"))
+            exp_skill = c.get("expected_skill")
+            return bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
+
         # 失敗したケースの分析
-        pos_triggers = [c.get("user_input", "") for c in cases if c.get("should_trigger", True)]
-        neg_triggers = [c.get("user_input", "") for c in cases if not c.get("should_trigger", True)]
+        pos_triggers = [_get_input(c) for c in cases if _is_positive(c)]
+        neg_triggers = [_get_input(c) for c in cases if not _is_positive(c)]
 
         # キーワードの抽出とチューニング
         for iteration in range(1, self.max_iterations + 1):

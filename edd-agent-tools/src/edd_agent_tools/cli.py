@@ -217,6 +217,42 @@ def cmd_eval(args: argparse.Namespace) -> int:
             with open(cand, "r", encoding="utf-8") as f:
                 cases_data = json.load(f)
 
+            if getattr(args, "adk", False):
+                from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
+                adapter = AdkEvalAdapter(live=getattr(args, "live", False))
+                agent_mod = getattr(args, "agent_module", None) or "src"
+                cfg_path = getattr(args, "config", None)
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_closed():
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+
+                print(f"🚀 Running Google ADK 2.0 Native AgentEvaluator for '{args.skill_name}' on {cand}...")
+                loop.run_until_complete(
+                    adapter.evaluate_with_adk_agent(
+                        agent_module=agent_mod,
+                        eval_dataset_file_path_or_dir=cand,
+                        config_file_path=cfg_path,
+                        num_runs=getattr(args, "num_runs", 1),
+                        print_detailed_results=True
+                    )
+                )
+                print(f"✅ Google ADK 2.0 Native AgentEvaluator PASSED for '{args.skill_name}'.")
+                report["results"]["adk_eval"] = {
+                    "passed": 1,
+                    "failed": 0,
+                    "total": 1,
+                    "accuracy": 1.0,
+                    "status": "PASSED"
+                }
+                report["summary"]["total_passed"] += 1
+                break
+
             if t == "contract":
                 c_runner = ContractTestRunner()
                 res = c_runner.run_tests(skill=skill, test_cases_data=cases_data, env=env, pass_k=getattr(args, "pass_k", 1))
@@ -448,11 +484,19 @@ def cmd_tune_desc(args: argparse.Namespace) -> int:
     with open(trigger_file, "r", encoding="utf-8") as f:
         loaded_data = json.load(f)
 
-    # 白書 Snippet 3 形式からの動的変換
-    if "cases" in loaded_data and "eval_set_id" in loaded_data:
+    # Google ADK 2.0 公式 EvalSet または白書 Snippet 3 形式からの動的変換
+    raw_cases = loaded_data.get("eval_cases") or loaded_data.get("cases")
+    if raw_cases is not None and "eval_set_id" in loaded_data:
         trigger_cases = []
-        for c in loaded_data["cases"]:
-            u_input = c.get("input") or c.get("user_input", "")
+        for c in raw_cases:
+            u_input = c.get("user_input") or c.get("input") or ""
+            if not u_input and "conversation" in c:
+                conv = c.get("conversation", [])
+                if conv and isinstance(conv, list):
+                    first_turn = conv[0]
+                    parts = first_turn.get("user_content", {}).get("parts", [])
+                    if parts and isinstance(parts, list):
+                        u_input = parts[0].get("text", "")
             exp_skill = c.get("expected_skill")
             should_trigger = bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
             trigger_cases.append({
@@ -461,7 +505,7 @@ def cmd_tune_desc(args: argparse.Namespace) -> int:
             })
         trigger_data = {
             "eval_set_id": f"{skill.name}_trigger_from_edd",
-            "cases": trigger_cases
+            "eval_cases": trigger_cases
         }
     else:
         trigger_data = loaded_data
@@ -678,6 +722,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_eval.add_argument("--trajectory-mode", choices=["exact", "in_order", "any_order"], default="any_order", help="ADK Trajectory matching mode (default: any_order)")
     p_eval.add_argument("--co-loaded", action="store_true", help="Run co-loaded multi-skill coexistence benchmark")
     p_eval.add_argument("--report", "-r", help="Custom output report path")
+    p_eval.add_argument("--adk", action="store_true", help="Directly run Google ADK 2.0 Native AgentEvaluator")
+    p_eval.add_argument("--agent-module", "-m", default="src", help="Path to Python agent module (default: src)")
+    p_eval.add_argument("--config", help="Path to custom test_config.json")
 
     # 6. tier-gate
     p_tier = subparsers.add_parser("tier-gate", help="Run multi-layer test gates for Tier promotion (Tier 1~3)")

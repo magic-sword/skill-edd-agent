@@ -51,7 +51,7 @@ class SimulationEvalRunner:
         Returns:
             EvalRunResult: 合格数、失敗数、精度を含む実行結果。
         """
-        cases = eval_set_data.get("cases") or eval_set_data.get("eval_cases") or []
+        cases = eval_set_data.get("eval_cases") or eval_set_data.get("cases") or []
         eval_set_id = eval_set_data.get("eval_set_id", "")
 
         if not cases:

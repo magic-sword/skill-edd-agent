@@ -181,7 +181,26 @@ Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキ
 
 ---
 
-## 7. 多層評価パターンとアサーション設計一覧
+## 8. Google ADK 2.0 純正 AgentEvaluator による総合評価 (`edd eval --adk`)
+
+Google ADK 2.0 の最高峰評価パイプラインである `AgentEvaluator.evaluate()` と直結し、公式 `test_config.json` に基づく決定論的・推論的評価を一元実行します：
+
+* **設定自動探索**:
+  `tests/` 直下の `test_config.json`（`EvalConfig`）を自動探索・適用。Progressive Disclosure（`list_skills` ➔ `load_skill` ➔ `run_skill_script`）に適合した `IN_ORDER` 軌跡マッチングや `rubric_based_final_response_quality_v1` を標準評価。
+* **CLI 直結 (`edd eval --adk`)**:
+  ```bash
+  # Google ADK 2.0 純正 AgentEvaluator による公式評価
+  edd eval case-converter --adk
+
+  # 独自エージェントモジュールおよびカスタム設定の指定
+  edd eval case-converter --adk --agent-module my_project.agent:agent --config tests/custom_config.json
+  ```
+* **公式 `google.adk.skills.list_skills_in_dir` 統合**:
+  スキル探索においても車輪の再発明を排除し、公式の `list_skills_in_dir` API（`load_adk_skills_from_dir`）を活用して Frontmatter の正当性検査（ディレクトリ名と Frontmatter 名の完全一致等）を自動執行。
+
+---
+
+## 9. 多層評価パターンとアサーション設計一覧
 
 | 評価パターン | 主な検証目的 | 判定ポリシー（合否の基準） |
 | :--- | :--- | :--- |
@@ -190,4 +209,5 @@ Google ADK 2.0 および白書 Section 4 に完全準拠し、すべてのスキ
 | **推論軌跡 (Trajectory)** | 期待されるツール呼び出し順序の正しさ。 | `EXACT` / `IN_ORDER` / `ANY_ORDER` に従ったシーケンス判定。 |
 | **ルーブリック採点 (Judge)** | 回答の質・安全性・網羅度。 | ADK 純正 `AgentEvaluator` または決定論的フォールバックによる Position Swapping 採点。 |
 | **共存テスト (Co-loaded)** | 複数スキル共存下でのコンテキスト破綻（Context Rot）防止。 | 5〜15 スキル同時展開下でのトリガー精度 80% 以上を保証。 |
+
 

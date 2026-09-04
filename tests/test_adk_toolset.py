@@ -209,4 +209,21 @@ def test_adk_criteria_type_safety():
     assert isinstance(config2.criteria["rubric_based_final_response_quality_v1"], RubricsBasedCriterion)
 
 
+def test_load_adk_skills_from_dir():
+    """load_adk_skills_from_dir が ADK 2.0 純正の list_skills_in_dir を通じてスキルを正常ロードすることをテストします。"""
+    from edd_agent_tools.adk.toolset import load_adk_skills_from_dir
+    skills = load_adk_skills_from_dir(skills_base_dir="src/skills")
+    assert len(skills) >= 2
+    skill_names = {s.name for s in skills}
+    assert "case-converter" in skill_names
+    assert "secret-sanitizer" in skill_names
+
+    # 個別スキルの型と構造を検証
+    case_conv = next(s for s in skills if s.name == "case-converter")
+    assert isinstance(case_conv, Skill)
+    assert case_conv.frontmatter.name == "case-converter"
+    assert "case_converter.py" in case_conv.resources.scripts
+
+
+
 

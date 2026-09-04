@@ -154,7 +154,7 @@ def convert_edd_to_adk_eval_set(edd_evalset: Dict[str, Any]) -> Any:
     """評価データセット辞書を Google ADK 2.0 純正 EvalSet モデルに変換・正規化します。"""
     eval_set_id = edd_evalset.get("eval_set_id", "edd_eval_set")
     skill_name = edd_evalset.get("skill_name")
-    cases = edd_evalset.get("cases") or edd_evalset.get("eval_cases") or []
+    cases = edd_evalset.get("eval_cases") or edd_evalset.get("cases") or []
     
     adk_cases = [convert_edd_to_adk_eval_case(c, skill_name=skill_name) for c in cases]
     

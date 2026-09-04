@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Union, Set
 
 from google.adk.skills.models import Skill, Frontmatter, Resources, Script
-from google.adk.skills import load_skill_from_dir
+from google.adk.skills import load_skill_from_dir, list_skills_in_dir
 from google.adk.skills.skill_registry import SkillRegistry
 from google.adk.tools.skill_toolset import SkillToolset
 
@@ -136,6 +136,39 @@ class EddSkillToolset(SkillToolset):
     # LoadSkillResourceTool, RunSkillScriptTool, SearchSkillsTool) directly from ADK 2.0 SkillToolset.
 
 
+
+
+def load_adk_skills_from_dir(
+    skills_base_dir: Union[str, Path],
+    include_skills: Optional[Set[str]] = None,
+    exclude_skills: Optional[Set[str]] = None
+) -> List[Skill]:
+    """
+    Google ADK 2.0 純正の list_skills_in_dir および load_skill_from_dir を直接用い、
+    指定されたディレクトリ配下の全スキルを公式規格に準拠してロードします。
+    """
+    base_path = Path(skills_base_dir).resolve()
+    if not base_path.exists() or not base_path.is_dir():
+        return []
+
+    # ADK 2.0 純正のディレクトリ走査と Frontmatter バリデーション
+    discovered = list_skills_in_dir(base_path)
+    loaded: List[Skill] = []
+    
+    for skill_id in sorted(discovered.keys()):
+        if include_skills and skill_id not in include_skills:
+            continue
+        if exclude_skills and skill_id in exclude_skills:
+            continue
+            
+        skill_dir = base_path / skill_id
+        try:
+            skill_obj = load_skill_from_dir(skill_dir)
+            loaded.append(skill_obj)
+        except Exception as e:
+            print(f"Warning: Failed to load ADK skill '{skill_id}': {e}", file=sys.stderr)
+
+    return loaded
 
 
 def load_adk_skills_from_state(

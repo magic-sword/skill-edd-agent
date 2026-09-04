@@ -152,8 +152,7 @@ class EvalSetGenerator:
             "name": f"{skill_name}_edd_eval",
             "description": f"Official Google ADK 2.0 EvalSet for {skill_name}",
             "skill_name": skill_name,
-            "eval_cases": eval_cases,
-            "cases": eval_cases
+            "eval_cases": eval_cases
         }
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as f:
@@ -171,41 +170,45 @@ class EvalSetGenerator:
             when_not_to_use = getattr(skill.spec, "when_not_to_use", None) or []
 
         cases = []
-        if trigger_examples:
-            for idx, ex in enumerate(trigger_examples, 1):
-                cases.append({
-                    "name": f"positive_case_{idx}",
-                    "user_input": ex,
-                    "expected_tools": [skill_name],
-                    "should_trigger": True
-                })
-        else:
+        for i, ex in enumerate(trigger_examples[:3], 1):
             cases.append({
-                "name": "positive_case_1",
-                "user_input": f"Please execute {skill_name} workflow",
-                "expected_tools": [skill_name],
+                "eval_id": f"trigger_pos_{i}",
+                "eval_case_id": f"trigger_pos_{i}",
+                "name": f"trigger_positive_{i}",
+                "user_input": ex,
+                "expected_skill": skill_name,
                 "should_trigger": True
             })
 
-        if when_not_to_use:
-            for idx, non_ex in enumerate(when_not_to_use[:3], 1):
-                cases.append({
-                    "name": f"negative_case_{idx}",
-                    "user_input": non_ex,
-                    "expected_tools": [],
-                    "should_trigger": False
-                })
-        else:
+        for i, non_ex in enumerate(when_not_to_use[:3], 1):
             cases.append({
+                "eval_id": f"trigger_neg_{i}",
+                "eval_case_id": f"trigger_neg_{i}",
+                "name": f"trigger_negative_{i}",
+                "user_input": non_ex,
+                "expected_skill": None,
+                "should_trigger": False
+            })
+
+        if not cases:
+            cases.append({
+                "eval_id": "trigger_pos_1",
+                "name": "positive_case_1",
+                "user_input": f"Execute {skill_name} workflow",
+                "expected_skill": skill_name,
+                "should_trigger": True
+            })
+            cases.append({
+                "eval_id": "trigger_neg_1",
                 "name": "negative_case_1",
                 "user_input": "Show me general system help",
-                "expected_tools": [],
+                "expected_skill": None,
                 "should_trigger": False
             })
 
         data = {
             "eval_set_id": f"{skill_name}_trigger_eval",
-            "cases": cases
+            "eval_cases": cases
         }
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as f:
@@ -238,8 +241,9 @@ class EvalSetGenerator:
         """ゴールデンアウトプットを検証するテストケース雛形を生成する。"""
         data = {
             "eval_set_id": f"{skill_name}_golden_eval",
-            "cases": [
+            "eval_cases": [
                 {
+                    "eval_id": "golden_001",
                     "name": "golden_standard_execution",
                     "input_scenario": f"Run standard workflow for {skill_name}",
                     "expected_outputs": {
@@ -257,16 +261,16 @@ class EvalSetGenerator:
         """LLMルーブリックジャッジ用の評価基準雛形を生成する。"""
         data = {
             "eval_set_id": f"{skill_name}_judge_eval",
-            "cases": [
+            "eval_cases": [
                 {
+                    "eval_id": "judge_001",
                     "name": "judge_quality_rubric",
                     "input_prompt": f"Execute {skill_name} task",
                     "rubrics": [
-                        {"criterion": "正確性 (Accuracy)", "weight": 0.4, "description": "仕様通りの出力が行われているか"},
-                        {"criterion": "完全性 (Completeness)", "weight": 0.3, "description": "必要な要素が欠落していないか"},
-                        {"criterion": "簡潔性 (Conciseness)", "weight": 0.3, "description": "不要な冗長性がないか"}
-                    ],
-                    "pass_threshold": 0.85
+                        {"rubric_id": "r1", "rubric_content": {"text_property": "仕様通りの出力が行われているか"}},
+                        {"rubric_id": "r2", "rubric_content": {"text_property": "必要な要素が欠落していないか"}},
+                        {"rubric_id": "r3", "rubric_content": {"text_property": "不要な冗長性がないか"}}
+                    ]
                 }
             ]
         }
@@ -282,19 +286,28 @@ class EvalSetGenerator:
 
         data = {
             "eval_set_id": f"{skill_name}_trajectory_eval",
-            "cases": [
+            "eval_cases": [
                 {
-                    "invocation_id": "inv_001",
-                    "user_content": {"text": f"Please execute {skill_name}"},
-                    "final_response": {"text": f"Successfully completed {skill_name}."},
-                    "intermediate_data": {
-                        "tool_uses": [
-                            {
-                                "name": main_script,
-                                "args": {"input": "sample"}
+                    "eval_id": "traj_001",
+                    "conversation": [
+                        {
+                            "invocation_id": "inv_001",
+                            "user_content": {"parts": [{"text": f"Please execute {skill_name}"}]},
+                            "final_response": {"parts": [{"text": f"Successfully completed {skill_name}."}]},
+                            "intermediate_data": {
+                                "tool_uses": [
+                                    {
+                                        "name": "run_skill_script",
+                                        "args": {
+                                            "skill_name": skill_name,
+                                            "file_path": f"scripts/{main_script}",
+                                            "args": {"input": "sample"}
+                                        }
+                                    }
+                                ]
                             }
-                        ]
-                    }
+                        }
+                    ]
                 }
             ]
         }
@@ -304,19 +317,84 @@ class EvalSetGenerator:
         return True
 
     def generate_adversarial_tests(self, skill_name: str, output_path: str) -> bool:
-        """敵対的・境界値テストケース雛形を生成する。"""
+        """敵対的・境界値テストケース雛形を生成する（Google ADK 2.0 公式 EvalSet 準拠）。"""
         data = {
             "eval_set_id": f"{skill_name}_adversarial_eval",
-            "cases": [
+            "name": f"{skill_name}_adversarial_eval",
+            "description": f"Adversarial and boundary test cases for {skill_name}",
+            "skill_name": skill_name,
+            "eval_cases": [
                 {
-                    "name": "adv_empty_input",
-                    "input_data": "",
-                    "expected_behavior": "graceful_error_handling"
+                    "eval_id": f"{skill_name}_adv_empty_input",
+                    "expected_skill": skill_name,
+                    "conversation": [
+                        {
+                            "invocation_id": f"inv_{skill_name}_adv_01",
+                            "user_content": {
+                                "role": "user",
+                                "parts": [{"text": f"Run {skill_name} with empty input"}]
+                            },
+                            "final_response": {
+                                "role": "model",
+                                "parts": [{"text": "Error: Input cannot be empty."}]
+                            },
+                            "intermediate_data": {
+                                "tool_uses": [
+                                    {
+                                        "name": "run_skill_script",
+                                        "args": {
+                                            "skill_name": skill_name,
+                                            "file_path": f"scripts/{skill_name.replace('-', '_')}.py",
+                                            "args": {"input": ""}
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "rubrics": [
+                        {
+                            "rubric_id": f"r_{skill_name}_adv_01_1",
+                            "rubric_content": {"text_property": "handles empty input gracefully without unhandled exception"},
+                            "type": "FINAL_RESPONSE_QUALITY"
+                        }
+                    ]
                 },
                 {
-                    "name": "adv_invalid_type",
-                    "input_data": 999999,
-                    "expected_behavior": "graceful_error_handling"
+                    "eval_id": f"{skill_name}_adv_invalid_flag",
+                    "expected_skill": skill_name,
+                    "conversation": [
+                        {
+                            "invocation_id": f"inv_{skill_name}_adv_02",
+                            "user_content": {
+                                "role": "user",
+                                "parts": [{"text": f"Run {skill_name} with invalid parameters"}]
+                            },
+                            "final_response": {
+                                "role": "model",
+                                "parts": [{"text": "Error: Invalid argument provided."}]
+                            },
+                            "intermediate_data": {
+                                "tool_uses": [
+                                    {
+                                        "name": "run_skill_script",
+                                        "args": {
+                                            "skill_name": skill_name,
+                                            "file_path": f"scripts/{skill_name.replace('-', '_')}.py",
+                                            "args": {"invalid_arg": "invalid_value"}
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "rubrics": [
+                        {
+                            "rubric_id": f"r_{skill_name}_adv_02_1",
+                            "rubric_content": {"text_property": "reports helpful error message for invalid arguments"},
+                            "type": "FINAL_RESPONSE_QUALITY"
+                        }
+                    ]
                 }
             ]
         }
