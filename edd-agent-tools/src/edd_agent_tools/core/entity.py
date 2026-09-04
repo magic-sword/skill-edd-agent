@@ -273,6 +273,53 @@ class SkillPackage:
             raise FileNotFoundError(f"Resource '{resource_rel_path}' not found in skill '{self.name}'.")
         return target_path.read_text(encoding="utf-8")
 
+    def _build_script_runner_code(
+        self,
+        script_path: str,
+        args: Optional[Union[List[str], Dict[str, Any]]] = None,
+        short_options: Optional[Dict[str, Any]] = None,
+        positional_args: Optional[List[str]] = None
+    ) -> str:
+        """BaseCodeExecutor (UnsafeLocalCodeExecutor 等) 向けの決定論的スクリプト実行コードを生成します。"""
+        argv_list = [script_path]
+        if isinstance(args, list):
+            argv_list.extend(str(v) for v in args)
+        elif isinstance(args, dict):
+            for k, v in args.items():
+                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+                if v is True:
+                    argv_list.append(flag)
+                elif v is not False and v is not None:
+                    argv_list.extend([flag, str(v)])
+
+        if short_options:
+            for k, v in short_options.items():
+                flag = f"-{k}" if not k.startswith("-") else k
+                if v is True:
+                    argv_list.append(flag)
+                elif v is not False and v is not None:
+                    argv_list.extend([flag, str(v)])
+
+        if positional_args:
+            argv_list.append("--")
+            argv_list.extend(str(v) for v in positional_args)
+
+        code_lines = [
+            "import os",
+            "import sys",
+            "import runpy",
+            f"sys.argv = {argv_list!r}",
+            f"sys.path.insert(0, os.path.dirname(os.path.abspath({script_path!r})))",
+            f"os.environ['EDD_SKILL_NAME'] = {self.name!r}",
+            f"os.environ['EDD_SKILL_ROOT'] = {self.root_dir!r}",
+            "try:",
+            f"    runpy.run_path({script_path!r}, run_name='__main__')",
+            "except SystemExit as _e:",
+            "    if _e.code not in (0, None):",
+            "        raise _e",
+        ]
+        return "\n".join(code_lines)
+
     def execute_script(
         self,
         script_name: Optional[str] = None,
@@ -310,27 +357,25 @@ class SkillPackage:
         if code_executor is not None and hasattr(code_executor, "execute_code"):
             try:
                 from google.adk.code_executors.code_execution_utils import CodeExecutionInput
-                from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
-                adk_skill = self.adk_skill
-                script_helper = _SkillScriptCodeExecutor(base_executor=code_executor, script_timeout=timeout)
-                wrapper_code = script_helper._build_wrapper_code(
-                    skill=adk_skill,
-                    file_path=rel_path,
-                    script_args=args,
+                # ADK 公式 BaseCodeExecutor 公開 API（UnsafeLocalCodeExecutor 等）に基づき、
+                # execute_code 経由で決定論的スクリプト実行コードを実行
+                wrapper_code = self._build_script_runner_code(
+                    script_path=target_script,
+                    args=args,
                     short_options=short_options,
                     positional_args=positional_args
                 )
-                if wrapper_code is not None:
-                    exec_res = code_executor.execute_code(None, CodeExecutionInput(code=wrapper_code))
-                    status = "success" if not exec_res.stderr else "failed"
-                    return {
-                        "status": status,
-                        "exit_code": 0 if status == "success" else 1,
-                        "stdout": exec_res.stdout or "",
-                        "stderr": exec_res.stderr or "",
-                        "script_path": target_script,
-                        "executor": type(code_executor).__name__
-                    }
+                exec_res = code_executor.execute_code(None, CodeExecutionInput(code=wrapper_code))
+                has_error = bool(exec_res.stderr and "traceback" in exec_res.stderr.lower())
+                status = "failed" if has_error else "success"
+                return {
+                    "status": status,
+                    "exit_code": 1 if has_error else 0,
+                    "stdout": exec_res.stdout or "",
+                    "stderr": exec_res.stderr or "",
+                    "script_path": target_script,
+                    "executor": type(code_executor).__name__
+                }
             except Exception:
                 pass
 

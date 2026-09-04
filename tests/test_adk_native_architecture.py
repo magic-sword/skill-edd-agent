@@ -54,10 +54,38 @@ def test_description_optimizer_tuning(tmp_path):
     skill = Skill(root_dir=skill_dir)
     trigger_data = {
         "eval_set_id": "sample_trigger",
-        "cases": [
-            {"user_input": "Please format text with sample-skill", "should_trigger": True},
-            {"user_input": "Run sample-skill operations", "should_trigger": True},
-            {"user_input": "Ignore this unrelated task", "should_trigger": False}
+        "eval_cases": [
+            {
+                "eval_id": "c1",
+                "conversation": [
+                    {
+                        "user_content": {"parts": [{"text": "Please format text with sample-skill"}]},
+                        "intermediate_data": {
+                            "tool_uses": [{"name": "run_skill_script", "args": {"skill_name": "sample-skill"}}]
+                        }
+                    }
+                ]
+            },
+            {
+                "eval_id": "c2",
+                "conversation": [
+                    {
+                        "user_content": {"parts": [{"text": "Run sample-skill operations"}]},
+                        "intermediate_data": {
+                            "tool_uses": [{"name": "run_skill_script", "args": {"skill_name": "sample-skill"}}]
+                        }
+                    }
+                ]
+            },
+            {
+                "eval_id": "c3",
+                "conversation": [
+                    {
+                        "user_content": {"parts": [{"text": "Ignore this unrelated task"}]},
+                        "intermediate_data": {"tool_uses": []}
+                    }
+                ]
+            }
         ]
     }
 

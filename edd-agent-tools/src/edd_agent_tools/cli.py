@@ -180,6 +180,10 @@ def cmd_package(args: argparse.Namespace) -> int:
 
 def cmd_eval(args: argparse.Namespace) -> int:
     """スキルの契約テストおよびシミュレーション評価を実行します。"""
+    # --cli フラグが指定された場合、直接 Google ADK 2.0 公式 adk eval CLI を実行
+    if getattr(args, "cli", False):
+        return cmd_adk_eval(args)
+
     state = SkillsState()
     skill = state.get_skill(args.skill_name)
     if not skill:
@@ -513,38 +517,7 @@ def cmd_tune_desc(args: argparse.Namespace) -> int:
     with open(trigger_file, "r", encoding="utf-8") as f:
         loaded_data = json.load(f)
 
-    # Google ADK 2.0 公式 EvalSet または白書 Snippet 3 形式からの動的変換
-    raw_cases = loaded_data.get("eval_cases") or loaded_data.get("cases")
-    if raw_cases is not None and "eval_set_id" in loaded_data:
-        trigger_cases = []
-        for c in raw_cases:
-            u_input = c.get("user_input") or c.get("input") or ""
-            if not u_input and "conversation" in c:
-                conv = c.get("conversation", [])
-                if conv and isinstance(conv, list):
-                    first_turn = conv[0]
-                    parts = first_turn.get("user_content", {}).get("parts", [])
-                    if parts and isinstance(parts, list):
-                        u_input = parts[0].get("text", "")
-            from edd_agent_tools.models.eval import EvalCase
-            try:
-                ec = EvalCase.model_validate(c)
-                should_trigger = not ec.is_negative
-                if ec.input:
-                    u_input = ec.input
-            except Exception:
-                exp_skill = c.get("expected_skill")
-                should_trigger = bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
-            trigger_cases.append({
-                "user_input": u_input,
-                "should_trigger": should_trigger
-            })
-        trigger_data = {
-            "eval_set_id": f"{skill.name}_trigger_from_edd",
-            "eval_cases": trigger_cases
-        }
-    else:
-        trigger_data = loaded_data
+    trigger_data = loaded_data
 
 
     optimizer = DescriptionOptimizer(target_accuracy=args.target_accuracy)
@@ -759,6 +732,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_eval.add_argument("--co-loaded", action="store_true", help="Run co-loaded multi-skill coexistence benchmark")
     p_eval.add_argument("--report", "-r", help="Custom output report path")
     p_eval.add_argument("--adk", action="store_true", help="Directly run Google ADK 2.0 Native AgentEvaluator")
+    p_eval.add_argument("--cli", action="store_true", help="Directly invoke the official `adk eval` CLI subprocess")
+    p_eval.add_argument("--evalset", "-e", help="Path to custom evalset JSON")
     p_eval.add_argument("--agent-module", "-m", default="src", help="Path to Python agent module (default: src)")
     p_eval.add_argument("--config", help="Path to custom test_config.json")
 

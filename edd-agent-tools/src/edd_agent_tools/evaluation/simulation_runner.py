@@ -60,17 +60,27 @@ class SimulationEvalRunner:
         # Google ADK 2.0 純正アーキテクチャ: すべての評価ケースを ADK 2.0 公式 EvalSet / Trajectory に一本化
         mode = trajectory_mode or self.default_trajectory_mode
         normalized_cases = self._normalize_cases_to_adk(skill, cases)
-        return self._run_edd_composite_tests(skill, normalized_cases, mode=mode)
+
+        # ADK 2.0 公式 test_config.json (EvalConfig) の自動探索
+        eval_config = None
+        if hasattr(skill, "root_dir") and skill.root_dir:
+            cfg_cand = Path(skill.root_dir) / "tests" / "test_config.json"
+            if cfg_cand.exists():
+                eval_config = self.adk_adapter.build_eval_config(config_path=cfg_cand)
+
+        return self._run_edd_composite_tests(skill, normalized_cases, mode=mode, eval_config=eval_config)
 
     def _run_edd_composite_tests(
         self,
         skill: Skill,
         cases: List[Dict[str, Any]],
-        mode: TrajectoryMode = "any_order"
+        mode: TrajectoryMode = "any_order",
+        eval_config: Optional[Any] = None
     ) -> EvalRunResult:
-        """白書標準の EDD (Evaluation-Driven Development) 複合ケースを実行します。
+        """Google ADK 2.0 公式規格準拠の評価ケースを実行します。
         
-        各ケースで Trigger (expected_skill), Trajectory (expected_tool_calls), Rubric (rubric) を総合検証します。
+        ADK 2.0 公式 EvalConfig の criteria（tool_trajectory_avg_score, response_match_score, rubric_based_final_response_quality_v1）
+        に基づいて、TrajectoryEvaluator および ResponseEvaluator / RubricEvaluator で客観的に評価します。
         """
         passed = 0
         failed = 0
@@ -78,15 +88,29 @@ class SimulationEvalRunner:
         failed_cases: List[FailedCaseDetail] = []
         available_scripts = skill.list_scripts()
 
+        # EvalConfig から閾値を解決 (デフォルト: ADK 2.0 公式推奨値)
+        rubric_threshold = 0.8
+        response_threshold = 0.8
+        if eval_config and hasattr(eval_config, "criteria") and eval_config.criteria:
+            r_crit = eval_config.criteria.get("rubric_based_final_response_quality_v1")
+            if r_crit and hasattr(r_crit, "threshold") and r_crit.threshold is not None:
+                rubric_threshold = float(r_crit.threshold)
+            resp_crit = eval_config.criteria.get("response_match_score")
+            if resp_crit is not None:
+                if hasattr(resp_crit, "threshold") and resp_crit.threshold is not None:
+                    response_threshold = float(resp_crit.threshold)
+                elif isinstance(resp_crit, (int, float)):
+                    response_threshold = float(resp_crit)
+
         for raw_case in cases:
             from edd_agent_tools.models.eval import EvalCase
             case = raw_case if isinstance(raw_case, EvalCase) else EvalCase.model_validate(raw_case)
-            case_id = case.eval_id or case.case_id or case.eval_case_id or f"edd_case_{passed+failed+1}"
+            case_id = case.eval_id or f"edd_case_{passed+failed+1}"
 
             user_input = case.input or ""
             exp_tools = case.expected_tool_calls or []
             ref_output = case.expected_output_format
-            rubrics = case.rubrics or case.rubric or []
+            rubrics = case.rubrics or []
 
             case_dict = case.model_dump() if hasattr(case, "model_dump") else (case if isinstance(case, dict) else {})
             actual_tools = getattr(case, "actual_tool_uses", None) or case_dict.get("actual_tool_uses")
@@ -108,15 +132,12 @@ class SimulationEvalRunner:
                 elif has_skill_in_expected:
                     skill_matched = skill_script_called
                 else:
-                    # 期待ツール呼び出しがある汎用軌跡テストまたは外部ツール呼び出し時
                     skill_matched = True
             else:
-                # オフライン・静的契約テスト時
                 skill_matched = True
 
             # 2. Trajectory 判定 (Google ADK 2.0 純正 TrajectoryEvaluator に委譲)
             if not exp_tools:
-                # 負例等でツール呼び出しが不要なケース
                 if actual_tools is not None:
                     traj_matched, traj_msg = self.adk_adapter.evaluate_trajectory(
                         actual_tool_calls=actual_tools,
@@ -175,7 +196,7 @@ class SimulationEvalRunner:
                     reference_output=str(ref_output) if ref_output else None
                 )
 
-            case_passed = skill_matched and traj_matched and (rubric_score >= 0.8)
+            case_passed = skill_matched and traj_matched and (rubric_score >= rubric_threshold)
 
             if case_passed:
                 passed += 1
@@ -186,13 +207,13 @@ class SimulationEvalRunner:
                     reasons.append(f"Trigger mismatch (expected negative={is_negative_case})")
                 if not traj_matched:
                     reasons.append(f"Trajectory mismatch ({mode}): {traj_msg}")
-                if rubric_score < 0.8:
-                    reasons.append(f"Rubric score {rubric_score:.2f} < 0.8")
+                if rubric_score < rubric_threshold:
+                    reasons.append(f"Rubric score {rubric_score:.2f} < threshold {rubric_threshold}")
 
                 failed_cases.append(
                     FailedCaseDetail(
                         eval_case_id=case_id,
-                        expected=f"Trigger (negative={is_negative_case}), Trajectory: {exp_tools}, Rubric >= 0.8",
+                        expected=f"Trigger (negative={is_negative_case}), Trajectory: {exp_tools}, Rubric >= {rubric_threshold}",
                         actual=f"Passed={case_passed} (Reasons: {'; '.join(reasons)})",
                         error_type="EDDCompositeEvaluationError",
                         error_message=f"EDD evaluation case failed: {'; '.join(reasons)}"
@@ -203,11 +224,10 @@ class SimulationEvalRunner:
         return EvalRunResult(passed=passed, failed=failed, total=total, accuracy=accuracy, failed_cases=failed_cases)
 
     def _normalize_cases_to_adk(self, skill: Skill, cases: List[Any]) -> List[Any]:
-        """各種レガシー形式のケースを Google ADK 2.0 公式 EvalCase 形式に正規化します。
+        """各種入力ケースを Google ADK 2.0 公式 EvalCase モデルに正規化します。
         
-        車輪の再発明（トークン一致、手書きキーワード検査）を排除し、
-        正例・負例のトリガー判定は ADK 2.0 純正の推論軌跡（tool_trajectory_avg_score）として、
-        回答検証は ADK 2.0 純正の ResponseEvaluator (ROUGE-1) / RubricEvaluator に一本化します。
+        後方互換用レガシー独自キー救済を排し、ADK 2.0 公式の EvalCase スキーマ
+        （eval_id, conversation, rubrics）を直接バインドします。
         """
         from edd_agent_tools.models.eval import EvalCase
         normalized = []
@@ -216,43 +236,10 @@ class SimulationEvalRunner:
                 normalized.append(c)
                 continue
             if isinstance(c, dict):
-                c_copy = dict(c)
-                # 1. レガシー should_trigger（Trigger テスト）の ADK 2.0 公式 Trajectory 正規化
-                if "should_trigger" in c_copy:
-                    should_trig = c_copy.pop("should_trigger")
-                    u_in = c_copy.get("user_input") or c_copy.get("input", "")
-                    c_copy["input"] = u_in
-                    if should_trig:
-                        scripts = skill.list_scripts()
-                        if scripts:
-                            c_copy["expected_tool_calls"] = [{
-                                "tool": "run_skill_script",
-                                "args": {"skill_name": skill.name, "file_path": f"scripts/{scripts[0]}"}
-                            }]
-                    else:
-                        # 負例: ツール呼び出しが抑止されるべき境界ケース
-                        c_copy["expected_tool_calls"] = []
-
-                # 2. レガシー expected_outputs.result_contains（Golden テスト）の ADK 公式 Response 正規化
-                if "expected_outputs" in c_copy and isinstance(c_copy["expected_outputs"], dict):
-                    exp_out = c_copy.pop("expected_outputs")
-                    keywords = exp_out.get("result_contains", [])
-                    if keywords and "expected_output_format" not in c_copy:
-                        c_copy["expected_output_format"] = " ".join(keywords)
-
-                # 3. レガシー intermediate_data の正規化
-                if "intermediate_data" in c_copy and isinstance(c_copy["intermediate_data"], dict):
-                    t_uses = c_copy["intermediate_data"].get("tool_uses", [])
-                    if t_uses and "expected_tool_calls" not in c_copy:
-                        c_copy["expected_tool_calls"] = t_uses
-
-                if "expected_skill" not in c_copy and skill:
-                    c_copy["expected_skill"] = skill.name
-
                 try:
-                    normalized.append(EvalCase.model_validate(c_copy))
+                    normalized.append(EvalCase.model_validate(c))
                 except Exception:
-                    normalized.append(c_copy)
+                    normalized.append(c)
             else:
                 normalized.append(c)
         return normalized

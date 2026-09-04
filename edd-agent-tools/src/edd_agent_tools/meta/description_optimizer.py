@@ -63,31 +63,14 @@ class DescriptionOptimizer:
         best_desc = current_desc
         best_acc = initial_res.accuracy
 
-        def _get_input(c: Dict[str, Any]) -> str:
-            u_input = c.get("user_input") or c.get("input") or ""
-            if not u_input and "conversation" in c:
-                conv = c.get("conversation", [])
-                if conv and isinstance(conv, list):
-                    first_turn = conv[0]
-                    parts = first_turn.get("user_content", {}).get("parts", [])
-                    if parts and isinstance(parts, list):
-                        u_input = parts[0].get("text", "")
-            return u_input
+        from edd_agent_tools.models.eval import EvalCase
 
-        def _is_positive(c: Dict[str, Any]) -> bool:
-            if "should_trigger" in c:
-                return bool(c.get("should_trigger"))
-            try:
-                from edd_agent_tools.models.eval import EvalCase
-                eval_case = EvalCase.model_validate(c)
-                return not eval_case.is_negative
-            except Exception:
-                exp_skill = c.get("expected_skill")
-                return bool(exp_skill and (exp_skill == skill.name or exp_skill.replace("-", "_") == skill.name.replace("-", "_")))
+        def _to_eval_case(c: Dict[str, Any] | EvalCase) -> EvalCase:
+            return c if isinstance(c, EvalCase) else EvalCase.model_validate(c)
 
-        # 失敗したケースの分析
-        pos_triggers = [_get_input(c) for c in cases if _is_positive(c)]
-        neg_triggers = [_get_input(c) for c in cases if not _is_positive(c)]
+        # 失敗したケースの分析（Google ADK 2.0 公式 EvalCase 準拠）
+        pos_triggers = [_to_eval_case(c).user_input for c in cases if not _to_eval_case(c).is_negative]
+        neg_triggers = [_to_eval_case(c).user_input for c in cases if _to_eval_case(c).is_negative]
 
         # キーワードの抽出とチューニング
         for iteration in range(1, self.max_iterations + 1):

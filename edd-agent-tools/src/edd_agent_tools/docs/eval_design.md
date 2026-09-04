@@ -39,7 +39,7 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
 * **`ResponseEvaluator` (ROUGE-1) による決定論的回答品質検証の完全一本化**:
   ADK 公式の `google.adk.evaluation.response_evaluator.ResponseEvaluator` に 100% 一本化（独自トークン集合フォールバック完全撤廃）。参照回答との ROUGE-1 類似度（`response_match_score`、デフォルト閾値 0.8）を客観的かつ高速に検証。
 * **Google ADK 2.0 純正 `BaseCodeExecutor` 委譲 (`SkillPackage.execute_script`)**:
-  スクリプト実行時に生 `subprocess.run` を直呼び出しする抽象化バイパスを解消し、ADK 純正の `UnsafeLocalCodeExecutor` や Docker/CloudCodeExecutor（`_SkillScriptCodeExecutor`）に実行パイプラインを委譲。
+  スクリプト実行時に生 `subprocess.run` を直呼び出しする抽象化バイパスを解消し、ADK 純正の `UnsafeLocalCodeExecutor` や Docker/Cloud 等の `BaseCodeExecutor` 公開 API に実行パイプラインを委譲。
 * **Google ADK 2.0 純正 `AgentEvaluator` 連携**:
   `AdkEvalAdapter.evaluate_with_adk_agent()` を通じて、ADK 公式の `AgentEvaluator.evaluate()`（セッション追跡、実際のツール呼び出し軌跡取得、Rubrics 採点の一括実行）をシームレスに駆動。
 * **`rubric_based_final_response_quality_v1` & Position Swapping**:

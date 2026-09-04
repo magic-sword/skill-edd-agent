@@ -1,7 +1,7 @@
 """
-Evaluation Set Generator - 決定論的テストデータセット雛形生成エンジン
-SKILL.md および scripts/ の構造定義から、Contract, Trigger, Trajectory, Golden, Judge, Adversarial
-の各多層評価テストセット（*.test.json）のスケルトンを完全決定論的に生成・保存します。
+Evaluation Set Generator - Google ADK 2.0 公式 EvalSet / EvalConfig 雛形生成エンジン
+SKILL.md および scripts/ の構造定義から、Google ADK 2.0 公式 EvalSet（*.test.json）および
+公式 test_config.json（EvalConfig）のスケルトンを完全決定論的に生成・保存します。
 """
 
 import os
@@ -34,10 +34,10 @@ def _load_skill_context(skill_name: str) -> tuple[str, List[str]]:
 
 
 class EvalSetGenerator:
-    """決定論的多層評価テストセット（EDD SSOT, Trigger, Contract, Golden, Judge, Trajectory, Adversarial）ジェネレータ"""
+    """Google ADK 2.0 公式規格準拠の決定論的評価セットジェネレータ"""
 
     def generate_edd_tests(self, skill_name: str, output_path: str) -> bool:
-        """白書 Snippet 3 形式準拠の単一真実源 (SSOT) 評価ケース（正例＋負例完備）を生成する。"""
+        """白書 Snippet 3 形式準拠の単一真実源 (SSOT) 評価ケース（正例3件＋負例3件）を生成する。"""
         state = SkillsState()
         skill = state.get_skill(skill_name)
         trigger_examples = []
@@ -48,6 +48,16 @@ class EvalSetGenerator:
 
         _, script_names = _load_skill_context(skill_name)
         main_script = f"scripts/{script_names[0]}" if script_names else f"scripts/{skill_name.replace('-', '_')}.py"
+
+        # 正例ケース (3件: 白書 Section 4 必須要件)
+        pos_inputs = list(trigger_examples) if trigger_examples else []
+        default_pos = [
+            f"Please run {skill_name} on the input data",
+            f"Process input using {skill_name}",
+            f"Execute {skill_name} workflow"
+        ]
+        while len(pos_inputs) < 3:
+            pos_inputs.append(default_pos[len(pos_inputs)])
 
         eval_cases = []
         for idx, inp in enumerate(pos_inputs[:3], 1):
@@ -155,157 +165,30 @@ class EvalSetGenerator:
             json.dump(data, f, ensure_ascii=False, indent=2)
         return True
 
-    def generate_trigger_tests(self, skill_name: str, output_path: str) -> bool:
-        """インテント分類用のトリガーテストケース（正例・負例発話）の雛形を生成する。"""
-        state = SkillsState()
-        skill = state.get_skill(skill_name)
-        trigger_examples = []
-        when_not_to_use = []
-        if skill and skill.spec:
-            trigger_examples = getattr(skill.spec, "when_to_use", None) or getattr(skill.spec, "concrete_trigger_examples", None) or []
-            when_not_to_use = getattr(skill.spec, "when_not_to_use", None) or []
-
-        cases = []
-        for i, ex in enumerate(trigger_examples[:3], 1):
-            cases.append({
-                "eval_id": f"trigger_pos_{i}",
-                "eval_case_id": f"trigger_pos_{i}",
-                "name": f"trigger_positive_{i}",
-                "user_input": ex,
-                "expected_skill": skill_name,
-                "should_trigger": True
-            })
-
-        for i, non_ex in enumerate(when_not_to_use[:3], 1):
-            cases.append({
-                "eval_id": f"trigger_neg_{i}",
-                "eval_case_id": f"trigger_neg_{i}",
-                "name": f"trigger_negative_{i}",
-                "user_input": non_ex,
-                "expected_skill": None,
-                "should_trigger": False
-            })
-
-        if not cases:
-            cases.append({
-                "eval_id": "trigger_pos_1",
-                "name": "positive_case_1",
-                "user_input": f"Execute {skill_name} workflow",
-                "expected_skill": skill_name,
-                "should_trigger": True
-            })
-            cases.append({
-                "eval_id": "trigger_neg_1",
-                "name": "negative_case_1",
-                "user_input": "Show me general system help",
-                "expected_skill": None,
-                "should_trigger": False
-            })
-
+    def generate_test_config(self, skill_name: str, output_path: str) -> bool:
+        """Google ADK 2.0 公式 EvalConfig (test_config.json) を生成する。"""
         data = {
-            "eval_set_id": f"{skill_name}_trigger_eval",
-            "eval_cases": cases
-        }
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return True
-
-    def generate_contract_tests(self, skill_name: str, output_path: str) -> bool:
-        """CLI引数・終了コードを検証する契約テストケースを生成する。"""
-        _, script_names = _load_skill_context(skill_name)
-        main_script = f"scripts/{script_names[0]}" if script_names else f"scripts/{skill_name.replace('-', '_')}.py"
-
-        data = {
-            "eval_set_id": f"{skill_name}_contract_eval",
-            "eval_cases": [
-                {
-                    "eval_case_id": "test_cli_help",
-                    "script_name": main_script,
-                    "cli_args": ["--help"],
-                    "expected_exit_code": 0,
-                    "expected_stdout_contains": ["--help"]
-                }
-            ]
-        }
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return True
-
-    def generate_golden_tests(self, skill_name: str, output_path: str) -> bool:
-        """ゴールデンアウトプットを検証するテストケース雛形を生成する。"""
-        data = {
-            "eval_set_id": f"{skill_name}_golden_eval",
-            "eval_cases": [
-                {
-                    "eval_id": "golden_001",
-                    "name": "golden_standard_execution",
-                    "input_scenario": f"Run standard workflow for {skill_name}",
-                    "expected_outputs": {
-                        "result_contains": [skill_name]
-                    }
-                }
-            ]
-        }
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return True
-
-    def generate_judge_tests(self, skill_name: str, output_path: str) -> bool:
-        """LLMルーブリックジャッジ用の評価基準雛形を生成する。"""
-        data = {
-            "eval_set_id": f"{skill_name}_judge_eval",
-            "eval_cases": [
-                {
-                    "eval_id": "judge_001",
-                    "name": "judge_quality_rubric",
-                    "input_prompt": f"Execute {skill_name} task",
+            "criteria": {
+                "tool_trajectory_avg_score": {
+                    "threshold": 1.0,
+                    "match_type": "IN_ORDER"
+                },
+                "rubric_based_final_response_quality_v1": {
+                    "threshold": 0.8,
                     "rubrics": [
-                        {"rubric_id": "r1", "rubric_content": {"text_property": "仕様通りの出力が行われているか"}},
-                        {"rubric_id": "r2", "rubric_content": {"text_property": "必要な要素が欠落していないか"}},
-                        {"rubric_id": "r3", "rubric_content": {"text_property": "不要な冗長性がないか"}}
-                    ]
-                }
-            ]
-        }
-        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return True
-
-    def generate_trajectory_tests(self, skill_name: str, output_path: str) -> bool:
-        """Google ADK 準拠のツール軌跡（Tool Trajectory）評価テストケースを生成する。"""
-        _, script_names = _load_skill_context(skill_name)
-        main_script = script_names[0] if script_names else f"{skill_name.replace('-', '_')}.py"
-
-        data = {
-            "eval_set_id": f"{skill_name}_trajectory_eval",
-            "eval_cases": [
-                {
-                    "eval_id": "traj_001",
-                    "conversation": [
                         {
-                            "invocation_id": "inv_001",
-                            "user_content": {"parts": [{"text": f"Please execute {skill_name}"}]},
-                            "final_response": {"parts": [{"text": f"Successfully completed {skill_name}."}]},
-                            "intermediate_data": {
-                                "tool_uses": [
-                                    {
-                                        "name": "run_skill_script",
-                                        "args": {
-                                            "skill_name": skill_name,
-                                            "file_path": f"scripts/{main_script}",
-                                            "args": {"input": "sample"}
-                                        }
-                                    }
-                                ]
+                            "rubric_id": "general_quality",
+                            "rubric_content": {
+                                "text_property": "The final response accurately satisfies the user intent cleanly without conversational filler."
                             }
                         }
-                    ]
+                    ],
+                    "judge_model_options": {
+                        "judge_model": "gemini-2.5-flash",
+                        "num_samples": 3
+                    }
                 }
-            ]
+            }
         }
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", encoding="utf-8") as f:
@@ -314,6 +197,9 @@ class EvalSetGenerator:
 
     def generate_adversarial_tests(self, skill_name: str, output_path: str) -> bool:
         """敵対的・境界値テストケース雛形を生成する（Google ADK 2.0 公式 EvalSet 準拠）。"""
+        _, script_names = _load_skill_context(skill_name)
+        main_script = f"scripts/{script_names[0]}" if script_names else f"scripts/{skill_name.replace('-', '_')}.py"
+
         data = {
             "eval_set_id": f"{skill_name}_adversarial_eval",
             "name": f"{skill_name}_adversarial_eval",
@@ -339,7 +225,7 @@ class EvalSetGenerator:
                                         "name": "run_skill_script",
                                         "args": {
                                             "skill_name": skill_name,
-                                            "file_path": f"scripts/{skill_name.replace('-', '_')}.py",
+                                            "file_path": main_script,
                                             "args": {"input": ""}
                                         }
                                     }
@@ -374,7 +260,7 @@ class EvalSetGenerator:
                                         "name": "run_skill_script",
                                         "args": {
                                             "skill_name": skill_name,
-                                            "file_path": f"scripts/{skill_name.replace('-', '_')}.py",
+                                            "file_path": main_script,
                                             "args": {"invalid_arg": "invalid_value"}
                                         }
                                     }
@@ -398,7 +284,7 @@ class EvalSetGenerator:
         return True
 
     def generate_evalset(self, skill_name: str, test_type: str = "all", output_dir: Optional[str] = None) -> Dict[str, Any]:
-        """指定されたスキルの評価セットを生成する統合エントリポイント。"""
+        """指定されたスキルの評価セットを生成する統合エントリポイント（Google ADK 2.0 公式規格準拠）。"""
         state = SkillsState()
         skill = state.get_skill(skill_name)
         if not skill:
@@ -411,32 +297,27 @@ class EvalSetGenerator:
         base_out.mkdir(parents=True, exist_ok=True)
 
         generated_files = []
-        types_to_run = ["edd", "trigger", "contract", "golden", "judge", "trajectory", "adversarial"] if test_type == "all" else [test_type]
+        types_to_run = ["edd", "config", "adversarial"] if test_type == "all" else [test_type]
 
         for t in types_to_run:
-            out_path = base_out / (f"{skill_name}.test.json" if t == "edd" else f"{skill_name}_{t}.test.json")
-            success = False
-            if t == "edd":
-                success = self.generate_edd_tests(skill_name, str(out_path))
-            elif t == "trigger":
-                success = self.generate_trigger_tests(skill_name, str(out_path))
-            elif t == "contract":
-                success = self.generate_contract_tests(skill_name, str(out_path))
-            elif t == "golden":
-                success = self.generate_golden_tests(skill_name, str(out_path))
-            elif t == "judge":
-                success = self.generate_judge_tests(skill_name, str(out_path))
-            elif t == "trajectory":
-                success = self.generate_trajectory_tests(skill_name, str(out_path))
+            if t in ("edd", "contract", "trigger", "trajectory", "golden", "judge"):
+                # 単一真実源 (SSOT) 公式 EvalSet
+                out_path = base_out / f"{skill_name}.test.json"
+                if self.generate_edd_tests(skill_name, str(out_path)):
+                    generated_files.append(str(out_path))
+            elif t == "config":
+                # Google ADK 2.0 公式 EvalConfig
+                out_path = base_out / "test_config.json"
+                if self.generate_test_config(skill_name, str(out_path)):
+                    generated_files.append(str(out_path))
             elif t == "adversarial":
-                success = self.generate_adversarial_tests(skill_name, str(out_path))
-
-            if success:
-                generated_files.append(str(out_path))
+                out_path = base_out / f"{skill_name}_adversarial.test.json"
+                if self.generate_adversarial_tests(skill_name, str(out_path)):
+                    generated_files.append(str(out_path))
 
         return {
             "status": "success" if generated_files else "failed",
-            "generated_files": generated_files,
+            "generated_files": list(dict.fromkeys(generated_files)),
             "skill_name": skill_name
         }
 

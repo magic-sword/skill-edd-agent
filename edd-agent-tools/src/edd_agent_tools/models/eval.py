@@ -82,11 +82,14 @@ class EvalCase(AdkEvalCase):
 
             raw_inp = values.get("input") or values.get("user_input")
             raw_tools = values.get("expected_tool_calls")
+            inter = values.get("intermediate_data")
+            if raw_tools is None and inter and isinstance(inter, dict):
+                raw_tools = inter.get("tool_uses")
             raw_out = values.get("expected_output_format")
             raw_rub = values.get("rubric") or values.get("rubrics")
 
             conv = values.get("conversation")
-            if not conv and (raw_inp or raw_tools is not None):
+            if not conv and (raw_inp or raw_tools is not None or raw_out or raw_rub):
                 try:
                     from google.genai import types as genai_types
                     from google.adk.evaluation.eval_case import Invocation, IntermediateData

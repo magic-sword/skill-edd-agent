@@ -61,7 +61,7 @@ flowchart LR
 
 ### ④ Google ADK 2.0 純正 BaseCodeExecutor 委譲 (`SkillPackage.execute_script`)
 - スクリプト実行時の生 `subprocess.run` 直呼び出しによる抽象化バイパスを解消。
-- `UnsafeLocalCodeExecutor` や Docker/Cloud 等の `BaseCodeExecutor`（`_SkillScriptCodeExecutor`）に実行パイプラインを委譲し、安全な実行コンテキストおよび環境変数設定（`EDD_SKILL_NAME`, `EDD_SKILL_ROOT`）を完全保証。
+- `UnsafeLocalCodeExecutor` や Docker/Cloud 等の `BaseCodeExecutor` 公開 API に実行パイプラインを委譲し、安全な実行コンテキストおよび環境変数設定（`EDD_SKILL_NAME`, `EDD_SKILL_ROOT`）を完全保証。
 
 ### ⑤ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
 - **Black-box 実行**: Python 内部コードを直接インポートせず、CLI インターフェース（`cli_args`）経由でサブプロセス実行。

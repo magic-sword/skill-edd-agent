@@ -104,6 +104,11 @@ def normalize_to_function_call(
         tool_name = tool_call.get("tool") or tool_call.get("name") or ""
         args = tool_call.get("args") or tool_call.get("parameters") or {}
     elif hasattr(tool_call, "name") and hasattr(tool_call, "args"):
+        if tool_call.name == "run_skill_script" and skill_name and isinstance(tool_call.args, dict):
+            if not tool_call.args.get("skill_name"):
+                new_args = dict(tool_call.args)
+                new_args["skill_name"] = skill_name
+                return genai_types.FunctionCall(name="run_skill_script", args=new_args)
         return tool_call
     else:
         tool_name = str(tool_call)
@@ -112,7 +117,7 @@ def normalize_to_function_call(
     # ADK 2.0 純正 run_skill_script 呼び出しの正規化
     if tool_name == "run_skill_script":
         normalized_args = dict(args) if isinstance(args, dict) else {}
-        if skill_name and "skill_name" not in normalized_args:
+        if skill_name and not normalized_args.get("skill_name"):
             normalized_args["skill_name"] = skill_name
         return genai_types.FunctionCall(name="run_skill_script", args=normalized_args)
 
