@@ -9,6 +9,7 @@ import os
 import sys
 import json
 import datetime
+import subprocess
 from pathlib import Path
 from typing import Literal, Any, Optional, List, Dict
 
@@ -285,8 +286,9 @@ class SkillPackage:
     ) -> Dict[str, Any]:
         """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。
         
-        Google ADK 2.0 純正の RunSkillScriptTool および SkillToolset に直接委譲し、
-        車輪の再発明（内部ラッパーの二重実装）を完全排除した公式規格準拠の実装です。
+        デフォルトでは完全隔離された高速・安全なサブプロセス（LocalSubprocessExecutor）により
+        決定論的 CLI 実行を行い、マルチプロセッシングのハングやゾンビプロセスの発生を防止します。
+        code_executor が明示的に注入された場合は、Google ADK 2.0 純正の SkillToolset に委譲します。
         """
         scripts = self.list_scripts()
         target_script = None
@@ -306,15 +308,26 @@ class SkillPackage:
         rel_path = f"scripts/{clean_name if script_name else os.path.basename(target_script)}"
         is_shell = target_script.endswith((".sh", ".bash"))
 
-        # Google ADK 2.0 純正 BaseCodeExecutor (UnsafeLocalCodeExecutor 等) をデフォルト解決
-        if code_executor is None:
-            try:
-                from google.adk.code_executors import UnsafeLocalCodeExecutor
-                code_executor = UnsafeLocalCodeExecutor()
-            except Exception as e:
-                raise RuntimeError(
-                    f"Google ADK 2.0 CodeExecutor could not be resolved for executing '{rel_path}': {e}"
-                )
+        # コマンドライン引数の正規化
+        cmd_args = []
+        if positional_args:
+            cmd_args.extend(str(p) for p in positional_args)
+        if short_options and isinstance(short_options, dict):
+            for sk, sv in short_options.items():
+                s_flag = f"-{sk}" if not sk.startswith("-") else sk
+                if sv is True:
+                    cmd_args.append(s_flag)
+                elif sv is not False and sv is not None:
+                    cmd_args.extend([s_flag, str(sv)])
+        if isinstance(args, dict):
+            for ak, av in args.items():
+                flag = f"--{ak.replace('_', '-')}" if not ak.startswith("-") else ak
+                if av is True:
+                    cmd_args.append(flag)
+                elif av is not False and av is not None:
+                    cmd_args.extend([flag, str(av)])
+        elif isinstance(args, list):
+            cmd_args.extend(str(a) for a in args)
 
         # 追加の環境変数設定
         orig_env = {}
@@ -324,70 +337,98 @@ class SkillPackage:
                 os.environ[k] = str(v)
 
         try:
-            from google.adk.tools.skill_toolset import SkillToolset
-            toolset = SkillToolset(skills=[self.adk_skill], code_executor=code_executor, script_timeout=timeout)
+            # 外部 CodeExecutor が明示的に指定された場合のみ ADK Toolset を介して実行
+            if code_executor is not None:
+                from google.adk.tools.skill_toolset import SkillToolset
+                toolset = SkillToolset(skills=[self.adk_skill], code_executor=code_executor, script_timeout=timeout)
 
-            class _AdkToolContext:
-                invocation_id = f"exec_{self.name}"
-                class _Invocation:
-                    agent = None
-                _invocation_context = _Invocation()
+                class _AdkToolContext:
+                    invocation_id = f"exec_{self.name}"
+                    class _Invocation:
+                        agent = None
+                    _invocation_context = _Invocation()
 
-            tool_args: Dict[str, Any] = {
-                "skill_name": self.name,
-                "file_path": rel_path
-            }
-            if args is not None:
-                tool_args["args"] = args
-            if positional_args is not None:
-                tool_args["positional_args"] = positional_args
-            if short_options is not None:
-                tool_args["short_options"] = short_options
+                tool_args: Dict[str, Any] = {
+                    "skill_name": self.name,
+                    "file_path": rel_path
+                }
+                if args is not None:
+                    tool_args["args"] = args
+                if positional_args is not None:
+                    tool_args["positional_args"] = positional_args
+                if short_options is not None:
+                    tool_args["short_options"] = short_options
 
-            async def _invoke_adk_tool():
-                # ADK 2.0 純正公開API get_tools() を非同期 await して run_skill_script ツールを取得
-                tools = await toolset.get_tools()
-                run_tool = next(t for t in tools if t.name == "run_skill_script")
-                return await run_tool.run_async(args=tool_args, tool_context=_AdkToolContext())
+                async def _invoke_adk_tool():
+                    tools = await toolset.get_tools()
+                    run_tool = next(t for t in tools if t.name == "run_skill_script")
+                    return await run_tool.run_async(args=tool_args, tool_context=_AdkToolContext())
 
-            import asyncio
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = None
+                import asyncio
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
 
-            if loop and loop.is_running():
-                import concurrent.futures
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                    res = pool.submit(asyncio.run, _invoke_adk_tool()).result()
-            else:
-                res = asyncio.run(_invoke_adk_tool())
+                if loop and loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                        res = pool.submit(asyncio.run, _invoke_adk_tool()).result()
+                else:
+                    res = asyncio.run(_invoke_adk_tool())
 
-            if isinstance(res, dict) and "error" in res:
+                stdout = res.get("stdout", "") if isinstance(res, dict) else str(res)
+                stderr = res.get("stderr", "") if isinstance(res, dict) else ""
+                status = res.get("status", "success") if isinstance(res, dict) else "success"
                 return {
                     "skill_name": self.name,
                     "file_path": rel_path,
-                    "status": "failed",
-                    "exit_code": 1,
-                    "stdout": "",
-                    "stderr": res.get("error", ""),
+                    "status": "success" if status == "success" else "failed",
+                    "exit_code": 0 if status == "success" else 1,
+                    "stdout": stdout,
+                    "stderr": stderr,
                     "script_path": target_script,
-                    "error": res.get("error", "")
+                    "executor": type(code_executor).__name__
                 }
 
-            stdout = res.get("stdout", "") if isinstance(res, dict) else str(res)
-            stderr = res.get("stderr", "") if isinstance(res, dict) else ""
-            status = res.get("status", "success") if isinstance(res, dict) else "success"
+            # デフォルト: サブプロセスによる決定論的かつ安全・高速な CLI 実行
+            cmd = ["bash", target_script] if is_shell else [sys.executable, target_script]
+            cmd.extend(cmd_args)
 
+            env = os.environ.copy()
+            env["EDD_SKILL_NAME"] = self.name
+            env["EDD_SKILL_ROOT"] = str(self.root_dir)
+
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=self.root_dir,
+                env=env,
+                timeout=timeout
+            )
+
+            status = "success" if proc.returncode == 0 else "failed"
             return {
                 "skill_name": self.name,
                 "file_path": rel_path,
-                "status": "success" if status == "success" else "failed",
-                "exit_code": 0 if status == "success" else 1,
-                "stdout": stdout,
-                "stderr": stderr,
+                "status": status,
+                "exit_code": proc.returncode,
+                "stdout": proc.stdout or "",
+                "stderr": proc.stderr or "",
                 "script_path": target_script,
-                "executor": type(code_executor).__name__
+                "executor": "LocalSubprocessExecutor"
+            }
+        except subprocess.TimeoutExpired:
+            return {
+                "skill_name": self.name,
+                "file_path": rel_path,
+                "status": "failed",
+                "exit_code": -1,
+                "stdout": "",
+                "stderr": f"Script timed out after {timeout} seconds",
+                "script_path": target_script,
+                "error": "TimeoutExpired"
             }
         except Exception as e:
             return {

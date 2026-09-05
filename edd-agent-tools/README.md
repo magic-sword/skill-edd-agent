@@ -12,7 +12,7 @@ EDD（評価駆動開発: Evaluation-Driven Development）による自律型 AI 
     `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）、`examples/`（使用例用）のリソース分離を安全にロード・管理するドメインクラスと DAG 依存関係グラフ検証を提供。他プロジェクトへの配布時にもパスに依存しない Zero-Hardcoding 設計。
 *   **Google ADK 2.0 ネイティブ完全統合 (`google.adk.skills`, `SkillToolset`, `UnsafeLocalCodeExecutor`, `AgentEvaluator`, `TrajectoryEvaluator`, `ResponseEvaluator`, `EvalConfig`)**
     - Google ADK 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を完全採用。
-    - プライベート属性アクセス（`_tools` 等）や手動キーワード照合による偽ルーブリック判定、自前 `subprocess.run` 実行コードを完全排除。ドメインエンティティおよび契約テスト（`ContractTestRunner`）から ADK 2.0 純正の `RunSkillScriptTool`、`_SkillScriptCodeExecutor`、`UnsafeLocalCodeExecutor`、および公式評価器（`TrajectoryEvaluator`, `ResponseEvaluator`, `RubricBasedFinalResponseQualityV1Evaluator`）に一本化。エージェント本体（`src/agent.py`）にも `code_executor` を直接注入。
+    - 非公開内部クラス（`_SkillScriptCodeExecutor` 等）やプライベート属性アクセス（`_tools` 等）、手動キーワード照合による偽ルーブリック判定を完全排除。契約テスト（`ContractTestRunner`）は ADK 2.0 純正の `run_skill_script` 規格（`positional_args`, `short_options`, `args`）から正規化された引数を用いて隔離環境下で決定論的・高速に Black-box 実行し、テスト環境でのマルチプロセッシングハングを根絶。公式評価器（`TrajectoryEvaluator`, `ResponseEvaluator`, `RubricBasedFinalResponseQualityV1Evaluator`）に一本化し、エージェント本体（`src/agent.py`）にも公式推奨通り `code_executor` を直接注入。
     - `AgentEvaluator` の例外ログ構造解析により各テストケースごとの合否を集計。Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）による自動探索と `match_type: "IN_ORDER"` 標準配備。
 *   **決定論的サンドボックス隔離環境 (`WorkspaceEnvProtocol`, `LocalWorkspaceEnv`)**
     コードやテスト実行による環境破壊を防ぐため、OS 一時領域への複製、Git ロールバック、および差分抽出機能を提供。

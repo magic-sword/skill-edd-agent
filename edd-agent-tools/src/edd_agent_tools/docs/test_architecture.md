@@ -59,13 +59,13 @@ flowchart LR
 - 参照回答とモデル回答の位置を反転させて 2 回推論する **Position Swapping** により順序バイアスを中和。
 - 通常テスト・CI は決定論的契約テスト（`ContractTestRunner`）および Trajectory Evaluator でミリ秒単位で高速・安定実行し、ライブ検証時のみ Gemini API リモート推論を実行。
 
-### ④ Google ADK 2.0 純正 RunSkillScriptTool 委譲 (`SkillPackage.execute_script`)
+### ④ スクリプト実行エンジンの二重層化 (`SkillPackage.execute_script`)
 - 自前の一時展開スクリプト生成コード（車輪の再発明）を完全削除。
-- `SkillPackage.execute_script` は、Google ADK 2.0 純正の `SkillToolset` 内に配備されている公式 `RunSkillScriptTool`（`run_skill_script`）および `UnsafeLocalCodeExecutor` に直接委譲し、公式の実行ライフサイクル（一時展開・依存解決・環境変数注入）を 100% 透過活用。
-- 生 `subprocess.run` やプライベート属性の裏口ハックを排除し、安全で決定論的なスクリプト実行を完全保証。
+- `SkillPackage.execute_script` はデフォルトで完全隔離された高速・決定論的なサブプロセス（`LocalSubprocessExecutor`）により安全にスクリプトを実行し、テスト環境でのマルチプロセッシングハングやゾンビプロセスの発生を防止。
+- 明示的に `code_executor`（ADK の `BaseCodeExecutor`）が注入された場合のみ、Google ADK 2.0 純正の `SkillToolset` 内に配備されている公式 `RunSkillScriptTool`（`run_skill_script`）に直接委譲。
 
 ### ⑤ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
-- **ADK 2.0 純正コード実行**: `run_skill_script` ツール呼び出しを検出し、ADK 2.0 純正の `_SkillScriptCodeExecutor` および `UnsafeLocalCodeExecutor` でエージェント本番実行時と完全に同一のパイプラインでスクリプトを実行・検証（自前引数パース・文字列結合・生サブプロセス実行の車輪の再発明を完全解消）。
+- **ADK 2.0 規格準拠の決定論的 CLI 実行**: `run_skill_script` ツール呼び出し仕様（`positional_args`, `short_options`, `args`）から正規化された CLI 引数を導出し、非公開内部クラス（`_SkillScriptCodeExecutor`）や不要なマルチプロセッシング（`spawn`）への依存を排除して隔離環境で決定論的 Black-box 実行。
 - **$pass^k$ (Sustained Reliability)**: 1 回のラッキー合格を排除し、指定された $k$ 回連続実行（例: $k=3$）ですべて合格することを要求。
 
 ### ⑥ Co-loaded 複数スキル共存ベンチマーク (`CoLoadedEvalRunner`)

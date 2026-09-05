@@ -38,8 +38,8 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
   Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` に 100% 一本化（独自フォールバック完全撤廃）。テストケースおよびエージェント実行におけるツール呼び出しは、ADK 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用し、従来のスクリプト直接表記も透過的に正規化。
 * **LLM-as-a-Judge (`RubricBasedFinalResponseQualityV1Evaluator`) 主軸化と偽判定の完全撤廃**:
   従来の ROUGE-1 表層文字列一致（`ResponseEvaluator` / `response_match_score`）への過度依存や、独自の手動キーワード照合による偽ルーブリック判定（アドホックな文字列マッチ）を完全に撤廃。オフライン決定論的評価は公式 `ResponseEvaluator`（ROUGE-1 `response_match_score`）および出力存在性に純粋化し、回答品質評価は Google ADK 純正の `RubricBasedFinalResponseQualityV1Evaluator`（`rubric_based_final_response_quality_v1`）に一本化。ツールの正確な呼び出し・引数・順序は `tool_trajectory_avg_score`（Trajectory レイヤー）で厳密検証し、ルーブリック評価は会話フィラー排除や意図充足（Response レイヤー）に特化させる責務分離を徹底。
-* **Google ADK 2.0 純正 `RunSkillScriptTool` 委譲 (`SkillPackage.execute_script`)**:
-  自前の一時展開スクリプト生成コードやプライベート属性（`_tools`）への裏口アクセスを完全排除。ADK 2.0 純正の公開API（`await toolset.get_tools()`）経由で `RunSkillScriptTool`（`run_skill_script`）および `UnsafeLocalCodeExecutor` に直接委譲し、公式の実行ライフサイクル（一時展開・依存解決・環境変数注入）を 100% 透過活用。
+* **スクリプト実行エンジンの二重層化 (`SkillPackage.execute_script`)**:
+  自前の一時展開スクリプト生成コードやプライベート属性（`_tools`）への裏口アクセスを完全排除。デフォルトでは完全隔離された高速・安全なサブプロセス（`LocalSubprocessExecutor`）により決定論的 CLI 実行を行い、マルチプロセッシングのハングを防止。明示的に `code_executor`（ADK の `BaseCodeExecutor`）が注入された場合のみ、ADK 2.0 純正の公開API（`await toolset.get_tools()`）経由で `RunSkillScriptTool`（`run_skill_script`）に直接委譲し、公式の実行ライフサイクルを透過活用。
 * **Google ADK 2.0 純正 `AgentEvaluator` 連携と精密ログ解析**:
   `AdkEvalAdapter.evaluate_with_adk_agent()` を通じて、ADK 公式の `AgentEvaluator.evaluate()`（セッション追跡、実際のツール呼び出し軌跡取得、Rubrics 採点の一括実行）をシームレスに駆動。さらに、`SimulationEvalRunner` において `AgentEvaluator` の例外ログを構造解析し、従来のバイナリ全勝/全敗丸めを解消。各テストケース単位での合否判定および詳細コンテキスト（`FailedCaseDetail`）を抽出・記録。
 * **`rubric_based_final_response_quality_v1` & Position Swapping**:

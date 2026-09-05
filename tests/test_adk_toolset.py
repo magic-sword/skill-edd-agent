@@ -102,8 +102,8 @@ def test_adk_toolset_file_path_execution():
     assert res.get("status") == "success"
     assert res.get("exit_code") == 0
     assert "HelloWorldTest" in res.get("stdout", "")
-    # Google ADK 2.0 純正 UnsafeLocalCodeExecutor を通じて実行されていることを検証
-    assert res.get("executor") == "UnsafeLocalCodeExecutor"
+    # デフォルトでは高速かつ隔離された LocalSubprocessExecutor を通じて実行されることを検証
+    assert res.get("executor") == "LocalSubprocessExecutor"
 
 
 def test_adk_frontmatter_extended_fields_roundtrip():
