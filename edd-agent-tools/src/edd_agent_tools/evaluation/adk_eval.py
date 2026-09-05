@@ -19,43 +19,99 @@ from typing import Dict, Any, List, Optional, Tuple, Literal, Union
 from edd_agent_tools.core.entity import Skill
 from edd_agent_tools.models import EvalRunResult, FailedCaseDetail, EvalDetailReport
 
-try:
-    from google.genai import types as genai_types
-except ImportError:
-    genai_types = None
+# 重い依存関係 (google.genai, google.adk.evaluation) の遅延インポート管理
+_ADK_LOADED = False
 
-try:
-    from google.adk.evaluation.eval_metrics import ToolTrajectoryCriterion, EvalMetric, RubricsBasedCriterion, BaseCriterion
-    from google.adk.evaluation.trajectory_evaluator import TrajectoryEvaluator
-    ADK_MATCH_TYPE = ToolTrajectoryCriterion.MatchType
-except ImportError:
-    ToolTrajectoryCriterion = None
-    EvalMetric = None
-    RubricsBasedCriterion = None
-    BaseCriterion = None
-    TrajectoryEvaluator = None
-    ADK_MATCH_TYPE = None
-
-try:
-    from google.adk.evaluation.eval_case import EvalCase as NativeAdkEvalCase, Invocation, IntermediateData, SessionInput
-    from google.adk.evaluation.eval_rubrics import Rubric as NativeAdkRubric
-    from google.adk.evaluation.eval_set import EvalSet as NativeAdkEvalSet
-    from google.adk.evaluation.agent_evaluator import AgentEvaluator
-    from google.adk.evaluation.eval_config import EvalConfig, get_evaluation_criteria_or_default
-except ImportError:
-    NativeAdkEvalCase = None
-    NativeAdkRubric = None
-    NativeAdkEvalSet = None
-    AgentEvaluator = None
-    EvalConfig = None
-    get_evaluation_criteria_or_default = None
-    Invocation = None
-    IntermediateData = None
+genai_types = None
+ToolTrajectoryCriterion = None
+EvalMetric = None
+RubricsBasedCriterion = None
+BaseCriterion = None
+TrajectoryEvaluator = None
+ADK_MATCH_TYPE = None
+NativeAdkEvalCase = None
+NativeAdkRubric = None
+NativeAdkEvalSet = None
+AgentEvaluator = None
+EvalConfig = None
+get_evaluation_criteria_or_default = None
+Invocation = None
+IntermediateData = None
+SessionInput = None
 
 # 重い依存関係 (nltk, scipy) を持つ評価器は遅延インポート化
 ResponseEvaluator = None
 RougeEvaluator = None
 RubricBasedFinalResponseQualityV1Evaluator = None
+
+
+def _ensure_adk_loaded():
+    """Google GenAI および Google ADK 評価系モジュールをオンデマンドで遅延ロードします。"""
+    global _ADK_LOADED, genai_types
+    global ToolTrajectoryCriterion, EvalMetric, RubricsBasedCriterion, BaseCriterion, TrajectoryEvaluator, ADK_MATCH_TYPE
+    global NativeAdkEvalCase, NativeAdkRubric, NativeAdkEvalSet, AgentEvaluator, EvalConfig, get_evaluation_criteria_or_default, Invocation, IntermediateData, SessionInput
+
+    if _ADK_LOADED:
+        return
+    _ADK_LOADED = True
+
+    try:
+        from google.genai import types as _gt
+        genai_types = _gt
+    except ImportError:
+        genai_types = None
+
+    try:
+        from google.adk.evaluation.eval_metrics import (
+            ToolTrajectoryCriterion as _TTC,
+            EvalMetric as _EM,
+            RubricsBasedCriterion as _RBC,
+            BaseCriterion as _BC
+        )
+        from google.adk.evaluation.trajectory_evaluator import TrajectoryEvaluator as _TE
+        ToolTrajectoryCriterion = _TTC
+        EvalMetric = _EM
+        RubricsBasedCriterion = _RBC
+        BaseCriterion = _BC
+        TrajectoryEvaluator = _TE
+        ADK_MATCH_TYPE = _TTC.MatchType
+    except ImportError:
+        pass
+
+    try:
+        from google.adk.evaluation.eval_case import (
+            EvalCase as _NAEC,
+            Invocation as _Inv,
+            IntermediateData as _ID,
+            SessionInput as _SI
+        )
+        from google.adk.evaluation.eval_rubrics import Rubric as _NAR
+        from google.adk.evaluation.eval_set import EvalSet as _NAES
+        from google.adk.evaluation.agent_evaluator import AgentEvaluator as _AE
+        from google.adk.evaluation.eval_config import EvalConfig as _EC, get_evaluation_criteria_or_default as _GEC
+        NativeAdkEvalCase = _NAEC
+        Invocation = _Inv
+        IntermediateData = _ID
+        SessionInput = _SI
+        NativeAdkRubric = _NAR
+        NativeAdkEvalSet = _NAES
+        AgentEvaluator = _AE
+        EvalConfig = _EC
+        get_evaluation_criteria_or_default = _GEC
+    except ImportError:
+        pass
+
+
+def __getattr__(name: str):
+    if name in {
+        "genai_types", "ToolTrajectoryCriterion", "EvalMetric", "RubricsBasedCriterion",
+        "BaseCriterion", "TrajectoryEvaluator", "ADK_MATCH_TYPE", "NativeAdkEvalCase",
+        "NativeAdkRubric", "NativeAdkEvalSet", "AgentEvaluator", "EvalConfig",
+        "get_evaluation_criteria_or_default", "Invocation", "IntermediateData", "SessionInput"
+    }:
+        _ensure_adk_loaded()
+        return globals().get(name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 def is_valid_api_key(key: Optional[str]) -> bool:
@@ -109,6 +165,7 @@ def normalize_to_function_call(
     3. ドメイン / MCP ツール呼び出し: {"tool": "lookup_order", "args": {"order_id": "4521"}}
     4. 単純文字列: "scripts/secret_sanitizer.py" または "lookup_order"
     """
+    _ensure_adk_loaded()
     if genai_types is None:
         return tool_call
 
@@ -152,6 +209,7 @@ def normalize_to_function_call(
 
 def convert_edd_to_adk_eval_case(edd_case: Dict[str, Any], skill_name: Optional[str] = None) -> Any:
     """評価ケース辞書を Google ADK 2.0 純正 EvalCase モデルに変換・正規化します。"""
+    _ensure_adk_loaded()
     if NativeAdkEvalCase is None or genai_types is None or Invocation is None:
         return edd_case
 
@@ -223,6 +281,7 @@ class AdkEvalAdapter:
 
     def to_adk_criterion(self, mode: str = "exact", threshold: float = 1.0) -> Any:
         """指定された mode と threshold に基づき、ADK 公式 ToolTrajectoryCriterion を構築して返します。"""
+        _ensure_adk_loaded()
         match_mode = mode.lower()
         m_type = ADK_MATCH_TYPE.EXACT if ADK_MATCH_TYPE else "EXACT"
         if match_mode == "in_order":
@@ -245,6 +304,7 @@ class AdkEvalAdapter:
         
         独自のマッチング処理を完全排除し、ADK 2.0 公式の MATCH_TYPE ロジックを 100% 活用します。
         """
+        _ensure_adk_loaded()
         if TrajectoryEvaluator is None or ToolTrajectoryCriterion is None or Invocation is None or genai_types is None:
             act_names = [c.get("tool") or c.get("name", "") if isinstance(c, dict) else str(c) for c in actual_tool_calls]
             exp_names = [c.get("tool") or c.get("name", "") if isinstance(c, dict) else str(c) for c in expected_tool_calls]
@@ -319,6 +379,7 @@ class AdkEvalAdapter:
         同階層の test_config.json があれば公式の get_evaluation_criteria_or_default で自動ロードし、
         明示的 criteria が指定された場合は型安全な公式 Criterion を構築します。
         """
+        _ensure_adk_loaded()
         if EvalConfig is None:
             return None
 
@@ -375,6 +436,7 @@ class AdkEvalAdapter:
         reference_output: Optional[str] = None
     ) -> Tuple[float, Dict[str, Any]]:
         """Google ADK 2.0 純正 Rubrics 評価および Position Swapping を実行します。"""
+        _ensure_adk_loaded()
         if not rubrics:
             return 1.0, {"rubrics_count": 0, "passed_rubrics": 0, "mode": "empty_rubrics"}
 
@@ -476,6 +538,7 @@ class AdkEvalAdapter:
         エージェントとスキルツールセットを完全連動させ、
         実際の Tool Trajectory と回答品質・ルーブリックを公式パイプラインで一括評価します。
         """
+        _ensure_adk_loaded()
         if AgentEvaluator is None:
             raise RuntimeError(
                 "google.adk.evaluation.agent_evaluator.AgentEvaluator is not available. "
@@ -561,40 +624,55 @@ class AdkEvalAdapter:
     ) -> Tuple[bool, float, str]:
         """Google ADK 2.0 純正の ResponseEvaluator (ROUGE-1) を用いて回答の字句一致率を測定します。
         
-        （オフライン検証・単体テスト用ヘルパー）
+        force_deterministic 時またはオフライン時は高速・確実な決定論的 ROUGE-1 一致率計算を行い、
+        API キー接続時またはライブ時は ADK 純正の ResponseEvaluator を使用します。
         """
-        resp_eval_cls, _ = get_response_evaluator_classes()
-        if resp_eval_cls is None or EvalMetric is None or Invocation is None or genai_types is None:
-            # 軽量 unigram overlap 計算フォールバック
-            import re
-            act_tokens = re.findall(r"\w+", actual_output.lower())
-            exp_tokens = re.findall(r"\w+", expected_output.lower())
+        import re
+
+        def _calc_unigram_overlap(act: str, exp: str) -> float:
+            act_tokens = re.findall(r"\w+", act.lower())
+            exp_tokens = re.findall(r"\w+", exp.lower())
             if not exp_tokens:
-                score = 1.0 if not act_tokens else 0.0
-            else:
-                overlap = sum(1 for t in exp_tokens if t in act_tokens)
-                score = overlap / len(exp_tokens)
+                return 1.0 if not act_tokens else 0.0
+            overlap = sum(1 for t in exp_tokens if t in act_tokens)
+            return overlap / len(exp_tokens)
+
+        # 決定論的オフライン実行の場合、重い依存関係のロードやネットワーク待機を回避
+        if self.force_deterministic or not self.live:
+            score = _calc_unigram_overlap(actual_output, expected_output)
             is_passed = (score >= threshold)
-            return is_passed, score, f"Unigram overlap (ROUGE-1): score={score:.2f}"
+            return is_passed, score, f"Deterministic ROUGE-1: score={score:.2f}"
 
-        eval_metric = EvalMetric(metric_name="response_match_score", threshold=threshold)
-        evaluator = resp_eval_cls(eval_metric=eval_metric)
+        # ライブ実行時: ADK 純正 ResponseEvaluator の利用を試行
+        _ensure_adk_loaded()
+        try:
+            resp_eval_cls, _ = get_response_evaluator_classes()
+            if resp_eval_cls is not None and EvalMetric is not None and Invocation is not None and genai_types is not None:
+                eval_metric = EvalMetric(metric_name="response_match_score", threshold=threshold)
+                evaluator = resp_eval_cls(eval_metric=eval_metric)
 
-        actual_inv = Invocation(
-            invocation_id="eval_resp_act",
-            user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
-            final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=actual_output)])
-        )
-        expected_inv = Invocation(
-            invocation_id="eval_resp_exp",
-            user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
-            final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=expected_output)])
-        )
+                actual_inv = Invocation(
+                    invocation_id="eval_resp_act",
+                    user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
+                    final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=actual_output)])
+                )
+                expected_inv = Invocation(
+                    invocation_id="eval_resp_exp",
+                    user_content=genai_types.Content(parts=[genai_types.Part.from_text(text="eval_query")]),
+                    final_response=genai_types.Content(parts=[genai_types.Part.from_text(text=expected_output)])
+                )
 
-        result = evaluator.evaluate_invocations(
-            actual_invocations=[actual_inv],
-            expected_invocations=[expected_inv]
-        )
-        score = float(result.overall_score)
+                result = evaluator.evaluate_invocations(
+                    actual_invocations=[actual_inv],
+                    expected_invocations=[expected_inv]
+                )
+                score = float(result.overall_score)
+                is_passed = (score >= threshold)
+                return is_passed, score, f"ADK ResponseEvaluator (ROUGE-1): score={score:.2f}"
+        except Exception:
+            pass
+
+        # フォールバック
+        score = _calc_unigram_overlap(actual_output, expected_output)
         is_passed = (score >= threshold)
-        return is_passed, score, f"ADK ResponseEvaluator (ROUGE-1): score={score:.2f}"
+        return is_passed, score, f"ROUGE-1 Fallback: score={score:.2f}"

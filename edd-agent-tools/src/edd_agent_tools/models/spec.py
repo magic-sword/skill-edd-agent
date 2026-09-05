@@ -25,14 +25,8 @@ class ModuleType(StrEnum):
     AGENT = "agent"
 
 
-try:
-    from google.adk.skills.models import Frontmatter as AdkFrontmatter
-except ImportError:
-    AdkFrontmatter = BaseModel
-
-
-class SkillFrontmatter(AdkFrontmatter):
-    """SKILL.md の YAML Frontmatter メタデータ (Google ADK 2.0 純正モデル完全継承 & 拡張)"""
+class SkillFrontmatter(BaseModel):
+    """SKILL.md の YAML Frontmatter メタデータ (Google ADK 2.0 純正モデル完全準拠 & 拡張)"""
     model_config = ConfigDict(populate_by_name=True, extra="allow")
 
     name: str = Field(..., pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$", description="スキル識別子 (ハイフンケース)")

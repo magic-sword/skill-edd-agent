@@ -109,11 +109,11 @@ class EddSkillToolset(SkillToolset):
             include_system_skills=self.system_skills
         )
 
-        # コードエグゼキュータのデフォルト解決（ADK公式のUnsafeLocalCodeExecutorを利用）
+        # コードエグゼキュータのデフォルト解決（ADK公式 BaseCodeExecutor 準拠の LocalSubprocessCodeExecutor を利用）
         if code_executor is None:
             try:
-                from google.adk.code_executors import UnsafeLocalCodeExecutor
-                code_executor = UnsafeLocalCodeExecutor()
+                from .executor import LocalSubprocessCodeExecutor
+                code_executor = LocalSubprocessCodeExecutor(timeout_seconds=script_timeout)
             except Exception:
                 code_executor = None
 

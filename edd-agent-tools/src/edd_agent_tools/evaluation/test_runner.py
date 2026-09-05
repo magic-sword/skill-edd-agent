@@ -24,7 +24,18 @@ class ContractTestRunner:
     """
     スキルの仕様（SKILL.md）および CLI 規約（--help, 引数, 終了コード, 出力）に基づき、
     テストケースデータ（JSON）を用いて決定論的かつ隔離環境下で契約テストを実行するクラス。
+    Google ADK 2.0 公式の CodeExecutor 基盤と完全統合され、本番エージェントと同一の環境でテストします。
     """
+
+    def __init__(self, code_executor: Optional[Any] = None):
+        if code_executor is not None:
+            self.code_executor = code_executor
+        else:
+            try:
+                from edd_agent_tools.adk.executor import LocalSubprocessCodeExecutor
+                self.code_executor = LocalSubprocessCodeExecutor()
+            except ImportError:
+                self.code_executor = None
 
     def run_tests(
         self,
@@ -32,7 +43,8 @@ class ContractTestRunner:
         test_cases_data: Dict[str, Any] | EvalCaseSet,
         env: WorkspaceEnvProtocol,
         timeout_seconds: int = 180,
-        pass_k: int = 1
+        pass_k: int = 1,
+        code_executor: Optional[Any] = None
     ) -> EvalRunResult:
         """
         指定されたテストケースデータに基づいて、スキルの CLI 契約テストを実行します。
@@ -44,6 +56,7 @@ class ContractTestRunner:
             env: 隔離環境オブジェクト（WorkspaceEnvProtocol）。
             timeout_seconds: タイムアウト秒数。
             pass_k: 連続実行回数（持続的信頼性指標）。
+            code_executor: 実行に使用する CodeExecutor（指定しない場合はインスタンス既定値）。
 
         Returns:
             EvalRunResult: テストの実行結果。
@@ -65,6 +78,7 @@ class ContractTestRunner:
         failed = 0
         total = len(active_cases) * max(1, pass_k)
         failed_cases: list[FailedCaseDetail] = []
+        active_executor = code_executor or self.code_executor
 
         for k_idx in range(max(1, pass_k)):
             if pass_k > 1:
@@ -92,37 +106,16 @@ class ContractTestRunner:
                             run_skill_call = t_args
                             break
 
-                # 2. 実行対象スクリプトおよび CLI 引数リストの正規化
+                script_args = None
+                short_options = None
+                positional_args = None
+
+                # 2. 実行対象スクリプトおよび引数の解決
                 if run_skill_call is not None:
                     script_rel = run_skill_call.get("file_path") or script_rel
                     script_args = run_skill_call.get("args")
                     short_options = run_skill_call.get("short_options")
                     positional_args = run_skill_call.get("positional_args")
-
-                    cli_args = []
-                    # 1. args (long options) または引数リスト (ADK 公式 RunSkillScriptTool 準拠)
-                    if isinstance(script_args, list):
-                        cli_args.extend(str(a) for a in script_args)
-                    else:
-                        if isinstance(script_args, dict):
-                            for ak, av in script_args.items():
-                                flag = f"--{ak.replace('_', '-')}" if not ak.startswith("-") else ak
-                                if av is True:
-                                    cli_args.append(flag)
-                                elif av is not False and av is not None:
-                                    cli_args.extend([flag, str(av)])
-                        # 2. short_options
-                        if short_options and isinstance(short_options, dict):
-                            for sk, sv in short_options.items():
-                                s_flag = f"-{sk}" if not sk.startswith("-") else sk
-                                if sv is True:
-                                    cli_args.append(s_flag)
-                                elif sv is not False and sv is not None:
-                                    cli_args.extend([s_flag, str(sv)])
-                        # 3. positional_args (ADK 公式: '--' で区切って末尾に追加)
-                        if positional_args and isinstance(positional_args, list):
-                            cli_args.append("--")
-                            cli_args.extend(str(p) for p in positional_args)
 
                 if not script_rel:
                     script_rel = skill.list_scripts()[0] if skill.list_scripts() else None
@@ -143,71 +136,51 @@ class ContractTestRunner:
                     )
                     continue
 
-                # 3. 実行コマンドの構築
-                if script_rel in ("edd", "cli") or getattr(case, "command", None) in ("edd", "cli"):
-                    cmd = [sys.executable, "-m", "edd_agent_tools.cli", *cli_args]
-                    work_dir = skill.root_dir
-                else:
-                    if os.path.isabs(script_rel):
-                        script_path = script_rel
-                    elif script_rel.startswith("scripts/"):
-                        script_path = os.path.join(skill.root_dir, script_rel)
-                    else:
-                        script_path = os.path.join(skill.scripts_dir, script_rel)
-
-                    if not os.path.exists(script_path):
-                        script_path = os.path.join(skill.scripts_dir, os.path.basename(script_rel))
-
-                    if not os.path.exists(script_path):
-                        err_msg = f"Script '{script_rel}' not found in skill '{skill.name}'."
-                        failed += 1
-                        failed_cases.append(
-                            FailedCaseDetail(
-                                eval_case_id=case_id,
-                                script_name=script_rel,
-                                cli_args=cli_args,
-                                expected=f"Exit code {case.expected_exit_code}",
-                                actual=err_msg,
-                                error_type="FileNotFoundError",
-                                error_message=err_msg
-                            )
-                        )
-                        continue
-
-                    cmd = [sys.executable, script_path, *cli_args]
-                    work_dir = skill.root_dir
-
-                # 4. 決定論的 CLI 実行 (環境変数とタイムアウトを安全に制御)
-                print(f"\n[TestRunner] Running CLI test '{case_id}' on {script_rel} with args: {cli_args}")
-                env_vars = os.environ.copy()
-                env_vars["EDD_SKILL_NAME"] = skill.name
-                env_vars["EDD_SKILL_ROOT"] = str(skill.root_dir)
+                print(f"\n[TestRunner] Running CLI test '{case_id}' on {script_rel}")
 
                 try:
-                    proc = subprocess.run(
-                        cmd,
-                        capture_output=True,
-                        text=True,
-                        cwd=work_dir,
-                        env=env_vars,
-                        timeout=timeout_seconds
-                    )
+                    # 3. 実行（メタツール CLI か スキルスクリプトかで適切に分岐）
+                    if script_rel in ("edd", "cli") or getattr(case, "command", None) in ("edd", "cli"):
+                        exec_cmd = [sys.executable, "-m", "edd_agent_tools.cli", *cli_args]
+                        proc = subprocess.run(
+                            exec_cmd,
+                            capture_output=True,
+                            text=True,
+                            cwd=skill.root_dir,
+                            timeout=timeout_seconds
+                        )
+                        stdout = proc.stdout or ""
+                        stderr = proc.stderr or ""
+                        exit_code = proc.returncode
+                    else:
+                        # スキルスクリプト: Google ADK 2.0 公式 _SkillScriptCodeExecutor / CodeExecutor に一本化
+                        if script_args is None and short_options is None and positional_args is None:
+                            script_args = cli_args
 
-                    stdout = proc.stdout or ""
-                    stderr = proc.stderr or ""
-                    exit_code = proc.returncode
+                        res = skill.execute_script(
+                            script_name=script_rel,
+                            args=script_args,
+                            short_options=short_options,
+                            positional_args=positional_args,
+                            code_executor=active_executor,
+                            timeout=timeout_seconds
+                        )
+                        stdout = res.get("stdout", "")
+                        stderr = res.get("stderr", "")
+                        exit_code = res.get("exit_code", 0 if res.get("status") == "success" else 1)
 
+                    # 4. アサーション検証
                     cli_failed = False
                     fail_reasons = []
 
-                    # 1. Exit Code 検証
+                    # Exit Code 検証
                     if exit_code != case.expected_exit_code:
                         cli_failed = True
                         fail_reasons.append(
                             f"Expected exit code {case.expected_exit_code}, got {exit_code}. Stderr: {stderr.strip()}"
                         )
 
-                    # 2. Stdout キーワード検証
+                    # Stdout キーワード検証
                     if case.expected_stdout_contains:
                         for expected_kw in case.expected_stdout_contains:
                             if expected_kw not in stdout:
@@ -231,7 +204,7 @@ class ContractTestRunner:
                         )
                         print(f"[TestRunner] ❌ Case '{case_id}' failed: {'; '.join(fail_reasons)}")
                     else:
-                        print(f"[TestRunner] ✅ Case '{case_id}' passed (CLI Exit code: {exit_code})")
+                        print(f"[TestRunner] ✅ Case '{case_id}' passed (Exit code: {exit_code})")
                         passed += 1
 
                 except subprocess.TimeoutExpired:

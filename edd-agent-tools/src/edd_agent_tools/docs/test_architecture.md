@@ -59,13 +59,14 @@ flowchart LR
 - 参照回答とモデル回答の位置を反転させて 2 回推論する **Position Swapping** により順序バイアスを中和。
 - 通常テスト・CI は決定論的契約テスト（`ContractTestRunner`）および Trajectory Evaluator でミリ秒単位で高速・安定実行し、ライブ検証時のみ Gemini API リモート推論を実行。
 
-### ④ スクリプト実行エンジンの二重層化 (`SkillPackage.execute_script`)
-- 自前の一時展開スクリプト生成コード（車輪の再発明）を完全削除。
-- `SkillPackage.execute_script` はデフォルトで完全隔離された高速・決定論的なサブプロセス（`LocalSubprocessExecutor`）により安全にスクリプトを実行し、テスト環境でのマルチプロセッシングハングやゾンビプロセスの発生を防止。
-- 明示的に `code_executor`（ADK の `BaseCodeExecutor`）が注入された場合のみ、Google ADK 2.0 純正の `SkillToolset` 内に配備されている公式 `RunSkillScriptTool`（`run_skill_script`）に直接委譲。
+### ④ Google ADK 2.0 純正スクリプト実行基盤への一本化 (`SkillPackage.execute_script`)
+- 自前の一時展開スクリプト生成コードや脆弱な subprocess 直叩き（車輪の再発明）を完全削除。
+- `SkillPackage.execute_script` は Google ADK 2.0 純正のスクリプト実行基盤（`_SkillScriptCodeExecutor` / `UnsafeLocalCodeExecutor` 等の `BaseCodeExecutor`）に一本化。
+- スキルリソース（`references/`, `assets/`, `scripts/`）を安全な一時ディレクトリに自己展開し、パストラバーサル防御、公式引数順序展開（short_options ➔ args ➔ positional_args）を行って安全かつ決定論的に実行。
 
-### ⑤ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
-- **ADK 2.0 規格準拠の決定論的 CLI 実行**: `run_skill_script` ツール呼び出し仕様（`positional_args`, `short_options`, `args`）から正規化された CLI 引数を導出し、非公開内部クラス（`_SkillScriptCodeExecutor`）や不要なマルチプロセッシング（`spawn`）への依存を排除して隔離環境で決定論的 Black-box 実行。
+### ⑤ 決定論的契約テストと完全な環境パリティ (`ContractTestRunner`)
+- **本番環境と同一の実行基盤**: `ContractTestRunner` も手製 subprocess 実行を全廃し、本番と同じ `SkillPackage.execute_script`（ADK 2.0 純正スクリプト実行器）を透過駆動。テストと本番エージェント実行の完全な環境パリティ（Environment Parity）を保証。
+- **ADK 2.0 規格準拠の決定論的実行**: `run_skill_script` ツール呼び出し仕様（`positional_args`, `short_options`, `args`）から正規化された引数を導出し、隔離環境で決定論的 Black-box 実行。
 - **$pass^k$ (Sustained Reliability)**: 1 回のラッキー合格を排除し、指定された $k$ 回連続実行（例: $k=3$）ですべて合格することを要求。
 
 ### ⑥ Co-loaded 複数スキル共存ベンチマーク (`CoLoadedEvalRunner`)

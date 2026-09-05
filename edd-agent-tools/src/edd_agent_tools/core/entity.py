@@ -8,6 +8,7 @@ Google ADK 2.0 準拠のスキルパッケージ管理ドメインクラス。
 import os
 import sys
 import json
+import asyncio
 import datetime
 import subprocess
 from pathlib import Path
@@ -310,9 +311,8 @@ class SkillPackage:
     ) -> Dict[str, Any]:
         """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。
         
-        デフォルトでは完全隔離された高速・安全なサブプロセス（LocalSubprocessExecutor）により
-        決定論的 CLI 実行を行い、マルチプロセッシングのハングやゾンビプロセスの発生を防止します。
-        code_executor が明示的に注入された場合は、Google ADK 2.0 純正の SkillToolset に委譲します。
+        Google ADK 2.0 純正のスクリプト実行基盤（_SkillScriptCodeExecutor / UnsafeLocalCodeExecutor 等の BaseCodeExecutor）
+        により、リソース（references, assets）の自己展開、パストラバーサル防御、および公式引数順序展開を行って安全・決定論的に実行します。
         """
         scripts = self.list_scripts()
         target_script = None
@@ -363,44 +363,70 @@ class SkillPackage:
                 os.environ[k] = str(v)
 
         try:
-            # 外部 CodeExecutor が指定された場合、ADK 2.0 純正 CodeExecutionInput 経由で直接実行
-            if code_executor is not None:
-                from google.adk.code_executors.base_code_executor import CodeExecutionInput
-                exec_cmd = ["bash", target_script] if is_shell else [sys.executable, target_script] + cmd_args
-                wrapper_code = f"""
-import subprocess
-import sys
-import os
+            try:
+                from ..adk.executor import LocalSubprocessCodeExecutor
+                from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
+                has_adk_executor = True
+            except ImportError:
+                has_adk_executor = False
 
-_orig_cwd = os.getcwd()
-os.chdir({repr(self.root_dir)})
-try:
-    _cmd = {repr(exec_cmd)}
-    _res = subprocess.run(_cmd, capture_output=True, text=True, timeout={timeout})
-    if _res.stdout:
-        sys.stdout.write(_res.stdout)
-    if _res.stderr:
-        sys.stderr.write(_res.stderr)
-    if _res.returncode != 0:
-        sys.exit(_res.returncode)
-finally:
-    os.chdir(_orig_cwd)
-"""
-                exec_result = code_executor.execute_code(None, CodeExecutionInput(code=wrapper_code))
-                status = "success" if not exec_result.stderr or "usage" in exec_result.stdout.lower() else ("failed" if "exited with code" in exec_result.stderr else "success")
-                exit_code = 0 if status == "success" else 1
+            # Google ADK 2.0 公式スクリプト実行エンジン (_SkillScriptCodeExecutor) を最優先で使用
+            # スキルリソース（references, assets, scripts）を安全な一時ディレクトリに自己展開し、
+            # パストラバーサルを防御した上で公式引数展開を行い、BaseCodeExecutor で実行する
+            if has_adk_executor:
+                executor = code_executor or LocalSubprocessCodeExecutor(timeout_seconds=timeout)
+                script_executor = _SkillScriptCodeExecutor(executor, timeout)
+
+                # 同期コンテキストから安全に非同期スクリプト実行器を呼び出し
+                async def _run_adk_script():
+                    return await script_executor.execute_script_async(
+                        None,
+                        self.adk_skill,
+                        rel_path,
+                        args,
+                        short_options,
+                        positional_args
+                    )
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+
+                if loop and loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as tp:
+                        future = tp.submit(asyncio.run, _run_adk_script())
+                        exec_result = future.result(timeout=timeout + 5)
+                else:
+                    exec_result = asyncio.run(_run_adk_script())
+
+                if "error" in exec_result:
+                    return {
+                        "skill_name": self.name,
+                        "file_path": rel_path,
+                        "status": "failed",
+                        "exit_code": 1,
+                        "stdout": "",
+                        "stderr": exec_result.get("error", ""),
+                        "script_path": target_script,
+                        "executor": type(executor).__name__,
+                        "error_code": exec_result.get("error_code")
+                    }
+
+                is_success = exec_result.get("status") in ("success", "warning")
                 return {
                     "skill_name": self.name,
                     "file_path": rel_path,
-                    "status": status,
-                    "exit_code": exit_code,
-                    "stdout": exec_result.stdout or "",
-                    "stderr": exec_result.stderr or "",
+                    "status": "success" if is_success else "failed",
+                    "exit_code": 0 if is_success else 1,
+                    "stdout": exec_result.get("stdout", ""),
+                    "stderr": exec_result.get("stderr", ""),
                     "script_path": target_script,
-                    "executor": type(code_executor).__name__
+                    "executor": type(executor).__name__
                 }
 
-            # デフォルト: サブプロセスによる決定論的かつ安全・高速な CLI 実行
+            # フォールバック（google-adk 非インストール環境向け）
             cmd = ["bash", target_script] if is_shell else [sys.executable, target_script]
             cmd.extend(cmd_args)
 
@@ -426,7 +452,7 @@ finally:
                 "stdout": proc.stdout or "",
                 "stderr": proc.stderr or "",
                 "script_path": target_script,
-                "executor": "LocalSubprocessExecutor"
+                "executor": "LocalSubprocessFallback"
             }
         except subprocess.TimeoutExpired:
             return {
