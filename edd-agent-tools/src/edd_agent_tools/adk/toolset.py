@@ -9,7 +9,6 @@ import os
 import sys
 import json
 import asyncio
-import subprocess
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Union, Set
 
@@ -82,14 +81,8 @@ class EddSkillRegistry(SkillRegistry):
 
 class EddSkillToolset(SkillToolset):
     """
-    Google ADK 2.0 純正の SkillToolset を継承した統合 Toolset クラス。
-    EDD の Tier 状態管理および動的レジストリと完全統合されています。
-
-    Google ADK 2.0 の Progressive Disclosure（段階的情報開示）仕様に完全準拠：
-    - L1 (Metadata): 初期化時に登録された全スキルの名前・説明が list_skills またはプロンプト経由で開示。
-    - L2 (Instructions): エージェントが必要と判断して load_skill を呼び出した際に SKILL.md 本文が開示。
-    - L3 (Resources): 必要に応じて load_skill_resource や run_skill_script で決定論的スクリプト/資料が開示・実行。
-    - Dynamic Registry: 登録外の外部・追加スキルも EddSkillRegistry (search_skills) 経由で動的探索・解決可能。
+    Google ADK 2.0 純正の SkillToolset の完全互換クラス。
+    EDD の Tier 状態管理および動的レジストリと統合された SkillToolset インスタンスを提供します。
     """
 
     def __init__(
@@ -103,7 +96,8 @@ class EddSkillToolset(SkillToolset):
         tool_name_prefix: Optional[str] = None,
         code_executor: Optional[Any] = None,
         enable_registry_search: bool = True,
-        tool_filter: Optional[Any] = None
+        tool_filter: Optional[Any] = None,
+        script_timeout: int = 300
     ):
         self.state = state or (SkillsState(skills_roots=[Path(skills_root)]) if skills_root else SkillsState())
         self.registry = EddSkillRegistry(state=self.state, min_tier=registry_min_tier)
@@ -112,7 +106,6 @@ class EddSkillToolset(SkillToolset):
         self.enable_registry_search = enable_registry_search
 
         # ADK 2.0 Progressive Disclosure: Tier基準を満たすローカルスキルを登録
-        # （L1 Frontmatterがlist_skillsで開示され、L2/L3はload_skill/run_skill_scriptでオンデマンド開示）
         registered_skills = load_adk_skills_from_state(
             state=self.state,
             min_tier=min_tier,
@@ -127,21 +120,17 @@ class EddSkillToolset(SkillToolset):
             except Exception:
                 code_executor = None
 
-        # enable_registry_search が True の場合のみ registry を渡して SearchSkillsTool を公開
-        # （ローカルスキルのみを利用するエージェントでの不要なオーバーサーチや負例での誤検索を完全防止）
         active_registry = self.registry if enable_registry_search else None
 
         super().__init__(
             skills=registered_skills,
             registry=active_registry,
             code_executor=code_executor,
+            script_timeout=script_timeout,
             additional_tools=additional_tools,
             tool_name_prefix=tool_name_prefix,
             tool_filter=tool_filter
         )
-
-    # EddSkillToolset inherits all official tools (ListSkillsTool, LoadSkillTool,
-    # LoadSkillResourceTool, RunSkillScriptTool, SearchSkillsTool) directly from ADK 2.0 SkillToolset.
 
 
 
@@ -221,10 +210,11 @@ def create_adk_skill_toolset(
     tool_name_prefix: Optional[str] = None,
     code_executor: Optional[Any] = None,
     enable_registry_search: bool = True,
-    tool_filter: Optional[Any] = None
-) -> EddSkillToolset:
+    tool_filter: Optional[Any] = None,
+    script_timeout: int = 300
+) -> SkillToolset:
     """
-    Google ADK 2.0 純正仕様に完全準拠した EddSkillToolset インスタンスを生成して返します。
+    Google ADK 2.0 公式仕様に完全準拠した SkillToolset インスタンスを生成して返します。
     """
     return EddSkillToolset(
         skills_root=skills_dir,
@@ -236,6 +226,7 @@ def create_adk_skill_toolset(
         tool_name_prefix=tool_name_prefix,
         code_executor=code_executor,
         enable_registry_search=enable_registry_search,
-        tool_filter=tool_filter
+        tool_filter=tool_filter,
+        script_timeout=script_timeout
     )
 

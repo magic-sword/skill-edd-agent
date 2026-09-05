@@ -306,130 +306,107 @@ class SkillPackage:
         rel_path = f"scripts/{clean_name if script_name else os.path.basename(target_script)}"
         is_shell = target_script.endswith((".sh", ".bash"))
 
-        # 1. BaseCodeExecutor (UnsafeLocalCodeExecutor 等) が指定された場合、ADK 2.0 純正 RunSkillScriptTool に委譲
-        if code_executor is not None:
+        # Google ADK 2.0 純正 BaseCodeExecutor (UnsafeLocalCodeExecutor 等) をデフォルト解決
+        if code_executor is None:
             try:
-                from google.adk.tools.skill_toolset import SkillToolset
-                toolset = SkillToolset(skills=[self.adk_skill], code_executor=code_executor, script_timeout=timeout)
-
-                class _AdkToolContext:
-                    invocation_id = f"exec_{self.name}"
-                    class _Invocation:
-                        agent = None
-                    _invocation_context = _Invocation()
-
-                tool_args: Dict[str, Any] = {
-                    "skill_name": self.name,
-                    "file_path": rel_path
-                }
-                if args is not None:
-                    tool_args["args"] = args
-                if positional_args is not None:
-                    tool_args["positional_args"] = positional_args
-                if short_options is not None:
-                    tool_args["short_options"] = short_options
-
-                async def _invoke_adk_tool():
-                    # ADK 2.0 純正公開API get_tools() を非同期 await して run_skill_script ツールを取得
-                    tools = await toolset.get_tools()
-                    run_tool = next(t for t in tools if t.name == "run_skill_script")
-                    return await run_tool.run_async(args=tool_args, tool_context=_AdkToolContext())
-
-                import asyncio
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = None
-
-                if loop and loop.is_running():
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                        res = pool.submit(asyncio.run, _invoke_adk_tool()).result()
-                else:
-                    res = asyncio.run(_invoke_adk_tool())
-
-                if isinstance(res, dict) and "error" in res:
-                    return {
-                        "skill_name": self.name,
-                        "file_path": rel_path,
-                        "status": "failed",
-                        "exit_code": 1,
-                        "stdout": "",
-                        "stderr": res.get("error", ""),
-                        "script_path": target_script,
-                        "error": res.get("error", "")
-                    }
-
-                stdout = res.get("stdout", "") if isinstance(res, dict) else str(res)
-                stderr = res.get("stderr", "") if isinstance(res, dict) else ""
-                status = res.get("status", "success") if isinstance(res, dict) else "success"
-
-                return {
-                    "skill_name": self.name,
-                    "file_path": rel_path,
-                    "status": "success" if status == "success" else "failed",
-                    "exit_code": 0 if status == "success" else 1,
-                    "stdout": stdout,
-                    "stderr": stderr,
-                    "script_path": target_script,
-                    "executor": type(code_executor).__name__
-                }
+                from google.adk.code_executors import UnsafeLocalCodeExecutor
+                code_executor = UnsafeLocalCodeExecutor()
             except Exception as e:
+                raise RuntimeError(
+                    f"Google ADK 2.0 CodeExecutor could not be resolved for executing '{rel_path}': {e}"
+                )
+
+        # 追加の環境変数設定
+        orig_env = {}
+        if extra_env:
+            for k, v in extra_env.items():
+                orig_env[k] = os.environ.get(k)
+                os.environ[k] = str(v)
+
+        try:
+            from google.adk.tools.skill_toolset import SkillToolset
+            toolset = SkillToolset(skills=[self.adk_skill], code_executor=code_executor, script_timeout=timeout)
+
+            class _AdkToolContext:
+                invocation_id = f"exec_{self.name}"
+                class _Invocation:
+                    agent = None
+                _invocation_context = _Invocation()
+
+            tool_args: Dict[str, Any] = {
+                "skill_name": self.name,
+                "file_path": rel_path
+            }
+            if args is not None:
+                tool_args["args"] = args
+            if positional_args is not None:
+                tool_args["positional_args"] = positional_args
+            if short_options is not None:
+                tool_args["short_options"] = short_options
+
+            async def _invoke_adk_tool():
+                # ADK 2.0 純正公開API get_tools() を非同期 await して run_skill_script ツールを取得
+                tools = await toolset.get_tools()
+                run_tool = next(t for t in tools if t.name == "run_skill_script")
+                return await run_tool.run_async(args=tool_args, tool_context=_AdkToolContext())
+
+            import asyncio
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                    res = pool.submit(asyncio.run, _invoke_adk_tool()).result()
+            else:
+                res = asyncio.run(_invoke_adk_tool())
+
+            if isinstance(res, dict) and "error" in res:
                 return {
                     "skill_name": self.name,
                     "file_path": rel_path,
                     "status": "failed",
                     "exit_code": 1,
                     "stdout": "",
-                    "stderr": str(e),
+                    "stderr": res.get("error", ""),
                     "script_path": target_script,
-                    "error": str(e)
+                    "error": res.get("error", "")
                 }
 
-        # 2. 直接実行時 (Subprocess fallback)
-        cmd_args: List[str] = []
-        if isinstance(args, list):
-            cmd_args.extend(str(a) for a in args)
-        else:
-            if isinstance(args, dict):
-                for k, v in args.items():
-                    flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
-                    if v is True:
-                        cmd_args.append(flag)
-                    elif v is not False and v is not None:
-                        cmd_args.extend([flag, str(v)])
+            stdout = res.get("stdout", "") if isinstance(res, dict) else str(res)
+            stderr = res.get("stderr", "") if isinstance(res, dict) else ""
+            status = res.get("status", "success") if isinstance(res, dict) else "success"
 
-            if short_options:
-                for k, v in short_options.items():
-                    flag = f"-{k}" if not k.startswith("-") else k
-                    if v is True:
-                        cmd_args.append(flag)
-                    elif v is not False and v is not None:
-                        cmd_args.extend([flag, str(v)])
-
-            if positional_args:
-                cmd_args.append("--")
-                cmd_args.extend(str(a) for a in positional_args)
-
-        executable = "bash" if is_shell else sys.executable
-        cmd = [executable, target_script] + cmd_args
-        run_env = os.environ.copy()
-        run_env["EDD_SKILL_NAME"] = self.name
-        run_env["EDD_SKILL_ROOT"] = self.root_dir
-        if extra_env:
-            run_env.update(extra_env)
-
-        import subprocess
-        proc = subprocess.run(cmd, env=run_env, capture_output=True, text=True, timeout=timeout)
-        return {
-            "skill_name": self.name,
-            "file_path": rel_path,
-            "status": "success" if proc.returncode == 0 else "failed",
-            "exit_code": proc.returncode,
-            "stdout": proc.stdout,
-            "stderr": proc.stderr,
-            "script_path": target_script
-        }
+            return {
+                "skill_name": self.name,
+                "file_path": rel_path,
+                "status": "success" if status == "success" else "failed",
+                "exit_code": 0 if status == "success" else 1,
+                "stdout": stdout,
+                "stderr": stderr,
+                "script_path": target_script,
+                "executor": type(code_executor).__name__
+            }
+        except Exception as e:
+            return {
+                "skill_name": self.name,
+                "file_path": rel_path,
+                "status": "failed",
+                "exit_code": 1,
+                "stdout": "",
+                "stderr": str(e),
+                "script_path": target_script,
+                "error": str(e)
+            }
+        finally:
+            if orig_env:
+                for k, v in orig_env.items():
+                    if v is None:
+                        os.environ.pop(k, None)
+                    else:
+                        os.environ[k] = v
 
     def __repr__(self) -> str:
         return f"<SkillPackage name='{self.name}' tier={self.tier} path='{self.root_dir}'>"

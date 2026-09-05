@@ -36,7 +36,7 @@ from .packaging.packager import SkillPackager
 from .packaging.scaffold import SkillScaffolder
 
 # ADK 2.0 Integration (Core Toolset & Registry)
-from .adk.toolset import EddSkillToolset, create_adk_skill_toolset
+from .adk.toolset import SkillToolset, EddSkillToolset, EddSkillRegistry, create_adk_skill_toolset
 
 __version__ = "0.7.0"
 
@@ -108,7 +108,9 @@ __all__ = [
     "SkillPackager",
     "SkillScaffolder",
     # ADK
+    "SkillToolset",
     "EddSkillToolset",
+    "EddSkillRegistry",
     "create_adk_skill_toolset",
     # Evaluation (Lazy)
     "ContractTestRunner",

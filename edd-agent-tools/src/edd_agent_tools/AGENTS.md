@@ -48,10 +48,10 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 - **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、白書命名規則、MCP再発明検知）
 - **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（ADK公式 EvalSet および test_config.json インバージョン自動生成）
 - **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK純正 `TrajectoryEvaluator`: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & ADK純正 `RubricBasedFinalResponseQualityV1Evaluator` / `AgentEvaluator` / `TrajectoryEvaluator` / 型安全な専用 `ToolTrajectoryCriterion` / `RubricsBasedCriterion` / `EvalConfig` 直接連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
-- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (3-Tier Progressive Disclosure: Tier適合ローカルスキルの全登録・L1 Frontmatter常時提示・L2 手順書/L3 スクリプトのオンデマンド開示、`enable_registry_search=False` によるローカル完結エージェントの検索ツール露出抑制・オーバーサーチ防止、動的探索用の `EddSkillRegistry` 併用、ADK公式 `UnsafeLocalCodeExecutor` 等の `BaseCodeExecutor` 標準注入・決定論的スクリプト実行), `EddSkillRegistry`, `create_mcp_server`
+- **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `SkillToolset` (および後方互換用 `EddSkillToolset`: 3-Tier Progressive Disclosure: Tier適合ローカルスキルの全登録・L1 Frontmatter常時提示・L2 手順書/L3 スクリプトのオンデマンド開示、`enable_registry_search=False` によるローカル完結エージェントの検索ツール露出抑制・オーバーサーチ防止、動的探索用の `EddSkillRegistry` 併用、ADK公式 `UnsafeLocalCodeExecutor` 等の `BaseCodeExecutor` 標準注入・決定論的スクリプト実行), `EddSkillRegistry`, `create_mcp_server`
 - **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval` [--coverage, --live, --cli], `adk-eval` [--config, --cli], `tier-gate`, `diagnose`, `optimize`, `list`）
 
-※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。アドホックな車輪の再発明やプライベート属性（`_tools` 等）への裏口アクセス、独自の手動キーワード照合による偽ルーブリック判定を完全排除し、ADK 公式コンポーネント（`BaseCodeExecutor`, `await toolset.get_tools()`, `TrajectoryEvaluator`, `EvalSet`, `EvalConfig` [test_config.json: IN_ORDER & Rubrics], `RubricBasedFinalResponseQualityV1Evaluator`, `AgentEvaluator`）を直接使用します。Tool Trajectory 検証およびスクリプト実行は、ADK 2.0 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`, `positional_args`）および `RunSkillScriptTool` に完全一本化し、ドメイン層での展開コード再実装やエージェントプロンプト内でのスキル名ハードコードを徹底排除します。エージェントのライフサイクル制御には ADK 2.0 推奨の Callbacks（`before_agent_callback`, `after_agent_callback`）を活用します。
+※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。アドホックな車輪の再発明やプライベート属性（`_tools` 等）への裏口アクセス、独自の手動キーワード照合による偽ルーブリック判定、自前 `subprocess.run` フォールバックを完全排除し、ADK 公式コンポーネント（`BaseCodeExecutor`, `UnsafeLocalCodeExecutor`, `await toolset.get_tools()`, `TrajectoryEvaluator`, `EvalSet`, `EvalConfig` [test_config.json: IN_ORDER & Rubrics], `RubricBasedFinalResponseQualityV1Evaluator`, `AgentEvaluator`）を直接使用します。Tool Trajectory 検証およびスクリプト実行は、ADK 2.0 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`, `positional_args`）および `RunSkillScriptTool` に完全一本化し、ドメイン層での展開コード再実装やエージェントプロンプト内でのスキル名ハードコードを徹底排除します。エージェントのライフサイクル制御には ADK 2.0 推奨の Callbacks（`before_agent_callback`, `after_agent_callback`）を活用します。
 
 
 ### B. 自己改善スキル資産層（`src/skills/`）の責務と依存関係ポリシー
@@ -121,7 +121,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 * **スキル管理モデル**: `edd_agent_tools.SkillPackage` (エイリアス `Skill`), `edd_agent_tools.models.SkillSpec`, `edd_agent_tools.SkillsState`, `edd_agent_tools.models.SkillTier`
 * **品質保証・パッケージング**: `edd_agent_tools.SkillValidator`, `edd_agent_tools.SkillScaffolder`, `edd_agent_tools.SkillPackager`
 * **評価実行基盤**: `edd_agent_tools.ContractTestRunner`, `edd_agent_tools.SimulationEvalRunner`, `edd_agent_tools.CascadeTestRunner`, `edd_agent_tools.SkillDiagnoser`, `edd_agent_tools.SkillOptimizer`
-* **Google ADK 統合**: `edd_agent_tools.adk.create_adk_skill_toolset`, `edd_agent_tools.adk.EddSkillToolset`, `edd_agent_tools.adk.EddSkillRegistry`
+* **Google ADK 統合**: `edd_agent_tools.adk.create_adk_skill_toolset`, `edd_agent_tools.adk.SkillToolset`, `edd_agent_tools.adk.EddSkillToolset`, `edd_agent_tools.adk.EddSkillRegistry`
 
 ---
 
