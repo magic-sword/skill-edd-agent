@@ -291,15 +291,7 @@ class SkillSpec(BaseModel):
                         except Exception:
                             references[rel] = ""
 
-            ex_dir = dir_path / "examples"
-            if ex_dir.exists():
-                for f in ex_dir.rglob("*"):
-                    if f.is_file():
-                        rel = f"examples/{f.relative_to(ex_dir)}"
-                        try:
-                            references[rel] = f.read_text(encoding="utf-8")
-                        except Exception:
-                            references[rel] = ""
+            # ADK 2.0 公式規格準拠: references/, assets/, scripts/ の3層リソースのみを対象とする
 
             asset_dir = dir_path / "assets"
             if asset_dir.exists():

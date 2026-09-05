@@ -58,7 +58,5 @@ pattern: task_based
 
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: 対応ケース形式一覧およびエッジケース仕様。
-
-### `examples/` (Usage Patterns)
-- **`examples/case_conversion_examples.py`**: 各種ケース変換の具体的な引数・実行パターン集。
+- **`references/case_conversion_examples.py`**: 各種ケース変換の具体的な引数・実行パターン集。
 

@@ -48,6 +48,3 @@ pattern: task_based
 
 ### `references/` (On-Demand Knowledge)
 - `references/guide.md`: Detailed tool guidelines and options.
-
-### `examples/` (Usage Patterns)
-- `examples/example_usage.py`: Example commands and recipes.

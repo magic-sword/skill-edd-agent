@@ -162,12 +162,11 @@ src/skills/{skill_name}/
   SKILL.md       # YAML Frontmatter (動詞起点 + Use when + Do NOT use) + 白書 6大必須セクション (SSOT)
   scripts/       # 決定論的スクリプト（Python標準 snake_case、CLI --help 対応、Zero-dependency、ドメイン処理がある場合のみ）
     {primary_script}.py
-  references/    # ドメイン知識・仕様・スキーマ（オンデマンド参照）
+  references/    # ドメイン知識・仕様・スキーマ・用例パターン集（オンデマンド参照）
     guide.md
-  assets/        # 出力用テンプレート・素材（成果物への流用・コピー用）
+    usage_examples.py
+  assets/        # 出力用テンプレート・素材・サンプル（成果物への流用・コピー用）
     sample.txt
-  examples/      # 具象コード例・パターン集（エージェントが真似できる実装例）
-    example_usage.py
   tests/         # Google ADK 2.0 公式 EvalSet 評価データセット（単一真実源: SSOT、ADK ディレクトリ探索適合）
     {skill_name}.test.json
     test_config.json   # Google ADK 2.0 公式 EvalConfig（IN_ORDER & Rubrics 設定）

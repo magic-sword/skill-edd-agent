@@ -185,29 +185,34 @@ class EvalCase(AdkEvalCase):
             t_args = tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})
             if t_name == "run_skill_script" and isinstance(t_args, dict):
                 args_list = []
-                pos_args = t_args.get("positional_args") or []
-                if isinstance(pos_args, list):
-                    args_list.extend([str(p) for p in pos_args])
-                short_opts = t_args.get("short_options") or {}
-                if isinstance(short_opts, dict):
-                    for sk, sv in short_opts.items():
-                        s_flag = f"-{sk}" if not sk.startswith("-") else sk
-                        if sv is True:
-                            args_list.append(s_flag)
-                        elif sv is not False and sv is not None:
-                            args_list.extend([s_flag, str(sv)])
+                # 1. args (long options) または 引数リスト
                 inner_args = t_args.get("args")
                 if inner_args is None:
                     inner_args = {k: v for k, v in t_args.items() if k not in ("skill_name", "file_path", "positional_args", "short_options")}
-                if isinstance(inner_args, dict):
-                    for k, v in inner_args.items():
-                        flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
-                        if v is True:
-                            args_list.append(flag)
-                        elif v is not False and v is not None:
-                            args_list.extend([flag, str(v)])
-                elif isinstance(inner_args, list):
+                if isinstance(inner_args, list):
                     args_list.extend([str(a) for a in inner_args])
+                else:
+                    if isinstance(inner_args, dict):
+                        for k, v in inner_args.items():
+                            flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+                            if v is True:
+                                args_list.append(flag)
+                            elif v is not False and v is not None:
+                                args_list.extend([flag, str(v)])
+                    # 2. short_options
+                    short_opts = t_args.get("short_options") or {}
+                    if isinstance(short_opts, dict):
+                        for sk, sv in short_opts.items():
+                            s_flag = f"-{sk}" if not sk.startswith("-") else sk
+                            if sv is True:
+                                args_list.append(s_flag)
+                            elif sv is not False and sv is not None:
+                                args_list.extend([s_flag, str(sv)])
+                    # 3. positional_args (ADK 2.0 公式 RunSkillScriptTool 準拠: '--' で区切って末尾に追加)
+                    pos_args = t_args.get("positional_args") or []
+                    if isinstance(pos_args, list) and pos_args:
+                        args_list.append("--")
+                        args_list.extend([str(p) for p in pos_args])
                 return args_list
 
             if isinstance(t_args, dict):

@@ -102,7 +102,6 @@ class SkillScaffolder:
         (target_dir / "scripts").mkdir(exist_ok=True)
         (target_dir / "references").mkdir(exist_ok=True)
         (target_dir / "assets").mkdir(exist_ok=True)
-        (target_dir / "examples").mkdir(exist_ok=True)
         (target_dir / "tests").mkdir(exist_ok=True)
         (target_dir / "tests" / "results").mkdir(exist_ok=True)
 
@@ -189,16 +188,12 @@ if __name__ == "__main__":
         except Exception:
             pass
 
-        # 3. リファレンス・アセット・使用例の配置
+        # 3. リファレンス・アセットの配置 (Google ADK 2.0 公式 3層リソース)
         (target_dir / "references" / "guide.md").write_text(
-            f"# Reference Guide for {skill_title}\n\nDetailed specifications and reference material for {canonical_skill_name}.\n",
+            f"# Reference Guide for {skill_title}\n\nDetailed specifications, usage patterns, and reference material for {canonical_skill_name}.\n",
             encoding="utf-8"
         )
-        (target_dir / "assets" / "sample.txt").write_text(
-            f"Sample asset template for {canonical_skill_name}\n",
-            encoding="utf-8"
-        )
-        (target_dir / "examples" / "example_usage.py").write_text(
+        (target_dir / "references" / "example_usage.py").write_text(
             f'''"""
 Example usage pattern for {canonical_skill_name}.
 """
@@ -206,6 +201,10 @@ Example usage pattern for {canonical_skill_name}.
 # Example: executing {canonical_skill_name}
 # Run with: python scripts/{primary_script}.py --help
 ''',
+            encoding="utf-8"
+        )
+        (target_dir / "assets" / "sample.txt").write_text(
+            f"Sample asset template for {canonical_skill_name}\n",
             encoding="utf-8"
         )
 

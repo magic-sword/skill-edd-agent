@@ -137,54 +137,74 @@ class SkillPackage:
         return self._tests
 
     # ==========================================
-    # 3層リソース探索・取得メソッド群 (ADK 2.0 Resources 優先活用)
+    # 3層リソース探索・取得メソッド群 (ADK 2.0 Resources 準拠)
     # ==========================================
 
     def list_scripts(self) -> List[str]:
-        """内包するスクリプト（ファイル名ベース）の一覧を取得"""
+        """内包するスクリプト（ファイル名ベース）の一覧を取得 (ADK 2.0 Resources 準拠)"""
         if hasattr(self, "_adk_skill") and self._adk_skill is not None:
-            return sorted(list(self._adk_skill.resources.scripts.keys()))
+            return sorted(self._adk_skill.resources.list_scripts())
         scripts_dir = Path(self.root_dir) / "scripts"
         if not scripts_dir.exists():
             return []
         return sorted([f.name for f in scripts_dir.glob("*.py") if f.name != "__init__.py"])
 
     def list_references(self) -> List[str]:
-        """内包する参照資料（ファイル名ベース）の一覧を取得"""
+        """内包する参照資料（ファイル名ベース）の一覧を取得 (ADK 2.0 Resources 準拠)"""
         if hasattr(self, "_adk_skill") and self._adk_skill is not None:
-            all_refs = self._adk_skill.resources.references.keys()
-            return sorted([r for r in all_refs if not r.startswith("examples/")])
+            return sorted(self._adk_skill.resources.list_references())
         ref_dir = Path(self.root_dir) / "references"
         if not ref_dir.exists():
             return []
         return sorted([f.name for f in ref_dir.glob("*") if f.is_file()])
 
     def list_assets(self) -> List[str]:
-        """内包するアセット（ファイル名ベース）の一覧を取得"""
+        """内包するアセット（ファイル名ベース）の一覧を取得 (ADK 2.0 Resources 準拠)"""
         if hasattr(self, "_adk_skill") and self._adk_skill is not None:
-            return sorted(list(self._adk_skill.resources.assets.keys()))
+            return sorted(self._adk_skill.resources.list_assets())
         assets_dir = Path(self.root_dir) / "assets"
         if not assets_dir.exists():
             return []
         return sorted([f.name for f in assets_dir.glob("*") if f.is_file()])
 
     def list_examples(self) -> List[str]:
-        """内包する使用例・パターン例（ファイル名ベース）の一覧を取得"""
-        if hasattr(self, "_adk_skill") and self._adk_skill is not None:
-            all_refs = self._adk_skill.resources.references.keys()
-            return sorted([r.replace("examples/", "") for r in all_refs if r.startswith("examples/")])
-        ex_dir = Path(self.root_dir) / "examples"
-        if not ex_dir.exists():
-            return []
-        return sorted([f.name for f in ex_dir.glob("*") if f.is_file()])
+        """内包する使用例・パターン例の一覧を取得（references/ または assets/ 内の用例、または後方互換 examples/ ディレクトリ）"""
+        examples = []
+        try:
+            adk_res = self.adk_skill.resources
+            ex_refs = [r for r in adk_res.list_references() if "example" in r.lower()]
+            ex_assets = [a for a in adk_res.list_assets() if "example" in a.lower()]
+            examples.extend(ex_refs + ex_assets)
+        except Exception:
+            pass
+
+        # ファイルシステム探索フォールバック
+        for sub in ["references", "assets"]:
+            s_dir = Path(self.root_dir) / sub
+            if s_dir.exists():
+                examples.extend([f.name for f in s_dir.glob("*") if f.is_file() and "example" in f.name.lower()])
+        legacy_dir = Path(self.root_dir) / "examples"
+        if legacy_dir.exists():
+            examples.extend([f.name for f in legacy_dir.glob("*") if f.is_file()])
+        return sorted(list(set(examples)))
 
     def read_example(self, rel_path: str) -> str:
         """指定された使用例ファイルのコンテンツを読み込みます。"""
+        try:
+            adk_res = self.adk_skill.resources
+            content = adk_res.get_asset(rel_path) or adk_res.get_reference(rel_path)
+            if content is not None:
+                return content if isinstance(content, str) else content.decode("utf-8")
+        except Exception:
+            pass
+
         target = Path(self.root_dir) / rel_path
         if not target.exists():
-            cand = Path(self.root_dir) / "examples" / rel_path
-            if cand.exists():
-                target = cand
+            for sub in ["references", "assets", "examples"]:
+                cand = Path(self.root_dir) / sub / rel_path
+                if cand.exists():
+                    target = cand
+                    break
         if not target.exists():
             raise FileNotFoundError(f"Example '{rel_path}' not found in skill '{self.name}'.")
         return target.read_text(encoding="utf-8")
@@ -194,7 +214,11 @@ class SkillPackage:
         return self.read_example(rel_path)
 
     def read_reference(self, rel_path: str) -> str:
-        """指定された参照資料のコンテンツを読み込みます。"""
+        """指定された参照資料のコンテンツを読み込みます (ADK 2.0 Resources 優先)。"""
+        if hasattr(self, "_adk_skill") and self._adk_skill is not None:
+            ref_content = self._adk_skill.resources.get_reference(rel_path)
+            if ref_content is not None:
+                return ref_content if isinstance(ref_content, str) else ref_content.decode("utf-8")
         target = Path(self.root_dir) / rel_path
         if not target.exists():
             cand = Path(self.root_dir) / "references" / rel_path
@@ -308,26 +332,28 @@ class SkillPackage:
         rel_path = f"scripts/{clean_name if script_name else os.path.basename(target_script)}"
         is_shell = target_script.endswith((".sh", ".bash"))
 
-        # コマンドライン引数の正規化
+        # コマンドライン引数の正規化 (ADK 2.0 公式 RunSkillScriptTool 仕様準拠)
         cmd_args = []
-        if positional_args:
-            cmd_args.extend(str(p) for p in positional_args)
-        if short_options and isinstance(short_options, dict):
-            for sk, sv in short_options.items():
-                s_flag = f"-{sk}" if not sk.startswith("-") else sk
-                if sv is True:
-                    cmd_args.append(s_flag)
-                elif sv is not False and sv is not None:
-                    cmd_args.extend([s_flag, str(sv)])
-        if isinstance(args, dict):
-            for ak, av in args.items():
-                flag = f"--{ak.replace('_', '-')}" if not ak.startswith("-") else ak
-                if av is True:
-                    cmd_args.append(flag)
-                elif av is not False and av is not None:
-                    cmd_args.extend([flag, str(av)])
-        elif isinstance(args, list):
+        if isinstance(args, list):
             cmd_args.extend(str(a) for a in args)
+        else:
+            if isinstance(args, dict):
+                for ak, av in args.items():
+                    flag = f"--{ak.replace('_', '-')}" if not ak.startswith("-") else ak
+                    if av is True:
+                        cmd_args.append(flag)
+                    elif av is not False and av is not None:
+                        cmd_args.extend([flag, str(av)])
+            if short_options and isinstance(short_options, dict):
+                for sk, sv in short_options.items():
+                    s_flag = f"-{sk}" if not sk.startswith("-") else sk
+                    if sv is True:
+                        cmd_args.append(s_flag)
+                    elif sv is not False and sv is not None:
+                        cmd_args.extend([s_flag, str(sv)])
+            if positional_args and isinstance(positional_args, list):
+                cmd_args.append("--")
+                cmd_args.extend(str(p) for p in positional_args)
 
         # 追加の環境変数設定
         orig_env = {}
@@ -337,56 +363,39 @@ class SkillPackage:
                 os.environ[k] = str(v)
 
         try:
-            # 外部 CodeExecutor が明示的に指定された場合のみ ADK Toolset を介して実行
+            # 外部 CodeExecutor が指定された場合、ADK 2.0 純正 CodeExecutionInput 経由で直接実行
             if code_executor is not None:
-                from google.adk.tools.skill_toolset import SkillToolset
-                toolset = SkillToolset(skills=[self.adk_skill], code_executor=code_executor, script_timeout=timeout)
+                from google.adk.code_executors.base_code_executor import CodeExecutionInput
+                exec_cmd = ["bash", target_script] if is_shell else [sys.executable, target_script] + cmd_args
+                wrapper_code = f"""
+import subprocess
+import sys
+import os
 
-                class _AdkToolContext:
-                    invocation_id = f"exec_{self.name}"
-                    class _Invocation:
-                        agent = None
-                    _invocation_context = _Invocation()
-
-                tool_args: Dict[str, Any] = {
-                    "skill_name": self.name,
-                    "file_path": rel_path
-                }
-                if args is not None:
-                    tool_args["args"] = args
-                if positional_args is not None:
-                    tool_args["positional_args"] = positional_args
-                if short_options is not None:
-                    tool_args["short_options"] = short_options
-
-                async def _invoke_adk_tool():
-                    tools = await toolset.get_tools()
-                    run_tool = next(t for t in tools if t.name == "run_skill_script")
-                    return await run_tool.run_async(args=tool_args, tool_context=_AdkToolContext())
-
-                import asyncio
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = None
-
-                if loop and loop.is_running():
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                        res = pool.submit(asyncio.run, _invoke_adk_tool()).result()
-                else:
-                    res = asyncio.run(_invoke_adk_tool())
-
-                stdout = res.get("stdout", "") if isinstance(res, dict) else str(res)
-                stderr = res.get("stderr", "") if isinstance(res, dict) else ""
-                status = res.get("status", "success") if isinstance(res, dict) else "success"
+_orig_cwd = os.getcwd()
+os.chdir({repr(self.root_dir)})
+try:
+    _cmd = {repr(exec_cmd)}
+    _res = subprocess.run(_cmd, capture_output=True, text=True, timeout={timeout})
+    if _res.stdout:
+        sys.stdout.write(_res.stdout)
+    if _res.stderr:
+        sys.stderr.write(_res.stderr)
+    if _res.returncode != 0:
+        sys.exit(_res.returncode)
+finally:
+    os.chdir(_orig_cwd)
+"""
+                exec_result = code_executor.execute_code(None, CodeExecutionInput(code=wrapper_code))
+                status = "success" if not exec_result.stderr or "usage" in exec_result.stdout.lower() else ("failed" if "exited with code" in exec_result.stderr else "success")
+                exit_code = 0 if status == "success" else 1
                 return {
                     "skill_name": self.name,
                     "file_path": rel_path,
-                    "status": "success" if status == "success" else "failed",
-                    "exit_code": 0 if status == "success" else 1,
-                    "stdout": stdout,
-                    "stderr": stderr,
+                    "status": status,
+                    "exit_code": exit_code,
+                    "stdout": exec_result.stdout or "",
+                    "stderr": exec_result.stderr or "",
                     "script_path": target_script,
                     "executor": type(code_executor).__name__
                 }

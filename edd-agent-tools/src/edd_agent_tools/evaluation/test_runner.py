@@ -100,24 +100,29 @@ class ContractTestRunner:
                     positional_args = run_skill_call.get("positional_args")
 
                     cli_args = []
-                    if positional_args and isinstance(positional_args, list):
-                        cli_args.extend(str(p) for p in positional_args)
-                    if short_options and isinstance(short_options, dict):
-                        for sk, sv in short_options.items():
-                            s_flag = f"-{sk}" if not sk.startswith("-") else sk
-                            if sv is True:
-                                cli_args.append(s_flag)
-                            elif sv is not False and sv is not None:
-                                cli_args.extend([s_flag, str(sv)])
-                    if isinstance(script_args, dict):
-                        for ak, av in script_args.items():
-                            flag = f"--{ak.replace('_', '-')}" if not ak.startswith("-") else ak
-                            if av is True:
-                                cli_args.append(flag)
-                            elif av is not False and av is not None:
-                                cli_args.extend([flag, str(av)])
-                    elif isinstance(script_args, list):
+                    # 1. args (long options) または引数リスト (ADK 公式 RunSkillScriptTool 準拠)
+                    if isinstance(script_args, list):
                         cli_args.extend(str(a) for a in script_args)
+                    else:
+                        if isinstance(script_args, dict):
+                            for ak, av in script_args.items():
+                                flag = f"--{ak.replace('_', '-')}" if not ak.startswith("-") else ak
+                                if av is True:
+                                    cli_args.append(flag)
+                                elif av is not False and av is not None:
+                                    cli_args.extend([flag, str(av)])
+                        # 2. short_options
+                        if short_options and isinstance(short_options, dict):
+                            for sk, sv in short_options.items():
+                                s_flag = f"-{sk}" if not sk.startswith("-") else sk
+                                if sv is True:
+                                    cli_args.append(s_flag)
+                                elif sv is not False and sv is not None:
+                                    cli_args.extend([s_flag, str(sv)])
+                        # 3. positional_args (ADK 公式: '--' で区切って末尾に追加)
+                        if positional_args and isinstance(positional_args, list):
+                            cli_args.append("--")
+                            cli_args.extend(str(p) for p in positional_args)
 
                 if not script_rel:
                     script_rel = skill.list_scripts()[0] if skill.list_scripts() else None

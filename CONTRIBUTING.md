@@ -58,11 +58,10 @@
 1. **単一真実源 (Markdown-First & CLI-as-an-API)**:
    - スキルの振る舞い、インターフェース、意思決定ツリー、手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化します。
    - メタスキル（`skill-creator`, `skill-evolver`）は `pip install edd-agent-tools` を前提とし、統合 CLI `edd` を直接呼び出す手順書（CLI-as-an-API）として記述します。
-2. **Progressive Disclosure (リソース分離)**:
+2. **Progressive Disclosure (Google ADK 2.0 純正規格 3層リソース分離)**:
    - `scripts/`: 直接実行可能な決定論的スクリプト（Python/Bash, `--help` 必須, Black-box 実行）
-   - `references/`: ドメイン知識・API仕様・スキーマ（オンデマンド参照資料）
-   - `assets/`: 出力用テンプレート・素材・ボイラープレート（空ディレクトリは残置しない）
-   - `examples/`: エージェントが真似できる具象コード例・パターン集
+   - `references/`: ドメイン知識・API仕様・スキーマ・用例パターン集（オンデマンド参照資料）
+   - `assets/`: 出力用テンプレート・素材・サンプル・ボイラープレート（空ディレクトリは残置しない）
    - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（`<skill-name>.test.json`: 単一真実源: SSOT、ADK ディレクトリ自動探索適合）
 3. **命名規約 (ADK 2.0 ランタイム完全一致)**:
    - ディレクトリ名・スキル名は `kebab-case`（例: `case-converter`）で完全一致させます（ADK 2.0 `load_skill_from_dir` の必須要件）。

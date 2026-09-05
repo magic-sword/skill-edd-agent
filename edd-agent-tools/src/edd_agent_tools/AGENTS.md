@@ -11,7 +11,7 @@
   FastMCP サーバー（`edd-agent-mcp`）が提供する以下のリソースを優先的に読み込んでください：
   - `edd://docs/design_philosophy` : 中核設計思想・Two-Tier アーキテクチャ・カスケード解決・Prerequisites 方針
   - `edd://rules/agents` : プラットフォーム不変契約および変更可能領域の定義
-  - `edd://guidelines/progressive_disclosure` : リソース分離（scripts/references/assets/examples）規約
+  - `edd://guidelines/progressive_disclosure` : リソース分離（scripts/references/assets）規約
 * **ローカルファイル経由の確認**:
   MCP が利用できない環境では、以下の SSOT ファイルを直接参照してください：
   - [`edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md`](file:///workspace/edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md)
@@ -87,9 +87,8 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 * **🟢 エージェント変更可能領域 (Mutable Zone: 自己進化対象)**:
   - `SKILL.md` (プロンプト指示、意思決定ツリー、トリガー条件、When NOT to use)
   - `scripts/` 配下の個別ドメインロジック（ビジネスルール・変換関数）
-  - `references/` (ドメイン知識、スキーマ仕様)
-  - `assets/` (出力用テンプレート・素材)
-  - `examples/` (具象コード例・パターン集)
+  - `references/` (ドメイン知識、スキーマ仕様、用例パターン集)
+  - `assets/` (出力用テンプレート・素材・サンプル)
   - `tests/` (Google ADK 2.0 公式 EvalSet 評価データセット `*.test.json`)
 * **🔴 エージェント不変・契約領域 (Immutable API Contract: 不変プラットフォーム)**:
   - `edd_agent_tools.*` (パッケージ内部のコード)
@@ -100,11 +99,10 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 ## 3. 単一真実源の原則と Progressive Disclosure 規約 (Markdown-First)
 * **単一真実源 (SSOT) ➔ `SKILL.md` & `*.test.json`**:
   スキルの仕様、トリガー条件、意思決定ツリー、ステップ手順はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化し、評価基準は `tests/{skill_name}.test.json` に一元化する。
-* **リソース分離**:
+* **リソース分離 (Google ADK 2.0 純正規格: scripts, references, assets)**:
   - `scripts/`: 直接実行可能な決定論的スクリプト（Python標準 `snake_case`、CLI対応, `--help` 必須, Black-box 実行）
-  - `references/`: ドメイン知識・スキーマ・仕様書（オンデマンド参照用）
-  - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
-  - `examples/`: 具象コード例・パターン集（エージェントが真似できる実装例）
+  - `references/`: ドメイン知識・スキーマ・仕様書・用例パターン集（オンデマンド参照用）
+  - `assets/`: 成果物にコピー・流用するためのテンプレート・素材・サンプル
   - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（単一真実源: SSOT）
 
 * **実践的ワークフロー規約**:

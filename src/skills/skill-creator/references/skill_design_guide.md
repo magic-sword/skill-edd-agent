@@ -9,7 +9,7 @@ Anthropic 公式標準（Markdown-First & Progressive Disclosure）および Goo
 
 ---
 
-## 2. 3層リソース分離と Progressive Disclosure
+## 2. 3層リソース分離と Progressive Disclosure (Google ADK 2.0 純正規格)
 * **`scripts/` (実行用スクリプト / 決定論的ブラックボックスツール - Level 3)**:
   - 決定論的処理、ファイル変換、APIリクエストなどを直接実行可能なスクリプト（Python / Bash）として配置する。
   - すべてのスクリプトは `argparse`（`--help` サポート）を備えた直接実行可能な CLI ツールとして実装する。
@@ -17,14 +17,12 @@ Anthropic 公式標準（Markdown-First & Progressive Disclosure）および Goo
   - **二重 LLM 呼び出しの禁止**: スクリプト内部で LLM API を直接叩かず、推論はエージェント自身が行う。
   - `models.py` や `handler.py` 等の多層ラッパー構造を作らず、単一のフラットで簡潔な実装とする。
 * **`references/` (参照用ドキュメント / オンデマンド知識 - Level 3)**:
-  - API仕様、データベーススキーマ、ガイドライン、ルールブックなどを配置する。
+  - API仕様、データベーススキーマ、ガイドライン、ルールブック、および使用例・パターン集（`example_usage.py` や `guide.md`）を配置する。
   - 長大な詳細情報は `SKILL.md` に直接書かず、ここに分離してLLMが必要時にオンデマンドで読むようにする。
 * **`assets/` (出力用テンプレート・素材 - Level 3)**:
-  - 成果物にコピー・流用するためのボイラープレート、HTML/Reactプロジェクト雛形、設定ファイルテンプレートを配置する。
-* **`examples/` (使用例・パターン例集 - Level 3)**:
-  - エージェントがタスク実行時に真似できる具象コード例、呼び出しコマンド例、典型的な設定パターンを配置する。
+  - 成果物にコピー・流用するためのボイラープレート、HTML/Reactプロジェクト雛形、設定ファイルテンプレート、サンプルデータを配置する。
 * **不要ディレクトリの排除 (Clean Directory)**:
-  - リソースが存在しない空の `assets/`, `references/`, `examples/` ディレクトリは作成せず、不要なノイズを完全に排除する。
+  - リソースが存在しない空の `assets/`, `references/` ディレクトリは作成せず、不要なノイズを完全に排除する。Google ADK 2.0 では独自 `examples/` ディレクトリは設けず、用例は `references/`、`assets/`、または `SKILL.md` の `## Examples` セクションに集約する。
 
 ---
 

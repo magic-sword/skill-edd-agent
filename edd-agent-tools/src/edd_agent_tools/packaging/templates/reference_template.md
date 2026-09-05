@@ -22,7 +22,7 @@ pattern: reference
 
 ## Workflow
 1. Identify Relevant Topic: Clarify the domain area, specification, or question being asked.
-2. Consult Reference Knowledge: Read relevant sections in `references/guide.md` or `examples/`.
+2. Consult Reference Knowledge: Read relevant sections in `references/guide.md`.
 3. Provide Grounded Guidance: Deliver recommendations strictly grounded in the reference materials.
 
 ## Examples
@@ -41,6 +41,3 @@ pattern: reference
 ## Bundled Resources
 ### `references/` (On-Demand Knowledge)
 - `references/guide.md`: Specifications and domain guidelines.
-
-### `examples/` (Reference Patterns)
-- `examples/example_usage.md`: Architectural patterns and reference implementations.

@@ -9,7 +9,7 @@
 ```mermaid
 flowchart TD
     subgraph PlatformLayer ["不変プラットフォーム層 (pip: edd-agent-tools)"]
-        Validator["SkillValidator (AST/構文静的リンター, examples/対応)"]
+        Validator["SkillValidator (AST/構文静的リンター, ADK 2.0 純正規格準拠)"]
         AdkEval["AdkEvalAdapter (ADK 2.0 純正 TrajectoryEvaluator, ResponseEvaluator, LLM Judge)"]
         SimRunner["SimulationEvalRunner (3大 Trajectory: EXACT / IN_ORDER / ANY_ORDER)"]
         ContractRunner["ContractTestRunner (pass^k 連続一貫性検証 & サンドボックス)"]
@@ -29,7 +29,7 @@ flowchart TD
     end
 
     PlatformLayer -->|基盤SDK・テストハーネス提供| SkillAssets
-    SkillAssets -->|自己改善ループ (Markdown/Scripts/Assets/Examples/Tests修正)| SkillAssets
+    SkillAssets -->|自己改善ループ (Markdown/Scripts/References/Assets/Tests修正)| SkillAssets
 ```
 
 ### 原則
@@ -42,7 +42,7 @@ flowchart TD
 
 | 分類 | 役割・概要 | 現在の状況 | 対応コンポーネント |
 | :--- | :--- | :--- | :--- |
-| **1. Authoring (自律生成)** | 要件から `SKILL.md`（単一真実源）と Bundled Resources（`scripts/`, `references/`, `assets/`, `examples/`, `tests/`）を自律生成・パッケージング | **✅ 完了 (実証済み)** | `skill-creator`（パターンテンプレート + 契約テスト完備） |
+| **1. Authoring (自律生成)** | 要件から `SKILL.md`（単一真実源）と Bundled Resources（`scripts/`, `references/`, `assets/`, `tests/`）を自律生成・パッケージング | **✅ 完了 (実証済み)** | `skill-creator`（パターンテンプレート + 契約テスト完備） |
 | **2. Evolution (評価・自己改善・昇格)** | 多層評価テスト実行（ADK 評価・Trajectory・pass^k） ➔ 失敗診断 ➔ 差分修正 ➔ 上位連鎖回帰テスト ➔ Human Sign-off ➔ Tier 昇格の完全改善ループ | **✅ 完了 (実証済み)** | `skill-evolver`（統合 eval / diagnose / optimize / tier-gate） |
 
 ---
@@ -61,14 +61,14 @@ flowchart TD
     
     Route -->|spec: 仕様・プロンプト不備| UpdateSpec[SKILL.md の Frontmatter / 手順指示更新]
     Route -->|script: 実装ロジックバグ| UpdateScript[scripts/*.py のコード修正]
-    Route -->|reference: 知識・スキーマ不足| UpdateRef[references/*.md のドキュメント補強]
-    Route -->|example: 使用例パターンの不備| UpdateEx[examples/*.py のパターン例補強]
+    Route -->|reference: 知識・スキーマ・用例不足| UpdateRef[references/ のドキュメント・用例補強]
+    Route -->|asset: テンプレート・素材の不備| UpdateAsset[assets/ のテンプレート・素材補強]
     Route -->|test_case: テスト期待値側の不備| UpdateTest[tests/*.test.json の期待値修正]
     
     UpdateSpec --> Validator[SkillValidator / edd validate 静的リンター]
     UpdateScript --> Validator
     UpdateRef --> Validator
-    UpdateEx --> Validator
+    UpdateAsset --> Validator
     UpdateTest --> ReTest[再テスト実行: edd eval]
     
     Validator -->|Valid| ReTest
@@ -92,7 +92,6 @@ flowchart TD
 
 - **`spec`**: `SKILL.md` の修正（トリガー説明文、意思決定ツリー、手順）
 - **`script`**: `scripts/*.py` の実装ロジック修正
-- **`reference`**: `references/*.md` のドキュメント・スキーマ修正
-- **`asset`**: `assets/` のテンプレート修正
-- **`example`**: `examples/` のパターン例修正
+- **`reference`**: `references/` のドキュメント・スキーマ・用例パターン修正
+- **`asset`**: `assets/` のテンプレート・素材修正
 - **`test_case`**: `tests/*.test.json` の不備・期待値修正

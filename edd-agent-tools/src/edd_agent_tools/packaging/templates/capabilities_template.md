@@ -47,6 +47,3 @@ pattern: capabilities
 
 ### `references/` (On-Demand Knowledge)
 - `references/guide.md`: Specifications and module documentation.
-
-### `examples/` (Usage Patterns)
-- `examples/example_usage.py`: Example configurations and mode invocation patterns.

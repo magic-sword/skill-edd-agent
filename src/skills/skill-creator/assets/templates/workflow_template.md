@@ -48,6 +48,3 @@ pattern: workflow
 
 ### `references/` (On-Demand Knowledge)
 - `references/guide.md`: Specifications and domain guidelines.
-
-### `examples/` (Usage Patterns)
-- `examples/example_usage.py`: Usage examples.

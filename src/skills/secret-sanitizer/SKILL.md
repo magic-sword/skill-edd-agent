@@ -61,6 +61,4 @@ pattern: task_based
 
 ### `references/` (On-Demand Knowledge)
 - **`references/guide.md`**: 対応機密情報パターン一覧、マスク形式仕様、およびエッジケース仕様。
-
-### `examples/` (Usage Patterns)
-- **`examples/example_usage.py`**: 各種マスキングの具体的な引数・実行パターン集。
+- **`references/example_usage.py`**: 各種マスキングの具体的な引数・実行パターン集。

@@ -25,7 +25,7 @@ def test_skill_scaffolder_and_validator(tmp_workspace):
     assert (skill_dir / "scripts" / "custom_pdf_tool.py").exists()
     assert (skill_dir / "references" / "guide.md").exists()
     assert (skill_dir / "assets" / "sample.txt").exists()
-    assert (skill_dir / "examples" / "example_usage.py").exists()
+    assert (skill_dir / "references" / "example_usage.py").exists()
 
     # 静的検証
     val_res = SkillValidator.validate_directory(skill_dir)

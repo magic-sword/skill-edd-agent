@@ -363,5 +363,51 @@ def test_skill_package_execute_script_with_adk_code_executor(test_state):
     assert exec_res.get("executor") == "UnsafeLocalCodeExecutor"
 
 
+def test_adk_native_run_skill_script_arguments_ordering():
+    """Google ADK 2.0 公式 RunSkillScriptTool._build_wrapper_code 規格に完全準拠した引数順序を検証。
+    
+    規格: [file_path, --long-options, -short-options, --, positional_args]
+    """
+    from edd_agent_tools.models.eval import EvalCase
+
+    case = EvalCase.model_validate({
+        "eval_id": "test_args_order_001",
+        "conversation": [
+            {
+                "invocation_id": "inv_001",
+                "user_content": {"role": "user", "parts": [{"text": "Convert test"}]},
+                "intermediate_data": {
+                    "tool_uses": [
+                        {
+                            "name": "run_skill_script",
+                            "args": {
+                                "skill_name": "case-converter",
+                                "file_path": "scripts/case_converter.py",
+                                "positional_args": ["hello_world_example"],
+                                "args": {"to": "camel"},
+                                "short_options": {"v": True}
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    })
+
+    cli_args = case.cli_args
+    # オプションが先、'--' で区切って positional_args が末尾にあることを検証
+    assert "--to" in cli_args
+    assert "camel" in cli_args
+    assert "-v" in cli_args
+    assert "--" in cli_args
+    
+    # 順序の検証: --to camel と -v が '--' より前、hello_world_example が '--' より後
+    sep_idx = cli_args.index("--")
+    assert cli_args.index("--to") < sep_idx
+    assert cli_args.index("-v") < sep_idx
+    assert cli_args.index("hello_world_example") > sep_idx
+
+
+
 
 

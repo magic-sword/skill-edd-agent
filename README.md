@@ -32,7 +32,7 @@ Googleの **ADK 2.0** が提唱する「スキル」によるエージェント�
 ```mermaid
 flowchart TD
     subgraph PlatformLayer ["不変プラットフォーム層 (pip: edd-agent-tools)"]
-        Validator["SkillValidator (AST/構文静的リンター, examples/対応)"]
+        Validator["SkillValidator (AST/構文静的リンター, Google ADK 2.0 準拠)"]
         AdkEval["AdkEvalAdapter (Google ADK 2.0 純正 LLM Judge & Position Swapping)"]
         SimRunner["SimulationEvalRunner (3大 Trajectory: EXACT / IN_ORDER / ANY_ORDER)"]
         ContractRunner["ContractTestRunner (pass^k 連続一貫性検証 & サンドボックス)"]
@@ -51,7 +51,7 @@ flowchart TD
     end
 
     PlatformLayer -->|基盤SDK・テストハーネス提供| SkillAssets
-    SkillAssets -->|自己改善ループ (Markdown/Scripts/Assets/Examples/Tests修正)| SkillAssets
+    SkillAssets -->|自己改善ループ (Markdown/Scripts/References/Assets/Tests修正)| SkillAssets
 ```
 
 1.  **単一真実源の原則 (Markdown-First & Template Assets)**
@@ -61,11 +61,10 @@ flowchart TD
         - `description` は動詞起点（Verb-led sentence）で開始し、「Use when...（発動条件）」および「Do NOT use for...（除外条件）」を明記（50〜100 words）。
     *   **Level 2: SKILL.md 本文 (Instructions)**:
         - 客観的動詞起点（Imperative form: "To accomplish X, do Y"）で記述。Context Rot 対策として 5,000 words 以内に抑え、詳細仕様は `references/` に分離。
-    *   **Level 3: Bundled Resources (On-demand & Execution)**:
+    *   **Level 3: Bundled Resources (On-demand & Execution - Google ADK 2.0 純正規格)**:
         - `scripts/`: 直接実行可能な決定論的スクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）。**Shift Intelligence Left** により決定論的処理をコードへオフロード。
-        - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ
-        - `assets/`: 成果物にコピー・流用するためのテンプレート・素材
-        - `examples/`: エージェントが真似できる具象コード例・パターン集
+        - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ・用例パターン集
+        - `assets/`: 成果物にコピー・流用するためのテンプレート・素材・サンプル
         - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（`<skill-name>.test.json`: 単一真実源: SSOT、ADK ディレクトリ自動探索適合）
 3.  **Google ADK 2.0 純正ランタイム完全一致命名規約**
     *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。

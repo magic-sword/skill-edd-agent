@@ -12,29 +12,25 @@ Skills use a three-level loading system to optimize context window efficiency fo
    - Loaded into context only when the skill triggers (<5k words).
    - Structured into the 6 essential sections: `## When to use`, `## When NOT to use`, `## Workflow`, `## Examples`, `## Output format`, and `## Anti-patterns to avoid`.
 
-3. **Level 3: Bundled Resources**
+3. **Level 3: Bundled Resources (Google ADK 2.0 Native 3-Tier Structure)**
    - Loaded or executed on demand (Unlimited capacity).
-   - Separated into specialized directories: `scripts/`, `references/`, `assets/`, `examples/`, and `tests/` (`{skill_name}.test.json` as Single Source of Truth).
+   - Separated into specialized directories: `scripts/`, `references/`, `assets/`, and `tests/` (`{skill_name}.test.json` as Single Source of Truth). Usage patterns and reference implementations are placed in `references/` or `assets/` to align with the Google ADK 2.0 `Resources` specification.
 
 ---
 
-## 2. Resource Directory Separation
+## 2. Resource Directory Separation (Google ADK 2.0 Pure Spec)
 
 ### `scripts/` (Executable Tools - Black-box Execution)
 - **Purpose**: Deterministic Python/Bash scripts for tasks requiring exact reliability or automation.
 - **Rule**: Must support `--help` CLI parsing (`argparse`/`sys`). Agents must execute with `--help` first to inspect arguments and avoid cluttering context window with raw source code.
 
-### `references/` (On-Demand Knowledge)
-- **Purpose**: In-depth API specifications, database schemas, domain knowledge, and comprehensive policies.
+### `references/` (On-Demand Knowledge & Usage Patterns)
+- **Purpose**: In-depth API specifications, database schemas, domain knowledge, usage patterns, and reference implementations.
 - **Rule**: Loaded into context only when the agent explicitly determines reference material is required. Keep `SKILL.md` lean by moving details here.
 
 ### `assets/` (Output Templates & Boilerplates)
-- **Purpose**: Template files, boilerplates, HTML/React project skeletons, icons, fonts, and assets meant to be copied or used in final outputs.
+- **Purpose**: Template files, boilerplates, HTML/React project skeletons, icons, fonts, sample data, and assets meant to be copied or used in final outputs.
 - **Rule**: Not intended to be read into reasoning context; instead copied or served directly.
-
-### `examples/` (Usage Patterns & Concrete Demonstrations)
-- **Purpose**: Concrete code snippets, sample invocation patterns, and typical configurations for agents to emulate.
-- **Rule**: Loaded on demand when the agent needs guidance on implementation style or parameter formatting.
 
 ---
 
