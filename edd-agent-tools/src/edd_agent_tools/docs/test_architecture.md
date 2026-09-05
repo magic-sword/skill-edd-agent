@@ -65,7 +65,7 @@ flowchart LR
 - 生 `subprocess.run` やプライベート属性の裏口ハックを排除し、安全で決定論的なスクリプト実行を完全保証。
 
 ### ⑤ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
-- **Black-box 実行**: Python 内部コードを直接インポートせず、CLI インターフェース（`cli_args`）経由でサブプロセス実行。
+- **ADK 2.0 純正コード実行**: `run_skill_script` ツール呼び出しを検出し、ADK 2.0 純正の `_SkillScriptCodeExecutor` および `UnsafeLocalCodeExecutor` でエージェント本番実行時と完全に同一のパイプラインでスクリプトを実行・検証（自前引数パース・文字列結合・生サブプロセス実行の車輪の再発明を完全解消）。
 - **$pass^k$ (Sustained Reliability)**: 1 回のラッキー合格を排除し、指定された $k$ 回連続実行（例: $k=3$）ですべて合格することを要求。
 
 ### ⑥ Co-loaded 複数スキル共存ベンチマーク (`CoLoadedEvalRunner`)

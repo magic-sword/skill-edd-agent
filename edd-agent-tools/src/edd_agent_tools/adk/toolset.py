@@ -81,8 +81,7 @@ class EddSkillRegistry(SkillRegistry):
 
 class EddSkillToolset(SkillToolset):
     """
-    Google ADK 2.0 純正の SkillToolset の完全互換クラス。
-    EDD の Tier 状態管理および動的レジストリと統合された SkillToolset インスタンスを提供します。
+    Google ADK 2.0 純正の SkillToolset を継承し、SkillsState および Tier フィルタリングと統合する Toolset クラス。
     """
 
     def __init__(
@@ -95,15 +94,13 @@ class EddSkillToolset(SkillToolset):
         additional_tools: Optional[List[Any]] = None,
         tool_name_prefix: Optional[str] = None,
         code_executor: Optional[Any] = None,
-        enable_registry_search: bool = True,
+        enable_registry_search: bool = False,
         tool_filter: Optional[Any] = None,
         script_timeout: int = 300
     ):
         self.state = state or (SkillsState(skills_roots=[Path(skills_root)]) if skills_root else SkillsState())
-        self.registry = EddSkillRegistry(state=self.state, min_tier=registry_min_tier)
         self.min_tier = min_tier
         self.system_skills = include_system_skills or {"skill-creator", "skill-evolver"}
-        self.enable_registry_search = enable_registry_search
 
         # ADK 2.0 Progressive Disclosure: Tier基準を満たすローカルスキルを登録
         registered_skills = load_adk_skills_from_state(
@@ -120,11 +117,11 @@ class EddSkillToolset(SkillToolset):
             except Exception:
                 code_executor = None
 
-        active_registry = self.registry if enable_registry_search else None
+        self.registry = EddSkillRegistry(state=self.state, min_tier=registry_min_tier) if enable_registry_search else None
 
         super().__init__(
             skills=registered_skills,
-            registry=active_registry,
+            registry=self.registry,
             code_executor=code_executor,
             script_timeout=script_timeout,
             additional_tools=additional_tools,

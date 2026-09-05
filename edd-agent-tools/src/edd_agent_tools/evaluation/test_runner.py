@@ -9,10 +9,15 @@ Contract Test Runner for edd-agent-tools
 import os
 import sys
 import json
+import asyncio
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
+
+from google.adk.skills import load_skill_from_dir
+from google.adk.code_executors import UnsafeLocalCodeExecutor
+from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
 
 from edd_agent_tools.core.entity import Skill
 from edd_agent_tools.core.protocols import WorkspaceEnvProtocol
@@ -73,8 +78,9 @@ class ContractTestRunner:
                 cli_args = list(case.cli_args or [])
                 script_rel = case.script_name
 
-                # ADK 公式 conversation / expected_tool_calls からの自動引数・スクリプト解決
-                if not cli_args and hasattr(case, "expected_tool_calls") and case.expected_tool_calls:
+                # 1. Google ADK 2.0 純正 run_skill_script 呼び出しの直接検出と公式実行
+                run_skill_call = None
+                if hasattr(case, "expected_tool_calls") and case.expected_tool_calls:
                     for tc in case.expected_tool_calls:
                         if isinstance(tc, dict):
                             t_name = tc.get("name") or tc.get("tool", "")
@@ -87,36 +93,94 @@ class ContractTestRunner:
                             t_args = {}
 
                         if t_name == "run_skill_script" and isinstance(t_args, dict):
-                            if not script_rel:
-                                script_rel = t_args.get("file_path")
-                            pos_args = t_args.get("positional_args") or []
-                            if isinstance(pos_args, list):
-                                cli_args.extend([str(p) for p in pos_args])
-                            short_opts = t_args.get("short_options") or {}
-                            if isinstance(short_opts, dict):
-                                for sk, sv in short_opts.items():
-                                    s_flag = f"-{sk}" if not sk.startswith("-") else sk
-                                    if sv is True:
-                                        cli_args.append(s_flag)
-                                    elif sv is not False and sv is not None:
-                                        cli_args.extend([s_flag, str(sv)])
-                            inner_args = t_args.get("args")
-                            if inner_args is None:
-                                inner_args = {k: v for k, v in t_args.items() if k not in ("skill_name", "file_path", "positional_args", "short_options")}
-                            t_args = inner_args
+                            run_skill_call = t_args
+                            break
 
-                        if isinstance(t_args, dict):
-                            for k, v in t_args.items():
-                                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
-                                if v is True:
-                                    cli_args.append(flag)
-                                elif v is not False and v is not None:
-                                    cli_args.extend([flag, str(v)])
-                        elif isinstance(t_args, list):
-                            cli_args.extend([str(a) for a in t_args])
-                        elif t_args:
-                            cli_args.append(str(t_args))
+                # ADK 2.0 純正 _SkillScriptCodeExecutor による直接実行（車輪の再発明解消）
+                if run_skill_call is not None:
+                    file_path = run_skill_call.get("file_path") or script_rel or (skill.list_scripts()[0] if skill.list_scripts() else "scripts/main.py")
+                    script_args = run_skill_call.get("args")
+                    short_options = run_skill_call.get("short_options")
+                    positional_args = run_skill_call.get("positional_args")
 
+                    print(f"\n[TestRunner] Running ADK 2.0 Native Script '{case_id}' on {file_path}")
+                    try:
+                        adk_skill = load_skill_from_dir(Path(skill.root_dir))
+                        code_executor = UnsafeLocalCodeExecutor()
+                        executor = _SkillScriptCodeExecutor(code_executor, timeout_seconds)
+
+                        result = asyncio.run(
+                            executor.execute_script_async(
+                                invocation_context=None,
+                                skill=adk_skill,
+                                file_path=file_path,
+                                script_args=script_args,
+                                short_options=short_options,
+                                positional_args=positional_args
+                            )
+                        )
+
+                        stdout = result.get("stdout", "")
+                        stderr = result.get("stderr", "")
+                        status = result.get("status", "error")
+                        error_detail = result.get("error", "")
+
+                        cli_failed = False
+                        fail_reasons = []
+
+                        # ステータス・終了コード検証
+                        if status == "error" or error_detail:
+                            if case.expected_exit_code == 0:
+                                cli_failed = True
+                                fail_reasons.append(f"Execution failed with status '{status}': {error_detail or stderr}")
+                        elif case.expected_exit_code != 0:
+                            cli_failed = True
+                            fail_reasons.append(f"Expected failure with exit code {case.expected_exit_code}, but script succeeded.")
+
+                        # Stdout キーワード検証
+                        if case.expected_stdout_contains:
+                            for expected_kw in case.expected_stdout_contains:
+                                if expected_kw not in stdout:
+                                    cli_failed = True
+                                    fail_reasons.append(
+                                        f"Expected stdout to contain '{expected_kw}', but was missing. Stdout: {stdout.strip()}"
+                                    )
+
+                        if cli_failed:
+                            failed += 1
+                            failed_cases.append(
+                                FailedCaseDetail(
+                                    eval_case_id=case_id,
+                                    script_name=file_path,
+                                    cli_args=positional_args or [],
+                                    expected=f"Exit code {case.expected_exit_code}, stdout: {case.expected_stdout_contains}",
+                                    actual=f"Status {status}, stdout: {stdout.strip()[:200]}",
+                                    error_type="CliAssertionError",
+                                    error_message="; ".join(fail_reasons)
+                                )
+                            )
+                            print(f"[TestRunner] ❌ Case '{case_id}' failed: {'; '.join(fail_reasons)}")
+                        else:
+                            print(f"[TestRunner] ✅ Case '{case_id}' passed (ADK Native Execution: {status})")
+                            passed += 1
+                        continue
+                    except Exception as e:
+                        failed += 1
+                        failed_cases.append(
+                            FailedCaseDetail(
+                                eval_case_id=case_id,
+                                script_name=file_path,
+                                cli_args=positional_args or [],
+                                expected=f"Exit code {case.expected_exit_code}",
+                                actual=str(e),
+                                error_type=type(e).__name__,
+                                error_message=str(e)
+                            )
+                        )
+                        print(f"[TestRunner] ❌ Case '{case_id}' error: {e}")
+                        continue
+
+                # 2. 統合 CLI (edd) コマンドまたは直接スクリプト実行のフォールバック
                 if not script_rel:
                     script_rel = skill.list_scripts()[0] if skill.list_scripts() else None
 

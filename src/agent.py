@@ -78,6 +78,7 @@ root_agent = Agent(
     name='evaluation_driven_development_agent',
     description='Google ADK 2.0 と Anthropic スキル標準に完全準拠した自己進化型評価駆動開発エージェント',
     instruction=instruction_text,
+    code_executor=code_executor,
     retry_config=retry_config,
     before_agent_callback=before_agent_hook,
     after_agent_callback=after_agent_hook,

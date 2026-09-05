@@ -57,12 +57,13 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
 ### ④ Google ADK 2.0 純正フレームワーク完全統合 (`google.adk.skills`, `SkillToolset`, `SkillRegistry`, `LocalCodeExecutor`, `TrajectoryEvaluator`, `EvalConfig`)
 * Google ADK 2.0 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を完全採用。
 * **Progressive Disclosure の動的解決アーキテクチャと検索ツール露出制御**:
-  - `create_adk_skill_toolset` は Google ADK 2.0 純正の `SkillToolset` を直接生成・返却します（`EddSkillToolset` は後方互換用エイリアス）。Tier 基準（`min_tier`）を満たすローカルスキルをすべて登録し、L1 Frontmatter（名前と説明）が `list_skills` またはシステムプロンプトを通じてエージェントに開示されます。
+  - `create_adk_skill_toolset` は Google ADK 2.0 純正の `SkillToolset` インスタンスを直接生成・返却します（`EddSkillToolset` は SkillsState / Tier 統合 Toolset）。Tier 基準（`min_tier`）を満たすローカルスキルをすべて登録し、L1 Frontmatter（名前と説明）が `list_skills` またはシステムプロンプトを通じてエージェントに開示されます。
   - エージェントは `list_skills` ツールで利用可能スキルの全容を把握し、必要と判断したスキルのみ `load_skill` ツールで L2 instructions をオンデマンドにロード、`run_skill_script` や `load_skill_resource` で L3 resources を実行・開示します。
   - **ローカル完結エージェントの最適化 (`enable_registry_search=False`)**: ローカルにスキル群が配備されている環境では、不要な `search_skills` 露出による負例（一般会話）での無駄なスキル検索や回答拒否（オーバーサーチ問題）を抑止するため、`enable_registry_search=False` をベストプラクティスとして推奨します。動的な外部スキル検索が必要な環境のみ `EddSkillRegistry` を併用します。
 * **モンキーパッチおよび車輪の再発明の完全排除**:
   - ADK 内部メソッドの上書き（monkey patch）や不要な同期ラッパー（`*_sync`）、一時的な Toolset 生成によるプライベート属性アクセス（`_tools`）の裏口ハックを全廃し、ADK 2.0 公式公開API（`await toolset.get_tools()`）および `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入。
-  - スクリプト実行コードの自前再実装（旧 `_build_script_runner_code` や自前 `subprocess.run` フォールバック等の車輪の再発明）を完全に削除し、ドメインエンティティ（`SkillPackage.execute_script`）から ADK 純正の公式 `RunSkillScriptTool`（`run_skill_script`）および `UnsafeLocalCodeExecutor` に完全一本化。
+  - スクリプト実行コードの自前再実装（旧 `_build_script_runner_code` や自前 `subprocess.run` 実行等の車輪の再発明）を完全に削除。ドメインエンティティ（`SkillPackage.execute_script`）および契約テスト（`ContractTestRunner`）から ADK 2.0 純正の公式 `RunSkillScriptTool`（`run_skill_script`）、`_SkillScriptCodeExecutor`、および `UnsafeLocalCodeExecutor` に完全一本化。エージェント本番実行時と完全に同一の公式パイプラインで決定論的スクリプトを実行・検証。
+  - エージェント定義（`src/agent.py`）においては、Google ADK 2.0 公式推奨パターンに基づき `code_executor=code_executor` を直接注入。
   - エージェントプロンプト（`instruction_text`）からのスキル名ハードコードや `SkillToolset` が自動注入するシステムプロンプトとの重複を全廃し、ADK 2.0 純正の Progressive Disclosure（`list_skills` 探索と Toolset の自動システム指示 `DEFAULT_SKILL_SYSTEM_INSTRUCTION`）に委ねることで、スキルの動的追加・自己進化との完全な疎結合とトークン最適化を達成。
   - ライフサイクル管理には ADK 2.0 推奨の Callbacks（`before_agent_callback` / `after_agent_callback`）を導入し、推論の前後フックや監査ログを標準化。
   - 軌跡比較ロジックおよび独自Judge正規表現ルールの再発明を完全排除し、ADK 2.0 純正の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator`（`tool_trajectory_avg_score`）および型安全な `ToolTrajectoryCriterion` を直接駆動。
