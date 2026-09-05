@@ -12,8 +12,8 @@ EDD（評価駆動開発: Evaluation-Driven Development）による自律型 AI 
     `SKILL.md` を単一真実源とし、`scripts/`（実行用）、`references/`（知識用）、`assets/`（素材用）、`examples/`（使用例用）のリソース分離を安全にロード・管理するドメインクラスと DAG 依存関係グラフ検証を提供。他プロジェクトへの配布時にもパスに依存しない Zero-Hardcoding 設計。
 *   **Google ADK 2.0 ネイティブ完全統合 (`google.adk.skills`, `SkillToolset`, `AgentEvaluator`, `TrajectoryEvaluator`, `ResponseEvaluator`, `EvalConfig`)**
     - Google ADK 純正の `SkillToolset` による Progressive Disclosure ライフサイクル（`list_skills` ➔ `load_skill` ➔ `load_skill_resource` ➔ `run_skill_script` ➔ `search_skills`）を完全採用。
-    - 手製のオーケストレーションや重複マッチングを排し、ADK 純正の `TrajectoryEvaluator`（`tool_trajectory_avg_score`）、`ResponseEvaluator`（ROUGE-1 `response_match_score`）、および `RubricBasedFinalResponseQualityV1Evaluator`（LLM-as-a-Judge, Position Swapping）に直結。
-    - Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）による自動探索と `match_type: "IN_ORDER"` 標準配備。
+    - プライベート属性アクセス（`_tools` 等）や手動キーワード照合による偽ルーブリック判定を完全排除。ADK 2.0 公式公開API（`await toolset.get_tools()`）および公式評価器（`TrajectoryEvaluator`, `ResponseEvaluator`, `RubricBasedFinalResponseQualityV1Evaluator`）に一本化。
+    - `AgentEvaluator` の例外ログ構造解析により各テストケースごとの合否を集計。Google ADK 2.0 公式 `test_config.json`（`EvalConfig`）による自動探索と `match_type: "IN_ORDER"` 標準配備。
 *   **決定論的サンドボックス隔離環境 (`WorkspaceEnvProtocol`, `LocalWorkspaceEnv`)**
     コードやテスト実行による環境破壊を防ぐため、OS 一時領域への複製、Git ロールバック、および差分抽出機能を提供。
 *   **多層EDD評価フレームワーク & Tier昇格ゲートキーパー (`ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter`, `CascadeTestRunner`)**

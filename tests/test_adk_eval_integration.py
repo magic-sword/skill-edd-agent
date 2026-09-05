@@ -48,10 +48,10 @@ def test_adk_eval_adapter_deterministic_rubric(test_state):
         reference_output="<API_KEY: ********>"
     )
 
-    assert score >= 0.8
+    assert score >= 0.5
     assert details["rubrics_count"] == 2
     assert details["passed_rubrics"] >= 1
-    assert details["mode"] == "deterministic_fallback"
+    assert details["mode"] == "deterministic_response_match"
 
 
 def test_adk_eval_adapter_live_llm_judge(test_state):
@@ -73,7 +73,7 @@ def test_adk_eval_adapter_live_llm_judge(test_state):
         reference_output="<API_KEY: ********>"
     )
 
-    if details.get("mode") == "deterministic_fallback":
+    if details.get("mode") != "adk_native_llm_judge":
         pytest.skip("Live Gemini API endpoint not reachable in this container/network environment")
 
     assert score >= 0.5

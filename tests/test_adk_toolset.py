@@ -16,7 +16,8 @@ def test_adk_toolset_native_tools_execution():
         ctx.state = {}
 
         toolset = create_adk_skill_toolset(skills_dir="src/skills")
-        tools_dict = {t.name: t for t in toolset._tools}
+        tools = await toolset.get_tools()
+        tools_dict = {t.name: t for t in tools}
         assert "run_skill_script" in tools_dict
         assert "load_skill" in tools_dict
         assert "list_skills" in tools_dict
@@ -52,7 +53,8 @@ def test_adk_native_skillset_creation():
     """create_adk_skill_toolset が ADK 純正の SkillToolset を生成することをテストします。"""
     toolset = create_adk_skill_toolset(skills_dir="src/skills")
     assert isinstance(toolset, SkillToolset)
-    tool_names = [t.name for t in toolset._tools]
+    tools = asyncio.run(toolset.get_tools())
+    tool_names = [t.name for t in tools]
     assert "list_skills" in tool_names
     assert "load_skill" in tool_names
     assert "load_skill_resource" in tool_names
@@ -152,7 +154,8 @@ def test_adk_progressive_disclosure_registry_resolution():
         assert "case-converter" in toolset_local._skills
         assert "skill-creator" in toolset_local._skills
 
-        list_tool = next(t for t in toolset_local._tools if t.name == "list_skills")
+        tools_local = await toolset_local.get_tools()
+        list_tool = next(t for t in tools_local if t.name == "list_skills")
         list_res = await list_tool.run_async(args={}, tool_context=ctx)
         assert "case-converter" in list_res
         assert "skill-creator" in list_res
@@ -165,12 +168,13 @@ def test_adk_progressive_disclosure_registry_resolution():
         )
         assert "case-converter" not in toolset_dynamic._skills
 
-        search_tool = next(t for t in toolset_dynamic._tools if t.name == "search_skills")
+        tools_dyn = await toolset_dynamic.get_tools()
+        search_tool = next(t for t in tools_dyn if t.name == "search_skills")
         search_res = await search_tool.run_async(args={"query": "converter"}, tool_context=ctx)
         assert any(r.get("name") == "case-converter" for r in search_res)
 
         # 3. load_skill ツールにより、レジストリ経由で未登録スキルの手順書（L2 Instructions）がオンデマンドにロードされる
-        load_tool = next(t for t in toolset_dynamic._tools if t.name == "load_skill")
+        load_tool = next(t for t in tools_dyn if t.name == "load_skill")
         load_res = await load_tool.run_async(args={"skill_name": "case-converter"}, tool_context=ctx)
         assert load_res.get("skill_name") == "case-converter"
         assert "case_converter.py" in load_res.get("instructions", "")

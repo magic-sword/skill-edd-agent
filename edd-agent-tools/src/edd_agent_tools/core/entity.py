@@ -311,7 +311,6 @@ class SkillPackage:
             try:
                 from google.adk.tools.skill_toolset import SkillToolset
                 toolset = SkillToolset(skills=[self.adk_skill], code_executor=code_executor, script_timeout=timeout)
-                run_tool = next(t for t in toolset._tools if t.name == "run_skill_script")
 
                 class _AdkToolContext:
                     invocation_id = f"exec_{self.name}"
@@ -330,6 +329,12 @@ class SkillPackage:
                 if short_options is not None:
                     tool_args["short_options"] = short_options
 
+                async def _invoke_adk_tool():
+                    # ADK 2.0 純正公開API get_tools() を非同期 await して run_skill_script ツールを取得
+                    tools = await toolset.get_tools()
+                    run_tool = next(t for t in tools if t.name == "run_skill_script")
+                    return await run_tool.run_async(args=tool_args, tool_context=_AdkToolContext())
+
                 import asyncio
                 try:
                     loop = asyncio.get_running_loop()
@@ -339,9 +344,9 @@ class SkillPackage:
                 if loop and loop.is_running():
                     import concurrent.futures
                     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                        res = pool.submit(asyncio.run, run_tool.run_async(args=tool_args, tool_context=_AdkToolContext())).result()
+                        res = pool.submit(asyncio.run, _invoke_adk_tool()).result()
                 else:
-                    res = asyncio.run(run_tool.run_async(args=tool_args, tool_context=_AdkToolContext()))
+                    res = asyncio.run(_invoke_adk_tool())
 
                 if isinstance(res, dict) and "error" in res:
                     return {

@@ -434,42 +434,30 @@ class AdkEvalAdapter:
             except Exception:
                 pass
 
-        # 2. 決定論的フォールバック (Deterministic Fallback)
-        passed_rubrics = 0
-        act_lower = actual_output.lower()
-        ref_lower = (reference_output or "").lower()
+        # 2. オフライン決定論的フォールバック (Deterministic Offline Evaluation)
+        # 手製の特定ドメイン単語（"mask", "secret", "camel"等）による偽ルーブリック判定（車輪の再発明）を完全撤廃。
+        # 参照出力が存在する場合は ADK 公式の ROUGE-1 字句一致を決定論的評価指標として採用。
+        if reference_output:
+            is_passed, score, _ = self.evaluate_response_rouge(
+                actual_output=actual_output,
+                expected_output=reference_output,
+                threshold=0.5
+            )
+            passed_count = len(rubrics) if is_passed else int(len(rubrics) * score)
+            return score, {
+                "rubrics_count": len(rubrics),
+                "passed_rubrics": passed_count,
+                "mode": "deterministic_response_match",
+                "score": score
+            }
 
-        for r in rubrics:
-            prop = ""
-            if isinstance(r, dict):
-                prop = (r.get("text_property") or r.get("rubric_content", {}).get("text_property", "")).lower()
-            elif hasattr(r, "rubric_content") and hasattr(r.rubric_content, "text_property"):
-                prop = str(r.rubric_content.text_property).lower()
-            else:
-                prop = str(r).lower()
-
-            passed = False
-            if any(w in prop for w in ["mask", "sanitize", "secret", "credential", "sensitive"]):
-                has_mask = any(m in actual_output for m in ["<API_KEY:", "********", "***", "[REDACTED]", "sk-***"])
-                passed = has_mask
-            elif any(w in prop for w in ["concise", "actionable", "short", "direct"]):
-                passed = len(actual_output.strip()) <= 500
-            elif any(w in prop for w in ["convert", "format", "camel", "snake", "kebab"]):
-                passed = bool(ref_lower and ref_lower in act_lower) or ("output" in act_lower)
-            else:
-                if reference_output:
-                    passed = (ref_lower in act_lower) or (act_lower in ref_lower)
-                else:
-                    passed = len(actual_output.strip()) > 0
-
-            if passed:
-                passed_rubrics += 1
-
-        score = passed_rubrics / len(rubrics) if rubrics else 1.0
+        # 参照出力が存在しないオフライン環境では、出力の生成健全性（非空・正常終了）を基底スコアとする
+        has_output = bool(actual_output and actual_output.strip())
+        score = 1.0 if has_output else 0.0
         return score, {
             "rubrics_count": len(rubrics),
-            "passed_rubrics": passed_rubrics,
-            "mode": "deterministic_fallback",
+            "passed_rubrics": len(rubrics) if has_output else 0,
+            "mode": "deterministic_output_presence",
             "score": score
         }
 

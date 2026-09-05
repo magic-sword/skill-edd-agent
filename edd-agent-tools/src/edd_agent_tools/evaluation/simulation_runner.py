@@ -127,23 +127,40 @@ class SimulationEvalRunner:
                 accuracy=1.0
             )
         except AssertionError as ae:
-            # ADK AgentEvaluator のアサーション失敗
+            # ADK AgentEvaluator の failure_message から個別の失敗ケース情報を精確に抽出
             error_str = str(ae)
-            failed_cases = [
-                FailedCaseDetail(
-                    eval_case_id="adk_eval_failure",
-                    expected="All ADK 2.0 criteria satisfied (trajectory, response, rubrics)",
-                    actual=error_str,
-                    error_type="ADKEvalAssertionError",
-                    error_message=error_str
+            raw_blocks = [b.strip() for b in error_str.split("\n\n") if b.strip() and not b.startswith("Following are all the test failures")]
+            if not raw_blocks:
+                raw_blocks = [l.strip() for l in error_str.splitlines() if l.strip() and not l.startswith("Following are all the test failures")]
+
+            failed_details: list[FailedCaseDetail] = []
+            for idx, block in enumerate(raw_blocks or [error_str], 1):
+                case_id = f"case_failure_{idx}"
+                for line in block.splitlines():
+                    if any(k in line.lower() for k in ["eval case id", "eval_id", "case_id"]):
+                        parts = line.split(":", 1)
+                        if len(parts) > 1:
+                            case_id = parts[1].strip()
+                            break
+                failed_details.append(
+                    FailedCaseDetail(
+                        eval_case_id=case_id,
+                        expected="All ADK 2.0 criteria satisfied (trajectory, response, rubrics)",
+                        actual=block[:500],
+                        error_type="ADKEvalAssertionError",
+                        error_message=block
+                    )
                 )
-            ]
+
+            failed_count = min(len(failed_details), total_cases)
+            passed_count = max(0, total_cases - failed_count)
+            accuracy = passed_count / total_cases if total_cases > 0 else 0.0
             return EvalRunResult(
-                passed=0,
-                failed=total_cases,
+                passed=passed_count,
+                failed=failed_count,
                 total=total_cases,
-                accuracy=0.0,
-                failed_cases=failed_cases
+                accuracy=accuracy,
+                failed_cases=failed_details
             )
         except Exception as e:
             failed_cases = [

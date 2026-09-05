@@ -6,6 +6,7 @@ SkillToolset による Progressive Disclosure（段階的情報開示）アー�
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 # Google ADK 2.0 互換性保証: GEMINI_API_KEY と GOOGLE_API_KEY の相互同期
 if os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
@@ -33,19 +34,33 @@ skill_toolset = create_adk_skill_toolset(
     enable_registry_search=False
 )
 
-# 2. エージェントの定義（ADK 2.0 純正 SkillToolset により Progressive Disclosure 手順命令は自動注入されます）
+import logging
+
+logger = logging.getLogger("edd_agent")
+
+
+async def before_agent_hook(callback_context: Any = None, **kwargs: Any) -> None:
+    """ADK 2.0 ライフサイクル: エージェント実行開始の監査ログ"""
+    inv_id = getattr(callback_context, "invocation_id", "unknown")
+    logger.info(f"[ADK Lifecycle] Starting invocation '{inv_id}'")
+
+
+async def after_agent_hook(callback_context: Any = None, **kwargs: Any) -> None:
+    """ADK 2.0 ライフサイクル: エージェント実行完了の監査ログ"""
+    inv_id = getattr(callback_context, "invocation_id", "unknown")
+    logger.info(f"[ADK Lifecycle] Completed invocation '{inv_id}'")
+
+
+# 2. エージェントの定義
+# （注: list_skills, load_skill, run_skill_script の利用規約は ADK 2.0 純正 SkillToolset により自動注入されます）
 instruction_text = """You are an intelligent agent equipped with Google ADK 2.0 Agent Skills.
-You strictly follow these core operational principles:
+Your tools provide specialized skills to perform deterministic workflows. Follow these operational principles:
 
-1. **Procedural Skill Execution**:
-   - When a user query matches an available skill, discover and inspect it via Progressive Disclosure (`list_skills`, `load_skill`), and execute the designated deterministic script via `run_skill_script`.
-   - Provide exact arguments matching the script's documented options and positional arguments.
-
-2. **Clean Output Without Conversational Filler (Zero Filler)**:
+1. **Clean Output Without Conversational Filler (Zero Filler)**:
    - When returning results from a skill execution (such as converted strings, sanitized texts, or generated templates), output the result directly without conversational filler (e.g. do NOT say "The converted text is...", "Here is the result:", "The kebab-case conversion of...").
-   - Satisfy the user's intent cleanly and directly.
+   - Satisfy the user's intent cleanly, directly, and accurately.
 
-3. **Direct Answers for General Inquiries (Negative Cases)**:
+2. **Direct Answers for General Inquiries (Negative Cases)**:
    - When the user asks general questions, conceptual explanations, or requests that are NOT handled by any available skill (such as general knowledge, architectural questions, or general QA), do NOT attempt to invoke skill tools.
    - Answer the question directly, concisely, and accurately using your general knowledge. Never refuse to answer simply because a skill does not exist.
 """
@@ -59,6 +74,8 @@ root_agent = Agent(
     description='Google ADK 2.0 と Anthropic スキル標準に完全準拠した自己進化型評価駆動開発エージェント',
     instruction=instruction_text,
     retry_config=retry_config,
+    before_agent_callback=before_agent_hook,
+    after_agent_callback=after_agent_hook,
     tools=[
         skill_toolset
     ]
