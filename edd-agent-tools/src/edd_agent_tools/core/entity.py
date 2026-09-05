@@ -273,127 +273,6 @@ class SkillPackage:
             raise FileNotFoundError(f"Resource '{resource_rel_path}' not found in skill '{self.name}'.")
         return target_path.read_text(encoding="utf-8")
 
-    def _build_script_runner_code(
-        self,
-        script_rel_path: str,
-        args: Optional[Union[List[str], Dict[str, Any]]] = None,
-        short_options: Optional[Dict[str, Any]] = None,
-        positional_args: Optional[List[str]] = None
-    ) -> str:
-        """Google ADK 2.0 _SkillScriptCodeExecutor 準拠の自己展開型スクリプト実行ラッパーコードを生成します。"""
-        # ADK Skill から全リソース（references, assets, scripts）を収集
-        adk_s = self.adk_skill
-        files_dict = {}
-        for ref_name in adk_s.resources.list_references():
-            content = adk_s.resources.get_reference(ref_name)
-            if content is not None:
-                files_dict[f"references/{ref_name}"] = content
-
-        for asset_name in adk_s.resources.list_assets():
-            content = adk_s.resources.get_asset(asset_name)
-            if content is not None:
-                files_dict[f"assets/{asset_name}"] = content
-
-        for scr_name in adk_s.resources.list_scripts():
-            scr = adk_s.resources.get_script(scr_name)
-            if scr is not None and scr.src is not None:
-                files_dict[f"scripts/{scr_name}"] = scr.src
-
-        file_path = script_rel_path if script_rel_path.startswith("scripts/") else f"scripts/{script_rel_path}"
-        ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
-
-        code_lines = [
-            "import os",
-            "import tempfile",
-            "import sys",
-            "import json as _json",
-            "import subprocess",
-            "import runpy",
-            f"_files = {files_dict!r}",
-            "def _materialize_and_run():",
-            "  _orig_cwd = os.getcwd()",
-            "  with tempfile.TemporaryDirectory() as td:",
-            "    for rel_path, content in _files.items():",
-            "      norm_rel = os.path.normpath(rel_path)",
-            "      if norm_rel.startswith('..') or os.path.isabs(norm_rel):",
-            "        raise PermissionError('Path traversal blocked in skill file: ' + rel_path)",
-            "      full_path = os.path.join(os.path.abspath(td), norm_rel)",
-            "      os.makedirs(os.path.dirname(full_path), exist_ok=True)",
-            "      mode = 'wb' if isinstance(content, bytes) else 'w'",
-            "      with open(full_path, mode, encoding='utf-8' if mode == 'w' else None) as f:",
-            "        f.write(content)",
-            "    os.chdir(td)",
-            f"    os.environ['EDD_SKILL_NAME'] = {self.name!r}",
-            f"    os.environ['EDD_SKILL_ROOT'] = {self.root_dir!r}",
-            "    try:",
-        ]
-
-        if ext == "py":
-            argv_list = [file_path]
-            if isinstance(args, list):
-                argv_list.extend(str(v) for v in args)
-            else:
-                if isinstance(args, dict):
-                    for k, v in args.items():
-                        argv_list.extend([f"--{k.replace('_', '-')}" if not k.startswith("-") else k, str(v)] if v not in (True, False) else ([f"--{k.replace('_', '-')}" if not k.startswith("-") else k] if v else []))
-                if short_options:
-                    for k, v in short_options.items():
-                        argv_list.extend([f"-{k}" if not k.startswith("-") else k, str(v)] if v not in (True, False) else ([f"-{k}" if not k.startswith("-") else k] if v else []))
-                if positional_args:
-                    argv_list.append("--")
-                    argv_list.extend(str(v) for v in positional_args)
-
-            code_lines.extend([
-                f"      sys.argv = {argv_list!r}",
-                f"      sys.path.insert(0, os.path.dirname(os.path.abspath({file_path!r})))",
-                "      try:",
-                f"        runpy.run_path({file_path!r}, run_name='__main__')",
-                "      except SystemExit as e:",
-                "        if e.code not in (0, None):",
-                "          raise e",
-            ])
-        elif ext in ("sh", "bash"):
-            arr = ["bash", file_path]
-            if isinstance(args, list):
-                arr.extend(str(v) for v in args)
-            else:
-                if isinstance(args, dict):
-                    for k, v in args.items():
-                        arr.extend([f"--{k.replace('_', '-')}" if not k.startswith("-") else k, str(v)] if v not in (True, False) else ([f"--{k.replace('_', '-')}" if not k.startswith("-") else k] if v else []))
-                if short_options:
-                    for k, v in short_options.items():
-                        arr.extend([f"-{k}" if not k.startswith("-") else k, str(v)] if v not in (True, False) else ([f"-{k}" if not k.startswith("-") else k] if v else []))
-                if positional_args:
-                    arr.append("--")
-                    arr.extend(positional_args)
-
-            code_lines.extend([
-                "      try:",
-                f"        _r = subprocess.run({arr!r}, capture_output=True, text=True, cwd=td)",
-                "        print(_json.dumps({",
-                "            '__shell_result__': True,",
-                "            'stdout': _r.stdout,",
-                "            'stderr': _r.stderr,",
-                "            'returncode': _r.returncode,",
-                "        }))",
-                "      except Exception as _e:",
-                "        print(_json.dumps({",
-                "            '__shell_result__': True,",
-                "            'stdout': '',",
-                "            'stderr': str(_e),",
-                "            'returncode': -1,",
-                "        }))",
-            ])
-        else:
-            raise ValueError(f"Unsupported script extension: {ext}")
-
-        code_lines.extend([
-            "    finally:",
-            "      os.chdir(_orig_cwd)",
-            "_materialize_and_run()",
-        ])
-        return "\n".join(code_lines)
-
     def execute_script(
         self,
         script_name: Optional[str] = None,
@@ -406,7 +285,8 @@ class SkillPackage:
     ) -> Dict[str, Any]:
         """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。
         
-        Google ADK 2.0 純正 run_skill_script / _SkillScriptCodeExecutor と完全互換。
+        Google ADK 2.0 純正の RunSkillScriptTool および SkillToolset に直接委譲し、
+        車輪の再発明（内部ラッパーの二重実装）を完全排除した公式規格準拠の実装です。
         """
         scripts = self.list_scripts()
         target_script = None
@@ -426,39 +306,64 @@ class SkillPackage:
         rel_path = f"scripts/{clean_name if script_name else os.path.basename(target_script)}"
         is_shell = target_script.endswith((".sh", ".bash"))
 
-        # 1. BaseCodeExecutor (UnsafeLocalCodeExecutor 等) が指定された場合、ADK 公式パイプラインに委譲
-        if code_executor is not None and hasattr(code_executor, "execute_code"):
+        # 1. BaseCodeExecutor (UnsafeLocalCodeExecutor 等) が指定された場合、ADK 2.0 純正 RunSkillScriptTool に委譲
+        if code_executor is not None:
             try:
-                from google.adk.code_executors.code_execution_utils import CodeExecutionInput
-                wrapper_code = self._build_script_runner_code(
-                    script_rel_path=rel_path,
-                    args=args,
-                    short_options=short_options,
-                    positional_args=positional_args
-                )
-                exec_res = code_executor.execute_code(None, CodeExecutionInput(code=wrapper_code))
+                from google.adk.tools.skill_toolset import SkillToolset
+                toolset = SkillToolset(skills=[self.adk_skill], code_executor=code_executor, script_timeout=timeout)
+                run_tool = next(t for t in toolset._tools if t.name == "run_skill_script")
 
-                stdout = exec_res.stdout or ""
-                stderr = exec_res.stderr or ""
-                rc = 0
+                class _AdkToolContext:
+                    invocation_id = f"exec_{self.name}"
+                    class _Invocation:
+                        agent = None
+                    _invocation_context = _Invocation()
 
-                # Shell スクリプトの場合は JSON エンベロープをパース
-                if is_shell and stdout:
-                    try:
-                        parsed = json.loads(stdout)
-                        if isinstance(parsed, dict) and parsed.get("__shell_result__"):
-                            stdout = parsed.get("stdout", "")
-                            stderr = parsed.get("stderr", "")
-                            rc = parsed.get("returncode", 0)
-                    except Exception:
-                        pass
+                tool_args: Dict[str, Any] = {
+                    "skill_name": self.name,
+                    "file_path": rel_path
+                }
+                if args is not None:
+                    tool_args["args"] = args
+                if positional_args is not None:
+                    tool_args["positional_args"] = positional_args
+                if short_options is not None:
+                    tool_args["short_options"] = short_options
 
-                has_error = (rc != 0) or bool(stderr and "traceback" in stderr.lower())
+                import asyncio
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+
+                if loop and loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                        res = pool.submit(asyncio.run, run_tool.run_async(args=tool_args, tool_context=_AdkToolContext())).result()
+                else:
+                    res = asyncio.run(run_tool.run_async(args=tool_args, tool_context=_AdkToolContext()))
+
+                if isinstance(res, dict) and "error" in res:
+                    return {
+                        "skill_name": self.name,
+                        "file_path": rel_path,
+                        "status": "failed",
+                        "exit_code": 1,
+                        "stdout": "",
+                        "stderr": res.get("error", ""),
+                        "script_path": target_script,
+                        "error": res.get("error", "")
+                    }
+
+                stdout = res.get("stdout", "") if isinstance(res, dict) else str(res)
+                stderr = res.get("stderr", "") if isinstance(res, dict) else ""
+                status = res.get("status", "success") if isinstance(res, dict) else "success"
+
                 return {
                     "skill_name": self.name,
                     "file_path": rel_path,
-                    "status": "failed" if has_error else "success",
-                    "exit_code": rc if rc != 0 else (1 if has_error else 0),
+                    "status": "success" if status == "success" else "failed",
+                    "exit_code": 0 if status == "success" else 1,
                     "stdout": stdout,
                     "stderr": stderr,
                     "script_path": target_script,

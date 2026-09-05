@@ -51,7 +51,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 - **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `EddSkillToolset` (3-Tier Progressive Disclosure: Tier適合ローカルスキルの全登録・L1 Frontmatter常時提示・L2 手順書/L3 スクリプトのオンデマンド開示、`enable_registry_search=False` によるローカル完結エージェントの検索ツール露出抑制・オーバーサーチ防止、動的探索用の `EddSkillRegistry` 併用、ADK公式 `UnsafeLocalCodeExecutor` 等の `BaseCodeExecutor` 標準注入・決定論的スクリプト実行), `EddSkillRegistry`, `create_mcp_server`
 - **統合 CLI (`cli`)**: `edd`（`run`, `init`, `validate`, `package`, `eval` [--coverage, --live, --cli], `adk-eval` [--config, --cli], `tier-gate`, `diagnose`, `optimize`, `list`）
 
-※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。アドホックな車輪の再発明を排し、ADK 公式コンポーネント（`BaseCodeExecutor`, `TrajectoryEvaluator`, `EvalSet`, `EvalConfig` [test_config.json: IN_ORDER & Rubrics], `RubricBasedFinalResponseQualityV1Evaluator`, `AgentEvaluator`）を直接使用します。Tool Trajectory 検証は ADK 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`, `positional_args`）形式を第1級標準（Primary Standard）として取り扱います。
+※ **自己完結性と公式準拠の保証**: 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。アドホックな車輪の再発明を排し、ADK 公式コンポーネント（`BaseCodeExecutor`, `TrajectoryEvaluator`, `EvalSet`, `EvalConfig` [test_config.json: IN_ORDER & Rubrics], `RubricBasedFinalResponseQualityV1Evaluator`, `AgentEvaluator`）を直接使用します。Tool Trajectory 検証およびスクリプト実行は、ADK 2.0 純正の `run_skill_script`（args: `skill_name`, `file_path`, `args`, `positional_args`）および `RunSkillScriptTool` に完全一本化し、ドメイン層での展開コード再実装やエージェントプロンプト内でのスキル名ハードコードを徹底排除します。
 
 
 ### B. 自己改善スキル資産層（`src/skills/`）の責務と依存関係ポリシー

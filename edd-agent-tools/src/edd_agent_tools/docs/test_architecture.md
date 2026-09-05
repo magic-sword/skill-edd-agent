@@ -59,9 +59,10 @@ flowchart LR
 - 参照回答とモデル回答の位置を反転させて 2 回推論する **Position Swapping** により順序バイアスを中和。
 - 通常テスト・CI は決定論的契約テスト（`ContractTestRunner`）および Trajectory Evaluator でミリ秒単位で高速・安定実行し、ライブ検証時のみ Gemini API リモート推論を実行。
 
-### ④ Google ADK 2.0 純正 BaseCodeExecutor 委譲 (`SkillPackage.execute_script`)
-- スクリプト実行時の生 `subprocess.run` 直呼び出しによる抽象化バイパスを解消。
-- `UnsafeLocalCodeExecutor` や Docker/Cloud 等の `BaseCodeExecutor` 公開 API に実行パイプラインを委譲し、安全な実行コンテキストおよび環境変数設定（`EDD_SKILL_NAME`, `EDD_SKILL_ROOT`）を完全保証。
+### ④ Google ADK 2.0 純正 RunSkillScriptTool 委譲 (`SkillPackage.execute_script`)
+- 自前の一時展開スクリプト生成コード（車輪の再発明）を完全削除。
+- `SkillPackage.execute_script` は、Google ADK 2.0 純正の `SkillToolset` 内に配備されている公式 `RunSkillScriptTool`（`run_skill_script`）および `UnsafeLocalCodeExecutor` に直接委譲し、公式の実行ライフサイクル（一時展開・依存解決・環境変数注入）を 100% 透過活用。
+- 生 `subprocess.run` やプライベート属性の裏口ハックを排除し、安全で決定論的なスクリプト実行を完全保証。
 
 ### ⑤ 決定論的 Black-box CLI 契約テスト (`ContractTestRunner`)
 - **Black-box 実行**: Python 内部コードを直接インポートせず、CLI インターフェース（`cli_args`）経由でサブプロセス実行。

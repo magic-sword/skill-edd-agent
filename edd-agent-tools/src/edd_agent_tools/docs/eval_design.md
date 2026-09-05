@@ -38,8 +38,8 @@ Google ADK 2.0 の純正評価フレームワーク（`google.adk.evaluation`）
   Google ADK 2.0 公式の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator` および `ToolTrajectoryCriterion` に 100% 一本化（独自フォールバック完全撤廃）。テストケースおよびエージェント実行におけるツール呼び出しは、ADK 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用し、従来のスクリプト直接表記も透過的に正規化。
 * **LLM-as-a-Judge (`RubricBasedFinalResponseQualityV1Evaluator`) 主軸化と責務分離**:
   従来の ROUGE-1 表層文字列一致（`ResponseEvaluator` / `response_match_score`）への過度依存を排し、自然言語表現の柔軟性と回答品質を正当に評価するため、Google ADK 純正の `RubricBasedFinalResponseQualityV1Evaluator`（`rubric_based_final_response_quality_v1`）を最終出力品質評価の主軸として採用。ツールの正確な呼び出し・引数・順序は `tool_trajectory_avg_score`（Trajectory レイヤー）で厳密検証し、ルーブリック評価は会話フィラー排除や意図充足（Response レイヤー）に特化させる責務分離を徹底。
-* **Google ADK 2.0 純正 `BaseCodeExecutor` 委譲 (`SkillPackage.execute_script`)**:
-  スクリプト実行時に生 `subprocess.run` を直呼び出しする抽象化バイパスを解消し、ADK 純正の `UnsafeLocalCodeExecutor` や Docker/Cloud 等の `BaseCodeExecutor` 公開 API に実行パイプラインを委譲。
+* **Google ADK 2.0 純正 `RunSkillScriptTool` 委譲 (`SkillPackage.execute_script`)**:
+  自前の一時展開スクリプト生成コード（車輪の再発明）を完全削除し、ADK 純正の `SkillToolset` 内に配備されている公式 `RunSkillScriptTool`（`run_skill_script`）および `UnsafeLocalCodeExecutor` に直接委譲。公式の実行ライフサイクル（一時展開・依存解決・環境変数注入）を 100% 透過活用。
 * **Google ADK 2.0 純正 `AgentEvaluator` 連携**:
   `AdkEvalAdapter.evaluate_with_adk_agent()` を通じて、ADK 公式の `AgentEvaluator.evaluate()`（セッション追跡、実際のツール呼び出し軌跡取得、Rubrics 採点の一括実行）をシームレスに駆動。
 * **`rubric_based_final_response_quality_v1` & Position Swapping**:
