@@ -87,7 +87,6 @@ class SkillPackager:
             "scripts": scripts,
             "references": references,
             "assets": assets,
-            "examples": [],
             "tests": tests,
             "is_valid_structure": has_skill_md
         }

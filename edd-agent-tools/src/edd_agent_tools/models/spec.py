@@ -103,7 +103,6 @@ class SkillSpec(BaseModel):
     scripts: List[str] = Field(default_factory=list, description="言及されている scripts/ 配下のファイル")
     references: List[str] = Field(default_factory=list, description="言及されている references/ 配下のファイル")
     assets: List[str] = Field(default_factory=list, description="言及されている assets/ 配下のファイル")
-    examples: List[str] = Field(default_factory=list, description="言及または配置されている examples/ 配下のファイル")
 
     @property
     def name(self) -> str:
@@ -227,8 +226,7 @@ class SkillSpec(BaseModel):
             has_anti_patterns=has_anti,
             scripts=scripts,
             references=references,
-            assets=assets,
-            examples=[]
+            assets=assets
         )
 
     @classmethod
@@ -391,8 +389,7 @@ class SkillSpec(BaseModel):
             when_not_to_use=when_not_to_use,
             scripts=scripts,
             references=references,
-            assets=assets,
-            examples=[]
+            assets=assets
         )
 
 
