@@ -62,9 +62,9 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
   - **ローカル完結エージェントの最適化 (`enable_registry_search=False`)**: ローカルにスキル群が配備されている環境では、不要な `search_skills` 露出による負例（一般会話）での無駄なスキル検索や回答拒否（オーバーサーチ問題）を抑止するため、`enable_registry_search=False` をベストプラクティスとして推奨します。動的な外部スキル検索が必要な環境のみ `EddSkillRegistry` を併用します。
 * **モンキーパッチおよび車輪の再発明の完全排除**:
   - ADK 内部メソッドの上書き（monkey patch）や不要な同期ラッパー（`*_sync`）、プライベート属性（`_tools`）への裏口アクセスを全廃し、ADK 2.0 公式公開API（`await toolset.get_tools()`）および `BaseCodeExecutor` 準拠の `LocalSubprocessCodeExecutor` を標準活用。
-    - スクリプト実行エンジンは、自前の脆弱な `subprocess.run` 直叩きやラッパースクリプト生成（車輪の再発明）、非公開内部クラス（`_SkillScriptCodeExecutor` 等）への依存を完全撤廃し、Google ADK 2.0 公式公開 API（`SkillToolset` の `run_skill_script` ツール / `BaseCodeExecutor`）に一本化。リソース（references, assets）の安全な一時展開、パストラバーサル防御、公式引数展開（short_options, args, positional_args）を透過的に保証。
+    - スクリプト実行エンジンは、自前の脆弱な `subprocess.run` 直叩きやラッパースクリプト生成（車輪の再発明）、非公開内部クラス（`_SkillScriptCodeExecutor` 等）への直接依存を完全撤廃し、Google ADK 2.0 公式公開 API（`SkillToolset` の `run_skill_script` ツール / `BaseCodeExecutor`）に一本化。リソース（references, assets）の安全な一時展開、パストラバーサル防御、公式引数展開（`build_script_argv`: `short_options`, `args`, `positional_args`）を透過的に保証。実行コンテキストは ADK 2.0 Pydantic スキーマ（`Session.id`, `app_name`, `user_id`）に厳格準拠。
   - 契約テスト（`ContractTestRunner`）も手製 subprocess 直叩きを全廃し、`SkillPackage.execute_script`（ADK 2.0 公式 `SkillToolset` 公開実行基盤）へ一本化。テスト環境とエージェント本番実行環境の完全な環境パリティ（Environment Parity）を確立。
-  - エージェント定義（`src/agent.py`）においては、Google ADK 2.0 公式推奨パターンに基づき `code_executor=code_executor` を直接注入。
+  - エージェント定義（`src/agent.py`）においては、Google ADK 2.0 公式推奨パターンに基づき `code_executor=code_executor` を直接注入し、公式 CLI（`adk run`, `adk web`）および Runner と完全互換な `App` コンテナ（`app = App(name=..., root_agent=root_agent)`）を標準配備。
   - エージェントプロンプト（`instruction_text`）からのスキル名ハードコードや `SkillToolset` が自動注入するシステムプロンプトとの重複を全廃し、ADK 2.0 純正の Progressive Disclosure（`list_skills` 探索と Toolset の自動システム指示 `DEFAULT_SKILL_SYSTEM_INSTRUCTION`）に委ねることで、スキルの動的追加・自己進化との完全な疎結合とトークン最適化を達成。
   - ライフサイクル管理には ADK 2.0 推奨の Callbacks（`before_agent_callback` / `after_agent_callback`）を導入し、推論の前後フックや監査ログを標準化。
   - 軌跡比較ロジックおよび独自Judge正規表現ルールの再発明を完全排除し、ADK 2.0 純正の `google.adk.evaluation.trajectory_evaluator.TrajectoryEvaluator`（`tool_trajectory_avg_score`）および型安全な `ToolTrajectoryCriterion` を直接駆動。

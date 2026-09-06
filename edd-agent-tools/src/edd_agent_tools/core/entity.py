@@ -66,11 +66,6 @@ class SkillPackage:
         return os.path.join(self.root_dir, "assets")
 
     @property
-    def examples_dir(self) -> str:
-        """examples/ ディレクトリの絶対パス"""
-        return os.path.join(self.root_dir, "examples")
-
-    @property
     def tests_dir(self) -> str:
         """tests/ ディレクトリの絶対パス"""
         return os.path.join(self.root_dir, "tests")
@@ -179,14 +174,11 @@ class SkillPackage:
         except Exception:
             pass
 
-        # ファイルシステム探索フォールバック
+        # ファイルシステム探索フォールバック（ADK 2.0 純正規格: references/ と assets/）
         for sub in ["references", "assets"]:
             s_dir = Path(self.root_dir) / sub
             if s_dir.exists():
                 examples.extend([f.name for f in s_dir.glob("*") if f.is_file() and "example" in f.name.lower()])
-        legacy_dir = Path(self.root_dir) / "examples"
-        if legacy_dir.exists():
-            examples.extend([f.name for f in legacy_dir.glob("*") if f.is_file()])
         return sorted(list(set(examples)))
 
     def read_example(self, rel_path: str) -> str:
@@ -201,7 +193,7 @@ class SkillPackage:
 
         target = Path(self.root_dir) / rel_path
         if not target.exists():
-            for sub in ["references", "assets", "examples"]:
+            for sub in ["references", "assets"]:
                 cand = Path(self.root_dir) / sub / rel_path
                 if cand.exists():
                     target = cand

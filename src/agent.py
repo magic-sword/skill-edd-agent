@@ -70,6 +70,8 @@ Your tools provide specialized skills to perform deterministic workflows. Follow
    - Answer the question directly, concisely, and accurately using your general knowledge. Never refuse to answer simply because a skill does not exist.
 """
 
+from google.adk.apps import App
+
 # ADK 2.0 Workflow Runtime 推奨の自動リトライ設定
 retry_config = RetryConfig(max_attempts=3)
 
@@ -85,6 +87,12 @@ root_agent = Agent(
     tools=[
         skill_toolset
     ]
+)
+
+# Google ADK 2.0 推奨: CLI (adk run/web) および Runner と完全互換な App コンテナ
+app = App(
+    name="evaluation_driven_development_agent",
+    root_agent=root_agent
 )
 
 

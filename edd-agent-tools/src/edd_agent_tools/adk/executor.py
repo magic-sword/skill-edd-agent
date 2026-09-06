@@ -72,6 +72,37 @@ class LocalSubprocessCodeExecutor(BaseCodeExecutor):
             )
 
 
+def build_script_argv(
+    file_path: str,
+    script_args: Optional[Union[Dict[str, Any], List[str]]] = None,
+    short_options: Optional[Dict[str, Any]] = None,
+    positional_args: Optional[List[str]] = None,
+) -> List[str]:
+    """ADK 2.0 RunSkillScriptTool 公式規格準拠の argv 引数リストを構築します。"""
+    argv_list = [file_path]
+    if isinstance(script_args, list):
+        argv_list.extend(str(v) for v in script_args)
+    else:
+        if isinstance(script_args, dict):
+            for k, v in script_args.items():
+                flag = f"--{k.replace('_', '-')}" if not k.startswith("-") else k
+                if v is True:
+                    argv_list.append(flag)
+                elif v is not False and v is not None:
+                    argv_list.extend([flag, str(v)])
+        if short_options and isinstance(short_options, dict):
+            for k, v in short_options.items():
+                s_flag = f"-{k}" if not k.startswith("-") else k
+                if v is True:
+                    argv_list.append(s_flag)
+                elif v is not False and v is not None:
+                    argv_list.extend([s_flag, str(v)])
+        if positional_args:
+            argv_list.append("--")
+            argv_list.extend(str(v) for v in positional_args)
+    return argv_list
+
+
 class SkillScriptRunner:
     """Google ADK 2.0 公式 SkillToolset (run_skill_script) と連携するスクリプト実行器。
     
@@ -113,10 +144,10 @@ class SkillScriptRunner:
             if run_tool is None:
                 raise RuntimeError("run_skill_script tool not found in SkillToolset")
 
-            # 呼び出しコンテキストの構築
+            # 呼び出しコンテキストの構築（ADK 2.0 Session.id 準拠）
             if invocation_context is None:
                 sess_svc = InMemorySessionService()
-                sess = Session(session_id="script_exec_session", app_name="edd_skill", user_id="script_user")
+                sess = Session(id="script_exec_session", app_name="edd_skill", user_id="script_user")
                 inv_ctx = InvocationContext(
                     invocation_id="inv_script_exec",
                     session_service=sess_svc,
@@ -144,6 +175,8 @@ class SkillScriptRunner:
             if isinstance(res, dict):
                 is_success = res.get("status") in ("success", "warning") and "error" not in res
                 res["exit_code"] = 0 if is_success else 1
+                if "executor" not in res:
+                    res["executor"] = type(self.code_executor).__name__
             return res
         except Exception as e:
             return {
@@ -152,7 +185,8 @@ class SkillScriptRunner:
                 "error": f"Failed to execute script via ADK SkillToolset: {type(e).__name__}: {str(e)}",
                 "error_code": "EXECUTION_ERROR",
                 "status": "failed",
-                "exit_code": 1
+                "exit_code": 1,
+                "executor": type(self.code_executor).__name__
             }
     def execute_script(
         self,

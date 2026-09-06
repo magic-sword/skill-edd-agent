@@ -416,7 +416,7 @@ class SkillValidator:
                     res.add_error("resources", f"Referenced example does not exist: examples/{clean_e}")
 
         # 5. 文体（Imperative / 客観的指示）の検査 (指示手順部を対象とし、ユーザー発話例セクションは除外)
-        instruction_body = re.sub(r"## Usage Scenarios & Trigger Examples.*?(?=##|\Z)", "", body_str, flags=re.DOTALL)
+        instruction_body = re.sub(r"## (Examples|Usage Scenarios & Trigger Examples).*?(?=##|\Z)", "", body_str, flags=re.DOTALL)
         second_person_patterns = [
             r"\byou should\b", r"\byou can\b", r"\byou must\b", r"\byou will\b",
             r"\bif you\b", r"\bplease\b", r"してください", r"してくださいね"

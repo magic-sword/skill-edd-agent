@@ -149,11 +149,17 @@ edd optimize my-new-skill --tier 3 --yes
 
 ### Google ADK 2.0 エージェント / A2A サーバーの起動
 ```bash
-# A2A 互換サーバーの起動 (ポート 8001)
+# 1. Google ADK 2.0 公式 CLI による対話実行 (App コンテナ経由)
+adk run src
+
+# 2. Google ADK 2.0 Web UI インスペクターの起動
+adk web src
+
+# 3. A2A 互換サーバーの起動 (ポート 8001)
 python src/main.py
 ```
 
 ### テストスイートの実行
 ```bash
-pytest
+pytest tests/ -v
 ```

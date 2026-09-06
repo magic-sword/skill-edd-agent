@@ -43,6 +43,18 @@ def test_agent_initialization_and_skill_toolset():
 
 
 
+def test_agent_app_container():
+    """src.agent に Google ADK 2.0 推奨の App オブジェクトが正しく定義・エクスポートされていることを検証"""
+    import src.agent as agent_mod
+    from google.adk.apps import App
+
+    assert hasattr(agent_mod, "app")
+    app = agent_mod.app
+    assert isinstance(app, App)
+    assert app.name == "evaluation_driven_development_agent"
+    assert app.root_agent == agent_mod.root_agent
+
+
 def test_main_a2a_app_initialization():
     """src.main の A2A Starlette アプリケーションが正常に初期化されていることを検証"""
     import src.main as main_mod
