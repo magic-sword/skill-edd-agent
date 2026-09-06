@@ -64,7 +64,7 @@ export GOOGLE_API_KEY="your-google-api-key"
 ## 5. テストスイートの実行
 
 ```bash
-# 全テストの実行 (54件すべて Green)
+# 全テストの実行 (67件すべてGreen / 1 skipped for live API)
 pytest tests/ -v
 
 # 白書 4大 Eval Coverage Checklist の検証

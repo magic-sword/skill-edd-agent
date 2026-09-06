@@ -103,7 +103,7 @@ def test_adk_toolset_file_path_execution():
     assert res.get("exit_code") == 0
     assert "HelloWorldTest" in res.get("stdout", "")
     # ADK 2.0 純正の LocalSubprocessCodeExecutor / _SkillScriptCodeExecutor を通じて実行されることを検証
-    assert res.get("executor") in ("LocalSubprocessCodeExecutor", "UnsafeLocalCodeExecutor", "LocalSubprocessFallback", "LocalSubprocessExecutor")
+    assert res.get("executor") in ("LocalSubprocessCodeExecutor", "UnsafeLocalCodeExecutor", "LocalSubprocessFallback")
 
 
 def test_adk_frontmatter_extended_fields_roundtrip():

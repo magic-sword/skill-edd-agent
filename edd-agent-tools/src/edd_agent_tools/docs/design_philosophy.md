@@ -61,7 +61,7 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
   - エージェントは `list_skills` ツールで利用可能スキルの全容を把握し、必要と判断したスキルのみ `load_skill` ツールで L2 instructions をオンデマンドにロード、`run_skill_script` や `load_skill_resource` で L3 resources を実行・開示します。
   - **ローカル完結エージェントの最適化 (`enable_registry_search=False`)**: ローカルにスキル群が配備されている環境では、不要な `search_skills` 露出による負例（一般会話）での無駄なスキル検索や回答拒否（オーバーサーチ問題）を抑止するため、`enable_registry_search=False` をベストプラクティスとして推奨します。動的な外部スキル検索が必要な環境のみ `EddSkillRegistry` を併用します。
 * **モンキーパッチおよび車輪の再発明の完全排除**:
-  - ADK 内部メソッドの上書き（monkey patch）や不要な同期ラッパー（`*_sync`）、プライベート属性（`_tools`）への裏口アクセスを全廃し、ADK 2.0 公式公開API（`await toolset.get_tools()`）および `google.adk.code_executors.UnsafeLocalCodeExecutor` 等の `BaseCodeExecutor` を標準活用。
+  - ADK 内部メソッドの上書き（monkey patch）や不要な同期ラッパー（`*_sync`）、プライベート属性（`_tools`）への裏口アクセスを全廃し、ADK 2.0 公式公開API（`await toolset.get_tools()`）および `BaseCodeExecutor` 準拠の `LocalSubprocessCodeExecutor` を標準活用。
   - スクリプト実行エンジンは、自前の脆弱な `subprocess.run` 直叩きやラッパースクリプト生成（車輪の再発明）を完全撤廃し、Google ADK 2.0 純正のスクリプト実行基盤（`_SkillScriptCodeExecutor` / `BaseCodeExecutor`）に一本化。リソース（references, assets）の安全な一時展開、パストラバーサル防御、公式引数展開（short_options, args, positional_args）を透過的に保証。
   - 契約テスト（`ContractTestRunner`）も手製 subprocess 直叩きを全廃し、`SkillPackage.execute_script`（ADK 2.0 純正実行基盤）へ一本化。テスト環境とエージェント本番実行環境の完全な環境パリティ（Environment Parity）を確立。
   - エージェント定義（`src/agent.py`）においては、Google ADK 2.0 公式推奨パターンに基づき `code_executor=code_executor` を直接注入。
@@ -125,7 +125,7 @@ edd_agent_tools/
 ├── validation/     # 汎用静的リンター (SkillValidator - AST解析, Prerequisites照合, 白書命名規則検査)
 ├── packaging/      # ZIP パッケージャ (SkillPackager), スキャフォールド (SkillScaffolder, Cascading Resolver)
 ├── evaluation/     # 契約テスト (ContractTestRunner), シミュレーション (SimulationEvalRunner), ADK連携 (AdkEvalAdapter, ToolTrajectoryCriterion, RubricsBasedCriterion), 共存テスト (CoLoadedEvalRunner), 診断 (SkillDiagnoser), 最適化 (SkillOptimizer), サンドボックス (LocalWorkspaceEnv)
-├── adk/            # Google ADK 2.0 連携 (create_adk_skill_toolset, SkillToolset, EddSkillToolset, EddSkillRegistry, UnsafeLocalCodeExecutor)
+├── adk/            # Google ADK 2.0 連携 (create_adk_skill_toolset, SkillToolset, EddSkillToolset, EddSkillRegistry, LocalSubprocessCodeExecutor)
 ├── mcp/            # FastMCP サーバー (edd-agent-mcp)
 └── cli.py          # 統合 CLI (edd run/init/validate/package/eval/tier-gate/diagnose/optimize/list)
 ```

@@ -15,17 +15,17 @@ elif os.environ.get("GOOGLE_API_KEY") and not os.environ.get("GEMINI_API_KEY"):
     os.environ["GEMINI_API_KEY"] = os.environ["GOOGLE_API_KEY"]
 
 from google.adk import Agent
-from google.adk.code_executors import UnsafeLocalCodeExecutor
 from google.adk.workflow import RetryConfig
 from edd_agent_tools.adk import create_adk_skill_toolset
+from edd_agent_tools.adk.executor import LocalSubprocessCodeExecutor
 
 
 # 1. 登録スキルと Tier 状態に基づき ADK 公式の SkillToolset を構築
 # Tier 1 以上のスキル（および必須システムスキル）を登録し、ADK 2.0 公式 Progressive Disclosure を実現
 # （L1 Frontmatter は list_skills で提示され、L2 手順書や L3 スクリプトはオンデマンドで開示・実行）
-# ADK 公式の UnsafeLocalCodeExecutor を標準注入し、決定論的スクリプト実行を委譲
+# Google ADK 2.0 純正 BaseCodeExecutor 準拠の LocalSubprocessCodeExecutor を標準注入し、決定論的スクリプト実行を委譲
 skills_dir = Path(__file__).parent / "skills"
-code_executor = UnsafeLocalCodeExecutor()
+code_executor = LocalSubprocessCodeExecutor(timeout_seconds=300)
 skill_toolset = create_adk_skill_toolset(
     skills_dir=skills_dir,
     min_tier=1,

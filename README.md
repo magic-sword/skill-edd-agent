@@ -70,7 +70,7 @@ flowchart TD
     *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。
 4.  **Google ADK 2.0 純正評価統合 & 車輪の再発明の完全排除**
     *   ADK 2.0 の `TrajectoryEvaluator`（3大モード: EXACT / IN_ORDER / ANY_ORDER）および `ResponseEvaluator`（ROUGE-1 `response_match_score`）、そして公式の **`RubricBasedFinalResponseQualityV1Evaluator`** を直接駆動。アドホックな正規表現判定や独自手動キーワード照合（偽ルーブリック判定）、手書き軌跡比較ループを全廃し、エージェント実行・テストケースのツール呼び出しは ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用。
-    *   自前の脆弱な `subprocess.run` 直叩きやラッパースクリプト文字列生成（車輪の再発明）、プライベート属性（`_tools`）への裏口アクセスを完全排除。Google ADK 2.0 純正のスクリプト実行基盤（`_SkillScriptCodeExecutor` / `UnsafeLocalCodeExecutor` 等の `BaseCodeExecutor`）に一本化し、リソースの自己展開・パストラバーサル防御・公式引数順序展開を保証。契約テスト（`ContractTestRunner`）も同一の実行基盤に統一し、テストと本番エージェント実行の完全な環境パリティを確立。トップレベルエージェント（`src/agent.py`）および実行時には公式推奨通り `code_executor` を直接注入。
+    *   自前の脆弱な `subprocess.run` 直叩きやラッパースクリプト文字列生成（車輪の再発明）、プライベート属性（`_tools`）への裏口アクセスを完全排除。Google ADK 2.0 純正のスクリプト実行基盤（`_SkillScriptCodeExecutor` / `LocalSubprocessCodeExecutor` 等の `BaseCodeExecutor`）に一本化し、リソースの自己展開・パストラバーサル防御・公式引数順序展開を保証。契約テスト（`ContractTestRunner`）も同一の実行基盤に統一し、テストと本番エージェント実行の完全な環境パリティを確立。トップレベルエージェント（`src/agent.py`）および実行時には公式推奨通り `code_executor` を直接注入。
     *   エージェントプロンプトからのスキル名ハードコードや `SkillToolset` 自動注入指示との重複を全廃し、ADK 2.0 純正の Progressive Disclosure（`list_skills` 探索および Toolset 自動プロンプト注入）と ADK 推奨 Callbacks（`before_agent_callback` / `after_agent_callback`）を活用するアーキテクチャへと刷新。
     *   `SimulationEvalRunner` において `AgentEvaluator` の例外ログを構造解析し、従来のバイナリ全勝/全敗丸めを解消。各テストケース単位での合否判定および詳細コンテキスト（`FailedCaseDetail`）を抽出・記録。
     *   Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。
@@ -85,8 +85,8 @@ flowchart TD
     *   **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化。
 9.  **白書 Appendix A minimal SKILL.md 6大必須セクション標準**
     *   すべてのスキルは、白書 Appendix A が定める 6 つの必須セクション（`When to use`, `When NOT to use`, `Workflow`, `Examples`, `Output format`, `Anti-patterns to avoid`）を標準実装。
-10. **Google ADK 2.0 純正 LocalCodeExecutor / RunSkillScriptTool 統合 & AgentEvaluator 直結**
-    *   ADK 公式の `google.adk.code_executors.UnsafeLocalCodeExecutor` を標準注入した `RunSkillScriptTool` にスクリプト実行を直接委譲し、モンキーパッチや自前展開コードに頼らず正規の手順で安全にコードを実行。
+10. **Google ADK 2.0 純正 BaseCodeExecutor / RunSkillScriptTool 統合 & AgentEvaluator 直結**
+    *   ADK 2.0 公式の `BaseCodeExecutor` 準拠 `LocalSubprocessCodeExecutor` を標準注入した `RunSkillScriptTool` にスクリプト実行を直接委譲し、モンキーパッチや自前展開コードに頼らず正規の手順で安全・高速にコードを実行。
     *   `edd adk-eval <skill-name>` により、Google ADK 2.0 公式 `AgentEvaluator.evaluate()` を直接ワンストップ実行可能。
 11. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**
     *   外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明しない。スキルは Know-how（決定論的手順と処理）に集中。
