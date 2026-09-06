@@ -22,6 +22,9 @@
     },
     "markdown-table-formatter": {
       "tier": 1
+    },
+    "skill-reviewer": {
+      "tier": 1
     }
   },
   "agents": {}

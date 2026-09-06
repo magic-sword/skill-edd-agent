@@ -1,9 +1,9 @@
 ---
 name: markdown-table-formatter
 description: |
-  Performs Markdown Table Formatter workflows with deterministic execution.
-  Use when the user asks to execute markdown-table-formatter, process relevant inputs, or orchestrate this domain task.
-  Do NOT use for simple one-off commands or unrelated administrative tasks.
+  Format, align, and clean up markdown tables in text strings or files with deterministic column padding and alignment markers.
+  Use when the user asks to format a markdown table, align table columns, or clean up unaligned markdown files.
+  Do NOT use for CSV/Excel manipulation, non-table document formatting, or system administration tasks.
 license: MIT
 allowed-tools: run_skill_script load_skill_resource
 metadata:
@@ -13,28 +13,42 @@ metadata:
 # Markdown Table Formatter
 
 ## When to use
-- Execute {task} on the target files
-- Run the markdown-table-formatter workflow
+- Format unaligned markdown tables in markdown files or text snippets
+- Align table columns with left (`:---`), center (`:---:`), or right (`---:`) markers
+- Ensure uniform column widths and consistent cell padding across all table rows
 
 ## When NOT to use
-- Simple one-liner operations that do not require structured workflows
-- Tasks outside the defined domain boundaries
+- Formatting non-table markdown elements like headings, lists, or blockquotes
+- Spreadsheet, CSV, or database data conversions
 - Skill testing, diagnosis, and evolution (use `skill-evolver`)
 - New skill scaffolding or packaging (use `skill-creator`)
 
 ## Workflow
-1. Reconnaissance and Input Inspection: To inspect target data, schema, or files before modification, sample incoming inputs and verify specifications (consult `references/guide.md` if needed).
-2. Core Execution: To execute the workflow deterministically:
+1. Reconnaissance and Input Inspection: Inspect target markdown content or file path to ensure it contains table data.
+2. Core Execution: Execute the deterministic formatting script:
    ```bash
-   python scripts/markdown_table_formatter.py --input "data"
+   python scripts/markdown_table_formatter.py "| Name | Age |\n|---|---|\n| Alice | 30 |"
+   # Or for a file:
+   python scripts/markdown_table_formatter.py docs/reference.md
    ```
-3. Result Verification: To verify the generated output matches requirements and return the response.
+3. Result Verification: Verify formatted table columns are cleanly aligned and return the result.
 
 ## Examples
-- Input: "Run markdown-table-formatter on sample data" → Output: "Successfully processed sample data"
+- Input:
+  ```markdown
+  | Item | Qty |
+  |---|---|
+  | Widget | 10 |
+  ```
+  Output:
+  ```markdown
+  | Item   | Qty |
+  |--------|-----|
+  | Widget | 10  |
+  ```
 
 ## Output format
-- Return direct operational summary and structured result files.
+- Return the cleanly aligned markdown table directly, maintaining delimiters and alignment specifiers without conversational filler.
 
 ## Anti-patterns to avoid
 - Do not read large scripts into LLM context window without running `--help`.

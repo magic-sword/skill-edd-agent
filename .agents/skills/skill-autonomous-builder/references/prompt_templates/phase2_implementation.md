@@ -20,10 +20,15 @@
    - `src/skills/{SKILL_NAME}/tests/{SKILL_NAME}.test.json` を開き、期待される入力、スクリプト名、引数（`positional_args` / `args`）、出力仕様を確認してください。
 2. **決定論的スクリプトの実装 (`scripts/`)**:
    - **Shift Intelligence Left**: 業務ロジックや変換・解析処理は Python スクリプトに実装してください。
+   - **汎用多段パイプライン設計 (Rationale & Architecture)**:
+     - アルゴリズムは「① 入力パース ➔ ② 内部データ構造化 ➔ ③ レンダリング」の 3 段階で構成してください。
+     - 特定のテストケース文字列（入力や期待値）に結合したハードコード比較（`if text == "..."`）は避け、未知の入力や動的な摂動にも耐える抽象化されたロジックを組んでください（実運用や CI の摂動テストで即座に破綻することを防ぐためです）。
    - スクリプト名は `snake_case`（例: `{PRIMARY_SCRIPT}.py`）とします。
    - 外部ライブラリを多用せず可能な限り標準ライブラリ（Zero-dependency）で完結させてください。外部パッケージが必要な場合は `argparse` で `--help` に対応させてください。
    - スクリプト単体で直接実行（`python scripts/{PRIMARY_SCRIPT}.py --help`）して正常動作することを確認してください。
 3. **`SKILL.md` の実装**:
+   - **テンプレートの完全具体化**:
+     - `{task}` や `{skill_name}`、`<TODO>` などのプレースホルダーは一切残さず、すべて具体的かつ現実的な記述に置き換えてください（`edd validate` の決定論的ゲートで弾かれます）。
    - **Frontmatter**:
      - `name`: ディレクトリ名と完全一致する `kebab-case`
      - `description`: 動詞起点 ＋ Use when ＋ Do NOT use（50〜100 words）

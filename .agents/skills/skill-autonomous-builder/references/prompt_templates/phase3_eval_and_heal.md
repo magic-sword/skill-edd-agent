@@ -20,8 +20,12 @@
 2. **失敗時の構造化診断と自己修復 (Self-Healing)**:
    - テストが 1 件でも失敗した場合：
      - `edd diagnose {SKILL_NAME}` を実行し、失敗原因（`FailedCaseDetail`）を確認してください。
-     - 推測で直さず、スクリプトの引数処理（`positional_args` / `args`）や出力フォーマット、あるいは `SKILL.md` の指示手順をピンポイントで修正してください。
+     - **不整合の根本原因判断 (Architecture vs Test Case)**:
+       - 期待値と出力の不一致が「手作業のスペースずれやテストケース側の誤記」に起因する場合、スクリプト側にテストケース特有の文字列一致 `if` 分岐をハードコードしてはなりません。テストケース（`tests/{SKILL_NAME}.test.json`）の期待値を本来の正しい汎用出力に修正してください。
+       - スクリプト側のロジック不足の場合は、特定のテスト入力に特化させず、汎用アルゴリズムを修正してください。
      - 修正後、再度 `edd eval {SKILL_NAME} --type contract --pass-k 3` を実行してください。
+   - **過学習監査の実施 (Reviewer Gate)**:
+     - `python .agents/skills/skill-reviewer/scripts/audit_skill.py --skill-dir src/skills/{SKILL_NAME}` を実行し、過学習やプレースホルダー残存がないことを確認してください。
 3. **全件合格の確認**:
    - 3 回連続全勝（$pass^3$ 100% 合格）を確認してください。
 4. **Git コミット**:

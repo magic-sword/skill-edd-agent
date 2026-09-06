@@ -13,7 +13,7 @@ metadata:
 # {skill_title}
 
 ## When to use
-- Perform {task} operations on input text or files
+- Perform {skill_name} operations on input text or files
 - Convert, format, or process data using {skill_name} utilities
 
 ## When NOT to use

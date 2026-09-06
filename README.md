@@ -90,6 +90,9 @@ flowchart TD
     *   `edd adk-eval <skill-name>` により、Google ADK 2.0 公式 `AgentEvaluator.evaluate()` を直接ワンストップ実行可能。
 11. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**
     *   外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明しない。スキルは Know-how（決定論的手順と処理）に集中。
+12. **3層防御アーキテクチャとネガティブ制約の排除 (3-Tier Defense & Rationale Policy)**
+    *   大文字の禁止命令（"ALWAYS", "NEVER"）による Instruction Bloat を全廃。白書 Page 49 に準拠し、「入力パース ➔ 内部表現 ➔ レンダリング」の設計理由（Rationale）を提示。
+    *   誤検知のない形式的要件は決定論的ゲート（`edd validate` のテンプレート残存検知）で機械的に弾き、過学習（ハードコード分岐）や一般性は独立審査官スキル（`skill-reviewer`）が客観的ルーブリックで監査。
 
 
 ---
@@ -101,8 +104,10 @@ flowchart TD
 | :--- | :--- | :---: | :--- |
 | **`skill-creator`** | スキル設計・雛形生成・配布パッケージャ | Tier 1 | Anthropic & Google ADK 準拠の対話的スキル作成ガイド、雛形生成、AST静的検証、配布用 ZIP パッケージャ、契約テスト完備。 |
 | **`skill-evolver`** | 統合評価・失敗診断・自己修復・Tier昇格 | Tier 1 | 契約テスト・シミュレーション評価の実行、失敗コンテキスト診断、自律的自己修復ループ、依存連鎖回帰テスト（Cascade Testing）、および Tier 1〜3 昇格判定を統合オーケストレーション。 |
-| **`case-converter`** | テキストケース変換 | Tier 2 | camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case 等の相互変換を行う Zero-dependency 実用スキル。 |
+| **`case-converter`** | テキストケース変換 | Tier 1 | camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case 等の相互変換を行う Zero-dependency 実用スキル。 |
 | **`secret-sanitizer`** | 機密情報マスキング・サニタイズ | **Tier 3** | APIキー、Bearerトークン、パスワード、JWT、IPアドレス、メールアドレスを検出・マスクする Zero-dependency ツール。全品質防壁を突破。 |
+| **`markdown-table-formatter`** | マークダウンテーブル整形・整列 | Tier 1 | 未整列テーブルを解析し、列幅計算とアライメント指定子（左・中央・右）に基づく均一パディングを行う汎用整形スキル。 |
+| **`skill-reviewer`** | スキル品質・過学習監査 (Critic) | Tier 1 | 白書品質基準、AST過学習スキャン、4大ルーブリックに基づく独立審査官スキル。 |
 
 ---
 

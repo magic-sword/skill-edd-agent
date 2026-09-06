@@ -13,7 +13,7 @@ metadata:
 # {skill_title}
 
 ## When to use
-- Execute {task} on the target files
+- Execute {skill_name} tasks on the target files
 - Run the {skill_name} workflow
 
 ## When NOT to use

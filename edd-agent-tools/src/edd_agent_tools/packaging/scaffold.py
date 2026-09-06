@@ -149,6 +149,7 @@ class SkillScaffolder:
         rendered_md = rendered_md.replace("{skill_name_spaced}", skill_name_spaced)
         rendered_md = rendered_md.replace("{primary_script}", primary_script)
         rendered_md = rendered_md.replace("{pattern}", pattern)
+        rendered_md = rendered_md.replace("{task}", f"{canonical_skill_name} operations")
 
         (target_dir / "SKILL.md").write_text(rendered_md, encoding="utf-8")
 

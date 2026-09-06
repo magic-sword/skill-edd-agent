@@ -173,3 +173,21 @@ src/skills/{skill_name}/
     test_config.json   # Google ADK 2.0 公式 EvalConfig（IN_ORDER & Rubrics 設定）
 ```
 
+---
+
+## 6. 3層防御アーキテクチャとネガティブ制約の排除 (3-Tier Defense & Rationale Policy)
+
+プロンプトへの「【厳禁事項】」や大文字の禁止命令（"ALWAYS", "NEVER"）をアドホックに累積していく手法は、**Instruction Bloat（指示の肥大化）** と **Attention Dilution（注意の希釈化）** を招き、モデルの推論能力を低下させます。また、テストケースを通すためだけにスクリプト側で入力文字列をハードコードする **Reward Hacking（報酬ハッキング）** を引き起こします。
+
+本プロジェクトでは、白書 Page 40（Canonical Skill Taxonomy）および Page 49（Quality Principles）に準拠し、以下の **3層防御アーキテクチャ** を採用します：
+
+1. **第1層: 決定論的ゲート (`Gate: edd validate`)**
+   - 誤検知が原理的に起きない「形式的・構文的要件」のみを機械的に検出・拒絶します。
+   - Frontmatter 構文、白書 Appendix A 必須 6 セクション、およびテンプレート未置換プレースホルダー（`{task}`, `<TODO>` 等）の残存を決定論的に弾きます。
+2. **第2層: 独立レビュアースキル (`Reviewer: skill-reviewer`)**
+   - Generator（生成エージェント）と Reviewer（審査官エージェント）を独立したセッションとして完全分離（Generator-Critic パターン）。
+   - レビュアーは `audit_skill.py`（AST過学習スキャン）と 4 大ルーブリック（過学習排除、決定論的ツール化、白書品質基準、堅牢性）に基づき、客観的なコードレビューを実施して差し戻します。
+3. **第3層: ポジティブ構造化 (`Rationale Guidance`)**
+   - 大文字のネガティブ制約を全廃し、白書 Page 49 に従い「なぜその指示が存在するのかという背景理由（Rationale）」を伝えます。
+   - 「入力パース ➔ 内部データ構造化 ➔ レンダリング」という汎用多段パイプラインのアーキテクチャ指針を与えることで、未知の入力や動的摂動（Fuzzing）に対しても自然に堅牢なコードを生成させます。
+

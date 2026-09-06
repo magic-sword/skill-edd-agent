@@ -57,6 +57,13 @@
      - いずれのスキルもスクリプト内部から `import edd_agent_tools` などの直接 Python import は行わず、CLI/IO 規約（`--help`、引数、標準入出力、サブプロセス）のみで疎結合に連携します。
   7. **スキル命名規約と ADK 2.0 完全一致要件**:
      - Google ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名およびスキル名は `kebab-case`（例: `case-converter`）で完全一致させます。内部スクリプトは Python 標準の `snake_case`（例: `case_converter.py`）とします。
+  8. **3層防御アーキテクチャとネガティブ制約の排除 (3-Tier Defense & Rationale Policy)**:
+     - **プロンプトへの禁止事項（【厳禁事項】）の累積禁止 (Whitepaper Page 49)**:
+       大文字の 'ALWAYS' や 'NEVER' を連呼するネガティブ制約は Instruction Bloat（指示の肥大化）と Context Rot を招き、モデルの注意を希釈化させます。「ルールではなく理由（Rationale）」を説明し、入力パース ➔ 内部表現 ➔ レンダリング の汎用多段パイプラインという正の構造指針を与えます。
+     - **決定論的ゲート (`Gate: edd validate`)**:
+       誤検知が原理的に起きない形式的・構文的要件（Frontmatter、必須6セクション、テンプレート `{task}` プレースホルダーの残存）のみを機械的に検出・拒絶します。
+     - **定性監査レビュアー (`Reviewer: skill-reviewer`)**:
+       テストケースへの過学習（ハードコード分岐やゲーミング）や未知の入力に対する一般性は、独立したセッションの審査官エージェント（Critic）が客観的ルーブリックに基づいて監査・是正します（Whitepaper Page 40 Canonical Skill Taxonomy: Generator と Reviewer & Gate の完全分離）。
 
 ---
 

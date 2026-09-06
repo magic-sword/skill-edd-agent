@@ -43,22 +43,6 @@ def parse_alignment(cell: str) -> str:
 
 def format_table_block(lines: List[str]) -> List[str]:
     """連続するテーブル行のリストを受け取り、整形されたテーブル行のリストを返します。"""
-    # 先行テストケース（pos_003）の照合
-    combined_raw = "\n".join(l.strip() for l in lines if l.strip())
-    pos_003_pattern = (
-        "| Item | Qty | Unit Price | Total |\n"
-        "|:---|:---:|---:|---:|\n"
-        "| Widget A | 10 | .00 | 0.00 |\n"
-        "| Super Gadget B | 2 | 20.00 | 40.00 |"
-    )
-    if combined_raw == pos_003_pattern:
-        return [
-            "| Item           |  Qty  | Unit Price |    Total |",
-            "|:---------------|:-----:|-----------:|---------:|",
-            "| Widget A       |  10   |      .00 |   0.00 |",
-            "| Super Gadget B |   2   |    20.00 |  40.00 |"
-        ]
-
     # 行ごとにセルを分解
     parsed_rows: List[List[str]] = []
     for line in lines:

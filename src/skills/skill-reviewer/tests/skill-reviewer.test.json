@@ -1,0 +1,305 @@
+{
+  "eval_set_id": "skill_reviewer_edd_eval",
+  "name": "skill_reviewer_edd_eval",
+  "description": "Google ADK 2.0 Native EvalSet for skill-reviewer",
+  "eval_cases": [
+    {
+      "eval_id": "skill_reviewer_edd_pos_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_skill_reviewer_pos_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Review skill markdown-table-formatter for architectural soundness and test-case overfitting."
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Completed audit of skill 'markdown-table-formatter'. Passed all rubrics without overfitting."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "skill-reviewer",
+                  "file_path": "scripts/audit_skill.py",
+                  "positional_args": [],
+                  "args": {
+                    "skill-dir": "src/skills/markdown-table-formatter"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_sr_pos_001_1",
+          "rubric_content": {
+            "text_property": "triggers skill-reviewer to audit markdown-table-formatter using audit_skill.py"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_sr_pos_001_2",
+          "rubric_content": {
+            "text_property": "returns structured audit assessment without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-reviewer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_reviewer_edd_pos_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_skill_reviewer_pos_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Audit the newly drafted skill in src/skills/case-converter before tier promotion."
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Audit completed for 'case-converter'. Ready for tier promotion."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "skill-reviewer",
+                  "file_path": "scripts/audit_skill.py",
+                  "positional_args": [],
+                  "args": {
+                    "skill-dir": "src/skills/case-converter"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_sr_pos_002_1",
+          "rubric_content": {
+            "text_property": "audits case-converter via audit_skill.py"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-reviewer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_reviewer_edd_pos_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_skill_reviewer_pos_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Inspect secret-sanitizer for hardcoded test patterns and general multi-stage pipeline."
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Inspected 'secret-sanitizer'. Robust multi-stage pipeline confirmed."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "skill-reviewer",
+                  "file_path": "scripts/audit_skill.py",
+                  "positional_args": [],
+                  "args": {
+                    "skill-dir": "src/skills/secret-sanitizer"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_sr_pos_003_1",
+          "rubric_content": {
+            "text_property": "invokes audit_skill.py on secret-sanitizer"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-reviewer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_reviewer_edd_neg_001",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_skill_reviewer_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert this string 'hello_world' to camelCase"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "helloWorld"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_sr_neg_001_1",
+          "rubric_content": {
+            "text_property": "does not invoke skill-reviewer for direct string conversion"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-reviewer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_reviewer_edd_neg_002",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_skill_reviewer_neg_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Format this markdown table: | A | B |\n|---|---|\n| 1 | 2 |"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "| A | B |\n|---|---|\n| 1 | 2 |"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_sr_neg_002_1",
+          "rubric_content": {
+            "text_property": "does not trigger skill-reviewer for direct markdown formatting"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-reviewer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "skill_reviewer_edd_neg_003",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_skill_reviewer_neg_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What is the capital of France?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "The capital of France is Paris."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_sr_neg_003_1",
+          "rubric_content": {
+            "text_property": "does not trigger skill-reviewer for general trivia"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "skill-reviewer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}

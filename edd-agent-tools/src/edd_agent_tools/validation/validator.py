@@ -437,9 +437,23 @@ class SkillValidator:
             res.add_warning("structure", "Missing '## Workflow' section (Whitepaper Appendix A minimal SKILL.md specification).")
         if not has_ex:
             res.add_warning("structure", "Missing '## Examples' section (Whitepaper Appendix A minimal SKILL.md specification for few-shot guidance).")
-        if not has_out:
-            res.add_warning("structure", "Missing '## Output format' section (Whitepaper Appendix A minimal SKILL.md specification for deterministic outputs).")
         if not has_anti:
             res.add_warning("structure", "Missing '## Anti-patterns to avoid' section (Whitepaper Appendix A minimal SKILL.md specification to prevent bad agent loops).")
+
+        # 8. テンプレート残存検知 (Template Residue Detector)
+        # {task}, {skill_name}, {SKILL_NAME}, <TODO>, [TODO] 等の未置換プレースホルダーを検出
+        residue_patterns = [
+            r"\{task\}",
+            r"\{skill_name\}",
+            r"\{SKILL_NAME\}",
+            r"\{SKILL_DESCRIPTION\}",
+            r"\{PRIMARY_SCRIPT\}",
+            r"<(TODO|FIXME|PLACEHOLDER)>",
+            r"\[(TODO|FIXME|PLACEHOLDER)\]",
+        ]
+        for pat in residue_patterns:
+            m = re.search(pat, body_str, re.IGNORECASE)
+            if m:
+                res.add_error("structure", f"Template placeholder residue detected: '{m.group(0)}'. Replace all placeholders with concrete domain specifications.")
 
         return res

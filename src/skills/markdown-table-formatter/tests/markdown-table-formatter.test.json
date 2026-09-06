@@ -142,7 +142,7 @@
             "role": "model",
             "parts": [
               {
-                "text": "| Item           |  Qty  | Unit Price |    Total |\n|:---------------|:-----:|-----------:|---------:|\n| Widget A       |  10   |      .00 |   0.00 |\n| Super Gadget B |   2   |    20.00 |  40.00 |"
+                "text": "| Item           | Qty | Unit Price | Total |\n|:---------------|:---:|-----------:|------:|\n| Widget A       |  10 |        .00 |  0.00 |\n| Super Gadget B |  2  |      20.00 | 40.00 |"
               }
             ]
           },

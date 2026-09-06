@@ -45,7 +45,7 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
 全スキル共通の「変更不可な不変の評価・実行・検証プラットフォーム（汎用ランタイム＆テストハーネス）」に徹してください：
 - **共通ドメインエンティティ (`core`)**: `SkillPackage`（`load_resource`, `execute_script` 自己完結実行カプセル化、エイリアス `Skill` 完備）, `SkillTests`
 - **状態・レジストリ管理 (`state`)**: `SkillsState`（Tier 1〜3 管理, 依存 DAG 解析, `entry_points` 探索）
-- **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、白書命名規則、MCP再発明検知）
+- **汎用静的リンター (`validation`)**: `SkillValidator`（AST/構文/実在検証、Prerequisites照合、白書命名規則、MCP再発明検知、テンプレート残存検知）
 - **組み込みテンプレート & スキャフォールド & ZIP化 (`packaging`)**: `SkillScaffolder`, `SkillPackager`, `templates/*.md`（ADK公式 EvalSet および test_config.json インバージョン自動生成）
 - **仮想環境サンドボックス & 多層評価・Tier昇格 (`evaluation`)**: `ContractTestRunner` ($pass^k$), `SimulationEvalRunner` (ADK純正 `TrajectoryEvaluator`: EXACT / IN_ORDER / ANY_ORDER), `AdkEvalAdapter` (LLM-as-a-Judge & Position Swapping & ADK純正 `RubricBasedFinalResponseQualityV1Evaluator` / `AgentEvaluator` / `TrajectoryEvaluator` / 型安全な専用 `ToolTrajectoryCriterion` / `RubricsBasedCriterion` / `EvalConfig` 直接連携), `CascadeTestRunner`, `LocalWorkspaceEnv`, `SkillDiagnoser`, `SkillOptimizer`
 - **Google ADK 2.0 / MCP アダプタ (`adk` / `mcp`)**: `create_adk_skill_toolset`, `SkillToolset` (および `EddSkillToolset`: SkillsState / Tier 統合 Toolset: 3-Tier Progressive Disclosure: Tier適合ローカルスキルの全登録・L1 Frontmatter常時提示・L2 手順書/L3 スクリプトのオンデマンド開示、`enable_registry_search=False` によるローカル完結エージェントの検索ツール露出抑制・オーバーサーチ防止、動的探索用の `EddSkillRegistry` 併用、ADK公式 `BaseCodeExecutor` 準拠 `LocalSubprocessCodeExecutor` 標準注入・決定論的スクリプト実行), `EddSkillRegistry`, `create_mcp_server`
