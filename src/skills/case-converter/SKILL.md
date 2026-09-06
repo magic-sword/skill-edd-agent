@@ -6,7 +6,8 @@ description: |
   Do NOT use for trivial single-word uppercase/lowercase or complex AST-based code refactoring.
 license: MIT
 allowed-tools: run_skill_script load_skill_resource
-pattern: task_based
+metadata:
+  pattern: task_based
 ---
 
 # Case Converter

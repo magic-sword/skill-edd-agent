@@ -6,7 +6,8 @@ description: |
   Do NOT use for encryption/decryption tasks or simple single-character replacements.
 license: MIT
 allowed-tools: run_skill_script load_skill_resource
-pattern: task_based
+metadata:
+  pattern: task_based
 ---
 
 # Secret Sanitizer

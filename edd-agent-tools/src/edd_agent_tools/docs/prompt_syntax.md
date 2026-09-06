@@ -34,12 +34,16 @@ All instructions in `SKILL.md` and agent prompts must use **imperative/infinitiv
 - Space-delimited string of allowed tools (e.g., `allowed-tools: run_skill_script load_skill_resource`).
 - For skills executing bundled Python scripts, declare `run_skill_script`.
 
-### `metadata` Field
-- Supports `metadata.adk_additional_tools`: a list of additional tool names exposed to the agent.
+### `metadata` Field (Google ADK 2.0 Allowed Extensions)
+- Google ADK 2.0 strictly validates top-level frontmatter keys (`_ALLOWED_FRONTMATTER_KEYS`). Custom properties must be placed under the `metadata:` dictionary.
+- Supported properties:
+  - `metadata.pattern`: Skill architectural pattern (`workflow`, `task_based`, `reference`, `capabilities`).
+  - `metadata.adk_additional_tools`: List of additional tool names exposed to the agent.
 - Example:
   ```yaml
   allowed-tools: run_skill_script load_skill_resource
   metadata:
+    pattern: workflow
     adk_additional_tools:
       - lookup_orders
       - weather_api

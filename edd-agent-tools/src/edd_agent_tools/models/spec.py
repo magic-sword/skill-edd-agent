@@ -8,7 +8,7 @@ import yaml
 from enum import StrEnum
 from pathlib import Path
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 
 class SkillPattern(StrEnum):
@@ -37,6 +37,26 @@ class SkillFrontmatter(BaseModel):
     pattern: Optional[SkillPattern] = Field(None, description="スキルパターン（任意）")
     dependencies: List[str] = Field(default_factory=list, description="依存するスキル一覧")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="追加のメタデータ辞書")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sync_pattern_metadata(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            # metadata 辞書内の pattern をトップレベル pattern に同期
+            meta = data.get("metadata")
+            if isinstance(meta, dict) and "pattern" in meta and not data.get("pattern"):
+                data["pattern"] = meta["pattern"]
+            elif data.get("pattern") and isinstance(meta, dict) and "pattern" not in meta:
+                meta["pattern"] = data["pattern"].value if hasattr(data["pattern"], "value") else str(data["pattern"])
+            elif data.get("pattern") and meta is None:
+                data["metadata"] = {"pattern": data["pattern"].value if hasattr(data["pattern"], "value") else str(data["pattern"])}
+        return data
+
+    @model_validator(mode="after")
+    def _ensure_metadata_has_pattern(self) -> "SkillFrontmatter":
+        if self.pattern and "pattern" not in self.metadata:
+            self.metadata["pattern"] = self.pattern.value if hasattr(self.pattern, "value") else str(self.pattern)
+        return self
 
     @field_validator("allowed_tools", mode="before")
     @classmethod

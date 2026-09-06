@@ -6,7 +6,8 @@ description: |
   Do NOT use for automated code execution or active script modification.
 license: MIT
 allowed-tools: load_skill_resource
-pattern: reference
+metadata:
+  pattern: reference
 ---
 
 # {skill_title}

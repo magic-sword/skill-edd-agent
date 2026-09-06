@@ -153,7 +153,7 @@ class ContractTestRunner:
                         stderr = proc.stderr or ""
                         exit_code = proc.returncode
                     else:
-                        # スキルスクリプト: Google ADK 2.0 公式 _SkillScriptCodeExecutor / CodeExecutor に一本化
+                        # スキルスクリプト: Google ADK 2.0 公式 SkillToolset (run_skill_script) / BaseCodeExecutor に一本化
                         if script_args is None and short_options is None and positional_args is None:
                             script_args = cli_args
 

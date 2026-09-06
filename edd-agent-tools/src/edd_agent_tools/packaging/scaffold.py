@@ -23,7 +23,8 @@ description: |
   Do NOT use for simple one-off commands or unrelated administrative tasks.
 license: MIT
 allowed-tools: run_skill_script load_skill_resource
-pattern: {pattern}
+metadata:
+  pattern: {pattern}
 ---
 
 # {skill_title}

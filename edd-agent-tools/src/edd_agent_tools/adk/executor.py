@@ -73,10 +73,10 @@ class LocalSubprocessCodeExecutor(BaseCodeExecutor):
 
 
 class SkillScriptRunner:
-    """Google ADK 2.0 純正スクリプト実行基盤（_SkillScriptCodeExecutor）と連携するスクリプト実行器。
+    """Google ADK 2.0 公式 SkillToolset (run_skill_script) と連携するスクリプト実行器。
     
-    ラッパースクリプト生成やファイル展開の車輪の再発明を完全に排除し、
-    Google ADK 2.0 公式のスクリプト実行パイプラインに処理を一本化します。
+    非公開内部クラス（_SkillScriptCodeExecutor）や自前ラッパースクリプト文字列生成を完全に排除し、
+    Google ADK 2.0 公式公開 API（SkillToolset.get_tools() -> RunSkillScriptTool）に処理を一本化します。
     """
 
     def __init__(self, code_executor: Optional[BaseCodeExecutor] = None, timeout_seconds: int = 60):
@@ -92,21 +92,53 @@ class SkillScriptRunner:
         positional_args: Optional[List[str]] = None,
         invocation_context: Optional[Any] = None
     ) -> Dict[str, Any]:
-        """ADK 2.0 純正の _SkillScriptCodeExecutor を介して非同期にスクリプトを実行します。"""
+        """ADK 2.0 公式公開 API である SkillToolset の run_skill_script ツールを介して非同期にスクリプトを実行します。"""
         # skill が SkillPackage の場合は adk_skill を取得
         adk_skill = getattr(skill, "adk_skill", skill)
 
         try:
-            from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
-            executor = _SkillScriptCodeExecutor(self.code_executor, self.timeout_seconds)
-            res = await executor.execute_script_async(
-                invocation_context=invocation_context,
-                skill=adk_skill,
-                file_path=file_path,
-                script_args=script_args,
-                short_options=short_options,
-                positional_args=positional_args
+            from google.adk.tools.skill_toolset import SkillToolset
+            from google.adk.sessions.in_memory_session_service import InMemorySessionService
+            from google.adk.sessions.session import Session
+            from google.adk.agents.invocation_context import InvocationContext
+            from google.adk.agents.context import Context
+
+            toolset = SkillToolset(
+                skills=[adk_skill],
+                code_executor=self.code_executor,
+                script_timeout=self.timeout_seconds
             )
+            tools = await toolset.get_tools()
+            run_tool = next((t for t in tools if t.name == "run_skill_script"), None)
+            if run_tool is None:
+                raise RuntimeError("run_skill_script tool not found in SkillToolset")
+
+            # 呼び出しコンテキストの構築
+            if invocation_context is None:
+                sess_svc = InMemorySessionService()
+                sess = Session(session_id="script_exec_session", app_name="edd_skill", user_id="script_user")
+                inv_ctx = InvocationContext(
+                    invocation_id="inv_script_exec",
+                    session_service=sess_svc,
+                    session=sess
+                )
+            else:
+                inv_ctx = invocation_context
+
+            tool_ctx = Context(invocation_context=inv_ctx)
+
+            tool_args: Dict[str, Any] = {
+                "skill_name": adk_skill.name,
+                "file_path": file_path,
+            }
+            if script_args is not None:
+                tool_args["args"] = script_args
+            if short_options is not None:
+                tool_args["short_options"] = short_options
+            if positional_args is not None:
+                tool_args["positional_args"] = positional_args
+
+            res = await run_tool.run_async(args=tool_args, tool_context=tool_ctx)
 
             # exit_code の標準化
             if isinstance(res, dict):
@@ -117,7 +149,7 @@ class SkillScriptRunner:
             return {
                 "skill_name": getattr(adk_skill, "name", "unknown"),
                 "file_path": file_path,
-                "error": f"Failed to execute script via ADK code executor: {type(e).__name__}: {str(e)}",
+                "error": f"Failed to execute script via ADK SkillToolset: {type(e).__name__}: {str(e)}",
                 "error_code": "EXECUTION_ERROR",
                 "status": "failed",
                 "exit_code": 1

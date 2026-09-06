@@ -73,7 +73,7 @@ flowchart TD
     *   自前の脆弱な `subprocess.run` 直叩きやラッパースクリプト文字列生成（車輪の再発明）、プライベート属性（`_tools`）への裏口アクセスを完全排除。Google ADK 2.0 純正のスクリプト実行基盤（`SkillScriptRunner` / `LocalSubprocessCodeExecutor` 等の `BaseCodeExecutor`）に一本化し、リソースの自己展開・パストラバーサル防御・公式引数順序展開を保証。契約テスト（`ContractTestRunner`）も同一の実行基盤に統一し、テストと本番エージェント実行の完全な環境パリティを確立。トップレベルエージェント（`src/agent.py`）および実行時には公式推奨通り `code_executor` を直接注入。
     *   エージェントプロンプトからのスキル名ハードコードや `SkillToolset` 自動注入指示との重複を全廃し、ADK 2.0 純正の Progressive Disclosure（`list_skills` 探索および Toolset 自動プロンプト注入）と ADK 推奨 Callbacks（`before_agent_callback` / `after_agent_callback`）を活用するアーキテクチャへと刷新。
     *   `SimulationEvalRunner` において `AgentEvaluator` の例外ログを構造解析し、従来のバイナリ全勝/全敗丸めを解消。各テストケース単位での合否判定および詳細コンテキスト（`FailedCaseDetail`）を抽出・記録。
-    *   Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として正規化し、`metadata.adk_additional_tools` による追加ツール公開に対応。
+    *   Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として正規化し、ADK 2.0 の `_ALLOWED_FRONTMATTER_KEYS` 規約に準拠して独自拡張プロパティ（パターン種別等）は `metadata.pattern` 配下に格納。`metadata.adk_additional_tools` による追加ツール公開にも対応。
 5.  **白書（May 2026）4大 Eval Coverage Checklist (`--coverage`)**
     *   白書 Section 4 の 4大必須評価条件（Trigger >= 90%, Execution/Trajectory 100%, Regression 0 drops, Token Budget/Co-loaded 5~15 skills）を一括判定・チェックリスト出力。
 6.  **$pass^k$ (Sustained Reliability) & 3大 Tool Trajectory 評価モード**

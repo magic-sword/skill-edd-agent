@@ -32,7 +32,7 @@ Anthropic 公式標準（Markdown-First & Progressive Disclosure）および Goo
   1. **動詞起点（Verb-led sentence）**: 何を行うスキルかを端的に定義（例: "Converts text between case styles..."）
   2. **Use when ...**: トリガー条件・発話キーワード
   3. **Do NOT use for ...**: 誤爆を防ぐ除外条件・境界定義
-* **`pattern`**: 4大スキルパターン（`workflow`, `task_based`, `reference`, `capabilities`）のいずれかを指定。
+* **`metadata.pattern`**: Google ADK 2.0 許容キー仕様に準拠し、`metadata` 辞書配下に 4大スキルパターン（`workflow`, `task_based`, `reference`, `capabilities`）のいずれかを指定。
 
 ---
 

@@ -363,6 +363,17 @@ class SkillValidator:
                 if not isinstance(adk_tools, list) or not all(isinstance(t, str) for t in adk_tools):
                     res.add_error("frontmatter", "'metadata.adk_additional_tools' must be a list of tool name strings.")
 
+        # 2.2 Google ADK 2.0 未知トップレベルフィールドの検査
+        adk_allowed_keys = {"name", "description", "license", "allowed-tools", "allowed_tools", "metadata", "compatibility"}
+        unknown_keys = set(fm.keys()) - adk_allowed_keys
+        if unknown_keys:
+            res.add_warning(
+                "frontmatter",
+                f"Unknown top-level frontmatter fields detected: {sorted(unknown_keys)}. "
+                f"Google ADK 2.0 and Agent Skills specification require custom properties (such as 'pattern', 'tier') "
+                f"to be placed inside the 'metadata:' mapping (e.g., 'metadata:\\n  pattern: ...') "
+                f"to prevent validation rejection by ADK's native skill loader."
+            )
 
         # 3. Context Rot (コンテキスト腐敗) 対策: SKILL.md 本文のサイズ検査
         word_count = len(body_str.split())

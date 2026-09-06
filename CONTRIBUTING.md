@@ -89,6 +89,9 @@
    - Frontmatter の `description` はエージェントのルーティングアルゴリズムです。動詞起点（Verb-led sentence）で開始し、「Use when...（発動条件）」および「Do NOT use for...（除外条件）」を明記してください（50〜100 words, ≤1024 chars）。
    - Context Rot 対策として、`SKILL.md` 本文は 5,000 words 以内に抑え、詳細仕様は `references/` に分離してください。
    - Context Debt 対策として、`ALWAYS` や `NEVER` などの大文字命令を詰め込まず「理由を付記（Give the reason, not just the rule）」してください。
+9. **Frontmatter メタデータと ADK 2.0 許容キー規約 (`_ALLOWED_FRONTMATTER_KEYS`)**:
+   - Google ADK 2.0 の `_validate_skill_dir` 仕様に準拠し、トップレベルに配置可能なキーは `name`, `description`, `license`, `allowed-tools`, `allowed_tools`, `metadata`, `compatibility` の7種のみです。
+   - `pattern` 等の独自拡張プロパティはトップレベルではなく必ず `metadata.pattern` 配下に格納してください（`SkillValidator` が静的解析で自動検証します）。
 
 ---
 

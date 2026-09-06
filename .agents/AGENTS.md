@@ -33,7 +33,7 @@
   - サンドボックス & 多層評価・Tier昇格（`evaluation`: `ContractTestRunner`, `SimulationEvalRunner`, `AdkEvalAdapter` [ADK純正 TrajectoryEvaluator, ResponseEvaluator ROUGE-1, RubricBasedFinalResponseQualityV1Evaluator, Position Swapping, 型安全専用 Criterion], `CascadeTestRunner`, `LocalWorkspaceEnv`）
   - Google ADK 2.0 / MCP アダプタ（`adk`: `create_adk_skill_toolset`, `SkillToolset` [および `EddSkillToolset`: SkillsState / Tier 統合 Toolset: 3-Tier Progressive Disclosure: Tier適合ローカルスキルの全登録・L1 Frontmatter常時提示・L2 手順書/L3 スクリプトのオンデマンド開示、EddSkillRegistry 動的探索併用、ADK公式 `BaseCodeExecutor` 準拠 `LocalSubprocessCodeExecutor` 標準注入・決定論的スクリプト実行], `EddSkillRegistry` / `mcp`: `create_mcp_server`）
   - 統合 CLI（`cli`: `edd run/init/validate/package/eval/tier-gate/diagnose/optimize` [--cli, --coverage, --live]）
-  ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。公式 Code Executor および ADK 公式評価器（TrajectoryEvaluator, AgentEvaluator, RubricBasedFinalResponseQualityV1Evaluator, EvalConfig）を使用します。アドホックな車輪の再発明（自前 subprocess 直叩きやラッパースクリプト生成）、プライベート属性（`_tools` 等）への裏口アクセス、独自の手動キーワード照合による偽ルーブリック判定を完全排除し、ADK 2.0 公式公開API（`await toolset.get_tools()`）、公式スクリプト実行基盤（`_SkillScriptCodeExecutor` / `BaseCodeExecutor`）、および公式 Evaluator に一本化します。契約テスト（`ContractTestRunner`）は ADK 2.0 純正のスクリプト実行基盤を通じて実行され、テスト環境と本番エージェント実行環境の完全な環境パリティを保証します。トップレベルエージェントには公式推奨に従い `code_executor` を直接注入し、エージェントのライフサイクル管理には ADK 2.0 推奨の Callbacks（`before_agent_callback` / `after_agent_callback`）を活用します。
+  ※ 他プロジェクトに `pip install` された環境でも単独で完全動作するよう、パッケージ内部は外部プロジェクト固有パスへの暗黙依存を持たない完全自己完結設計とします。公式 Code Executor および ADK 公式評価器（TrajectoryEvaluator, AgentEvaluator, RubricBasedFinalResponseQualityV1Evaluator, EvalConfig）を使用します。アドホックな車輪の再発明（自前 subprocess 直叩きやラッパースクリプト生成）、非公開内部クラス（`_SkillScriptCodeExecutor` 等）やプライベート属性（`_tools` 等）への裏口アクセス、独自の手動キーワード照合による偽ルーブリック判定を完全排除し、ADK 2.0 公式公開API（`await toolset.get_tools()` による `RunSkillScriptTool` 実行、`BaseCodeExecutor`）、および公式 Evaluator に一本化します。契約テスト（`ContractTestRunner`）は ADK 2.0 純正の公開実行基盤（`SkillToolset` の `run_skill_script`）を通じて実行され、テスト環境と本番エージェント実行環境の完全な環境パリティを保証します。トップレベルエージェントには公式推奨に従い `code_executor` を直接注入し、エージェントのライフサイクル管理には ADK 2.0 推奨の Callbacks（`before_agent_callback` / `after_agent_callback`）を活用します。
 
 * **規約駆動スキル資産層 (`src/skills/<skill>/`) と依存関係ポリシー**:
   1. **メタスキル (`skill-creator`, `skill-evolver`) の設計思想**:
@@ -51,7 +51,7 @@
      - **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数（`positional_args` / `args`）の検証は `expected_tool_calls` / `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` は最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化させます。
      - 独自スキーマによるデータ二重管理を排し、Google ADK 公式 CLI `adk eval` や `AgentEvaluator` とそのまま直結動作します。
   5. **白書 Appendix A minimal SKILL.md 6大必須セクション構造と ADK 公式仕様**:
-     - すべての `SKILL.md` は、`## When to use`, `## When NOT to use`, `## Workflow`, `## Examples`, `## Output format`, `## Anti-patterns to avoid` の 6 つの必須セクションで構成します。Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として定義します。
+     - すべての `SKILL.md` は、`## When to use`, `## When NOT to use`, `## Workflow`, `## Examples`, `## Output format`, `## Anti-patterns to avoid` の 6 つの必須セクションで構成します。Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として定義します。独自拡張プロパティ（`pattern`, `tier` 等）は ADK 2.0 `_ALLOWED_FRONTMATTER_KEYS` 規約に準拠し、トップレベルではなく `metadata:` 辞書配下に格納します。
 
   6. **Python import 境界の厳守**:
      - いずれのスキルもスクリプト内部から `import edd_agent_tools` などの直接 Python import は行わず、CLI/IO 規約（`--help`、引数、標準入出力、サブプロセス）のみで疎結合に連携します。

@@ -6,7 +6,8 @@ description: |
   Do NOT use for one-line shell commands or global environment configuration.
 license: MIT
 allowed-tools: run_skill_script load_skill_resource
-pattern: task_based
+metadata:
+  pattern: task_based
 ---
 
 # {skill_title}

@@ -6,7 +6,8 @@ description: |
   Do NOT use for simple one-off commands or isolated script runs.
 license: MIT
 allowed-tools: run_skill_script load_skill_resource
-pattern: capabilities
+metadata:
+  pattern: capabilities
 ---
 
 # {Skill Title}

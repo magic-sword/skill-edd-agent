@@ -6,13 +6,14 @@ description: |
   Do NOT use for simple one-off commands or unrelated administrative tasks.
 license: MIT
 allowed-tools: run_skill_script load_skill_resource
-pattern: workflow
+metadata:
+  pattern: workflow
 ---
 
 # {skill_title}
 
 ## When to use
-- Please execute {task} on the target files
+- Execute {task} on the target files
 - Run the {skill_name} workflow
 
 ## When NOT to use

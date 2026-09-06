@@ -311,7 +311,7 @@ class SkillPackage:
     ) -> Dict[str, Any]:
         """スキルの scripts/ 配下の決定論的スクリプトを実行し、結果を返します。
         
-        Google ADK 2.0 純正のスクリプト実行基盤（_SkillScriptCodeExecutor / BaseCodeExecutor 準拠 LocalSubprocessCodeExecutor）
+        Google ADK 2.0 純正のスクリプト実行基盤（SkillToolset の run_skill_script / BaseCodeExecutor 準拠 LocalSubprocessCodeExecutor）
         により、リソース（references, assets）の自己展開、パストラバーサル防御、および公式引数順序展開を行って安全・決定論的に実行します。
         """
         scripts = self.list_scripts()
@@ -369,8 +369,8 @@ class SkillPackage:
             except ImportError:
                 has_adk_executor = False
 
-            # Google ADK 2.0 純正スクリプト実行基盤（_SkillScriptCodeExecutor）と連携する
-            # SkillScriptRunner を使用し、スキルリソースの安全な自己展開、パストラバーサル防御、
+            # Google ADK 2.0 純正スクリプト実行基盤（SkillScriptRunner / SkillToolset の run_skill_script）と連携し、
+            # スキルリソースの安全な自己展開、パストラバーサル防御、
             # および公式引数順序展開を行ってスクリプトを実行する
             if has_adk_executor:
                 executor = code_executor or LocalSubprocessCodeExecutor(timeout_seconds=timeout)

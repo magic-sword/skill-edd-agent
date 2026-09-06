@@ -6,7 +6,8 @@ description: |
   Do NOT use for creating brand-new skill boilerplates or managing Python package releases.
 license: MIT
 allowed-tools: run_skill_script load_skill_resource
-pattern: workflow
+metadata:
+  pattern: workflow
 ---
 
 # Skill Evolver
