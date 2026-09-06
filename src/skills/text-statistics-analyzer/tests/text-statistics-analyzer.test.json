@@ -1,0 +1,339 @@
+{
+  "eval_set_id": "text-statistics-analyzer_edd_eval",
+  "name": "text-statistics-analyzer_edd_eval",
+  "description": "Google ADK 2.0 Native EvalSet for text-statistics-analyzer",
+  "eval_cases": [
+    {
+      "eval_id": "text_stat_edd_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_text_stat_edd_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Analyze text statistics for 'Hello world! This is a simple test text.'"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "| Metric | Value |\n|---|---|\n| Characters (total) | 40 |\n| Words | 8 |\n| Sentences | 2 |\n| Estimated Reading Time | < 1 min |"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "text-statistics-analyzer",
+                  "file_path": "scripts/text_statistics_analyzer.py",
+                  "positional_args": [
+                    "Hello world! This is a simple test text."
+                  ],
+                  "args": {}
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_text_stat_001_1",
+          "rubric_content": {
+            "text_property": "correctly invokes run_skill_script with text_statistics_analyzer.py"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_text_stat_001_2",
+          "rubric_content": {
+            "text_property": "outputs structured text statistics table without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "text-statistics-analyzer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "text_stat_edd_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_text_stat_edd_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Analyze text statistics for Japanese text: '吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。'"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "| 指標 | 値 |\n|---|---|\n| 文字数（全体） | 33 |\n| 文字数（空白除く） | 33 |\n| 文数 | 3 |\n| 推定読了時間 | < 1分 |"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "text-statistics-analyzer",
+                  "file_path": "scripts/text_statistics_analyzer.py",
+                  "positional_args": [
+                    "吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。"
+                  ],
+                  "args": {}
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_text_stat_002_1",
+          "rubric_content": {
+            "text_property": "correctly analyzes Japanese text character and sentence counts"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_text_stat_002_2",
+          "rubric_content": {
+            "text_property": "presents clear metrics table without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "text-statistics-analyzer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "text_stat_edd_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_text_stat_edd_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Calculate text statistics in JSON format for: 'Artificial intelligence agents autonomously plan and execute multi-step workflows.'"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "{\"characters_total\": 93, \"words\": 10, \"sentences\": 1}"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "text-statistics-analyzer",
+                  "file_path": "scripts/text_statistics_analyzer.py",
+                  "positional_args": [
+                    "Artificial intelligence agents autonomously plan and execute multi-step workflows."
+                  ],
+                  "args": {
+                    "format": "json"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_text_stat_003_1",
+          "rubric_content": {
+            "text_property": "invokes script with format=json option"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_text_stat_003_2",
+          "rubric_content": {
+            "text_property": "returns valid JSON formatted statistics output"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "text-statistics-analyzer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "text_stat_edd_neg_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_text_stat_edd_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Summarize this article into 3 key takeaways"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Please provide the article text that you would like me to summarize into 3 key takeaways."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_text_stat_neg_001_1",
+          "rubric_content": {
+            "text_property": "does not trigger text-statistics-analyzer"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_text_stat_neg_001_2",
+          "rubric_content": {
+            "text_property": "handles summarization request directly without running statistics script"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "text-statistics-analyzer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "text_stat_edd_neg_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_text_stat_edd_neg_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Translate this English greeting to Japanese: Good morning everyone"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "おはようございます、皆さん。"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_text_stat_neg_002_1",
+          "rubric_content": {
+            "text_property": "does not trigger text-statistics-analyzer"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_text_stat_neg_002_2",
+          "rubric_content": {
+            "text_property": "provides direct translation without calling text statistics tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "text-statistics-analyzer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "text_stat_edd_neg_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_text_stat_edd_neg_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What is the capital city of France?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "The capital city of France is Paris."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_text_stat_neg_003_1",
+          "rubric_content": {
+            "text_property": "does not trigger text-statistics-analyzer"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_text_stat_neg_003_2",
+          "rubric_content": {
+            "text_property": "answers factual general knowledge question directly"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "text-statistics-analyzer",
+        "user_id": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}
