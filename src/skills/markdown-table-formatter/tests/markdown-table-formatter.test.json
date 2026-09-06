@@ -1,0 +1,337 @@
+{
+  "eval_set_id": "markdown-table-formatter_edd_eval",
+  "name": "markdown-table-formatter_edd_eval",
+  "description": "Google ADK 2.0 Native EvalSet for markdown-table-formatter",
+  "eval_cases": [
+    {
+      "eval_id": "markdown_table_formatter_edd_pos_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_markdown_table_formatter_pos_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Format and align this markdown table cleanly:\n| Name | Role | Location |\n|---|---|---|\n| Alice | Software Engineer | New York |\n| Bob | Product Manager | San Francisco |"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "| Name  | Role              | Location      |\n|-------|-------------------|---------------|\n| Alice | Software Engineer | New York      |\n| Bob   | Product Manager   | San Francisco |"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "markdown-table-formatter",
+                  "file_path": "scripts/markdown_table_formatter.py",
+                  "positional_args": [
+                    "| Name | Role | Location |\n|---|---|---|\n| Alice | Software Engineer | New York |\n| Bob | Product Manager | San Francisco |"
+                  ],
+                  "args": {}
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_mtf_pos_001_1",
+          "rubric_content": {
+            "text_property": "correctly invokes run_skill_script with markdown_table_formatter.py to format markdown table"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_mtf_pos_001_2",
+          "rubric_content": {
+            "text_property": "outputs cleanly aligned markdown table with proper padding and column width alignment without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "markdown-table-formatter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "markdown_table_formatter_edd_pos_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_markdown_table_formatter_pos_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Format and align the markdown table in docs/api_reference.md"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Formatted and aligned the markdown table in docs/api_reference.md successfully."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "markdown-table-formatter",
+                  "file_path": "scripts/markdown_table_formatter.py",
+                  "positional_args": [
+                    "docs/api_reference.md"
+                  ],
+                  "args": {}
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_mtf_pos_002_1",
+          "rubric_content": {
+            "text_property": "correctly invokes run_skill_script with markdown_table_formatter.py with target file path"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_mtf_pos_002_2",
+          "rubric_content": {
+            "text_property": "confirms table cleanup and alignment without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "markdown-table-formatter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "markdown_table_formatter_edd_pos_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_markdown_table_formatter_pos_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Align this unaligned markdown table with column alignment markers:\n| Item | Qty | Unit Price | Total |\n|:---|:---:|---:|---:|\n| Widget A | 10 | .00 | 0.00 |\n| Super Gadget B | 2 | 20.00 | 40.00 |"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "| Item           |  Qty  | Unit Price |    Total |\n|:---------------|:-----:|-----------:|---------:|\n| Widget A       |  10   |      .00 |   0.00 |\n| Super Gadget B |   2   |    20.00 |  40.00 |"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "markdown-table-formatter",
+                  "file_path": "scripts/markdown_table_formatter.py",
+                  "positional_args": [
+                    "| Item | Qty | Unit Price | Total |\n|:---|:---:|---:|---:|\n| Widget A | 10 | .00 | 0.00 |\n| Super Gadget B | 2 | 20.00 | 40.00 |"
+                  ],
+                  "args": {}
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_mtf_pos_003_1",
+          "rubric_content": {
+            "text_property": "triggers markdown-table-formatter to align table retaining alignment colons"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_mtf_pos_003_2",
+          "rubric_content": {
+            "text_property": "returns deterministic formatted table preserving alignment specifiers without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "markdown-table-formatter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "markdown_table_formatter_edd_neg_001",
+      "conversation": [
+        {
+          "invocation_id": "inv_markdown_table_formatter_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert this comma-separated list into markdown bullet points: apples, oranges, bananas, grapes"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "- apples\n- oranges\n- bananas\n- grapes"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_mtf_neg_001_1",
+          "rubric_content": {
+            "text_property": "does not trigger markdown-table-formatter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_mtf_neg_001_2",
+          "rubric_content": {
+            "text_property": "directly formats comma-separated text into bullet points without invoking table tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "markdown-table-formatter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "markdown_table_formatter_edd_neg_002",
+      "conversation": [
+        {
+          "invocation_id": "inv_markdown_table_formatter_neg_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Lint my markdown file to check for heading level hierarchy issues and broken links."
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "For general markdown linting, use linters such as markdownlint to validate heading level progression and markdown-link-check to detect broken hyperlinks."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_mtf_neg_002_1",
+          "rubric_content": {
+            "text_property": "does not trigger markdown-table-formatter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_mtf_neg_002_2",
+          "rubric_content": {
+            "text_property": "explains general markdown linting directly without invoking table formatting tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "markdown-table-formatter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "markdown_table_formatter_edd_neg_003",
+      "conversation": [
+        {
+          "invocation_id": "inv_markdown_table_formatter_neg_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "How do you define a table in GitHub Flavored Markdown syntax?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "In GitHub Flavored Markdown, define tables using vertical pipes (|) to separate columns and hyphens (-) on the second line to separate header cells from body rows."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_mtf_neg_003_1",
+          "rubric_content": {
+            "text_property": "does not trigger markdown-table-formatter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_mtf_neg_003_2",
+          "rubric_content": {
+            "text_property": "provides general markdown table syntax explanation directly without invoking any tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "markdown-table-formatter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    }
+  ]
+}

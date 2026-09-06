@@ -19,6 +19,9 @@
     },
     "secret-sanitizer": {
       "tier": 3
+    },
+    "markdown-table-formatter": {
+      "tier": 1
     }
   },
   "agents": {}
