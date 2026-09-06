@@ -159,7 +159,7 @@ def main():
                 f.write("\n------------------------------\n")
 
         except subprocess.TimeoutExpired:
-            log_message(log_path, f"[Timeout] セッションが {args.timeout} 秒を超過過したため強制終了しました。")
+            log_message(log_path, f"[Timeout] セッションが {args.timeout} 秒を超過したため強制終了しました。")
             rollback_git()
             continue
         except Exception as e:
@@ -167,22 +167,9 @@ def main():
             rollback_git()
             continue
 
-        # 収束シグナルの検出
-        if "OPTIMIZATION_COMPLETE" in session_output:
-            log_message(
-                log_path,
-                "🎉 [Convergence] エージェントが OPTIMIZATION_COMPLETE シグナルを出力しました！"
-            )
-            log_message(
-                log_path,
-                "すべての ADK 2.0 最適化が完了し、改善点が解消されたと判定されました。"
-            )
-            break
-
-        # テストの整合性チェック
+        # 未コミットの変更が残されている場合の検証とコミット
         after_status = get_git_status()
         if after_status:
-            # 未コミットの変更が残されている場合、pytest を実行
             if not run_pytest():
                 log_message(log_path, "[Fail] テストが失敗したため、変更をロールバックします。")
                 rollback_git()
@@ -196,16 +183,36 @@ def main():
                 )
 
         after_commit = get_current_commit()
-        if after_commit != before_commit:
+        has_new_commit = (after_commit != before_commit)
+
+        # 【厳格判定】：コミットが発生した場合は必ず次の新しいセッションで再検証する
+        if has_new_commit:
             log_message(log_path, f"✅ [Success] コミットが作成されました: {after_commit[:7]}")
+            log_message(
+                log_path,
+                "🔄 改修が適用されたため、改修後の状態を検証するために必ず次の新しいクリーンなセッションを起動します。"
+            )
             consecutive_no_change = 0
+            continue
+
+        # コミットが発生しなかった場合のみ、終了シグナル (OPTIMIZATION_COMPLETE) を受け付ける
+        if "OPTIMIZATION_COMPLETE" in session_output:
+            log_message(
+                log_path,
+                "🎉 [Convergence] クリーンな新セッションによる客観的監査の結果、改善点ゼロが確認され OPTIMIZATION_COMPLETE が出力されました！"
+            )
+            log_message(
+                log_path,
+                "すべての ADK 2.0 最適化が完了し、ベストプラクティスに完全準拠していると認定されました。"
+            )
+            break
         else:
-            log_message(log_path, "ℹ️ [No Change] この反復では新しいコミットは作成されませんでした。")
+            log_message(log_path, "ℹ️ [No Change] この反復ではコミットおよび完了シグナルは出力されませんでした。")
             consecutive_no_change += 1
             if consecutive_no_change >= 2:
                 log_message(
                     log_path,
-                    "2回連続で変更が発生しなかったため、これ以上の改善点はないと判断しループを終了します。",
+                    "2回連続で変更が発生しなかったため、ループを安全に終了します。",
                 )
                 break
 
