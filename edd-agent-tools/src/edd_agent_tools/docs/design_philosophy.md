@@ -21,9 +21,11 @@ Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠�
 
 * **スキルの依存関係（Prerequisites / Requirements）に関する標準方針**:
   - **メタスキル（`skill-creator`, `skill-evolver`）**: `pytest` が `pytest` を前提とするのと同様、**`pip install edd-agent-tools` を前提とし、統合 CLI `edd` を直接呼び出す手順書（CLI-as-an-API）** です。不要な薄型ラッパースクリプトを排除し、単一真実源（SSOT）と保守性を最大化します。
-  - **一般ドメインスキル（業務・ツールスキル）**:
-    - 軽量ユーティリティ（例: `case-converter`, `secret-sanitizer`）は Python 標準ライブラリのみで完結させます。
-    - 外部ライブラリ依存（例: `docx`, `xlsx`, `playwright` 等）が必要なスキルは、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（環境構築されている前提で実行）。`SkillValidator` が AST 解析により記述漏れを自動検知します。
+  - **一般ドメインスキル（業務・ツールスキル）の2層分類と車輪の再発明禁止**:
+    - **① 汎用ユーティリティ（Universal / Drop-in Portable Skills）**: 文字列変換やサニタイズ（例: `case-converter`, `secret-sanitizer`）などの軽量スキルは、Python 標準ライブラリのみで完結させ、あらゆる環境へ即座に持ち運び可能とします。
+    - **② プロジェクト固有・高度業務スキル（Local / Project-Bound Skills）**: 機械学習（PyTorch）、データ分析（Pandas）、オフィス文書（openpyxl, python-docx）、ブラウザ自動化（Playwright）などを扱うスキルは、**ローカルプロジェクトの既存エコシステム（`requirements.txt` や仮想環境）を最大限に活用**します。ポータビリティを絶対視するあまり、標準ライブラリだけで複雑なアルゴリズムやパーサーを自作することは、バグと脆弱性を招く「不必要な車輪の再発明」として厳禁します。
+    - **管理者への事前相談プロトコル (Consultation Protocol)**:
+      エージェントがスキルを実装・改修する際、外部ライブラリ（pip パッケージ）の導入が有効と考えられる場合は、独断で再発明せず、**「利点（信頼性、性能、簡潔性）」と「欠点（依存関係追加、環境構築）」を管理者に報告・相談**して合意を得ます。合意後、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要なパッケージを明記します（`SkillValidator` が AST 解析により記述漏れを自動検知します）。
 
 ---
 

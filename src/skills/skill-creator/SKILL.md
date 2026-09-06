@@ -32,10 +32,13 @@ metadata:
      - 「逆に、類似しているがこのスキルをトリガーしてはならない境界ケースは何か？（負例境界3件）」
    - スキルの構造パターン（workflow, task_based, reference, capabilities）を選択する。
 
-2. 再利用可能リソースの峻別計画 (Resource Planning):
+2. 再利用可能リソースの峻別計画と外部ライブラリ相談 (Resource Planning & Consultation):
    - `scripts/`: 決定論的信頼性が必要な処理、繰り返し書き直されるコード、計算・フォーマット変換
    - `references/`: ドメイン固有のスキーマ、API仕様、業務規約（SKILL.md を5,000語以下にスリムに保つ）
    - `assets/`: 成果物生成用のテンプレート、ボイラープレート、画像等の静的ファイル（コンテキストに読ませない）
+   - **外部ライブラリ判断と管理者への事前相談**:
+     - 単純な変換は標準ライブラリで完結させるが、高度な処理（PyTorch, Pandas, Playwright, openpyxl 等）を標準ライブラリだけで無理に自作することは「悪質な車輪の再発明」として避ける。
+     - 外部ライブラリ導入が望ましい場合は、必ず「利点（信頼性・性能・簡潔性）」と「欠点（依存関係追加）」を管理者に報告・相談して合意を得た上で `## Requirements & Prerequisites` に明記する。
 
 3. インバージョン開発 (EDD Inversion) による評価セット先行策定 (SSOT):
    - SKILL.md を執筆する前に、まず `tests/<skill-name>.test.json` に Google ADK 2.0 公式 `EvalSet` 形式で **3つの正例 ＋ 3つの負例（計6ケース）** を確定する（ADK ディレクトリ自動探索適合）。
@@ -79,6 +82,7 @@ metadata:
 - Google ADK 2.0 公式 `EvalSet` 形式の評価データセット（tests/）の作成を省略しないこと。
 - 「ALWAYS DO X」のような大文字命令を乱用して Context Debt を蓄積させないこと（理由を説明するか決定論的スクリプトに落とし込む）。
 - 6大必須セクション（When to use, When NOT to use, Workflow, Examples, Output format, Anti-patterns to avoid）を省略しないこと。
+- ポータビリティを理由に、既存の確立されたライブラリ（PyTorch, Pandas 等）があるにもかかわらず標準ライブラリだけで複雑な車輪を再発明しないこと（利点・欠点を管理者に相談して判断すること）。
 
 ## Requirements & Prerequisites
 本スキルは EDD エコシステム公式のメタスキルであり、以下の前提環境で動作します：

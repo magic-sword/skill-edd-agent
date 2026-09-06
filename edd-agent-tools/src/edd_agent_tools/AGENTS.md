@@ -61,9 +61,10 @@ pytest, Ansible, dbt 等の業界標準エコシステムに倣い、**「汎用
   1. **メタスキル (`skill-creator`, `skill-evolver`)**:
      - `pytest` が `pytest` のインストールを前提とするのと同様、**`pip install edd-agent-tools` を前提とし、統合 CLI `edd` を直接呼び出す手順書（CLI-as-an-API）** です。
      - 不要な薄型ラッパースクリプトを排除し、単一真実源（SSOT）と保守性を最大化します。
-  2. **一般ドメインスキル（業務・ツールスキル）**:
-     - 軽量ユーティリティ（例: `case-converter`, `secret-sanitizer`）は Python 標準ライブラリのみで完結させます。
-     - 外部ライブラリ依存（例: `docx`, `xlsx`, `playwright` 等）が必要なスキルは、Anthropic 公式標準に従い `SKILL.md` の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（環境構築されている前提で実行）。`SkillValidator` が AST 解析により記述漏れを自動検知します。
+  2. **一般ドメインスキル（業務・ツールスキル）の依存関係と車輪の再発明禁止**:
+     - **① 汎用ユーティリティ（Universal / Drop-in Portable Skills）**: 軽量ユーティリティ（例: `case-converter`, `secret-sanitizer`）は Python 標準ライブラリのみで完結させ、追加セットアップ不要で即座に動作させます。
+     - **② プロジェクト固有・高度業務スキル（Local / Project-Bound Skills）**: 機械学習（PyTorch）、データ分析（Pandas）、オフィス文書（`docx`, `xlsx` 等）、ブラウザ自動化（`playwright` 等）を必要とするスキルは、**ローカルプロジェクトの既存資産（`requirements.txt` や仮想環境）を積極的に活用**します。ポータビリティを理由に標準ライブラリだけで複雑なアルゴリズムやパーサーを無理に自作することは、バグと品質低下を招く「不必要な車輪の再発明」として厳禁します。
+     - **管理者への事前相談プロトコル (Consultation Protocol)**: 外部ライブラリの導入が有効と考えられる場合、エージェントは独断で再発明せず、**「利点（信頼性、性能、コードの簡潔性）」と「欠点（依存追加、環境構築）」を管理者に報告・相談**して合意を得ます。合意後、Anthropic 公式標準に準拠し、`SKILL.md` 内の `## Requirements & Prerequisites` に必要な pip パッケージを明記します（`SkillValidator` が AST 解析により記述漏れを自動検知します）。
   3. **Don't reinvent MCP as scripts (MCP再発明の禁止)**:
      - 白書 Appendix A 準拠。外部API（GitHub, Slack, Salesforce等）との接続や外部データ取得は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明してはなりません。スキルは Know-how（決定論的手順と処理）に集中します。
   4. **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**:
