@@ -364,44 +364,27 @@ class SkillPackage:
 
         try:
             try:
-                from ..adk.executor import LocalSubprocessCodeExecutor
-                from google.adk.tools.skill_toolset import _SkillScriptCodeExecutor
+                from ..adk.executor import LocalSubprocessCodeExecutor, SkillScriptRunner
                 has_adk_executor = True
             except ImportError:
                 has_adk_executor = False
 
-            # Google ADK 2.0 公式スクリプト実行エンジン (_SkillScriptCodeExecutor) を最優先で使用
-            # スキルリソース（references, assets, scripts）を安全な一時ディレクトリに自己展開し、
-            # パストラバーサルを防御した上で公式引数展開を行い、BaseCodeExecutor で実行する
+            # Google ADK 2.0 純正スクリプト実行基盤（_SkillScriptCodeExecutor）と連携する
+            # SkillScriptRunner を使用し、スキルリソースの安全な自己展開、パストラバーサル防御、
+            # および公式引数順序展開を行ってスクリプトを実行する
             if has_adk_executor:
                 executor = code_executor or LocalSubprocessCodeExecutor(timeout_seconds=timeout)
-                script_executor = _SkillScriptCodeExecutor(executor, timeout)
+                runner = SkillScriptRunner(code_executor=executor, timeout_seconds=timeout)
 
-                # 同期コンテキストから安全に非同期スクリプト実行器を呼び出し
-                async def _run_adk_script():
-                    return await script_executor.execute_script_async(
-                        None,
-                        self.adk_skill,
-                        rel_path,
-                        args,
-                        short_options,
-                        positional_args
-                    )
+                exec_result = runner.execute_script(
+                    skill=self.adk_skill,
+                    file_path=rel_path,
+                    script_args=args,
+                    short_options=short_options,
+                    positional_args=positional_args
+                )
 
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    loop = None
-
-                if loop and loop.is_running():
-                    import concurrent.futures
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as tp:
-                        future = tp.submit(asyncio.run, _run_adk_script())
-                        exec_result = future.result(timeout=timeout + 5)
-                else:
-                    exec_result = asyncio.run(_run_adk_script())
-
-                if "error" in exec_result:
+                if "error" in exec_result and exec_result.get("status") == "failed":
                     return {
                         "skill_name": self.name,
                         "file_path": rel_path,

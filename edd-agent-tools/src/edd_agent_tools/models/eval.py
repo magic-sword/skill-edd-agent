@@ -28,21 +28,6 @@ except ImportError:
     Rubric = Any
     SessionInput = Any
     SessionState = Any
-    StaticConversation = Any
-
-
-class EDDToolCall(BaseModel):
-    """Google ADK 2.0 純正 run_skill_script 呼び出しモデル"""
-    name: str = Field(default="run_skill_script", description="ツール名 (Google ADK 2.0 純正 run_skill_script)")
-    args: Dict[str, Any] = Field(default_factory=dict, description="引数パラメータ (skill_name, file_path, args)")
-
-    def to_adk_native(self, skill_name: Optional[str] = None) -> Dict[str, Any]:
-        """ADK 2.0 純正の {"name": "run_skill_script", "args": {...}} 形式を返します。"""
-        native_args = dict(self.args)
-        if skill_name and "skill_name" not in native_args:
-            native_args["skill_name"] = skill_name
-        return {"name": self.name, "args": native_args}
-
 
 class EvalCase(AdkEvalCase):
     """Google ADK 2.0 純正準拠のテストケース定義。
@@ -237,27 +222,23 @@ class EvalCase(AdkEvalCase):
 
     @property
     def expected_stdout_contains(self) -> Optional[List[str]]:
-        """期待標準出力キーワードリスト（expected_output_format から導出）"""
+        """期待標準出力キーワードリスト（final_response の内容から導出）
+        
+        抽象プレースホルダー（_help, _summary, _confirmation, _format 等で終わる識別子）は
+        CLI 契約テストでのキーワード照合から除外し、終了コード検証のみを行います。
+        """
         fmt = self.expected_output_format
+        if not fmt or not isinstance(fmt, str):
+            return None
+        fmt_str = fmt.strip()
         abstract_suffixes = (
-            "_format",
-            "_summary",
-            "_calculation",
-            "_id",
-            "_help",
-            "_confirmation",
-            "_path",
-            "_status",
-            "_report",
-            "_result",
-            "_output",
-            "_response",
-            "_data",
-            "_message"
+            "_format", "_summary", "_calculation", "_id", "_help",
+            "_confirmation", "_path", "_status", "_report", "_result",
+            "_output", "_response", "_data", "_message"
         )
-        if fmt and not fmt.endswith(abstract_suffixes):
-            return [fmt]
-        return None
+        if fmt_str.endswith(abstract_suffixes):
+            return None
+        return [fmt_str]
 
     @property
     def is_negative(self) -> bool:

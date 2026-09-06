@@ -211,19 +211,36 @@ def create_adk_skill_toolset(
     script_timeout: int = 300
 ) -> SkillToolset:
     """
-    Google ADK 2.0 公式仕様に完全準拠した SkillToolset インスタンスを生成して返します。
+    Google ADK 2.0 公式純正の SkillToolset インスタンスを直接生成して返します。
+    SkillsState と連携して Tier 基準を満たすローカルスキルを登録し、
+    Progressive Disclosure（段階的情報開示）を公式仕様通りに実現します。
     """
-    return EddSkillToolset(
-        skills_root=skills_dir,
-        state=state,
+    resolved_state = state or (SkillsState(skills_roots=[Path(skills_dir)]) if skills_dir else SkillsState())
+    system_skills = include_system_skills or {"skill-creator", "skill-evolver"}
+
+    registered_skills = load_adk_skills_from_state(
+        state=resolved_state,
         min_tier=min_tier,
-        include_system_skills=include_system_skills,
-        registry_min_tier=registry_min_tier,
+        include_system_skills=system_skills
+    )
+
+    if code_executor is None:
+        try:
+            from .executor import LocalSubprocessCodeExecutor
+            code_executor = LocalSubprocessCodeExecutor(timeout_seconds=script_timeout)
+        except Exception:
+            code_executor = None
+
+    registry = EddSkillRegistry(state=resolved_state, min_tier=registry_min_tier) if enable_registry_search else None
+
+    # Google ADK 2.0 純正 SkillToolset インスタンスを直接生成して返却
+    return SkillToolset(
+        skills=registered_skills,
+        registry=registry,
+        code_executor=code_executor,
+        script_timeout=script_timeout,
         additional_tools=additional_tools,
         tool_name_prefix=tool_name_prefix,
-        code_executor=code_executor,
-        enable_registry_search=enable_registry_search,
-        tool_filter=tool_filter,
-        script_timeout=script_timeout
+        tool_filter=tool_filter
     )
 

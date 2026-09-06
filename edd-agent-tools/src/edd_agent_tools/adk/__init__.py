@@ -1,6 +1,6 @@
 """Google ADK 2.0 integration package for EDD Agent Tools."""
 
-from .executor import LocalSubprocessCodeExecutor
+from .executor import LocalSubprocessCodeExecutor, SkillScriptRunner
 from .toolset import (
     SkillToolset,
     EddSkillToolset,
@@ -12,6 +12,7 @@ from .toolset import (
 
 __all__ = [
     "LocalSubprocessCodeExecutor",
+    "SkillScriptRunner",
     "SkillToolset",
     "EddSkillToolset",
     "EddSkillRegistry",

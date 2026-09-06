@@ -231,5 +231,25 @@ def test_load_adk_skills_from_dir():
     assert "case_converter.py" in case_conv.resources.scripts
 
 
+def test_skill_script_runner_direct():
+    """SkillScriptRunner が ADK 公式 BaseCodeExecutor 準拠で独立してスクリプトを実行できることをテストします。"""
+    from edd_agent_tools.adk.executor import SkillScriptRunner, LocalSubprocessCodeExecutor
+    from google.adk.skills import load_skill_from_dir
+    from pathlib import Path
+
+    skill = load_skill_from_dir(Path("src/skills/case-converter"))
+    runner = SkillScriptRunner(code_executor=LocalSubprocessCodeExecutor(), timeout_seconds=30)
+    res = runner.execute_script(
+        skill=skill,
+        file_path="scripts/case_converter.py",
+        positional_args=["hello_world_direct"],
+        script_args={"to": "camel"}
+    )
+    assert res.get("status") == "success"
+    assert res.get("exit_code") == 0
+    assert "helloWorldDirect" in res.get("stdout", "")
+
+
+
 
 

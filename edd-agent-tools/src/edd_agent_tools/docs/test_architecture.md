@@ -61,7 +61,7 @@ flowchart LR
 
 ### ④ Google ADK 2.0 純正スクリプト実行基盤への一本化 (`SkillPackage.execute_script`)
 - 自前の一時展開スクリプト生成コードや脆弱な subprocess 直叩き（車輪の再発明）を完全削除。
-- `SkillPackage.execute_script` は Google ADK 2.0 純正のスクリプト実行基盤（`_SkillScriptCodeExecutor` / `LocalSubprocessCodeExecutor` 等の `BaseCodeExecutor`）に一本化。
+- `SkillPackage.execute_script` は Google ADK 2.0 純正のスクリプト実行基盤（`SkillScriptRunner` / `LocalSubprocessCodeExecutor` 等の `BaseCodeExecutor`）に一本化。
 - スキルリソース（`references/`, `assets/`, `scripts/`）を安全な一時ディレクトリに自己展開し、パストラバーサル防御、公式引数順序展開（short_options ➔ args ➔ positional_args）を行って安全かつ決定論的に実行。
 
 ### ⑤ 決定論的契約テストと完全な環境パリティ (`ContractTestRunner`)
