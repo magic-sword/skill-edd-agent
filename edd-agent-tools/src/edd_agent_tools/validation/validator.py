@@ -402,18 +402,7 @@ class SkillValidator:
                 if clean_a and not (skill_dir / "assets" / clean_a).exists():
                     res.add_error("resources", f"Referenced asset does not exist: assets/{clean_a}")
 
-            examples = sorted(list(set(re.findall(r"`?examples/([a-zA-Z0-9_\-\./]+)", body_str))))
-            for e in examples:
-                clean_e = e.rstrip(".,;:)[]`'\"")
-                cand_paths = [
-                    skill_dir / "examples" / clean_e,
-                    skill_dir / "assets" / "examples" / clean_e,
-                    skill_dir / "references" / "examples" / clean_e,
-                    skill_dir / "assets" / clean_e,
-                    skill_dir / "references" / clean_e,
-                ]
-                if clean_e and not any(p.exists() for p in cand_paths):
-                    res.add_error("resources", f"Referenced example does not exist: examples/{clean_e}")
+
 
         # 5. 文体（Imperative / 客観的指示）の検査 (指示手順部を対象とし、ユーザー発話例セクションは除外)
         instruction_body = re.sub(r"## (Examples|Usage Scenarios & Trigger Examples).*?(?=##|\Z)", "", body_str, flags=re.DOTALL)

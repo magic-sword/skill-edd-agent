@@ -164,7 +164,7 @@ class SkillPackage:
         return sorted([f.name for f in assets_dir.glob("*") if f.is_file()])
 
     def list_examples(self) -> List[str]:
-        """内包する使用例・パターン例の一覧を取得（references/ または assets/ 内の用例、または後方互換 examples/ ディレクトリ）"""
+        """Google ADK 2.0 純正 3層構造（references/ または assets/）内の用例パターンファイルの一覧を取得します。"""
         examples = []
         try:
             adk_res = self.adk_skill.resources
@@ -174,7 +174,7 @@ class SkillPackage:
         except Exception:
             pass
 
-        # ファイルシステム探索フォールバック（ADK 2.0 純正規格: references/ と assets/）
+        # ファイルシステム探索（Google ADK 2.0 純正規格: references/ と assets/）
         for sub in ["references", "assets"]:
             s_dir = Path(self.root_dir) / sub
             if s_dir.exists():

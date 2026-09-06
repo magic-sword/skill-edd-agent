@@ -206,11 +206,10 @@ class SkillSpec(BaseModel):
                 if line.startswith(("-", "*")):
                     when_not_to_use.append(line.lstrip("-* ").strip())
 
-        # リソース言及の抽出 (scripts/..., references/..., assets/..., examples/...)
+        # ADK 2.0 準拠リソース言及の抽出 (scripts/..., references/..., assets/...)
         scripts = sorted(list(set(re.findall(r"`?scripts/([a-zA-Z0-9_\-\./]+)`?", body_str))))
         references = sorted(list(set(re.findall(r"`?references/([a-zA-Z0-9_\-\./]+)`?", body_str))))
         assets = sorted(list(set(re.findall(r"`?assets/([a-zA-Z0-9_\-\./]+)`?", body_str))))
-        examples = sorted(list(set(re.findall(r"`?examples/([a-zA-Z0-9_\-\./]+)`?", body_str))))
 
         return cls(
             frontmatter=frontmatter,
@@ -229,7 +228,7 @@ class SkillSpec(BaseModel):
             scripts=scripts,
             references=references,
             assets=assets,
-            examples=examples
+            examples=[]
         )
 
     @classmethod
@@ -380,9 +379,7 @@ class SkillSpec(BaseModel):
                     when_not_to_use.append(line.lstrip("-* ").strip())
 
         scripts = list(skill.resources.scripts.keys()) if hasattr(skill.resources, "scripts") else []
-        all_refs = list(skill.resources.references.keys()) if hasattr(skill.resources, "references") else []
-        references = [r for r in all_refs if not r.startswith("examples/")]
-        examples = [r.replace("examples/", "") for r in all_refs if r.startswith("examples/")]
+        references = list(skill.resources.references.keys()) if hasattr(skill.resources, "references") else []
         assets = list(skill.resources.assets.keys()) if hasattr(skill.resources, "assets") else []
 
         return cls(
@@ -395,7 +392,7 @@ class SkillSpec(BaseModel):
             scripts=scripts,
             references=references,
             assets=assets,
-            examples=examples
+            examples=[]
         )
 
 
