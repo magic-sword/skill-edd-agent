@@ -17,6 +17,7 @@ from edd_agent_tools.evaluation.test_runner import ContractTestRunner
 from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
 from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner
 from edd_agent_tools.evaluation.co_loaded_runner import CoLoadedEvalRunner
+from edd_agent_tools.evaluation.red_team import AdversarialRedTeamRunner
 from edd_agent_tools.evaluation.environment import LocalWorkspaceEnv
 
 
@@ -27,6 +28,7 @@ class SkillOptimizer:
         self.state = state or SkillsState()
         self.cascade_runner = CascadeTestRunner(state=self.state)
         self.co_loaded_runner = CoLoadedEvalRunner(state=self.state)
+        self.red_team_runner = AdversarialRedTeamRunner(state=self.state)
 
     def run_verification(
         self,
@@ -122,7 +124,30 @@ class SkillOptimizer:
                     "message": "依存関係の連鎖回帰テストに失敗しました。"
                 }
 
-        # 3. Tier 3 (Action-Allowed) 昇格時の Human Sign-off ゲート検査
+        # 3. Tier 2 (Draft-Only) 以上の共存コンテキスト耐性テスト (Co-Loaded Evaluation & Context Rot Check)
+        if target_tier >= int(SkillTier.DRAFT_ONLY) and self.co_loaded_runner:
+            coload_res = self.co_loaded_runner.run_co_loaded_evaluation(skill_name, co_loaded_count=5)
+            if coload_res.get("status") != "error":
+                if coload_res.get("context_rot_detected", False) or coload_res.get("accuracy", 1.0) < 0.9:
+                    return {
+                        "status": "coload_failed",
+                        "skill_name": skill_name,
+                        "coload_results": coload_res,
+                        "message": f"複数スキル共存環境（Co-loaded）での評価に失敗しました (Accuracy: {coload_res.get('accuracy', 0):.1%}, Context Rot: {coload_res.get('context_rot_detected')})。"
+                    }
+
+        # 4. Tier 3 (Action-Allowed) 昇格時の敵対的レッドチーミング検査 (Adversarial Probing)
+        if target_tier >= int(SkillTier.ACTION_ALLOWED) and self.red_team_runner:
+            red_res = self.red_team_runner.run_red_team_evaluation(skill_name, threshold=0.85)
+            if red_res.get("status") == "success" and not red_res.get("passed", False):
+                return {
+                    "status": "red_team_failed",
+                    "skill_name": skill_name,
+                    "red_team_results": red_res,
+                    "message": f"敵対的レッドチーミング（言い換え攻撃・境界値突破・インジェクション）評価に失敗しました (Accuracy: {red_res.get('accuracy', 0):.1%} < 85%)。"
+                }
+
+        # 5. Tier 3 (Action-Allowed) 昇格時の Human Sign-off ゲート検査
         if target_tier >= int(SkillTier.ACTION_ALLOWED) and require_signoff and not human_approved:
             return {
                 "status": "pending_human_signoff",
@@ -131,7 +156,7 @@ class SkillOptimizer:
                 "message": "Tier 3 (Action-Allowed) 昇格には人間の明示的承認 (Human Sign-off) が必要です。--yes または human_approved=True を指定してください。"
             }
 
-        # 4. Tier 昇格
+        # 6. Tier 昇格
         self.state.set_skill_tier(skill_name, SkillTier(target_tier))
         return {
             "status": "promoted",

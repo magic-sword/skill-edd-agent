@@ -1,53 +1,121 @@
 {
-  "capabilities": {},
+  "name": "evaluation_driven_development_agent",
+  "description": "Google ADK 2.0 と Anthropic スキル標準に完全準拠した自己進化型評価駆動開発エージェント",
+  "version": "1.0.0",
+  "supportedInterfaces": [
+    {
+      "url": "http://localhost:8001",
+      "protocolBinding": "HTTP+JSON",
+      "protocolVersion": "1.0.0"
+    }
+  ],
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "extendedAgentCard": false
+  },
   "defaultInputModes": [
     "text/plain"
   ],
   "defaultOutputModes": [
     "text/plain"
   ],
-  "description": "Google ADK と Anthropic スキル標準を融合した、自律的にスキルを開発・評価・統合する自己進化型エージェント",
-  "name": "evaluation_driven_development_agent",
-  "protocolVersion": "0.3.0",
   "skills": [
     {
-      "description": "Execute skill-creator skill (scaffold authoring & packaging pipeline)",
-      "id": "evaluation_driven_development_agent-skill-creator",
-      "name": "skill-creator",
+      "id": "evaluation_driven_development_agent-library-evolver",
+      "name": "library-evolver",
+      "description": "Autonomously expands and evolves the agent's skill library when facing capability gaps or novel tasks. Use when encountering unsupported tasks, synthesizing new skills from requirements, or coordinating full self-evolution lifecycles. Do NOT use for manual single-line edits or direct business data processing.",
       "tags": [
         "llm",
-        "tools"
+        "tools",
+        "tier-1"
+      ],
+      "examples": [
+        "Input: \"自律的に未対応の画像圧縮スキル image-compressor を開発してカタログに追加して\""
       ]
     },
     {
-      "description": "Execute skill-evolver skill (multi-tier testing, diagnosis & self-healing loop)",
-      "id": "evaluation_driven_development_agent-skill-evolver",
-      "name": "skill-evolver",
+      "id": "evaluation_driven_development_agent-markdown-table-formatter",
+      "name": "markdown-table-formatter",
+      "description": "Format, align, and clean up markdown tables in text strings or files with deterministic column padding and alignment markers. Use when the user asks to format a markdown table, align table columns, or clean up unaligned markdown files. Do NOT use for CSV/Excel manipulation, non-table document formatting, or system administration tasks.",
       "tags": [
         "llm",
-        "tools"
+        "tools",
+        "tier-1"
+      ],
+      "examples": [
+        "Input:"
       ]
     },
     {
-      "description": "Execute case-converter skill (deterministic text case conversion)",
-      "id": "evaluation_driven_development_agent-case-converter",
-      "name": "case-converter",
-      "tags": [
-        "llm",
-        "tools"
-      ]
-    },
-    {
-      "description": "Execute secret-sanitizer skill (mask sensitive API keys and tokens)",
       "id": "evaluation_driven_development_agent-secret-sanitizer",
       "name": "secret-sanitizer",
+      "description": "Detects and masks sensitive credentials (API keys, JWT tokens, passwords, email addresses, IP addresses) in text strings or code files. Use when the user asks to sanitize logs, mask confidential credentials, or prepare snippets for sharing. Do NOT use for encryption/decryption tasks or simple single-character replacements.",
       "tags": [
         "llm",
-        "tools"
+        "tools",
+        "tier-3"
+      ],
+      "examples": [
+        "Input: \"Sanitize 'api_key: sk-1234567890abcdef1234' in this string\" → Output: \"api_key: <API_KEY: ********>\"",
+        "Input: \"Mask email address 'admin@company.example.com' in string\" → Output: \"<EMAIL: ********>\"",
+        "Input: \"Mask password in 'password = mySecretPass123'\" → Output: \"password = <PASSWORD: ********>\""
+      ]
+    },
+    {
+      "id": "evaluation_driven_development_agent-skill-creator",
+      "name": "skill-creator",
+      "description": "Creates and scaffolds new agent skills or redesigns existing skills following Anthropic Markdown-First and Google ADK 2.0 Progressive Disclosure standards. Use when the user asks to author a skill, scaffold a skill package, extract skills from execution traces, or export distributable skill ZIP packages. Do NOT use for skill evaluation, regression diagnosis, self-healing loops, or tier promotion (use skill-evolver).",
+      "tags": [
+        "llm",
+        "tools",
+        "tier-1"
+      ],
+      "examples": [
+        "Input: \"Create a new workflow skill for processing PDF invoices\" → Output: \"Scaffolded and validated 'processing-pdf-invoices' skill with 6 EDD eval cases\"",
+        "Input: \"Harvest skill from execution trace trace.json\" → Output: \"Generated skill package under src/skills/\""
+      ]
+    },
+    {
+      "id": "evaluation_driven_development_agent-skill-evolver",
+      "name": "skill-evolver",
+      "description": "Evaluates, diagnoses test failures, iteratively self-heals, runs cascade regression tests, and promotes skills through quality tiers (Tier 1~3). Use when the user or agent needs to run multi-layer evaluations, tune trigger descriptions, diagnose errors, self-heal skills, or promote tiers. Do NOT use for creating brand-new skill boilerplates or managing Python package releases.",
+      "tags": [
+        "llm",
+        "tools",
+        "tier-1"
+      ],
+      "examples": [
+        "Input: \"Evaluate case-converter skill and verify all contract cases pass\" → Output: \"All contract tests and EDD composite cases passed (Accuracy: 1.0)\"",
+        "Input: \"Diagnose test failures in secret-sanitizer and promote to Tier 2\" → Output: \"Diagnosed failure, repaired rubric, promoted to Tier 2\""
+      ]
+    },
+    {
+      "id": "evaluation_driven_development_agent-skill-reviewer",
+      "name": "skill-reviewer",
+      "description": "Audits and reviews Agent Skills for architectural soundness, anti-overfitting, and whitepaper quality standards. Use when reviewing newly drafted or modified skills, checking for test-case gaming, or auditing SKILL.md before tier promotion. Do NOT use for basic deterministic syntax linting (use `edd validate`) or authoring new skills (use `skill-autonomous-builder`).",
+      "tags": [
+        "llm",
+        "tools",
+        "tier-1"
+      ],
+      "examples": [
+        "Input: \"Review skill markdown-table-formatter\" → Output: Complete audit report assessing anti-overfitting, tooling separation, quality bar, and error handling with clear PASS/REVISE verdict."
+      ]
+    },
+    {
+      "id": "evaluation_driven_development_agent-trace-harvester",
+      "name": "trace-harvester",
+      "description": "Extracts and crystallizes reusable agent skills and deterministic workflows directly from execution traces or conversation transcripts. Use when the user asks to harvest skills from logs, turn execution traces into skills, or crystallize past successes into reusable procedural memory. Do NOT use for manual skill authoring from scratch (use skill-creator) or skill evaluation and healing (use skill-evolver).",
+      "tags": [
+        "llm",
+        "tools",
+        "tier-1"
+      ],
+      "examples": [
+        "Input: \"Harvest a new skill 'data-cleaner' from execution trace ./scratch/data_clean_trace.json\" → Output: \"Successfully harvested 'data-cleaner' skill with workflow steps and test cases under src/skills/data-cleaner\"",
+        "Input: \"Turn session log into reusable skill\" → Output: \"Extracted tool sequence and generated new skill package\""
       ]
     }
-  ],
-  "supportsAuthenticatedExtendedCard": false,
-  "url": "http://localhost:8001",
-  "version": "0.3.0"
+  ]
 }

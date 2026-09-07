@@ -1,0 +1,169 @@
+{
+  "eval_set_id": "trace_harvester_eval_set",
+  "name": "trace-harvester_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "trace_harvester_pos_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_1",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Harvest reusable skill from session trace file trace.json"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "Harvest skill scaffold from execution traces"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "trace-harvester",
+                  "file_path": "scripts/trace_harvester.py",
+                  "args": ["--help"]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r1", "rubric_content": {"text_property": "executes trace harvesting script"}},
+        {"rubric_id": "r2", "rubric_content": {"text_property": "zero conversational filler"}}
+      ]
+    },
+    {
+      "eval_id": "trace_harvester_pos_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_2",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Extract skill from execution trace logs"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "Harvest skill scaffold from execution traces"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "trace-harvester",
+                  "file_path": "scripts/trace_harvester.py",
+                  "args": ["--help"]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r3", "rubric_content": {"text_property": "extracts workflow into skill"}}
+      ]
+    },
+    {
+      "eval_id": "trace_harvester_pos_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_3",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Crystallize past successful tool run into a reusable procedural memory skill"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "Harvest skill scaffold from execution traces"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "trace-harvester",
+                  "file_path": "scripts/trace_harvester.py",
+                  "args": ["--help"]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r4", "rubric_content": {"text_property": "crystallizes tool trajectory"}}
+      ]
+    },
+    {
+      "eval_id": "trace_harvester_neg_1",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_1",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Convert this string from snake_case to camelCase"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "camelCase"}]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r5", "rubric_content": {"text_property": "does not trigger trace-harvester"}}
+      ]
+    },
+    {
+      "eval_id": "trace_harvester_neg_2",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_2",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Sanitize API keys from configuration file"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "Sanitized configuration"}]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r6", "rubric_content": {"text_property": "does not trigger trace-harvester"}}
+      ]
+    },
+    {
+      "eval_id": "trace_harvester_neg_3",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_3",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "What is the capital of Japan?"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "Tokyo"}]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r7", "rubric_content": {"text_property": "answers directly without invoking trace-harvester"}}
+      ]
+    }
+  ]
+}

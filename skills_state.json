@@ -25,6 +25,12 @@
     },
     "skill-reviewer": {
       "tier": 1
+    },
+    "trace-harvester": {
+      "tier": 1
+    },
+    "library-evolver": {
+      "tier": 1
     }
   },
   "agents": {}

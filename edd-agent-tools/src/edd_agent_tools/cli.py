@@ -28,6 +28,11 @@ from edd_agent_tools.evaluation.environment import LocalWorkspaceEnv
 from edd_agent_tools.evaluation.diagnoser import SkillDiagnoser
 from edd_agent_tools.evaluation.optimizer import SkillOptimizer
 from edd_agent_tools.evaluation.adk_eval import AdkEvalAdapter
+from edd_agent_tools.evaluation.co_loaded_runner import CoLoadedEvalRunner
+from edd_agent_tools.packaging.card_sync import AgentCardSynchronizer
+from edd_agent_tools.validation.collision import SemanticCollisionDetector
+from edd_agent_tools.evaluation.red_team import AdversarialRedTeamRunner
+from edd_agent_tools.evaluation.dataset_expander import GoldenDatasetExpander
 
 
 def resolve_skill_script(skill_dir: Path, script_name: Optional[str] = None) -> Optional[Path]:
@@ -627,6 +632,182 @@ def cmd_adk_eval(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_co_load(args: argparse.Namespace) -> int:
+    """複数スキル共存環境下でのルーティングとコンテキスト負荷耐性を評価します。"""
+    runner = CoLoadedEvalRunner()
+    target = args.skill_name
+    count = getattr(args, "count", 5)
+    dataset = getattr(args, "dataset", None)
+
+    res = runner.run_co_loaded_evaluation(
+        target_skill_name=target,
+        co_loaded_count=count,
+        test_dataset_path=dataset
+    )
+    if res.get("status") == "error":
+        print(f"❌ Error: {res.get('message')}", file=sys.stderr)
+        return 1
+
+    print(f"\n==================================================")
+    print(f"  Co-Loaded Multi-Skill Context Evaluation Report")
+    print(f"==================================================")
+    print(f"Target Skill: {target}")
+    print(f"Co-loaded Skills Count: {res.get('total_skills_count', 0)}")
+    print(f"Co-loaded Skills: {', '.join(res.get('co_loaded_skills', []))}")
+    print(f"Estimated Context Tokens: ~{res.get('estimated_context_tokens', 0)} tokens")
+    acc = res.get("accuracy", 0.0)
+    rot = res.get("context_rot_detected", False)
+    print(f"Routing Accuracy: {acc:.1%} ({res.get('passed', 0)}/{res.get('passed', 0) + res.get('failed', 0)})")
+    print(f"Context Rot / Attention Competition: {'DETECTED ❌' if rot else 'CLEAN ✅'}")
+    print(f"==================================================")
+
+    if rot or acc < 0.9:
+        print(f"❌ Co-loaded evaluation failed: context attention competition or regression detected.", file=sys.stderr)
+        return 1
+    print(f"✅ Co-loaded evaluation passed: no context rot detected across {len(res.get('co_loaded_skills', []))} skills.")
+    return 0
+
+
+def cmd_sync_card(args: argparse.Namespace) -> int:
+    """A2A v1.0.0 互換の Agent Card (src/agent-card.json) を登録スキル情報から自動同期します。"""
+    sync = AgentCardSynchronizer()
+    dest = getattr(args, "card_path", None)
+    min_tier = getattr(args, "min_tier", 1)
+    port = getattr(args, "port", 8001)
+
+    try:
+        out_path = sync.sync_to_file(target_path=dest, min_tier=min_tier, port=port)
+        print(f"✅ Successfully synchronized Agent Card (A2A v1.0.0) to: {out_path}")
+        return 0
+    except Exception as e:
+        print(f"❌ Failed to synchronize Agent Card: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_check_collision(args: argparse.Namespace) -> int:
+    """隣接スキル間の Description 重複・意味的衝突を検知します。"""
+    detector = SemanticCollisionDetector()
+    target = getattr(args, "skill_name", None)
+    threshold = getattr(args, "threshold", 0.60)
+
+    collisions = detector.detect_collisions(target_skill_name=target, threshold=threshold)
+
+    print(f"\n==================================================")
+    print(f"  Semantic Collision Detector (Clarity Gate)     ")
+    print(f"==================================================")
+    print(f"Scope: {target or 'All registered skills'}")
+    print(f"Collision Similarity Threshold: {threshold:.0%}")
+
+    if not collisions:
+        print(f"✅ No semantic collisions detected. All descriptions maintain high clarity.")
+        print(f"==================================================")
+        return 0
+
+    print(f"⚠️ Warning: Found {len(collisions)} potential semantic collision(s):")
+    for c in collisions:
+        print(f"  - [{c['similarity']:.1%}] '{c['skill_1']}' <---> '{c['skill_2']}'")
+        print(f"    Shared keywords: {', '.join(c.get('common_keywords', []))}")
+    print(f"==================================================")
+    print(f"Recommendation: Run `edd tune-desc <skill>` to sharpen trigger keywords and eliminate ambiguity.")
+    return 1 if getattr(args, "strict", False) else 0
+
+
+def cmd_red_team(args: argparse.Namespace) -> int:
+    """スキルの敵対的堅牢性（言い換え攻撃・境界値突破・インジェクション耐性）を検証します。"""
+    runner = AdversarialRedTeamRunner()
+    skill_name = args.skill_name
+    threshold = getattr(args, "threshold", 0.85)
+
+    res = runner.run_red_team_evaluation(skill_name, threshold=threshold)
+    if res.get("status") == "error":
+        print(f"❌ Error: {res.get('message')}", file=sys.stderr)
+        return 1
+
+    print(f"\n==================================================")
+    print(f"  Adversarial Red-Teaming Robustness Report       ")
+    print(f"==================================================")
+    print(f"Target Skill: {skill_name}")
+    print(f"Total Probes: {res.get('total_probes', 0)}")
+    print(f"Accuracy: {res.get('accuracy', 0):.1%} (Threshold: {threshold:.0%})")
+    print(f"Verdict: {'PASS ✅' if res.get('passed') else 'FAIL ❌'}")
+    print(f"--------------------------------------------------")
+    print("Probe Category Breakdown:")
+    for ptype, pdata in res.get("probe_breakdown", {}).items():
+        print(f"  - {ptype}: {pdata['passed']}/{pdata['total']}")
+    print(f"==================================================")
+
+    if not res.get("passed"):
+        print(f"❌ Red-teaming failed: skill failed to defend against adversarial probes.", file=sys.stderr)
+        return 1
+    print(f"✅ Red-teaming passed: robust against rephrasing, boundary, and injection attacks.")
+    return 0
+
+
+def cmd_expand_dataset(args: argparse.Namespace) -> int:
+    """シードケースから 20〜30 ケースの Golden Dataset を自動合成・拡充します。"""
+    expander = GoldenDatasetExpander()
+    skill_name = args.skill_name
+    count = getattr(args, "count", 20)
+    out_file = getattr(args, "out", None)
+
+    res = expander.expand_golden_dataset(skill_name=skill_name, target_count=count, output_file=out_file)
+    if res.get("status") == "error":
+        print(f"❌ Error: {res.get('message')}", file=sys.stderr)
+        return 1
+
+    print(f"\n==================================================")
+    print(f"  Golden Dataset Expansion Report                 ")
+    print(f"==================================================")
+    print(f"Skill: {skill_name}")
+    print(f"Total Cases Generated: {res.get('total_cases', 0)}")
+    print(f"  - Positive Trajectory Cases: {res.get('positive_cases', 0)}")
+    print(f"  - Negative Boundary Cases: {res.get('negative_cases', 0)}")
+    print(f"Saved To: {res.get('saved_path')}")
+    print(f"==================================================")
+    print(f"✅ Successfully synthesized Golden Dataset for '{skill_name}'.")
+    return 0
+
+
+
+def cmd_publish(args: argparse.Namespace) -> int:
+    """Agent Card を Agent Registry (A2A v1.0.0) へ登録・公開します。"""
+    from edd_agent_tools.packaging.registry_publisher import AgentRegistryPublisher
+    publisher = AgentRegistryPublisher()
+    card_path = Path(getattr(args, "card_path", None) or "src/agent-card.json")
+    registry_url = getattr(args, "registry_url", "http://localhost:8080/v1/agents")
+    dry_run = getattr(args, "dry_run", False)
+    token = getattr(args, "token", None)
+    out_receipt = Path(args.receipt) if getattr(args, "receipt", None) else None
+
+    print(f"\n==================================================")
+    print(f"  Agent Registry Publisher (A2A v1.0.0)           ")
+    print(f"==================================================")
+    print(f"Card Path: {card_path}")
+    print(f"Registry URL: {registry_url}")
+    print(f"Mode: {'DRY RUN (Validation only)' if dry_run else 'LIVE PUBLISH'}")
+
+    try:
+        receipt = publisher.publish(
+            card_path=card_path,
+            registry_url=registry_url,
+            dry_run=dry_run,
+            api_token=token,
+            output_receipt_path=out_receipt,
+        )
+        print(f"Status: {receipt.status}")
+        print(f"Agent ID: {receipt.agent_id}")
+        print(f"Agent Name: {receipt.agent_name} (v{receipt.version})")
+        print(f"Registered Skills: {receipt.skills_count}")
+        print(f"Checksum (SHA-256): {receipt.checksum_sha256[:16]}...")
+        if out_receipt:
+            print(f"Receipt saved to: {out_receipt}")
+        print(f"==================================================")
+        print(f"✅ Agent Card successfully published/validated for Agent Registry.")
+        return 0
+    except Exception as e:
+        print(f"❌ Failed to publish Agent Card: {e}", file=sys.stderr)
+        return 1
+
 
 def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
@@ -635,7 +816,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     # 既知のトップレベルコマンド
     known_commands = {
         "run", "init", "validate", "package", "eval", "adk-eval", "tier-gate", "diagnose", "optimize", "list",
-        "tune-desc", "harvest-trace", "profile",
+        "tune-desc", "harvest-trace", "profile", "co-load", "sync-card", "check-collision", "red-team", "expand-dataset", "publish",
         "-h", "--help", "-v", "--version"
     }
 
@@ -736,6 +917,43 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_adk_eval.add_argument("--config", "-c", help="Path to custom test_config.json / EvalConfig")
     p_adk_eval.add_argument("--cli", action="store_true", help="Directly invoke the official `adk eval` CLI subprocess")
 
+    # 14. co-load (Section 4 & 5: Co-Loaded Context Rot Benchmark)
+    p_coload = subparsers.add_parser("co-load", help="Run co-loaded multi-skill coexistence benchmark for context rot detection")
+    p_coload.add_argument("skill_name", help="Target skill name")
+    p_coload.add_argument("--count", "-n", type=int, default=5, help="Number of co-loaded skills to mount (default: 5)")
+    p_coload.add_argument("--dataset", "-d", help="Custom test dataset path")
+
+    # 15. sync-card (A2A v1.0.0 Agent Card Synchronizer)
+    p_sync = subparsers.add_parser("sync-card", help="Synchronize agent-card.json with registered Tier 1+ skills (A2A v1.0.0)")
+    p_sync.add_argument("--card-path", "-p", help="Target path to agent-card.json (default: src/agent-card.json)")
+    p_sync.add_argument("--min-tier", type=int, default=1, help="Minimum skill Tier to include in Agent Card (default: 1)")
+    p_sync.add_argument("--port", type=int, default=8001, help="Port of the A2A server (default: 8001)")
+
+    # 16. check-collision (The Trigger is the First Gate: Clarity Check)
+    p_coll = subparsers.add_parser("check-collision", help="Detect description overlap and semantic collisions between adjacent skills")
+    p_coll.add_argument("skill_name", nargs="?", help="Specific skill name to check (optional)")
+    p_coll.add_argument("--threshold", "-t", type=float, default=0.60, help="Collision similarity threshold (default: 0.60)")
+    p_coll.add_argument("--strict", "-s", action="store_true", help="Exit with error if collision is detected")
+
+    # 17. red-team (The Evaluation Toolkit Pattern 4: Adversarial Probing)
+    p_red = subparsers.add_parser("red-team", help="Run adversarial red-teaming (rephrasing, boundary, injection probes) on a skill")
+    p_red.add_argument("skill_name", help="Target skill name")
+    p_red.add_argument("--threshold", "-t", type=float, default=0.85, help="Passing accuracy threshold (default: 0.85)")
+
+    # 18. expand-dataset (The Evaluation Toolkit Pattern 2: Golden Dataset Synthesizer)
+    p_exp = subparsers.add_parser("expand-dataset", help="Synthesize and expand seed cases into a 20-30 case Golden Dataset")
+    p_exp.add_argument("skill_name", help="Target skill name")
+    p_exp.add_argument("--count", "-n", type=int, default=20, help="Target number of cases (default: 20)")
+    p_exp.add_argument("--out", "-o", help="Custom output test dataset path")
+
+    # 19. publish (Agent Registry Publisher: req-agent.txt Line 4)
+    p_pub = subparsers.add_parser("publish", help="Publish Agent Card to Agent Registry (A2A v1.0.0)")
+    p_pub.add_argument("--card-path", "-p", default="src/agent-card.json", help="Path to agent-card.json (default: src/agent-card.json)")
+    p_pub.add_argument("--registry-url", "-u", default="http://localhost:8080/v1/agents", help="Agent Registry endpoint URL")
+    p_pub.add_argument("--dry-run", action="store_true", help="Validate payload without sending network requests")
+    p_pub.add_argument("--token", "-t", help="API Bearer Token for registry authentication")
+    p_pub.add_argument("--receipt", "-r", help="Path to save publish receipt JSON")
+
     # パース実行（run 用に未知の引数も許容）
     args, extra = parser.parse_known_args(argv)
 
@@ -769,6 +987,18 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_harvest_trace(args)
     elif args.command == "profile":
         return cmd_profile(args)
+    elif args.command == "co-load":
+        return cmd_co_load(args)
+    elif args.command == "sync-card":
+        return cmd_sync_card(args)
+    elif args.command == "check-collision":
+        return cmd_check_collision(args)
+    elif args.command == "red-team":
+        return cmd_red_team(args)
+    elif args.command == "expand-dataset":
+        return cmd_expand_dataset(args)
+    elif args.command == "publish":
+        return cmd_publish(args)
 
 
 

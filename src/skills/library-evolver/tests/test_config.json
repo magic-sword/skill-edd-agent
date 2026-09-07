@@ -1,0 +1,16 @@
+{
+  "eval_config_id": "library_evolver_eval_config",
+  "name": "library_evolver_eval_config",
+  "evaluators": [
+    {
+      "name": "tool_trajectory_avg_score",
+      "evaluator_type": "TRAJECTORY",
+      "match_type": "IN_ORDER"
+    },
+    {
+      "name": "rubric_based_final_response_quality_v1",
+      "evaluator_type": "RESPONSE",
+      "judge_model": "gemini-2.5-flash"
+    }
+  ]
+}

@@ -270,6 +270,11 @@ class SkillsState:
         """指定されたスキルの Tier を更新・登録し、永続化します。"""
         self.set_skill_tier(skill_name, tier)
 
+    def get_skill_tier(self, skill_name: str) -> SkillTier:
+        """指定されたスキルの現在の Tier を取得します。"""
+        tier_val = self._get_tier_for_skill(skill_name)
+        return SkillTier(tier_val)
+
     def set_skill_tier(self, skill_name: str, tier: SkillTier | int):
         """指定されたスキルの Tier を更新し、永続化します。"""
         if self.data is None:

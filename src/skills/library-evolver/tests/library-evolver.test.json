@@ -1,0 +1,171 @@
+{
+  "eval_set_id": "library_evolver_eval_set",
+  "name": "library-evolver_eval_set",
+  "eval_cases": [
+    {
+      "eval_id": "library_evolver_pos_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_1",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Autonomously expand skill library to support novel tasks"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "Library Evolver Deterministic Orchestration Script"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "library-evolver",
+                  "file_path": "scripts/library_evolver.py",
+                  "args": ["--help"]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r1", "rubric_content": {"text_property": "executes library evolver script"}},
+        {"rubric_id": "r2", "rubric_content": {"text_property": "zero conversational filler"}}
+      ]
+    },
+    {
+      "eval_id": "library_evolver_pos_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_2",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Plan skill evolution for missing capability and check collisions"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "planned"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "library-evolver",
+                  "file_path": "scripts/library_evolver.py",
+                  "args": ["--action", "plan", "--skill-name", "dummy-skill"]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r1", "rubric_content": {"text_property": "plans skill evolution"}},
+        {"rubric_id": "r2", "rubric_content": {"text_property": "zero conversational filler"}}
+      ]
+    },
+    {
+      "eval_id": "library_evolver_pos_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_pos_3",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Self-evolve agent by detecting capability gap and synthesizing new skill"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "Library Evolver Deterministic Orchestration Script"}]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "library-evolver",
+                  "file_path": "scripts/library_evolver.py",
+                  "args": ["--help"]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r1", "rubric_content": {"text_property": "executes evolution orchestration"}},
+        {"rubric_id": "r2", "rubric_content": {"text_property": "zero conversational filler"}}
+      ]
+    },
+    {
+      "eval_id": "library_evolver_neg_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_1",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Format this markdown table nicely"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "I will format the markdown table."}]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r1", "rubric_content": {"text_property": "does not invoke library-evolver"}},
+        {"rubric_id": "r2", "rubric_content": {"text_property": "avoids irrelevant tool usage"}}
+      ]
+    },
+    {
+      "eval_id": "library_evolver_neg_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_2",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Directly execute an ad-hoc SQL query on database"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "I cannot run direct database queries."}]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r1", "rubric_content": {"text_property": "does not trigger library-evolver"}},
+        {"rubric_id": "r2", "rubric_content": {"text_property": "handles rejection appropriately"}}
+      ]
+    },
+    {
+      "eval_id": "library_evolver_neg_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_neg_3",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Fix this single line syntax typo in main.py"}]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [{"text": "Fixed typo."}]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {"rubric_id": "r1", "rubric_content": {"text_property": "does not invoke library-evolver"}},
+        {"rubric_id": "r2", "rubric_content": {"text_property": "zero conversational filler"}}
+      ]
+    }
+  ]
+}

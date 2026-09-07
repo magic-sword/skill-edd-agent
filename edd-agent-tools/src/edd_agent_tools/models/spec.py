@@ -12,11 +12,14 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, model_valida
 
 
 class SkillPattern(StrEnum):
-    """4大スキル構造パターン"""
+    """スキル構造パターン (白書 Section 7: Canonical Skill Taxonomy & 4大構造)"""
     WORKFLOW = "workflow"              # 順序立てられたステップや判断分岐がある作業 (Workflow-Based)
     TASK_BASED = "task_based"          # 独立した複数の操作・スクリプト群を提供するツール集 (Task-Based)
     REFERENCE = "reference"            # 規約・設計標準・ドメイン知識の提供 (Reference/Guidelines)
     CAPABILITIES = "capabilities"      # 複合的なシステム連携・包括的機能 (Capabilities-Based)
+    REVIEW = "review"                  # 白書 Section 7: Reviewer & Gate 監査・品質ゲート
+    PIPELINE = "pipeline"              # 白書 Section 7: DAG 環境内での線形・多段パイプライン
+    INVERSION = "inversion"            # 白書 Section 7: 実行前の前提確認・自己修復
 
 
 class ModuleType(StrEnum):
@@ -34,7 +37,7 @@ class SkillFrontmatter(BaseModel):
     license: Optional[str] = Field("Complete terms in LICENSE.txt", description="ライセンス情報")
     compatibility: Optional[str] = Field(None, description="環境・プラットフォーム互換性要件")
     allowed_tools: Optional[Union[str, List[str]]] = Field(default=None, alias="allowed-tools", description="許可されたツール一覧 (スペース区切り文字列またはリスト)")
-    pattern: Optional[SkillPattern] = Field(None, description="スキルパターン（任意）")
+    pattern: Optional[Union[SkillPattern, str]] = Field(None, description="スキルパターン（任意）")
     dependencies: List[str] = Field(default_factory=list, description="依存するスキル一覧")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="追加のメタデータ辞書")
 

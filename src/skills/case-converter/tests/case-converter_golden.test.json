@@ -1,0 +1,984 @@
+{
+  "eval_set_id": "case-converter_golden_dataset",
+  "skill_name": "case-converter",
+  "version": "1.0.0",
+  "total_cases": 20,
+  "eval_cases": [
+    {
+      "eval_id": "case-converter_golden_seed_1",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'hello_world_example' to camelCase"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "helloWorldExample"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "positional_args": [
+                    "hello_world_example"
+                  ],
+                  "args": {
+                    "to": "camel"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_001_1",
+          "rubric_content": {
+            "text_property": "correctly converts snake_case to camelCase"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_001_2",
+          "rubric_content": {
+            "text_property": "output matches helloWorldExample without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case-converter_golden_seed_2",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'UserProfileData' to kebab-case"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "user-profile-data"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "positional_args": [
+                    "UserProfileData"
+                  ],
+                  "args": {
+                    "to": "kebab"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_002_1",
+          "rubric_content": {
+            "text_property": "correctly converts PascalCase to kebab-case"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_002_2",
+          "rubric_content": {
+            "text_property": "output matches user-profile-data without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case-converter_golden_seed_3",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'api_response_status' to CONSTANT_CASE"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "API_RESPONSE_STATUS"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "positional_args": [
+                    "api_response_status"
+                  ],
+                  "args": {
+                    "to": "constant"
+                  }
+                }
+              }
+            ],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_003_1",
+          "rubric_content": {
+            "text_property": "correctly converts snake_case to CONSTANT_CASE"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_003_2",
+          "rubric_content": {
+            "text_property": "output matches API_RESPONSE_STATUS without conversational filler"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case-converter_golden_seed_4",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_001",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Summarize the architectural benefits of Google ADK 2.0"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "Google ADK 2.0 provides native toolset integration, modular code execution sandbox, and evaluation-driven development capabilities."
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_neg_001_1",
+          "rubric_content": {
+            "text_property": "does not trigger case-converter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_neg_001_2",
+          "rubric_content": {
+            "text_property": "provides direct response for general architecture summary without error"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case-converter_golden_seed_5",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_002",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Calculate 15% tip on a restaurant bill of 85 dollars"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "12.75"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_neg_002_1",
+          "rubric_content": {
+            "text_property": "does not trigger case-converter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_neg_002_2",
+          "rubric_content": {
+            "text_property": "computes math calculation directly without invoking case conversion tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case-converter_golden_seed_6",
+      "conversation": [
+        {
+          "invocation_id": "inv_case_conv_edd_neg_003",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Write a SQL query to select all active users created after 2026-01-01"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "SELECT * FROM users WHERE status = 'active' AND created_at > '2026-01-01';"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [],
+            "intermediate_responses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case_conv_neg_003_1",
+          "rubric_content": {
+            "text_property": "does not trigger case-converter"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        },
+        {
+          "rubric_id": "r_case_conv_neg_003_2",
+          "rubric_content": {
+            "text_property": "provides valid SQL query without invoking case conversion tools"
+          },
+          "type": "FINAL_RESPONSE_QUALITY"
+        }
+      ],
+      "session_input": {
+        "app_name": "case-converter",
+        "user_id": "test_user",
+        "state": {}
+      }
+    },
+    {
+      "eval_id": "case-converter_golden_pos_7",
+      "is_negative": false,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_pos_7",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Quickly Convert 'hello_world_example' to camelCase"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "deterministic_output"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": [
+                    "--help"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_pos_7_1",
+          "rubric_content": {
+            "text_property": "satisfies intent cleanly with proper tool trajectory"
+          }
+        },
+        {
+          "rubric_id": "r_case-converter_golden_pos_7_2",
+          "rubric_content": {
+            "text_property": "zero conversational filler"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_pos_8",
+      "is_negative": false,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_pos_8",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Run Convert 'UserProfileData' to kebab-case"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "deterministic_output"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": [
+                    "--help"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_pos_8_1",
+          "rubric_content": {
+            "text_property": "satisfies intent cleanly with proper tool trajectory"
+          }
+        },
+        {
+          "rubric_id": "r_case-converter_golden_pos_8_2",
+          "rubric_content": {
+            "text_property": "zero conversational filler"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_pos_9",
+      "is_negative": false,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_pos_9",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Convert 'api_response_status' to CONSTANT_CASE now"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "deterministic_output"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": [
+                    "--help"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_pos_9_1",
+          "rubric_content": {
+            "text_property": "satisfies intent cleanly with proper tool trajectory"
+          }
+        },
+        {
+          "rubric_id": "r_case-converter_golden_pos_9_2",
+          "rubric_content": {
+            "text_property": "zero conversational filler"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_pos_10",
+      "is_negative": false,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_pos_10",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Please Summarize the architectural benefits of Google ADK 2.0 from the input payload"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "deterministic_output"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": [
+                    "--help"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_pos_10_1",
+          "rubric_content": {
+            "text_property": "satisfies intent cleanly with proper tool trajectory"
+          }
+        },
+        {
+          "rubric_id": "r_case-converter_golden_pos_10_2",
+          "rubric_content": {
+            "text_property": "zero conversational filler"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_pos_11",
+      "is_negative": false,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_pos_11",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Can you Calculate 15% tip on a restaurant bill of 85 dollars and make sure it is properly formatted?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "deterministic_output"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": [
+                    "--help"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_pos_11_1",
+          "rubric_content": {
+            "text_property": "satisfies intent cleanly with proper tool trajectory"
+          }
+        },
+        {
+          "rubric_id": "r_case-converter_golden_pos_11_2",
+          "rubric_content": {
+            "text_property": "zero conversational filler"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_pos_12",
+      "is_negative": false,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_pos_12",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Help me Write a SQL query to select all active users created after 2026-01-01 for production deployment"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "deterministic_output"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": [
+                    "--help"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_pos_12_1",
+          "rubric_content": {
+            "text_property": "satisfies intent cleanly with proper tool trajectory"
+          }
+        },
+        {
+          "rubric_id": "r_case-converter_golden_pos_12_2",
+          "rubric_content": {
+            "text_property": "zero conversational filler"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_pos_13",
+      "is_negative": false,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_pos_13",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Could you Convert 'hello_world_example' to camelCase without extra conversational filler?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "deterministic_output"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": [
+                    "--help"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_pos_13_1",
+          "rubric_content": {
+            "text_property": "satisfies intent cleanly with proper tool trajectory"
+          }
+        },
+        {
+          "rubric_id": "r_case-converter_golden_pos_13_2",
+          "rubric_content": {
+            "text_property": "zero conversational filler"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_pos_14",
+      "is_negative": false,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_pos_14",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Execute automated pipeline to Convert 'UserProfileData' to kebab-case"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "deterministic_output"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": [
+              {
+                "name": "run_skill_script",
+                "args": {
+                  "skill_name": "case-converter",
+                  "file_path": "scripts/case_converter.py",
+                  "args": [
+                    "--help"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_pos_14_1",
+          "rubric_content": {
+            "text_property": "satisfies intent cleanly with proper tool trajectory"
+          }
+        },
+        {
+          "rubric_id": "r_case-converter_golden_pos_14_2",
+          "rubric_content": {
+            "text_property": "zero conversational filler"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_neg_15",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_neg_15",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What are the best practices for general questions about case-converter in general?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "conceptual_response"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_neg_15_1",
+          "rubric_content": {
+            "text_property": "answers conceptually without calling skill scripts"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_neg_16",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_neg_16",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Compare different libraries that can do general questions about case-converter"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "conceptual_response"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_neg_16_1",
+          "rubric_content": {
+            "text_property": "answers conceptually without calling skill scripts"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_neg_17",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_neg_17",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Can you write a tutorial explaining general questions about case-converter?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "conceptual_response"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_neg_17_1",
+          "rubric_content": {
+            "text_property": "answers conceptually without calling skill scripts"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_neg_18",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_neg_18",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Tell me the history of computing related to general questions about case-converter"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "conceptual_response"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_neg_18_1",
+          "rubric_content": {
+            "text_property": "answers conceptually without calling skill scripts"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_neg_19",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_neg_19",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Summarize how general questions about case-converter works under the hood without calling tools"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "conceptual_response"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_neg_19_1",
+          "rubric_content": {
+            "text_property": "answers conceptually without calling skill scripts"
+          }
+        }
+      ]
+    },
+    {
+      "eval_id": "case-converter_golden_neg_20",
+      "is_negative": true,
+      "conversation": [
+        {
+          "invocation_id": "inv_case-converter_golden_neg_20",
+          "user_content": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "What are the security implications of general questions about case-converter?"
+              }
+            ]
+          },
+          "final_response": {
+            "role": "model",
+            "parts": [
+              {
+                "text": "conceptual_response"
+              }
+            ]
+          },
+          "intermediate_data": {
+            "tool_uses": []
+          }
+        }
+      ],
+      "rubrics": [
+        {
+          "rubric_id": "r_case-converter_golden_neg_20_1",
+          "rubric_content": {
+            "text_property": "answers conceptually without calling skill scripts"
+          }
+        }
+      ]
+    }
+  ]
+}
