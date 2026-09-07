@@ -24,6 +24,7 @@
 │           ├── prompt_syntax.md          # Imperative文体・客観的プロンプト規約
 │           ├── skill_patterns.md         # スキル構造パターン設計ガイド
 │           ├── design_philosophy.md      # スキル設計思想・Two-Tier 構造
+│           ├── workspace_linking_guide.md # 外部プロジェクト連携（Workspace & Layered Linking）規約
 │           ├── test_architecture.md      # 多層テスト・ADK 評価統合仕様
 │           ├── eval_design.md            # サンドボックス隔離・アサーションポリシー
 │           └── sandbox_design.md         # 仮想環境（DI）とCLI仕様

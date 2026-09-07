@@ -6,8 +6,5 @@
     }
   ],
   "inherits": [],
-  "exclude": [
-    "secret-sanitizer",
-    "text-statistics-analyzer"
-  ]
+  "exclude": []
 }

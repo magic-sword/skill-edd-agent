@@ -25,3 +25,4 @@ dist/
 awesome-claude-skills-master
 .adk_optimization_loop.log
 .skill_builder.log
+.agents/*.json

@@ -1,158 +1,139 @@
 # Self-Evolving EDD Agent
-**〜Anthropic公式標準の Markdown-First & Progressive Disclosure を備えた、Google ADKスキルの自己進化型 評価駆動開発（EDD）エージェント〜**
+**Google ADK 2.0 & Anthropic スキル標準に準拠した、AI エージェント自己進化・評価駆動開発（EDD）フレームワーク**
 
-本プロジェクトは、Google の **Agent Development Kit (ADK) 2.0** および Anthropic の **Progressive Disclosure（段階的情報開示）** 設計思想を融合し、AIエージェントが自律的に新しいスキル（機能）を設計、開発、テスト、評価し、適切な Tier 状態管理を経て自身へマウント（統合）する **「自己進化型 評価駆動開発 (Self-Evolving EDD: Evaluation-Driven Development) エージェント」** です。
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
+[![Google ADK 2.0](https://img.shields.io/badge/Google%20ADK-2.0-green.svg)](https://github.com/google/adk)
+[![A2A v1.0.0](https://img.shields.io/badge/A2A-v1.0.0-orange.svg)](https://github.com/google/adk)
 
-Google 『Agent Skills』ホワイトペーパー（May 2026）に完全準拠した **「次世代多層テスト評価ハーネス（ADK 2.0 純正評価統合・3大 Trajectory モード・pass^k 連続信頼性指標・Co-loaded 共存テスト・Human Sign-off ゲート）」** を搭載しています。
+本プロジェクトは、AI エージェントが自らのスキル（手順書・ドメイン知識・決定論的スクリプト）を**自律的にテスト・診断・修復・進化させる自己進化システム（Self-Evolving Agentic Ecosystem）**を構築するためのフルスタック基盤です。
 
-Kaggle Competition: [Vibe Coding Agents Capstone Project (Freestyle Track)](https://www.kaggle.com/competitions/vibecoding-agents-capstone-project) 提出プロジェクト。
-
----
-
-## 1. 背景と中核コンセプト (Background & Core Concept)
-
-### 💡 ADKの思想への共感と課題意識
-Googleの **ADK 2.0** が提唱する「スキル」によるエージェント構築は、エージェント開発の理想形です。段階的にスキルを適用することで、エージェントは強化学習のオプション（スキル）獲得と非常に近い形で、人間がメンテナンス可能かつ他エージェントに継承可能な「スキル」という形で知識を蓄積できます。
-
-しかし、従来のスキル開発では以下のような課題がありました：
-*   **多層ボイラープレートの肥大化**: 多層ラッパーが乱立し、トークン消費と保守負荷が増大（Context Debt）。
-*   **EDD（評価駆動開発）の難しさ**: AIの生成物を的確に検証し、ハルシネーションや誤ったツール呼び出し（偽陽性）を防ぐハーネス（制約）を設計するのは人間にとっても極めて困難。
-
-> [!IMPORTANT]
-> **本プロジェクトの結論**
-> エージェント開発者が何よりもまず優先して構築すべきなのは、**「評価駆動開発を自律的に行うメタエージェント（Two-Tier アーキテクチャ）」**です。
-> 人間の自然言語指示（Vibe）を受け取り、エージェント自身が安全に **Markdown-First** かつ **Progressive Disclosure（段階的情報開示）** でスキルを生成・テスト・評価し、厳格な品質防壁をクリアしたスキルだけを自律的に自身の武器（ツール）としてマウント（統合）します。
+Google 『Agent Skills』ホワイトペーパー（May 2026）が提唱する **「Evaluation Gating（テスト全勝を必須とする品質防壁）」** を中核に据え、エージェントが壊れたコードやハルシネーションをライブラリにコミット・昇格することを決定論的に防止します。
 
 ---
 
-## 2. 責務分離とコアアーキテクチャ (Two-Tier Architecture)
+## 💡 このプロジェクトで何ができるのか？
 
-本システムは、**「不変のプラットフォーム基盤（pip: `edd-agent-tools`）」** と **「エージェントが自律的に所有・進化させるスキル資産（`src/skills/`）」** を厳密に分離しています。
+1. **自律的なスキルの設計・生成 (Autonomous Skill Authoring)**
+   - 自然言語の指示から、Google ADK 2.0 & Anthropic 標準（Markdown-First & Progressive Disclosure）のスキル雛形と決定論的スクリプトを自動生成。
+   - **EDD インバージョン**: 3正例＋3負例（計6ケース）のテストケース先行策定により、誤発火（Over-trigger）やハルシネーションを未然に防止。
+2. **厳格な多層テスト評価防壁 (Evaluation Gating)**
+   - Google ADK 2.0 公式評価器（`TrajectoryEvaluator`, `ResponseEvaluator`, `RubricBasedFinalResponseQualityV1Evaluator`）と完全統合。
+   - 契約テスト、入出力検証、持続的信頼性（$pass^k$）、5〜15 スキル同時ロード時のコンテキスト汚染（Context Rot）検知、敵対的プロンプト注入耐性を自動評価。
+3. **自律的な失敗診断と自己修復 (Self-Healing Loop)**
+   - テスト失敗時に構造化診断ログ（`FailedCaseDetail`）を自動抽出し、エージェントがプロンプト（`SKILL.md`）やスクリプトをピンポイントで自己修復。
+   - 依存関係の連鎖回帰テスト（Cascade Testing）を自動実行し、既存スキルへの悪影響ゼロを確認した上でのみ Tier 昇格。
+4. **外部プロジェクト連携 (Workspace / Layered Linking)**
+   - ローカルの別リポジトリ（業務プロジェクト等）から本リポジトリのスキル資産を透過的に利用。
+   - **現場でスキルを進化させても、ローカルプロジェクトの Git 差分は完全にゼロ（クリーン）**。修正差分は本リポジトリ側にのみ現れ、即座に GitHub へ Pull Request を起票可能。
+5. **A2A (Agent-to-Agent) & Agent Registry 即時公開**
+   - A2A v1.0.0 互換サーバー（`python src/main.py`）により、外部エージェントと標準プロトコルで通信可能。
+   - `agent-card.json` の自動同期、およびチェックサム・署名付きのレジストリ公開（`edd publish`）に対応。
+
+---
+
+## 🚀 クイックスタート (Quick Start)
+
+### 1. インストール
+```bash
+git clone https://github.com/magic-sword/skill-edd-agent.git
+cd skill-edd-agent
+pip install -e edd-agent-tools
+```
+
+### 2. スキルを動かす (動的ディスパッチ CLI)
+統合 CLI `edd` を使って、登録済みスキルを即座に実行できます：
+```bash
+# テキストを camelCase に変換
+edd run case-converter --to camel "hello_world_example"
+
+# 機密情報をサニタイズ (API キーのマスキング)
+edd run secret-sanitizer --input "My secret is sk-1234567890abcdef"
+```
+
+### 3. スキルの自己改善・評価・Tier昇格を実行する
+```bash
+# 1. 契約テストおよび白書 4大 Eval Coverage チェックリストを実行
+edd eval case-converter --coverage
+
+# 2. テスト失敗時の構造化診断
+edd diagnose case-converter
+
+# 3. 最適化・連鎖回帰テスト・Tier 1 昇格
+edd optimize case-converter --tier 1
+```
+
+### 4. 外部の自社プロジェクトから利用する (Workspace Link)
+別リポジトリで本リポジトリのスキルを利用し、現場で進化させる最も推奨される運用方法です：
+```bash
+cd /path/to/my-local-project
+
+# 1. 上流リポジトリをリンク (1コマンドで .edd.json 生成 & .gitignore 自動追記)
+edd link /path/to/skill-edd-agent
+
+# 2. リンク状態と利用可能スキルの確認
+edd status
+
+# 3. 現場でスキルを改善した後、上流リポジトリの Git 差分を確認してプッシュ
+edd upstream status
+edd upstream push --branch fix/improve-skill --message "fix: improve boundary cases" --pr
+```
+※ 詳しい手順は [外部プロジェクト連携ガイド](edd-agent-tools/src/edd_agent_tools/docs/workspace_linking_guide.md) をご覧ください。
+
+---
+
+## 🛠 組み込みスキル一覧 (Built-in Skills)
+
+| スキル名 | 役割 / 機能 | Tier | 特徴 |
+| :--- | :--- | :---: | :--- |
+| **`case-converter`** | 識別子・文字列ケース相互変換 | Tier 1 | camel, snake, Pascal, kebab, CONSTANT 等の高速変換。Zero-dependency。 |
+| **`secret-sanitizer`** | 機密情報検出・マスキング | **Tier 3** | APIキー、トークン、パスワード、JWT、IPアドレスを自動秘匿。全防壁突破。 |
+| **`markdown-table-formatter`** | Markdown テーブル整形・整列 | Tier 1 | テーブルの列幅均一化とアライメント（左・中・右）パディング。 |
+| **`text-statistics-analyzer`** | テキスト統計・読了時間計測 | Tier 1 | 文字数、単語数、文数、段落数、CJK/英語読了時間を決定論的に集計。 |
+| **`skill-creator`** | スキル設計・雛形生成メタスキル | Tier 1 | EDD Inversion（3正例＋3負例）先行策定による対話型スキル作成。 |
+| **`skill-evolver`** | 評価・診断・修復・Tier昇格メタスキル | Tier 1 | 多層評価、失敗コンテキスト診断、自律修復、連鎖回帰、Tier昇格を統合管理。 |
+| **`skill-reviewer`** | スキル品質・過学習監査 (Critic) | Tier 1 | 白書品質基準、AST過学習スキャン、4大ルーブリックに基づく独立審査官。 |
+| **`library-evolver`** | ライブラリ自己増殖メタスキル | Tier 1 | 白書 Section 6 Voyager パターン準拠。能力ギャップから新スキルを自律合成。 |
+| **`trace-harvester`** | トレースからのスキル自動結晶化 | Tier 1 | 会話ログや実行トレースから再利用可能なスキル手順書・テストを自動抽出。 |
+
+---
+
+## 🏛️ アーキテクチャ (Two-Tier Architecture)
+
+pytest や Ansible と同様、**「汎用不変ランタイム（pip: `edd-agent-tools`）」** と **「規約駆動コンテンツ（`src/skills/`）」** の疎結合分離モデルを採用しています。
 
 ```mermaid
 flowchart TD
     subgraph PlatformLayer ["不変プラットフォーム層 (pip: edd-agent-tools)"]
-        Validator["SkillValidator (AST/構文静的リンター, Google ADK 2.0 準拠)"]
-        AdkEval["AdkEvalAdapter (Google ADK 2.0 純正 LLM Judge & Position Swapping)"]
+        Validator["SkillValidator (AST/構文静的リンター)"]
+        AdkEval["AdkEvalAdapter (Google ADK 2.0 純正 LLM Judge)"]
         SimRunner["SimulationEvalRunner (3大 Trajectory: EXACT / IN_ORDER / ANY_ORDER)"]
         ContractRunner["ContractTestRunner (pass^k 連続一貫性検証 & サンドボックス)"]
-        CoLoadRunner["CoLoadedEvalRunner (複数スキル同時展開時の Context Rot ベンチマーク)"]
-        StateEngine["SkillsState & DAG Validator (状態・Tier 1~3 管理)"]
-        Optimizer["SkillOptimizer (Human Sign-off ゲート & 一括最適化)"]
-        Packager["SkillPackager (安全な ZIP アーカイブ生成)"]
-        ADKAdapter["ADK 2.0 Native Adapter (SkillToolset, EddSkillRegistry)"]
+        CoLoadRunner["CoLoadedEvalRunner (Context Rot ベンチマーク)"]
+        LinkManager["WorkspaceLinkManager (透過的マルチリポジトリ連携)"]
+        StateEngine["SkillsState (Tier 1~3 管理 & DAG 解析)"]
+        Optimizer["SkillOptimizer (自己改善ループ & Tier 昇格ゲート)"]
         UnifiedCLI["統合 CLI edd (CLI-as-an-API 動的ディスパッチ)"]
     end
 
     subgraph SkillAssets ["自己改善スキル資産層 (src/skills/)"]
-        Creator["skill-creator: スキル設計・Markdownテンプレート・雛形生成"]
-        Evolver["skill-evolver: 失敗診断・自己修復ループ・Tier昇格"]
-        DomainSkills["case-converter, secret-sanitizer 等の実用ドメインスキル"]
+        MetaSkills["skill-creator / skill-evolver / library-evolver"]
+        DomainSkills["case-converter, secret-sanitizer, etc."]
     end
 
-    PlatformLayer -->|基盤SDK・テストハーネス提供| SkillAssets
-    SkillAssets -->|自己改善ループ (Markdown/Scripts/References/Assets/Tests修正)| SkillAssets
+    PlatformLayer -->|SDK・テストハーネス・CLI提供| SkillAssets
+    SkillAssets -->|自己改善ループ (SKILL.md / scripts / tests 修正)| SkillAssets
 ```
 
-1.  **単一真実源の原則 (Markdown-First & Template Assets)**
-    *   スキルの仕様定義はすべて `SKILL.md`（YAML Frontmatter + Markdown）に一元化。パッケージ内部に公式標準の雛形テンプレートを同梱。
-2.  **Progressive Disclosure (段階的リソース分離) & ルーティング設計**
-    *   **Level 1: YAML Frontmatter (Routing Algorithm)**:
-        - `description` は動詞起点（Verb-led sentence）で開始し、「Use when...（発動条件）」および「Do NOT use for...（除外条件）」を明記（50〜100 words）。
-    *   **Level 2: SKILL.md 本文 (Instructions)**:
-        - 客観的動詞起点（Imperative form: "To accomplish X, do Y"）で記述。Context Rot 対策として 5,000 words 以内に抑え、詳細仕様は `references/` に分離。
-    *   **Level 3: Bundled Resources (On-demand & Execution - Google ADK 2.0 純正規格)**:
-        - `scripts/`: 直接実行可能な決定論的スクリプト（Zero-dependency, CLI `--help` 対応, Black-box 実行）。**Shift Intelligence Left** により決定論的処理をコードへオフロード。
-        - `references/`: LLMがオンデマンドで読む詳細ドキュメント・スキーマ・用例パターン集
-        - `assets/`: 成果物にコピー・流用するためのテンプレート・素材・サンプル
-        - `tests/`: Google ADK 2.0 公式 EvalSet 評価データセット（`<skill-name>.test.json`: 単一真実源: SSOT、ADK ディレクトリ自動探索適合）
-3.  **Google ADK 2.0 純正ランタイム完全一致命名規約**
-    *   ADK 2.0 公式ランタイム制約（`skill_dir.name == frontmatter.name`）に基づき、ディレクトリ名・スキル名は **`kebab-case`（例: `case-converter`）** で完全一致。内部スクリプトは Python 標準の **`snake_case`（例: `case_converter.py`）** を厳格適用。
-4.  **Google ADK 2.0 純正評価統合 & 車輪の再発明の完全排除**
-    *   ADK 2.0 の `TrajectoryEvaluator`（3大モード: EXACT / IN_ORDER / ANY_ORDER）および `ResponseEvaluator`（ROUGE-1 `response_match_score`）、そして公式の **`RubricBasedFinalResponseQualityV1Evaluator`** を直接駆動。アドホックな正規表現判定や独自手動キーワード照合（偽ルーブリック判定）、手書き軌跡比較ループを全廃し、エージェント実行・テストケースのツール呼び出しは ADK 2.0 純正の **`run_skill_script`**（args: `skill_name`, `file_path`, `args`, `positional_args`）を第1級の標準（Primary Standard）として採用。
-    *   自前の脆弱な `subprocess.run` 直叩きやラッパースクリプト文字列生成（車輪の再発明）、プライベート属性（`_tools`）への裏口アクセスを完全排除。Google ADK 2.0 純正のスクリプト実行基盤（`SkillScriptRunner` / `LocalSubprocessCodeExecutor` 等の `BaseCodeExecutor`）に一本化し、リソースの自己展開・パストラバーサル防御・公式引数順序展開を保証。契約テスト（`ContractTestRunner`）も同一の実行基盤に統一し、テストと本番エージェント実行の完全な環境パリティを確立。トップレベルエージェント（`src/agent.py`）および実行時には公式推奨通り `code_executor` を直接注入。
-    *   エージェントプロンプトからのスキル名ハードコードや `SkillToolset` 自動注入指示との重複を全廃し、ADK 2.0 純正の Progressive Disclosure（`list_skills` 探索および Toolset 自動プロンプト注入）と ADK 推奨 Callbacks（`before_agent_callback` / `after_agent_callback`）を活用するアーキテクチャへと刷新。
-    *   `SimulationEvalRunner` において `AgentEvaluator` の例外ログを構造解析し、従来のバイナリ全勝/全敗丸めを解消。各テストケース単位での合否判定および詳細コンテキスト（`FailedCaseDetail`）を抽出・記録。
-    *   Frontmatter の `allowed-tools` は ADK 2.0 純正仕様であるスペース区切り文字列として正規化し、ADK 2.0 の `_ALLOWED_FRONTMATTER_KEYS` 規約に準拠して独自拡張プロパティ（パターン種別等）は `metadata.pattern` 配下に格納。`metadata.adk_additional_tools` による追加ツール公開にも対応。
-5.  **白書（May 2026）4大 Eval Coverage Checklist (`--coverage`)**
-    *   白書 Section 4 の 4大必須評価条件（Trigger >= 90%, Execution/Trajectory 100%, Regression 0 drops, Token Budget/Co-loaded 5~15 skills）を一括判定・チェックリスト出力。
-6.  **$pass^k$ (Sustained Reliability) & 3大 Tool Trajectory 評価モード**
-    *   複数回連続実行での全勝を要求する $pass^k$ 評価と、`EXACT`（完全一致）、`IN_ORDER`（順序付き部分列）、`ANY_ORDER`（順序不問）による厳密なツール呼び出し軌跡検証。
-7.  **Human Sign-off ゲート (Tier 3: Action-Allowed)**
-    *   不可逆操作が許可される Tier 3 昇格時には、人間の明示的承認を必須化。
-8.  **白書標準 EDD (Evaluation-Driven Development) インバージョン開発と単一真実源 (SSOT)**
-    *   `SKILL.md` を執筆する前に、まず `tests/<skill-name>.test.json`（単一真実源: SSOT）として **3つの正例 ＋ 3つの負例（計6ケース、白書 Page 22 必須要件）** の Google ADK 2.0 公式 `EvalSet`（`eval_set_id`, `eval_cases`, `conversation`, `Invocation`, `intermediate_data.tool_uses`, `rubrics`）を確定し、ツールの呼び出し軌跡と採点ルーブリックを先行定義。
-    *   **責務分離の原則 (Responsibility Separation)**: ツール呼び出し・引数・順序の検証は `intermediate_data.tool_uses`（Trajectory レイヤー）に集約し、`rubric` はエージェントの最終出力品質（正確性・簡潔性・会話フィラーの排除・負例時の適切な振る舞い）に特化。
-9.  **白書 Appendix A minimal SKILL.md 6大必須セクション標準**
-    *   すべてのスキルは、白書 Appendix A が定める 6 つの必須セクション（`When to use`, `When NOT to use`, `Workflow`, `Examples`, `Output format`, `Anti-patterns to avoid`）を標準実装。
-10. **Google ADK 2.0 純正 BaseCodeExecutor / RunSkillScriptTool 統合 & AgentEvaluator 直結**
-    *   ADK 2.0 公式の `BaseCodeExecutor` 準拠 `LocalSubprocessCodeExecutor` を標準注入した `RunSkillScriptTool` にスクリプト実行を直接委譲し、モンキーパッチや自前展開コードに頼らず正規の手順で安全・高速にコードを実行。
-    *   `edd adk-eval <skill-name>` により、Google ADK 2.0 公式 `AgentEvaluator.evaluate()` を直接ワンストップ実行可能。
-11. **Don't Reinvent MCP as Scripts (MCP再発明の禁止)**
-    *   外部APIやネットワーク通信は MCP ツールに委譲し、スキルスクリプト内で巨大な HTTP クライアントを再発明しない。スキルは Know-how（決定論的手順と処理）に集中。
-12. **3層防御アーキテクチャとネガティブ制約の排除 (3-Tier Defense & Rationale Policy)**
-    *   大文字の禁止命令（"ALWAYS", "NEVER"）による Instruction Bloat を全廃。白書 Page 49 に準拠し、「入力パース ➔ 内部表現 ➔ レンダリング」の設計理由（Rationale）を提示。
-    *   誤検知のない形式的要件は決定論的ゲート（`edd validate` のテンプレート残存検知）で機械的に弾き、過学習（ハードコード分岐）や一般性は独立審査官スキル（`skill-reviewer`）が客観的ルーブリックで監査。
-
+### 3段階の品質ラダー (The Read / Draft / Act Ladder)
+* **Tier 1 (`READ_ONLY`)**: 静的検証（エラー0件）+ CLI契約テスト（100%合格）+ トリガー精度（90%以上）
+* **Tier 2 (`DRAFT_ONLY`)**: ゴールデンデータセット評価（90%以上）+ 上位スキルの連鎖回帰テスト（100%パス）+ Co-loaded 共存テスト
+* **Tier 3 (`ACTION_ALLOWED`)**: Trajectory 評価（`IN_ORDER` / `EXACT`）+ $pass^k$ 持続的一貫性（$k \ge 3$）+ 敵対的レッドチーミング + **人間の明示的承認（Human Sign-off: `--yes`）**
 
 ---
 
-## 3. 実装スキル一覧 (Skills & Workflows)
+## 🤖 Google ADK 2.0 / A2A サーバーの起動
 
-### 🛠 メタスキル & ドメインスキル
-| スキル名 | 役割 / 機能 | Tier | 特徴 |
-| :--- | :--- | :---: | :--- |
-| **`skill-creator`** | スキル設計・雛形生成・配布パッケージャ | Tier 1 | Anthropic & Google ADK 準拠の対話的スキル作成ガイド、雛形生成、AST静的検証、配布用 ZIP パッケージャ、契約テスト完備。 |
-| **`skill-evolver`** | 統合評価・失敗診断・自己修復・Tier昇格 | Tier 1 | 契約テスト・シミュレーション評価の実行、失敗コンテキスト診断、自律的自己修復ループ、依存連鎖回帰テスト（Cascade Testing）、および Tier 1〜3 昇格判定を統合オーケストレーション。 |
-| **`case-converter`** | テキストケース変換 | Tier 1 | camelCase, snake_case, PascalCase, kebab-case, CONSTANT_CASE, Title Case 等の相互変換を行う Zero-dependency 実用スキル。 |
-| **`secret-sanitizer`** | 機密情報マスキング・サニタイズ | **Tier 3** | APIキー、Bearerトークン、パスワード、JWT、IPアドレス、メールアドレスを検出・マスクする Zero-dependency ツール。全品質防壁を突破。 |
-| **`markdown-table-formatter`** | マークダウンテーブル整形・整列 | Tier 1 | 未整列テーブルを解析し、列幅計算とアライメント指定子（左・中央・右）に基づく均一パディングを行う汎用整形スキル。 |
-| **`skill-reviewer`** | スキル品質・過学習監査 (Critic) | Tier 1 | 白書品質基準、AST過学習スキャン、4大ルーブリックに基づく独立審査官スキル。 |
-
----
-
-## 4. クイックスタート (Quick Start)
-
-### パッケージのインストール
-```bash
-pip install -e edd-agent-tools
-```
-
-### 統合 CLI (`edd`) によるスキル操作
-```bash
-# 1. スキルの直接実行 (動的ディスパッチ)
-edd run secret-sanitizer --input "My key is sk-1234567890abcdef"
-# またはスキル名を直接サブコマンドとして指定可能 (Git プラグイン方式)
-edd secret-sanitizer --input "My key is sk-1234567890abcdef"
-
-# 2. 新規スキル雛形の初期化
-edd init my-new-skill --pattern task_based
-
-# 3. 高度な静的バリデーション (Linter / AST 解析)
-edd validate src/skills/my-new-skill
-
-# 4. 配布用 ZIP パッケージング
-edd package src/skills/my-new-skill --out dist
-
-# 5. 白書 4大 Eval Coverage Checklist 検証
-edd eval my-new-skill --coverage
-
-# 6. EDD 多層評価 (Trajectory / pass^k / Co-loaded 対応)
-edd eval my-new-skill --type trajectory --trajectory-mode in_order
-edd eval my-new-skill --pass-k 3
-edd eval my-new-skill --co-loaded
-
-# 7. Google ADK 2.0 公式 AgentEvaluator / adk eval 評価
-edd adk-eval my-new-skill
-edd adk-eval my-new-skill --cli
-
-# 8. Tier 昇格 & 失敗診断 & 一括最適化 (Human Sign-off 対応)
-edd tier-gate my-new-skill --tier 3 --yes
-edd diagnose my-new-skill
-edd optimize my-new-skill --tier 3 --yes
-```
-
-### Google ADK 2.0 エージェント / A2A サーバーの起動
 ```bash
 # 1. Google ADK 2.0 公式 CLI による対話実行 (App コンテナ経由)
 adk run src
@@ -160,11 +141,30 @@ adk run src
 # 2. Google ADK 2.0 Web UI インスペクターの起動
 adk web src
 
-# 3. A2A 互換サーバーの起動 (ポート 8001)
+# 3. A2A (Agent-to-Agent) 互換 Web サーバーの起動 (ポート 8001)
 python src/main.py
 ```
 
-### テストスイートの実行
+---
+
+## 📚 ドキュメント一覧 (Documentation)
+
+* 📖 **[外部プロジェクト連携ガイド](edd-agent-tools/src/edd_agent_tools/docs/workspace_linking_guide.md)**: ローカル業務プロジェクトでの利用と上流 Git 還元の完全ガイド。
+* 📐 **[設計思想と設計哲学 (design_philosophy.md)](edd-agent-tools/src/edd_agent_tools/docs/design_philosophy.md)**: Two-Tier アーキテクチャ、単一真実源原則、リソース分離。
+* 🧪 **[テストアーキテクチャ仕様 (test_architecture.md)](edd-agent-tools/src/edd_agent_tools/docs/test_architecture.md)**: Google ADK 2.0 公式 EvalSet SSOT と多層テスト評価仕様。
+* 🛡️ **[開発ルール・システム制約 (AGENTS.md)](edd-agent-tools/src/edd_agent_tools/AGENTS.md)**: AI エージェントが遵守すべき開発制約とコード生成ルール。
+* 🤝 **[貢献ガイドライン (CONTRIBUTING.md)](CONTRIBUTING.md)**: 開発者向けディレクトリ構成と PR 規約。
+
+---
+
+## 🧪 テストの実行
+
 ```bash
 pytest tests/ -v
 ```
+
+---
+
+## 📄 ライセンス
+
+本プロジェクトは [MIT ライセンス](LICENSE) の下で公開されています。

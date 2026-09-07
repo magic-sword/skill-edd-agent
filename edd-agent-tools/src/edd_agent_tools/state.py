@@ -48,6 +48,27 @@ class SkillsState:
                 if p.strip():
                     self.custom_skills_roots.append(Path(p.strip()).resolve())
 
+        # 4. 外部ワークスペースリンク (.edd.json) の自動解決
+        self.upstream_state_data: Optional[Dict[str, Any]] = None
+        edd_link_file = self.project_root / ".edd.json"
+        if edd_link_file.exists():
+            try:
+                with open(edd_link_file, "r", encoding="utf-8") as f:
+                    link_info = json.load(f)
+                up_skills = link_info.get("upstream_skills_dir")
+                if up_skills:
+                    up_skills_path = Path(up_skills).resolve()
+                    if up_skills_path.exists() and up_skills_path not in self.custom_skills_roots:
+                        self.custom_skills_roots.append(up_skills_path)
+                up_root = link_info.get("upstream_path")
+                if up_root:
+                    up_state_file = Path(up_root) / "skills_state.json"
+                    if up_state_file.exists():
+                        with open(up_state_file, "r", encoding="utf-8") as f:
+                            self.upstream_state_data = json.load(f)
+            except Exception:
+                pass
+
         self.data: Optional[SkillsStateJson] = None
         self._cached_skills: Optional[Dict[str, Skill]] = None
 
@@ -231,7 +252,7 @@ class SkillsState:
         return discovered
 
     def _get_tier_for_skill(self, skill_name: str) -> int:
-        """skills_state.json から指定スキルの Tier を取得"""
+        """skills_state.json から指定スキルの Tier を取得（未登録時はリンク先上流の Tier をフォールバック参照）"""
         if self.data is None:
             self.load()
         if self.data and self.data.skills:
@@ -239,6 +260,16 @@ class SkillsState:
                 if cand in self.data.skills:
                     t = self.data.skills[cand].tier
                     return t.value if hasattr(t, "value") else int(t)
+
+        # 上流リポジトリの skills_state.json があればフォールバック参照
+        if self.upstream_state_data and "skills" in self.upstream_state_data:
+            up_skills = self.upstream_state_data["skills"]
+            for cand in [skill_name, skill_name.replace("_", "-"), skill_name.replace("-", "_")]:
+                if cand in up_skills:
+                    info = up_skills[cand]
+                    t_val = info.get("tier", 1) if isinstance(info, dict) else info
+                    return int(t_val)
+
         return int(SkillTier.SANDBOX)
 
     def get_skill(self, name: str) -> Optional[Skill]:

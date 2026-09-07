@@ -37,6 +37,7 @@ from edd_agent_tools.evaluation.shadow_runner import ShadowEvalRunner
 from edd_agent_tools.evaluation.canary_manager import CanaryDeploymentManager
 from edd_agent_tools.evaluation.rollback_manager import SkillRollbackManager
 from edd_agent_tools.packaging.review_auditor import HumanReviewAuditor
+from edd_agent_tools.core.workspace_link import WorkspaceLinkManager
 
 
 def resolve_skill_script(skill_dir: Path, script_name: Optional[str] = None) -> Optional[Path]:
@@ -960,6 +961,120 @@ def cmd_review_diff(args) -> int:
         return 1
 
 
+def cmd_link(args) -> int:
+    mgr = WorkspaceLinkManager()
+    try:
+        res = mgr.link(args.upstream_path)
+        print(f"\n==================================================")
+        print(f"  🔗 EDD Workspace Link Success                   ")
+        print(f"==================================================")
+        print(f"✅ 上流リポジトリをリンクしました: {res['upstream_path']}")
+        print(f"📁 スキル探索ディレクトリ: {res['upstream_skills_dir']}")
+        print(f"📦 検出された上流スキル ({res['skills_count']} 件):")
+        for s in res['detected_skills']:
+            print(f"   - {s}")
+        if res['gitignore_updated']:
+            print("📝 .gitignore に .edd.json を追加しました。")
+        print(f"==================================================\n")
+        return 0
+    except Exception as e:
+        print(f"❌ リンクに失敗しました: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_unlink(args) -> int:
+    mgr = WorkspaceLinkManager()
+    if mgr.unlink():
+        print("✅ 上流リポジトリのリンク設定 (.edd.json) を解除しました。")
+        return 0
+    else:
+        print("⚠️ リンク設定 (.edd.json) は存在しませんでした。")
+        return 0
+
+
+def cmd_status(args) -> int:
+    mgr = WorkspaceLinkManager()
+    cfg = mgr.get_link_config()
+    state = SkillsState()
+    all_skills = state.scan_skills()
+
+    print("\n==================================================")
+    print("  🛠️  EDD Workspace Status                         ")
+    print("==================================================")
+    print(f"Project Root: {state.project_root}")
+    if cfg:
+        print(f"Upstream Repo: {cfg.upstream_path}")
+        print(f"Upstream Skills Dir: {cfg.upstream_skills_dir}")
+        print(f"Linked At: {cfg.linked_at}")
+        if cfg.upstream_git_origin:
+            print(f"Upstream Git: {cfg.upstream_git_origin}")
+    else:
+        print("Upstream: (Not linked - Standalone project)")
+
+    print(f"\nAvailable Skills ({len(all_skills)}):")
+    for name, skill_obj in sorted(all_skills.items()):
+        is_upstream = cfg and str(skill_obj.root_dir).startswith(cfg.upstream_path)
+        source_label = "[Upstream]" if is_upstream else "[Local]"
+        tier_name = SkillTier(skill_obj.tier).name if skill_obj.tier is not None else "READ_ONLY"
+        print(f"  - {name:<25} Tier {skill_obj.tier} ({tier_name:<14}) {source_label} -> {skill_obj.root_dir}")
+    print("==================================================\n")
+    return 0
+
+
+def cmd_upstream(args) -> int:
+    mgr = WorkspaceLinkManager()
+    cfg = mgr.get_link_config()
+    if not cfg:
+        print("❌ 上流リポジトリがリンクされていません。まず `edd link <path>` を実行してください。", file=sys.stderr)
+        return 1
+
+    action = args.action
+    if action == "status":
+        res = mgr.get_upstream_git_status()
+        if res.get("status") != "success":
+            print(f"❌ {res.get('message')}", file=sys.stderr)
+            return 1
+        print("\n==================================================")
+        print("  🌿 Upstream Git Status                          ")
+        print("==================================================")
+        print(f"上流リポジトリ: {res['upstream_path']}")
+        print(f"現在のブランチ: {res['current_branch']}")
+        if not res["has_changes"]:
+            print("✅ 差分はありません (Working tree clean)")
+        else:
+            print(f"⚠️ 変更差分があります ({len(res['changed_files'])} 件):")
+            for f in res["changed_files"]:
+                print(f"  {f}")
+        print("==================================================\n")
+        return 0
+
+    elif action == "diff":
+        diff_text = mgr.get_upstream_git_diff()
+        print("\n==================================================")
+        print("  📝 Upstream Git Diff                            ")
+        print("==================================================")
+        print(diff_text)
+        print("==================================================\n")
+        return 0
+
+    elif action == "push":
+        branch = getattr(args, "branch", None) or f"skill-improve-{Path.cwd().name}"
+        msg = getattr(args, "message", None) or "fix: Automated skill improvement from downstream workspace"
+        create_pr = getattr(args, "pr", False)
+        print(f"上流リポジトリへプッシュ中... (ブランチ: {branch})")
+        res = mgr.push_upstream(branch_name=branch, message=msg, create_pr=create_pr)
+        if res.get("status") == "success":
+            print(f"✅ プッシュ完了！ ブランチ: {res['branch']}")
+            if res.get("pr_url"):
+                print(f"🎉 PR 作成完了: {res['pr_url']}")
+            return 0
+        else:
+            print(f"❌ プッシュ失敗: {res.get('message')}", file=sys.stderr)
+            return 1
+
+    return 0
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -968,7 +1083,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     known_commands = {
         "run", "init", "validate", "package", "eval", "adk-eval", "tier-gate", "diagnose", "optimize", "list",
         "tune-desc", "harvest-trace", "profile", "co-load", "sync-card", "check-collision", "red-team", "expand-dataset", "publish",
-        "shadow", "canary", "rollback", "review-diff",
+        "shadow", "canary", "rollback", "review-diff", "link", "unlink", "status", "upstream",
         "-h", "--help", "-v", "--version"
     }
 
@@ -1098,7 +1213,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_exp.add_argument("--count", "-n", type=int, default=20, help="Target number of cases (default: 20)")
     p_exp.add_argument("--out", "-o", help="Custom output test dataset path")
 
-    # 19. publish (Agent Registry Publisher: req-agent.txt Line 4)
+    # 19. publish (Agent Registry Publisher: A2A v1.0.0 Protocol)
     p_pub = subparsers.add_parser("publish", help="Publish Agent Card to Agent Registry (A2A v1.0.0)")
     p_pub.add_argument("--card-path", "-p", default="src/agent-card.json", help="Path to agent-card.json (default: src/agent-card.json)")
     p_pub.add_argument("--registry-url", "-u", default="http://localhost:8080/v1/agents", help="Agent Registry endpoint URL")
@@ -1131,6 +1246,23 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_rev = subparsers.add_parser("review-diff", help="Generate human-in-the-loop markdown audit report for sign-off")
     p_rev.add_argument("skill_name", help="Target skill name")
     p_rev.add_argument("--out", "-o", help="Output file path for markdown report")
+
+    # 24. link (Transparent Upstream Workspace Link)
+    p_link = subparsers.add_parser("link", help="Link an upstream skill repository (skill-edd-agent) into current project")
+    p_link.add_argument("upstream_path", help="Path to the upstream repository root")
+
+    # 25. unlink (Unlink Upstream Workspace)
+    p_unlink = subparsers.add_parser("unlink", help="Unlink upstream skill repository from current project")
+
+    # 26. status (Workspace & Skills Status)
+    p_stat = subparsers.add_parser("status", help="Show workspace linking status and all available skills")
+
+    # 27. upstream (Upstream Git Helper)
+    p_up = subparsers.add_parser("upstream", help="Inspect and operate upstream repository Git changes from local workspace")
+    p_up.add_argument("action", choices=["status", "diff", "push"], help="Upstream action: status, diff, or push")
+    p_up.add_argument("--branch", "-b", help="Branch name for pushing changes")
+    p_up.add_argument("--message", "-m", help="Commit message for pushing changes")
+    p_up.add_argument("--pr", action="store_true", help="Create GitHub Pull Request after push (requires gh CLI)")
 
     # パース実行（run 用に未知の引数も許容）
     args, extra = parser.parse_known_args(argv)
@@ -1185,6 +1317,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_rollback(args)
     elif args.command == "review-diff":
         return cmd_review_diff(args)
+    elif args.command == "link":
+        return cmd_link(args)
+    elif args.command == "unlink":
+        return cmd_unlink(args)
+    elif args.command == "status":
+        return cmd_status(args)
+    elif args.command == "upstream":
+        return cmd_upstream(args)
 
     return 0
 

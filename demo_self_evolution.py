@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Self-Evolving EDD Agent: End-to-End Self-Evolution Demo
 
-Kaggle Competition: Vibe Coding Agents Capstone Project (Freestyle Track)
-
 このスクリプトは、エージェントがスキルを自律生成し、
 静的検証・テスト・診断・最適化・連鎖回帰テスト（Cascade Testing）を経て
 Tier 1（Production / Trusted）へ自己進化する一連の EDD プロセスを一撃で実演します。

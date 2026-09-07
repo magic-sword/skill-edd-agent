@@ -28,6 +28,7 @@ EDD（評価駆動開発: Evaluation-Driven Development）による自律型 AI 
 ## 2. 詳細設計書インデックス (Detailed Documents)
 
 *   **[design_philosophy.md](src/edd_agent_tools/docs/design_philosophy.md)**: 全体設計思想・Two-Tier アーキテクチャ・フォルダ構成規約。
+*   **[workspace_linking_guide.md](src/edd_agent_tools/docs/workspace_linking_guide.md)**: 外部プロジェクト連携・Workspace / Layered 参照方式仕様。
 *   **[test_architecture.md](src/edd_agent_tools/docs/test_architecture.md)**: Google ADK 2.0 公式 EvalSet SSOT および多層テスト評価アーキテクチャ仕様。
 *   **[eval_design.md](src/edd_agent_tools/docs/eval_design.md)**: 仮想環境サンドボックスとシミュレーション評価・ADK 公式評価連携の設計仕様。
 *   **[progressive_disclosure.md](src/edd_agent_tools/docs/progressive_disclosure.md)**: リソース分離とProgressive Disclosure標準規約。
@@ -46,6 +47,13 @@ pip install -e edd-agent-tools
 edd run case-converter --to camel "hello_world"
 # またはスキル名を直接サブコマンドとして指定可能 (Git プラグイン方式)
 edd case-converter --to camel "hello_world"
+
+# 外部プロジェクト連携・Workspace リンク
+edd link /path/to/skill-edd-agent      # 上流リポジトリをリンク
+edd status                             # ワークスペースと利用可能スキルの一覧
+edd upstream status                    # 上流リポジトリの Git 差分確認
+edd upstream push --branch fix/tool    # 上流リポジトリへ直接 Push / PR 起票
+edd unlink                             # リンク解除
 
 # スキルライフサイクル管理
 edd init my-skill --pattern workflow
