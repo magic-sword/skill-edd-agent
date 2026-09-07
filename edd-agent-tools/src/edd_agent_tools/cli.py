@@ -33,6 +33,10 @@ from edd_agent_tools.packaging.card_sync import AgentCardSynchronizer
 from edd_agent_tools.validation.collision import SemanticCollisionDetector
 from edd_agent_tools.evaluation.red_team import AdversarialRedTeamRunner
 from edd_agent_tools.evaluation.dataset_expander import GoldenDatasetExpander
+from edd_agent_tools.evaluation.shadow_runner import ShadowEvalRunner
+from edd_agent_tools.evaluation.canary_manager import CanaryDeploymentManager
+from edd_agent_tools.evaluation.rollback_manager import SkillRollbackManager
+from edd_agent_tools.packaging.review_auditor import HumanReviewAuditor
 
 
 def resolve_skill_script(skill_dir: Path, script_name: Optional[str] = None) -> Optional[Path]:
@@ -809,6 +813,153 @@ def cmd_publish(args: argparse.Namespace) -> int:
         return 1
 
 
+def cmd_shadow(args) -> int:
+    runner = ShadowEvalRunner()
+    candidate = args.candidate
+    baseline = getattr(args, "baseline", None)
+    dataset = getattr(args, "dataset", None)
+
+    print(f"\n==================================================")
+    print(f"  Shadow Mode Evaluation (Parallel Comparison)    ")
+    print(f"==================================================")
+    print(f"Candidate Skill: {candidate}")
+    print(f"Baseline Skill: {baseline or '(Unloaded base agent)'}")
+    if dataset:
+        print(f"Evaluation Dataset: {dataset}")
+
+    try:
+        report = runner.run_shadow_comparison(
+            candidate_skill_name=candidate,
+            baseline_skill_name=baseline,
+            test_dataset_path=dataset
+        )
+        print(f"Total Cases: {report.total_cases}")
+        print(f"Candidate Pass Rate: {report.candidate_accuracy:.1%}")
+        print(f"Baseline Pass Rate: {report.baseline_accuracy:.1%}")
+        print(f"Trajectory Agreement: {report.trajectory_agreement_rate:.1%}")
+        print(f"Regressions Detected: {report.regression_count}")
+        print(f"Summary: {report.summary}")
+        print(f"==================================================")
+        if report.regression_detected:
+            print(f"❌ Shadow evaluation failed: {report.regression_count} regressions detected.", file=sys.stderr)
+            return 1
+        print(f"✅ Shadow comparison passed! Zero regressions detected against baseline.")
+        return 0
+    except Exception as e:
+        print(f"❌ Error during shadow evaluation: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_canary(args) -> int:
+    manager = CanaryDeploymentManager()
+    skill_name = args.skill_name
+    action = "status"
+    if getattr(args, "promote", False):
+        action = "promote"
+    elif getattr(args, "abort", False):
+        action = "abort"
+    elif getattr(args, "register", False):
+        action = "register"
+
+    print(f"\n==================================================")
+    print(f"  Canary Deployment Manager                       ")
+    print(f"==================================================")
+    print(f"Target Skill: {skill_name}")
+    print(f"Action: {action.upper()}")
+
+    try:
+        if action == "register":
+            traffic = getattr(args, "traffic", 0.05) or 0.05
+            dep = manager.register_canary(skill_name=skill_name, traffic_ratio=traffic)
+            print(f"Registered Canary: {dep.skill_name} (Traffic: {dep.traffic_ratio:.1%})")
+            return 0
+        elif action == "promote":
+            ok = manager.promote_canary(skill_name)
+            if ok:
+                print(f"✅ Canary deployment for '{skill_name}' successfully PROMOTED to 100% traffic.")
+                return 0
+            else:
+                print(f"❌ Failed to promote canary for '{skill_name}'.", file=sys.stderr)
+                return 1
+        elif action == "abort":
+            reason = getattr(args, "reason", "Manual abort") or "Manual abort"
+            ok = manager.abort_canary(skill_name, reason=reason)
+            if ok:
+                print(f"⚠️ Canary deployment for '{skill_name}' ABORTED (Traffic routed to 0%).")
+                return 0
+            else:
+                print(f"❌ Failed to abort canary for '{skill_name}'.", file=sys.stderr)
+                return 1
+        else:  # status
+            if skill_name not in manager.deployments:
+                traffic = getattr(args, "traffic", 0.05) or 0.05
+                manager.register_canary(skill_name=skill_name, traffic_ratio=traffic)
+            health = manager.evaluate_canary_health(skill_name)
+            print(f"Status: {health.status}")
+            print(f"Traffic Ratio: {health.traffic_ratio:.1%}")
+            print(f"Total Requests: {health.total_requests}")
+            print(f"Canary Error Rate: {health.canary_error_rate:.1%}")
+            print(f"Health Assessment: {health.health_status}")
+            print(f"Action Recommendation: {health.action_recommendation}")
+            print(f"Details: {health.details}")
+            print(f"==================================================")
+            return 0
+    except Exception as e:
+        print(f"❌ Error managing canary: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_rollback(args) -> int:
+    manager = SkillRollbackManager()
+    skill_name = args.skill_name
+    target_tier = getattr(args, "tier", 1) if getattr(args, "tier", None) is not None else 1
+    reason = getattr(args, "reason", "Rollback triggered via CLI") or "Rollback triggered via CLI"
+
+    print(f"\n==================================================")
+    print(f"  Skill Rollback Manager                          ")
+    print(f"==================================================")
+    print(f"Skill: {skill_name}")
+    print(f"Target Tier: {target_tier}")
+    print(f"Reason: {reason}")
+
+    try:
+        receipt = manager.rollback_skill(skill_name=skill_name, target_tier=target_tier, reason=reason)
+        print(f"Receipt ID: {receipt.receipt_id}")
+        print(f"Previous Tier: {receipt.previous_tier} ➔ New Tier: {receipt.new_tier}")
+        print(f"Agent Card Synced: {receipt.agent_card_synced}")
+        print(f"Status: {receipt.status}")
+        print(f"==================================================")
+        print(f"✅ Skill '{skill_name}' successfully rolled back to Tier {target_tier}.")
+        return 0
+    except Exception as e:
+        print(f"❌ Rollback failed: {e}", file=sys.stderr)
+        return 1
+
+
+def cmd_review_diff(args) -> int:
+    auditor = HumanReviewAuditor()
+    skill_name = args.skill_name
+    out_path = Path(args.out) if getattr(args, "out", None) else None
+
+    print(f"\n==================================================")
+    print(f"  Human-in-the-Loop Review Auditor                ")
+    print(f"==================================================")
+    print(f"Target Skill: {skill_name}")
+    if out_path:
+        print(f"Output File: {out_path}")
+
+    try:
+        report = auditor.generate_audit_report(skill_name=skill_name, output_path=out_path)
+        if not out_path:
+            print("\n" + report)
+        else:
+            print(f"✅ Audit report successfully generated and saved to: {out_path}")
+        return 0
+    except Exception as e:
+        print(f"❌ Failed to generate audit report: {e}", file=sys.stderr)
+        return 1
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -817,6 +968,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     known_commands = {
         "run", "init", "validate", "package", "eval", "adk-eval", "tier-gate", "diagnose", "optimize", "list",
         "tune-desc", "harvest-trace", "profile", "co-load", "sync-card", "check-collision", "red-team", "expand-dataset", "publish",
+        "shadow", "canary", "rollback", "review-diff",
         "-h", "--help", "-v", "--version"
     }
 
@@ -954,6 +1106,32 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_pub.add_argument("--token", "-t", help="API Bearer Token for registry authentication")
     p_pub.add_argument("--receipt", "-r", help="Path to save publish receipt JSON")
 
+    # 20. shadow (The Evaluation Toolkit Pattern 5: Parallel Offline Comparison)
+    p_shd = subparsers.add_parser("shadow", help="Run parallel offline comparison between candidate and baseline skills")
+    p_shd.add_argument("candidate", help="Candidate skill name")
+    p_shd.add_argument("--baseline", "-b", help="Baseline skill name to compare against (default: unloaded)")
+    p_shd.add_argument("--dataset", "-d", help="Custom evaluation dataset path")
+
+    # 21. canary (The Evaluation Toolkit Pattern 5: Canary Traffic Deployment)
+    p_can = subparsers.add_parser("canary", help="Manage canary deployment and monitor live/synthetic traffic stability")
+    p_can.add_argument("skill_name", help="Target skill name")
+    p_can.add_argument("--traffic", "-t", type=float, default=0.05, help="Canary traffic ratio (0.01 - 1.0, default: 0.05)")
+    p_can.add_argument("--status", action="store_true", help="Check canary deployment health")
+    p_can.add_argument("--promote", action="store_true", help="Promote canary to 100%% full rollout")
+    p_can.add_argument("--abort", action="store_true", help="Abort canary deployment")
+    p_can.add_argument("--reason", help="Reason for aborting")
+
+    # 22. rollback (Automated Tier Rollback & Card Sync)
+    p_rb = subparsers.add_parser("rollback", help="Rollback skill tier on anomalies and resync Agent Card")
+    p_rb.add_argument("skill_name", help="Target skill name")
+    p_rb.add_argument("--tier", type=int, default=1, help="Target rollback tier (default: 1 [READ_ONLY])")
+    p_rb.add_argument("--reason", default="Manual rollback", help="Reason for rolling back skill")
+
+    # 23. review-diff (Human-in-the-Loop Audit Reporter)
+    p_rev = subparsers.add_parser("review-diff", help="Generate human-in-the-loop markdown audit report for sign-off")
+    p_rev.add_argument("skill_name", help="Target skill name")
+    p_rev.add_argument("--out", "-o", help="Output file path for markdown report")
+
     # パース実行（run 用に未知の引数も許容）
     args, extra = parser.parse_known_args(argv)
 
@@ -999,8 +1177,14 @@ def main(argv: Optional[List[str]] = None) -> int:
         return cmd_expand_dataset(args)
     elif args.command == "publish":
         return cmd_publish(args)
-
-
+    elif args.command == "shadow":
+        return cmd_shadow(args)
+    elif args.command == "canary":
+        return cmd_canary(args)
+    elif args.command == "rollback":
+        return cmd_rollback(args)
+    elif args.command == "review-diff":
+        return cmd_review_diff(args)
 
     return 0
 

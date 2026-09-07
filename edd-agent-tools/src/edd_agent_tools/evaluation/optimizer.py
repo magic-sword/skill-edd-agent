@@ -18,6 +18,7 @@ from edd_agent_tools.evaluation.simulation_runner import SimulationEvalRunner
 from edd_agent_tools.evaluation.cascade_runner import CascadeTestRunner
 from edd_agent_tools.evaluation.co_loaded_runner import CoLoadedEvalRunner
 from edd_agent_tools.evaluation.red_team import AdversarialRedTeamRunner
+from edd_agent_tools.evaluation.shadow_runner import ShadowEvalRunner
 from edd_agent_tools.evaluation.environment import LocalWorkspaceEnv
 
 
@@ -29,6 +30,7 @@ class SkillOptimizer:
         self.cascade_runner = CascadeTestRunner(state=self.state)
         self.co_loaded_runner = CoLoadedEvalRunner(state=self.state)
         self.red_team_runner = AdversarialRedTeamRunner(state=self.state)
+        self.shadow_runner = ShadowEvalRunner(state=self.state)
 
     def run_verification(
         self,
@@ -147,7 +149,18 @@ class SkillOptimizer:
                     "message": f"敵対的レッドチーミング（言い換え攻撃・境界値突破・インジェクション）評価に失敗しました (Accuracy: {red_res.get('accuracy', 0):.1%} < 85%)。"
                 }
 
-        # 5. Tier 3 (Action-Allowed) 昇格時の Human Sign-off ゲート検査
+        # 5. Tier 3 (Action-Allowed) 昇格前の Shadow 並行比較検査 (回帰ゼロ検証)
+        if target_tier >= int(SkillTier.ACTION_ALLOWED) and self.shadow_runner:
+            shadow_res = self.shadow_runner.run_shadow_comparison(candidate_skill_name=skill_name)
+            if shadow_res.regression_detected:
+                return {
+                    "status": "shadow_regression_failed",
+                    "skill_name": skill_name,
+                    "shadow_results": shadow_res.model_dump(),
+                    "message": f"Shadow 並行比較評価にて既存動作への回帰（Regression）が検知されました ({shadow_res.regression_count} 件)。"
+                }
+
+        # 6. Tier 3 (Action-Allowed) 昇格時の Human Sign-off ゲート検査
         if target_tier >= int(SkillTier.ACTION_ALLOWED) and require_signoff and not human_approved:
             return {
                 "status": "pending_human_signoff",
@@ -156,7 +169,7 @@ class SkillOptimizer:
                 "message": "Tier 3 (Action-Allowed) 昇格には人間の明示的承認 (Human Sign-off) が必要です。--yes または human_approved=True を指定してください。"
             }
 
-        # 6. Tier 昇格
+        # 7. Tier 昇格
         self.state.set_skill_tier(skill_name, SkillTier(target_tier))
         return {
             "status": "promoted",

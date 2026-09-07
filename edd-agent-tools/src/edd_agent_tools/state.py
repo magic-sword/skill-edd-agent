@@ -232,6 +232,8 @@ class SkillsState:
 
     def _get_tier_for_skill(self, skill_name: str) -> int:
         """skills_state.json から指定スキルの Tier を取得"""
+        if self.data is None:
+            self.load()
         if self.data and self.data.skills:
             for cand in [skill_name, skill_name.replace("_", "-"), skill_name.replace("-", "_")]:
                 if cand in self.data.skills:
