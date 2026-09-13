@@ -12,7 +12,7 @@ import asyncio
 import datetime
 import subprocess
 from pathlib import Path
-from typing import Literal, Any, Optional, List, Dict
+from typing import Literal, Any, Optional, List, Dict, Union
 
 from ..models.spec import SkillSpec, SkillPattern, ModuleType, SkillMetadata
 from ..models.state import SkillTier

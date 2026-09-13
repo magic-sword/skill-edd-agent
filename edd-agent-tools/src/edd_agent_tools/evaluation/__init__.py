@@ -22,6 +22,10 @@ from .cascade_runner import CascadeTestRunner
 from .diagnoser import SkillDiagnoser
 from .optimizer import SkillOptimizer
 from .generator import EvalSetGenerator, generate_evalset
+from .telemetry import TelemetryCollector
+from .root_cause_analyzer import DiagnosticAnalyzer
+from .edd_report import EDDReportFormatter
+from .bridge import EDDMetaSkillBridge
 
 __all__ = [
     "WorkspaceEnvProtocol",
@@ -38,5 +42,9 @@ __all__ = [
     "SkillDiagnoser",
     "SkillOptimizer",
     "EvalSetGenerator",
-    "generate_evalset"
+    "generate_evalset",
+    "TelemetryCollector",
+    "DiagnosticAnalyzer",
+    "EDDReportFormatter",
+    "EDDMetaSkillBridge",
 ]
